@@ -7,7 +7,7 @@ import {
   type GameAction,
   type GameState,
 } from './duel-engine';
-import { ENCOUNTERS, chooseEnemyTurn, type Encounter } from './encounters';
+import { ENCOUNTERS, advanceEncounter, chooseEnemyTurn, createEncounterRun, type Encounter } from './encounters';
 
 export const playBoardZones = [
   'Enemy health',
@@ -23,6 +23,16 @@ export const playBoardZones = [
 
 export function getPlayBoardZones(): string[] {
   return [...playBoardZones];
+}
+
+const playInteractionChecklist = [
+  'Start from the Play route and review the visible turn state before acting.',
+  'Use the action controls to play cards, advance combat, and end the turn.',
+  'Watch the turn flow panel after each click to confirm the next expected step.',
+] as const;
+
+export function getPlayInteractionChecklist(): string[] {
+  return [...playInteractionChecklist];
 }
 
 type IdlePlayState = {
@@ -41,6 +51,28 @@ type ActivePlayState = {
 };
 
 export type PlayState = IdlePlayState | ActivePlayState;
+
+type PersistedIdlePlayState = {
+  mode: 'idle';
+};
+
+type PersistedActivePlayState = {
+  mode: 'active';
+  encounterId: string;
+  game: GameState;
+  statusMessage: string;
+  log: string[];
+};
+
+export type PersistedPlayState = PersistedIdlePlayState | PersistedActivePlayState;
+
+function getEncounterById(encounterId: string): Encounter | null {
+  return ENCOUNTERS.find((entry) => entry.id === encounterId) ?? null;
+}
+
+function getSavedEncounterId(savedState: PersistedActivePlayState | ActivePlayState): string {
+  return 'encounter' in savedState ? savedState.encounter.id : savedState.encounterId;
+}
 
 const spellDamageByCardId: Record<string, number> = {
   coalburst: 2,
@@ -71,6 +103,7 @@ function toDuelCards(): DuelCardDefinition[] {
         cost: card.cost,
         attack: card.attack,
         health: card.health,
+        keywords: card.keywords,
       };
     }
 
@@ -175,10 +208,70 @@ function runEnemyTurn(state: ActivePlayState): ActivePlayState {
   };
 }
 
+function getVictoryStatusMessage(encounter: Encounter): string {
+  const run = createEncounterRun();
+
+  while (run.currentEncounter.id !== encounter.id && !run.isComplete) {
+    const nextRun = advanceEncounter(run, 'won');
+
+    if (nextRun.currentEncounter.id === run.currentEncounter.id && nextRun.isComplete === run.isComplete) {
+      break;
+    }
+
+    run.currentEncounter = nextRun.currentEncounter;
+    run.completedEncounterIds = nextRun.completedEncounterIds;
+    run.isComplete = nextRun.isComplete;
+  }
+
+  const nextRun = advanceEncounter(run, 'won');
+
+  if (nextRun.isComplete) {
+    return `You defeated ${encounter.name} and cleared the encounter ladder.`;
+  }
+
+  return `You defeated ${encounter.name}. Next encounter: ${nextRun.currentEncounter.name}.`;
+}
+
 export function createInitialPlayState(): PlayState {
   return {
     mode: 'idle',
     availableEncounters: ENCOUNTERS,
+  };
+}
+
+export function serializePlayState(state: PlayState): PersistedPlayState {
+  if (state.mode === 'idle') {
+    return { mode: 'idle' };
+  }
+
+  return {
+    mode: 'active',
+    encounterId: state.encounter.id,
+    game: state.game,
+    statusMessage: state.statusMessage,
+    log: state.log,
+  };
+}
+
+export function restorePlayState(savedState: PersistedPlayState | PlayState | null): PlayState {
+  if (!savedState || savedState.mode === 'idle') {
+    return createInitialPlayState();
+  }
+
+  const encounter = getEncounterById(getSavedEncounterId(savedState));
+
+  if (!encounter) {
+    return createInitialPlayState();
+  }
+
+  return {
+    mode: 'active',
+    availableEncounters: ENCOUNTERS,
+    encounter,
+    game: savedState.game,
+    legalActions: getLegalActions(savedState.game),
+    statusMessage: savedState.statusMessage,
+    log: savedState.log,
   };
 }
 
@@ -206,7 +299,7 @@ export function performAction(state: ActivePlayState, action: GameAction): Activ
     legalActions: getLegalActions(nextState.game),
     statusMessage:
       nextState.game.winnerId === 'player'
-        ? `You defeated ${state.encounter.name}.`
+        ? getVictoryStatusMessage(state.encounter)
         : action.type === 'end_turn'
           ? `Enemy is taking a turn against ${state.encounter.name}.`
           : 'Action resolved. Choose your next move.',

@@ -2,14 +2,28 @@ import { FunctionalComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
 import { CardReferenceView } from './CardReferenceView';
+import { createNamespacedLocalStore } from './persistence';
 import {
   createInitialPlayState,
   getActionLabel,
+  getPlayInteractionChecklist,
   performAction,
+  restorePlayState,
+  serializePlayState,
   startEncounter,
   type PlayState,
 } from './play-page';
 import { getRouteFromHash, getRouteHref, type RouteKey } from './router';
+
+const PLAY_STATE_STORAGE_KEY = 'play-state';
+
+function getStorageNamespace() {
+  const benchmarkWindow = window as Window & {
+    __ORG_BENCH_STORAGE_NAMESPACE__?: string;
+  };
+
+  return benchmarkWindow.__ORG_BENCH_STORAGE_NAMESPACE__ ?? 'run:apple-seed-01';
+}
 
 type NavLink = {
   href: string;
@@ -144,7 +158,10 @@ const rulesSections: RulesSection[] = [
 
 const App: FunctionalComponent = () => {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
-  const [playState, setPlayState] = useState<PlayState>(() => createInitialPlayState());
+  const [playState, setPlayState] = useState<PlayState>(() => {
+    const store = createNamespacedLocalStore(getStorageNamespace());
+    return restorePlayState(store.load(PLAY_STATE_STORAGE_KEY, null));
+  });
 
   useEffect(() => {
     const updateRoute = () => setRoute(getRouteFromHash(window.location.hash));
@@ -154,7 +171,13 @@ const App: FunctionalComponent = () => {
     return () => window.removeEventListener('hashchange', updateRoute);
   }, []);
 
+  useEffect(() => {
+    const store = createNamespacedLocalStore(getStorageNamespace());
+    store.save(PLAY_STATE_STORAGE_KEY, serializePlayState(playState));
+  }, [playState]);
+
   const currentPage = pageCopy[route];
+  const playChecklist = getPlayInteractionChecklist();
 
   return (
     <div class="site-shell">
@@ -188,6 +211,18 @@ const App: FunctionalComponent = () => {
               Choose one of the visible enemies below. Once a duel starts, every legal action appears as a
               button and the board updates in place after your move and the AI response.
             </p>
+          </section>
+
+          <section class="panel play-checklist">
+            <div>
+              <p class="section-kicker">Quick start</p>
+              <h3>How the clickable duel flows</h3>
+            </div>
+            <ol class="checklist">
+              {playChecklist.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ol>
           </section>
 
           <section class="zone-grid" aria-label="Play board zones">
