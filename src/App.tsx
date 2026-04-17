@@ -2,20 +2,18 @@ import { FunctionalComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
 import { CardReferenceView } from './CardReferenceView';
-import { createNamespacedLocalStore } from './persistence';
+import { clearSavedActiveEncounter, loadSavedActiveEncounter, saveActiveEncounter } from './play-state-persistence';
 import {
   createInitialPlayState,
   getActionLabel,
+  getPlayBannerCopy,
   getPlayInteractionChecklist,
   performAction,
   restorePlayState,
-  serializePlayState,
   startEncounter,
   type PlayState,
 } from './play-page';
 import { getRouteFromHash, getRouteHref, type RouteKey } from './router';
-
-const PLAY_STATE_STORAGE_KEY = 'play-state';
 
 function getStorageNamespace() {
   const benchmarkWindow = window as Window & {
@@ -159,8 +157,19 @@ const rulesSections: RulesSection[] = [
 const App: FunctionalComponent = () => {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
   const [playState, setPlayState] = useState<PlayState>(() => {
-    const store = createNamespacedLocalStore(getStorageNamespace());
-    return restorePlayState(store.load(PLAY_STATE_STORAGE_KEY, null));
+    const savedEncounter = loadSavedActiveEncounter(getStorageNamespace(), window.localStorage);
+
+    if (!savedEncounter) {
+      return createInitialPlayState();
+    }
+
+    return restorePlayState({
+      mode: 'active',
+      encounterId: savedEncounter.encounter.id,
+      game: savedEncounter.game,
+      statusMessage: savedEncounter.statusMessage,
+      log: savedEncounter.log,
+    });
   });
 
   useEffect(() => {
@@ -172,12 +181,22 @@ const App: FunctionalComponent = () => {
   }, []);
 
   useEffect(() => {
-    const store = createNamespacedLocalStore(getStorageNamespace());
-    store.save(PLAY_STATE_STORAGE_KEY, serializePlayState(playState));
+    if (playState.mode === 'active') {
+      saveActiveEncounter(getStorageNamespace(), window.localStorage, {
+        encounter: playState.encounter,
+        game: playState.game,
+        statusMessage: playState.statusMessage,
+        log: playState.log,
+      });
+      return;
+    }
+
+    clearSavedActiveEncounter(getStorageNamespace(), window.localStorage);
   }, [playState]);
 
   const currentPage = pageCopy[route];
   const playChecklist = getPlayInteractionChecklist();
+  const playBanner = getPlayBannerCopy(playState);
 
   return (
     <div class="site-shell">
@@ -204,13 +223,10 @@ const App: FunctionalComponent = () => {
         <main class="play-layout">
           <section class="play-banner panel">
             <div>
-              <p class="section-kicker">Campaign ladder</p>
-              <h2>Start an encounter</h2>
+              <p class="section-kicker">{playBanner.kicker}</p>
+              <h2>{playBanner.title}</h2>
             </div>
-            <p>
-              Choose one of the visible enemies below. Once a duel starts, every legal action appears as a
-              button and the board updates in place after your move and the AI response.
-            </p>
+            <p>{playBanner.body}</p>
           </section>
 
           <section class="panel play-checklist">

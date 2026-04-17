@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createInitialPlayState,
+  getPlayBannerCopy,
   getPlayBoardZones,
   getPlayInteractionChecklist,
   performAction,
@@ -30,6 +31,24 @@ describe('getPlayBoardZones', () => {
       'Use the action controls to play cards, advance combat, and end the turn.',
       'Watch the turn flow panel after each click to confirm the next expected step.',
     ]);
+  });
+
+  it('explains when the player is starting fresh versus resuming a live encounter', () => {
+    expect(getPlayBannerCopy(createInitialPlayState())).toEqual({
+      kicker: 'Campaign ladder',
+      title: 'Start an encounter',
+      body:
+        'Choose one of the visible enemies below. Once a duel starts, every legal action appears as a button and the board updates in place after your move and the AI response.',
+    });
+
+    const activeState = startEncounter(createInitialPlayState(), 'cinder-raider');
+
+    expect(getPlayBannerCopy(activeState)).toEqual({
+      kicker: 'Saved duel resumed',
+      title: 'Continue against Cinder Raider',
+      body:
+        'Your last active encounter is back on screen. Review the board, then use the visible legal actions to keep the duel moving.',
+    });
   });
 
   it('starts an encounter and resolves a legal player turn into an enemy response', () => {

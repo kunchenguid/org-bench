@@ -35,6 +35,12 @@ export function getPlayInteractionChecklist(): string[] {
   return [...playInteractionChecklist];
 }
 
+type PlayBannerCopy = {
+  kicker: string;
+  title: string;
+  body: string;
+};
+
 type IdlePlayState = {
   mode: 'idle';
   availableEncounters: Encounter[];
@@ -51,6 +57,24 @@ type ActivePlayState = {
 };
 
 export type PlayState = IdlePlayState | ActivePlayState;
+
+export function getPlayBannerCopy(state: PlayState): PlayBannerCopy {
+  if (state.mode === 'active') {
+    return {
+      kicker: 'Saved duel resumed',
+      title: `Continue against ${state.encounter.name}`,
+      body:
+        'Your last active encounter is back on screen. Review the board, then use the visible legal actions to keep the duel moving.',
+    };
+  }
+
+  return {
+    kicker: 'Campaign ladder',
+    title: 'Start an encounter',
+    body:
+      'Choose one of the visible enemies below. Once a duel starts, every legal action appears as a button and the board updates in place after your move and the AI response.',
+  };
+}
 
 type PersistedIdlePlayState = {
   mode: 'idle';
