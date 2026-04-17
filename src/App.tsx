@@ -2,13 +2,20 @@ import { FunctionalComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
 import { CardReferenceView } from './CardReferenceView';
-import { getPlayBoardZones } from './play-page';
+import {
+  createInitialPlayState,
+  getActionLabel,
+  performAction,
+  startEncounter,
+  type PlayState,
+} from './play-page';
 import { getRouteFromHash, getRouteHref, type RouteKey } from './router';
 
 type NavLink = {
   href: string;
   label: string;
   route: RouteKey;
+  description: string;
 };
 
 type PageCopy = {
@@ -23,10 +30,30 @@ type RulesSection = {
 };
 
 const navLinks: NavLink[] = [
-  { href: getRouteHref('home'), label: 'Home', route: 'home' },
-  { href: getRouteHref('play'), label: 'Play', route: 'play' },
-  { href: getRouteHref('rules'), label: 'Rules', route: 'rules' },
-  { href: getRouteHref('cards'), label: 'Cards', route: 'cards' },
+  {
+    href: getRouteHref('home'),
+    label: 'Home',
+    route: 'home',
+    description: 'Overview, release status, and next milestones.',
+  },
+  {
+    href: getRouteHref('play'),
+    label: 'Play',
+    route: 'play',
+    description: 'Board layout, encounter flow, and turn controls.',
+  },
+  {
+    href: getRouteHref('rules'),
+    label: 'Rules',
+    route: 'rules',
+    description: 'First-time setup, turn order, keywords, and victory.',
+  },
+  {
+    href: getRouteHref('cards'),
+    label: 'Cards',
+    route: 'cards',
+    description: 'Starter decks, factions, and searchable card roles.',
+  },
 ];
 
 const pageCopy: Record<RouteKey, PageCopy> = {
@@ -60,8 +87,8 @@ const rulesSections: RulesSection[] = [
   {
     title: '1. Setup',
     body: [
-      'Start a run from the Play page and select the next encounter on the ladder. Each battle begins with both sides shuffling, drawing an opening hand, and starting at the listed life total.',
-      'A run continues from fight to fight until you lose, retire, or clear the final encounter. The browser run should carry your ladder progress and rewards forward between battles.',
+      'Start a run from the Play page, pick your deck, then select the next encounter on the ladder. The current card pool is built around Ember Vanguard for aggressive pressure and Tide Anchor for patient board control.',
+      'Each battle begins with both sides shuffling, drawing an opening hand, and starting at the listed life total. A run continues from fight to fight until you lose, retire, or clear the final encounter.',
     ],
   },
   {
@@ -74,8 +101,8 @@ const rulesSections: RulesSection[] = [
   {
     title: '3. Resources',
     body: [
-      'Mana is the resource used to play cards. At the start of your turn you refresh your available mana up to your current cap, then spend it as you cast cards from hand.',
-      'If a card costs more mana than you currently have, you must wait. Unspent mana usually disappears at end of turn unless a card effect says it is stored.',
+      'Mana is the resource used to play cards. At the start of your turn you refresh your available mana up to your current cap, then spend it as you play cards from hand based on their cost.',
+      'If a creature or spell costs more mana than you currently have, you must wait. Unspent mana usually disappears at end of turn unless a card effect says it is stored.',
     ],
   },
   {
@@ -95,8 +122,8 @@ const rulesSections: RulesSection[] = [
   {
     title: '6. Keywords',
     body: [
-      'Keywords are compact rules text. Typical examples are Guard for units that must be answered before other attacks can push through, Charge for units that can attack sooner, and spell-triggered abilities that reward chaining spells.',
-      'If a keyword is unclear, check the card reference or tooltip. When a card has both a keyword and specific rules text, the specific card text wins.',
+      'Keywords are compact rules text shared with the Cards page glossary. Guard means enemies must attack that creature first. Charge means the creature can attack the turn it is played. Swift means the creature moves first during combat timing checks.',
+      'Burn deals the listed damage directly when the effect resolves. Flow grants its bonus if you played another card this turn. Shield prevents the next damage that unit would take each turn. If a card has both a keyword and specific rules text, the specific card text wins.',
     ],
   },
   {
@@ -115,20 +142,9 @@ const rulesSections: RulesSection[] = [
   },
 ];
 
-const playZoneDescriptions: Record<string, string> = {
-  'Enemy health': 'Visible damage pressure and remaining life total for the opposing side.',
-  'Player health': 'Your current life total and survival buffer for the duel.',
-  Resources: 'Available energy for playing cards and sequencing turns.',
-  Battlefield: 'The shared lane where units and ongoing effects are tracked.',
-  Hand: 'Ready-to-play cards with enough room for evaluator-driven choices.',
-  Deck: 'Remaining draw pile so state and fatigue pressure stay legible.',
-  Discard: 'Spent cards and defeated units for graveyard-aware effects.',
-  'Action controls': 'Primary buttons for ending turns, resolving combat, and advancing game state.',
-  'Turn flow': 'Clear feedback showing the current phase, prompts, and next expected action.',
-};
-
 const App: FunctionalComponent = () => {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
+  const [playState, setPlayState] = useState<PlayState>(() => createInitialPlayState());
 
   useEffect(() => {
     const updateRoute = () => setRoute(getRouteFromHash(window.location.hash));
@@ -139,7 +155,6 @@ const App: FunctionalComponent = () => {
   }, []);
 
   const currentPage = pageCopy[route];
-  const playZones = getPlayBoardZones();
 
   return (
     <div class="site-shell">
@@ -152,7 +167,10 @@ const App: FunctionalComponent = () => {
         <nav aria-label="Primary navigation" class="nav-grid">
           {navLinks.map((link) => (
             <a class={route === link.route ? 'nav-card active' : 'nav-card'} href={link.href} key={link.route}>
-              <span>{link.label}</span>
+              <div>
+                <span class="nav-label">{link.label}</span>
+                <p class="nav-description">{link.description}</p>
+              </div>
               <small>{route === link.route ? 'Current page' : 'Open page'}</small>
             </a>
           ))}
@@ -163,23 +181,133 @@ const App: FunctionalComponent = () => {
         <main class="play-layout">
           <section class="play-banner panel">
             <div>
-              <p class="section-kicker">Evaluator board</p>
-              <h2>Encounter at a glance</h2>
+              <p class="section-kicker">Campaign ladder</p>
+              <h2>Start an encounter</h2>
             </div>
             <p>
-              Every critical combat zone is visible in one screen so automated and manual play can read
-              state, make moves, and confirm turn progression without hidden UI.
+              Choose one of the visible enemies below. Once a duel starts, every legal action appears as a
+              button and the board updates in place after your move and the AI response.
             </p>
           </section>
 
           <section class="zone-grid" aria-label="Play board zones">
-            {playZones.map((zone) => (
-              <article class={zone === 'Battlefield' ? 'panel zone-card zone-card-wide' : 'panel zone-card'} key={zone}>
-                <p class="section-kicker">Zone</p>
-                <h3>{zone}</h3>
-                <p>{playZoneDescriptions[zone]}</p>
-              </article>
-            ))}
+            <article class="panel zone-card zone-card-wide">
+              <p class="section-kicker">Encounter ladder</p>
+              <h3>Available opponents</h3>
+              <div class="action-list">
+                {playState.availableEncounters.map((encounter) => (
+                  <button class="action-button" key={encounter.id} onClick={() => setPlayState(startEncounter(playState, encounter.id))}>
+                    Start {encounter.name}
+                  </button>
+                ))}
+              </div>
+            </article>
+
+            <article class="panel zone-card">
+              <p class="section-kicker">Enemy health</p>
+              <h3>{playState.mode === 'active' ? playState.game.players.enemy.health : '-'}</h3>
+              <p>{playState.mode === 'active' ? playState.encounter.name : 'Pick an encounter to begin.'}</p>
+            </article>
+
+            <article class="panel zone-card">
+              <p class="section-kicker">Player health</p>
+              <h3>{playState.mode === 'active' ? playState.game.players.player.health : '-'}</h3>
+              <p>{playState.mode === 'active' ? 'Your hero life total.' : 'Your duel has not started yet.'}</p>
+            </article>
+
+            <article class="panel zone-card">
+              <p class="section-kicker">Resources</p>
+              <h3>
+                {playState.mode === 'active'
+                  ? `${playState.game.players.player.resources}/${playState.game.players.player.maxResources}`
+                  : '-'}
+              </h3>
+              <p>Spend resources to play cards from your hand.</p>
+            </article>
+
+            <article class="panel zone-card zone-card-wide">
+              <p class="section-kicker">Battlefield</p>
+              <h3>Creatures in play</h3>
+              {playState.mode === 'active' ? (
+                <div class="stack-list">
+                  <div>
+                    <strong>You:</strong>{' '}
+                    {playState.game.players.player.battlefield.length > 0
+                      ? playState.game.players.player.battlefield
+                          .map((card) => {
+                            const definition = playState.game.cardsById[card.cardId];
+                            return `${definition.name} ${card.attack}/${card.health}${card.exhausted ? ' exhausted' : ' ready'}`;
+                          })
+                          .join(' | ')
+                      : 'No creatures in play.'}
+                  </div>
+                  <div>
+                    <strong>Enemy:</strong>{' '}
+                    {playState.game.players.enemy.battlefield.length > 0
+                      ? playState.game.players.enemy.battlefield
+                          .map((card) => {
+                            const definition = playState.game.cardsById[card.cardId];
+                            return `${definition.name} ${card.attack}/${card.health}${card.exhausted ? ' exhausted' : ' ready'}`;
+                          })
+                          .join(' | ')
+                      : 'No creatures in play.'}
+                  </div>
+                </div>
+              ) : (
+                <p>The shared battle lane appears here after you start a fight.</p>
+              )}
+            </article>
+
+            <article class="panel zone-card zone-card-wide">
+              <p class="section-kicker">Hand</p>
+              <h3>Playable cards</h3>
+              <p>
+                {playState.mode === 'active'
+                  ? playState.game.players.player.hand
+                      .map((card) => {
+                        const definition = playState.game.cardsById[card.cardId];
+                        return `${definition.name} (${definition.cost})`;
+                      })
+                      .join(' | ') || 'Your hand is empty.'
+                  : 'Your hand will appear after an encounter starts.'}
+              </p>
+            </article>
+
+            <article class="panel zone-card">
+              <p class="section-kicker">Deck</p>
+              <h3>{playState.mode === 'active' ? playState.game.players.player.deck.length : '-'}</h3>
+              <p>Cards left in your draw pile.</p>
+            </article>
+
+            <article class="panel zone-card">
+              <p class="section-kicker">Discard</p>
+              <h3>{playState.mode === 'active' ? playState.game.players.player.discard.length : '-'}</h3>
+              <p>Spent spells and defeated creatures.</p>
+            </article>
+
+            <article class="panel zone-card">
+              <p class="section-kicker">Action controls</p>
+              <h3>Legal actions</h3>
+              {playState.mode === 'active' ? (
+                <div class="action-list">
+                  {playState.legalActions.map((action, index) => (
+                    <button class="action-button" key={`${action.type}-${index}`} onClick={() => setPlayState(performAction(playState, action))}>
+                      {getActionLabel(playState, action)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p>Start an encounter to reveal your legal turn actions.</p>
+              )}
+            </article>
+
+            <article class="panel zone-card zone-card-wide">
+              <p class="section-kicker">Turn flow</p>
+              <h3>{playState.mode === 'active' ? playState.statusMessage : 'Waiting for encounter start.'}</h3>
+              <div class="log-list">
+                {playState.mode === 'active' ? playState.log.slice(-6).map((entry) => <p key={entry}>{entry}</p>) : <p>No duel log yet.</p>}
+              </div>
+            </article>
           </section>
         </main>
       ) : route === 'rules' ? (
@@ -218,4 +346,4 @@ const App: FunctionalComponent = () => {
   );
 };
 
-export { App, pageCopy, rulesSections };
+export { App, navLinks, pageCopy, rulesSections };
