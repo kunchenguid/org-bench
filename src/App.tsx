@@ -371,6 +371,8 @@ const App: FunctionalComponent = () => {
 
                         if (nextState.game.winnerId === 'player') {
                           completeSavedEncounter(getStorageNamespace(), window.localStorage, 'won');
+                        } else if (nextState.game.winnerId === 'enemy') {
+                          completeSavedEncounter(getStorageNamespace(), window.localStorage, 'lost');
                         }
 
                         setPlayState(nextState);
