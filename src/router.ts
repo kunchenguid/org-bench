@@ -7,6 +7,29 @@ const ROUTES: Record<string, RouteKey> = {
   '#/cards': 'cards',
 };
 
+const HREFS: Record<RouteKey, string> = {
+  home: './#/',
+  play: './#/play',
+  rules: './#/rules',
+  cards: './#/cards',
+};
+
+function normalizeHash(hash: string): string {
+  const [path] = hash.split('?');
+
+  if (path === '' || path === '#') {
+    return '#/';
+  }
+
+  const withoutTrailingSlash = path.endsWith('/') && path !== '#/' ? path.slice(0, -1) : path;
+
+  return withoutTrailingSlash || '#/';
+}
+
 export function getRouteFromHash(hash: string): RouteKey {
-  return ROUTES[hash] ?? 'home';
+  return ROUTES[normalizeHash(hash)] ?? 'home';
+}
+
+export function getRouteHref(route: RouteKey): string {
+  return HREFS[route];
 }
