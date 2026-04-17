@@ -3,8 +3,8 @@ import { useEffect, useState } from 'preact/hooks';
 
 import { CardReferenceView } from './CardReferenceView';
 import {
-  advanceSavedEncounterRun,
   clearSavedActiveEncounter,
+  completeSavedEncounter,
   loadSavedActiveEncounter,
   loadSavedEncounterRun,
   saveActiveEncounter,
@@ -370,7 +370,7 @@ const App: FunctionalComponent = () => {
                         const nextState = performAction(playState, action);
 
                         if (nextState.game.winnerId === 'player') {
-                          advanceSavedEncounterRun(getStorageNamespace(), window.localStorage, 'won');
+                          completeSavedEncounter(getStorageNamespace(), window.localStorage, 'won');
                         }
 
                         setPlayState(nextState);

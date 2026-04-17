@@ -7,7 +7,7 @@ import {
   type GameAction,
   type GameState,
 } from './duel-engine';
-import { ENCOUNTERS, advanceEncounter, chooseEnemyTurn, createEncounterRun, type Encounter } from './encounters';
+import { ENCOUNTERS, advanceEncounter, chooseEnemyTurn, createEncounterRun, type Encounter, type EncounterRun } from './encounters';
 
 export const playBoardZones = [
   'Enemy health',
@@ -27,8 +27,8 @@ export function getPlayBoardZones(): string[] {
 
 const playInteractionChecklist = [
   'Start from the Play route and review the visible turn state before acting.',
-  'Use the action controls to play cards, advance combat, and end the turn.',
-  'Watch the turn flow panel after each click to confirm the next expected step.',
+  'Use the action controls to play cards, advance combat, and end the turn while the board updates in place.',
+  'Wins advance the encounter ladder, and reloads resume your current duel from the saved board state.',
 ] as const;
 
 export function getPlayInteractionChecklist(): string[] {
@@ -256,10 +256,10 @@ function getVictoryStatusMessage(encounter: Encounter): string {
   return `You defeated ${encounter.name}. Next encounter: ${nextRun.currentEncounter.name}.`;
 }
 
-export function createInitialPlayState(): PlayState {
+export function createInitialPlayState(run: EncounterRun = createEncounterRun()): PlayState {
   return {
     mode: 'idle',
-    availableEncounters: ENCOUNTERS,
+    availableEncounters: run.isComplete ? [] : [run.currentEncounter],
   };
 }
 
@@ -300,7 +300,7 @@ export function restorePlayState(savedState: PersistedPlayState | PlayState | nu
 }
 
 export function startEncounter(state: PlayState, encounterId: string): ActivePlayState {
-  const encounter = state.availableEncounters.find((entry) => entry.id === encounterId);
+  const encounter = state.availableEncounters.find((entry) => entry.id === encounterId) ?? getEncounterById(encounterId);
 
   if (!encounter) {
     throw new Error(`unknown encounter: ${encounterId}`);
