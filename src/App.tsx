@@ -2,7 +2,14 @@ import { FunctionalComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
 import { CardReferenceView } from './CardReferenceView';
-import { clearSavedActiveEncounter, loadSavedActiveEncounter, saveActiveEncounter } from './play-state-persistence';
+import {
+  advanceSavedEncounterRun,
+  clearSavedActiveEncounter,
+  loadSavedActiveEncounter,
+  loadSavedEncounterRun,
+  saveActiveEncounter,
+  saveEncounterRun,
+} from './play-state-persistence';
 import {
   createInitialPlayState,
   getActionLabel,
@@ -73,13 +80,13 @@ const pageCopy: Record<RouteKey, PageCopy> = {
     eyebrow: 'Single-player card battles',
     title: 'Duel TCG',
     body:
-      'A polished browser-first card game is landing here. This scaffold sets up the published shell, navigation, and nested-path-safe routing for the full campaign and battle system.',
+      'A playable browser-first card duel prototype is live here now, with polished navigation, nested-path-safe routing, and a clean shell for expanding the campaign.',
   },
   play: {
     eyebrow: 'Play page',
     title: 'Encounter Board',
     body:
-      'The combat board, campaign ladder, and save-resume flow will attach here on top of the shared shell.',
+      'Launch an encounter, take visible legal actions, and reload straight back into your saved duel without losing the current board state.',
   },
   rules: {
     eyebrow: 'Rules page',
@@ -181,7 +188,7 @@ const App: FunctionalComponent = () => {
   }, []);
 
   useEffect(() => {
-    if (playState.mode === 'active') {
+    if (playState.mode === 'active' && !playState.game.winnerId) {
       saveActiveEncounter(getStorageNamespace(), window.localStorage, {
         encounter: playState.encounter,
         game: playState.game,
@@ -247,7 +254,21 @@ const App: FunctionalComponent = () => {
               <h3>Available opponents</h3>
               <div class="action-list">
                 {playState.availableEncounters.map((encounter) => (
-                  <button class="action-button" key={encounter.id} onClick={() => setPlayState(startEncounter(playState, encounter.id))}>
+                  <button
+                    class="action-button"
+                    key={encounter.id}
+                    onClick={() => {
+                      const namespace = getStorageNamespace();
+                      const currentRun = loadSavedEncounterRun(namespace, window.localStorage);
+
+                      saveEncounterRun(namespace, window.localStorage, {
+                        ...currentRun,
+                        currentEncounter: encounter,
+                      });
+
+                      setPlayState(startEncounter(playState, encounter.id));
+                    }}
+                  >
                     Start {encounter.name}
                   </button>
                 ))}
@@ -342,7 +363,19 @@ const App: FunctionalComponent = () => {
               {playState.mode === 'active' ? (
                 <div class="action-list">
                   {playState.legalActions.map((action, index) => (
-                    <button class="action-button" key={`${action.type}-${index}`} onClick={() => setPlayState(performAction(playState, action))}>
+                    <button
+                      class="action-button"
+                      key={`${action.type}-${index}`}
+                      onClick={() => {
+                        const nextState = performAction(playState, action);
+
+                        if (nextState.game.winnerId === 'player') {
+                          advanceSavedEncounterRun(getStorageNamespace(), window.localStorage, 'won');
+                        }
+
+                        setPlayState(nextState);
+                      }}
+                    >
                       {getActionLabel(playState, action)}
                     </button>
                   ))}

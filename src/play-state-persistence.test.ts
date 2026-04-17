@@ -4,6 +4,7 @@ import { createGame, type GameState } from './duel-engine';
 import { ENCOUNTERS, advanceEncounter, createEncounterRun } from './encounters';
 import {
   advanceSavedEncounterRun,
+  completeSavedEncounter,
   clearSavedActiveEncounter,
   loadSavedActiveEncounter,
   loadSavedEncounterRun,
@@ -138,5 +139,41 @@ describe('play state persistence', () => {
       isComplete: false,
     });
     expect(loadSavedEncounterRun('run:apple-seed-01', storage)).toEqual(advancedRun);
+  });
+
+  it('marks the saved encounter run complete after the final win', () => {
+    const { storage } = createMemoryStorage();
+
+    saveEncounterRun('run:apple-seed-01', storage, {
+      currentEncounter: ENCOUNTERS[ENCOUNTERS.length - 1],
+      completedEncounterIds: ENCOUNTERS.slice(0, -1).map((encounter) => encounter.id),
+      isComplete: false,
+    });
+
+    const completedRun = advanceSavedEncounterRun('run:apple-seed-01', storage, 'won');
+
+    expect(completedRun).toEqual({
+      currentEncounter: ENCOUNTERS[ENCOUNTERS.length - 1],
+      completedEncounterIds: ENCOUNTERS.map((encounter) => encounter.id),
+      isComplete: true,
+    });
+    expect(loadSavedEncounterRun('run:apple-seed-01', storage)).toEqual(completedRun);
+  });
+
+  it('clears the saved active encounter when recording a resolved encounter', () => {
+    const { storage } = createMemoryStorage();
+
+    saveEncounterRun('run:apple-seed-01', storage, createEncounterRun());
+    saveActiveEncounter('run:apple-seed-01', storage, {
+      encounter: ENCOUNTERS[0],
+      game: createTestGame(),
+      statusMessage: 'Ready to finish the fight.',
+      log: ['Started encounter: Cinder Raider.'],
+    });
+
+    const advancedRun = completeSavedEncounter('run:apple-seed-01', storage, 'won');
+
+    expect(advancedRun.currentEncounter.id).toBe(ENCOUNTERS[1].id);
+    expect(loadSavedActiveEncounter('run:apple-seed-01', storage)).toBeNull();
   });
 });

@@ -79,6 +79,14 @@ export function advanceSavedEncounterRun(
   return nextRun;
 }
 
+export function completeSavedEncounter(namespace: string, storage: StorageLike, outcome: EncounterOutcome): EncounterRun {
+  const nextRun = advanceSavedEncounterRun(namespace, storage, outcome);
+
+  clearSavedActiveEncounter(namespace, storage);
+
+  return nextRun;
+}
+
 export function saveActiveEncounter(namespace: string, storage: StorageLike, encounter: SavedActiveEncounter): void {
   const store = createNamespacedLocalStore(namespace, storage);
   const persistedEncounter: PersistedActiveEncounter = {

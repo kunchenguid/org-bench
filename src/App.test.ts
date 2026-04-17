@@ -63,4 +63,13 @@ describe('primary navigation copy', () => {
       },
     ]);
   });
+
+  it('describes the shipped prototype and persisted play flow in the hero copy', () => {
+    expect(pageCopy.home.body).toBe(
+      'A playable browser-first card duel prototype is live here now, with polished navigation, nested-path-safe routing, and a clean shell for expanding the campaign.',
+    );
+    expect(pageCopy.play.body).toBe(
+      'Launch an encounter, take visible legal actions, and reload straight back into your saved duel without losing the current board state.',
+    );
+  });
 });
