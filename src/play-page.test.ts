@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createInitialPlayState,
+  getEncounterSelectionCopy,
   getPlayBannerCopy,
   getPlayBoardZones,
   getPlayInteractionChecklist,
@@ -9,6 +10,7 @@ import {
   restorePlayState,
   startEncounter,
 } from './play-page';
+import { advanceEncounter, createEncounterRun } from './encounters';
 
 describe('getPlayBoardZones', () => {
   it('returns the evaluator-facing board zones needed on the play page', () => {
@@ -28,8 +30,8 @@ describe('getPlayBoardZones', () => {
   it('summarizes the clickable duel flow in player-facing language', () => {
     expect(getPlayInteractionChecklist()).toEqual([
       'Start from the Play route and review the visible turn state before acting.',
-      'Use the action controls to play cards, advance combat, and end the turn.',
-      'Watch the turn flow panel after each click to confirm the next expected step.',
+      'Use the action controls to play cards, advance combat, and end the turn while the board updates in place.',
+      'Wins advance the encounter ladder, losses keep you on the current node, and reloads resume your saved duel state.',
     ]);
   });
 
@@ -48,6 +50,16 @@ describe('getPlayBoardZones', () => {
       title: 'Continue against Cinder Raider',
       body:
         'Your last active encounter is back on screen. Review the board, then use the visible legal actions to keep the duel moving.',
+    });
+  });
+
+  it('switches the idle banner copy when the saved ladder is already complete', () => {
+    const completedRun = advanceEncounter(advanceEncounter(advanceEncounter(createEncounterRun(), 'won'), 'won'), 'won');
+
+    expect(getPlayBannerCopy(createInitialPlayState(completedRun))).toEqual({
+      kicker: 'Campaign cleared',
+      title: 'Encounter ladder complete',
+      body: 'You cleared the full ladder. Refresh to start a new run or inspect the final board state in your log.',
     });
   });
 
@@ -115,7 +127,8 @@ describe('getPlayBoardZones', () => {
   });
 
   it('announces ladder completion after the final encounter win', () => {
-    const activeState = startEncounter(createInitialPlayState(), 'storm-ascendant');
+    const finalRun = advanceEncounter(advanceEncounter(createEncounterRun(), 'won'), 'won');
+    const activeState = startEncounter(createInitialPlayState(finalRun), 'storm-ascendant');
     const forcedWinState = {
       ...activeState,
       game: {
@@ -139,5 +152,30 @@ describe('getPlayBoardZones', () => {
     const nextState = performAction(forcedWinState, forcedWinState.legalActions[0]);
 
     expect(nextState.statusMessage).toBe('You defeated Storm Ascendant and cleared the encounter ladder.');
+  });
+
+  it('can derive idle encounter choices from a saved ladder run', () => {
+    const advancedRun = advanceEncounter(createEncounterRun(), 'won');
+
+    const state = createInitialPlayState(advancedRun);
+
+    expect(state.mode).toBe('idle');
+    expect(state.availableEncounters.map((encounter) => encounter.id)).toEqual([advancedRun.currentEncounter.id]);
+  });
+
+  it('adapts the encounter chooser copy to the remaining ladder state', () => {
+    expect(getEncounterSelectionCopy(createInitialPlayState())).toEqual({
+      title: 'Available opponents',
+      body: 'Pick an encounter to begin your run.',
+      buttonLabelPrefix: 'Start',
+    });
+
+    const advancedRun = advanceEncounter(createEncounterRun(), 'won');
+
+    expect(getEncounterSelectionCopy(createInitialPlayState(advancedRun))).toEqual({
+      title: `Next opponent: ${advancedRun.currentEncounter.name}`,
+      body: 'Your last win advanced the ladder. Start the next fight when you are ready.',
+      buttonLabelPrefix: 'Continue',
+    });
   });
 });

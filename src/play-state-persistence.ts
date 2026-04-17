@@ -87,6 +87,15 @@ export function completeSavedEncounter(namespace: string, storage: StorageLike, 
   return nextRun;
 }
 
+export function resetSavedEncounterProgress(namespace: string, storage: StorageLike): EncounterRun {
+  const freshRun = createEncounterRun();
+
+  saveEncounterRun(namespace, storage, freshRun);
+  clearSavedActiveEncounter(namespace, storage);
+
+  return freshRun;
+}
+
 export function saveActiveEncounter(namespace: string, storage: StorageLike, encounter: SavedActiveEncounter): void {
   const store = createNamespacedLocalStore(namespace, storage);
   const persistedEncounter: PersistedActiveEncounter = {

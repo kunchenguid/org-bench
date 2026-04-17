@@ -8,6 +8,7 @@ import {
   clearSavedActiveEncounter,
   loadSavedActiveEncounter,
   loadSavedEncounterRun,
+  resetSavedEncounterProgress,
   saveActiveEncounter,
   saveEncounterRun,
 } from './play-state-persistence';
@@ -174,6 +175,41 @@ describe('play state persistence', () => {
     const advancedRun = completeSavedEncounter('run:apple-seed-01', storage, 'won');
 
     expect(advancedRun.currentEncounter.id).toBe(ENCOUNTERS[1].id);
+    expect(loadSavedActiveEncounter('run:apple-seed-01', storage)).toBeNull();
+  });
+
+  it('keeps the same ladder node on a loss and clears the active encounter save', () => {
+    const { storage } = createMemoryStorage();
+
+    saveEncounterRun('run:apple-seed-01', storage, createEncounterRun());
+    saveActiveEncounter('run:apple-seed-01', storage, {
+      encounter: ENCOUNTERS[0],
+      game: createTestGame(),
+      statusMessage: 'The enemy has lethal on board.',
+      log: ['Started encounter: Cinder Raider.'],
+    });
+
+    const runAfterLoss = completeSavedEncounter('run:apple-seed-01', storage, 'lost');
+
+    expect(runAfterLoss).toEqual(createEncounterRun());
+    expect(loadSavedActiveEncounter('run:apple-seed-01', storage)).toBeNull();
+  });
+
+  it('resets the saved ladder progress back to a fresh run and clears any active encounter', () => {
+    const { storage } = createMemoryStorage();
+
+    saveEncounterRun('run:apple-seed-01', storage, advanceEncounter(createEncounterRun(), 'won'));
+    saveActiveEncounter('run:apple-seed-01', storage, {
+      encounter: ENCOUNTERS[1],
+      game: createTestGame(),
+      statusMessage: 'Saved mid-run.',
+      log: ['Started encounter: Grove Warden.'],
+    });
+
+    const resetRun = resetSavedEncounterProgress('run:apple-seed-01', storage);
+
+    expect(resetRun).toEqual(createEncounterRun());
+    expect(loadSavedEncounterRun('run:apple-seed-01', storage)).toEqual(createEncounterRun());
     expect(loadSavedActiveEncounter('run:apple-seed-01', storage)).toBeNull();
   });
 });

@@ -28,7 +28,7 @@ export function getPlayBoardZones(): string[] {
 const playInteractionChecklist = [
   'Start from the Play route and review the visible turn state before acting.',
   'Use the action controls to play cards, advance combat, and end the turn while the board updates in place.',
-  'Wins advance the encounter ladder, and reloads resume your current duel from the saved board state.',
+  'Wins advance the encounter ladder, losses keep you on the current node, and reloads resume your saved duel state.',
 ] as const;
 
 export function getPlayInteractionChecklist(): string[] {
@@ -39,6 +39,12 @@ type PlayBannerCopy = {
   kicker: string;
   title: string;
   body: string;
+};
+
+type EncounterSelectionCopy = {
+  title: string;
+  body: string;
+  buttonLabelPrefix: string;
 };
 
 type IdlePlayState = {
@@ -68,11 +74,35 @@ export function getPlayBannerCopy(state: PlayState): PlayBannerCopy {
     };
   }
 
+  if (state.availableEncounters.length === 0) {
+    return {
+      kicker: 'Campaign cleared',
+      title: 'Encounter ladder complete',
+      body: 'You cleared the full ladder. Refresh to start a new run or inspect the final board state in your log.',
+    };
+  }
+
   return {
     kicker: 'Campaign ladder',
     title: 'Start an encounter',
     body:
       'Choose one of the visible enemies below. Once a duel starts, every legal action appears as a button and the board updates in place after your move and the AI response.',
+  };
+}
+
+export function getEncounterSelectionCopy(state: PlayState): EncounterSelectionCopy {
+  if (state.availableEncounters.length === 1 && state.availableEncounters[0].id !== ENCOUNTERS[0].id) {
+    return {
+      title: `Next opponent: ${state.availableEncounters[0].name}`,
+      body: 'Your last win advanced the ladder. Start the next fight when you are ready.',
+      buttonLabelPrefix: 'Continue',
+    };
+  }
+
+  return {
+    title: 'Available opponents',
+    body: 'Pick an encounter to begin your run.',
+    buttonLabelPrefix: 'Start',
   };
 }
 

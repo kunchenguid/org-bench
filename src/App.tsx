@@ -13,6 +13,7 @@ import {
 import {
   createInitialPlayState,
   getActionLabel,
+  getEncounterSelectionCopy,
   getPlayBannerCopy,
   getPlayInteractionChecklist,
   performAction,
@@ -202,6 +203,7 @@ const App: FunctionalComponent = () => {
   }, [playState]);
 
   const currentPage = pageCopy[route];
+  const encounterSelection = getEncounterSelectionCopy(playState);
   const playChecklist = getPlayInteractionChecklist();
   const playBanner = getPlayBannerCopy(playState);
 
@@ -251,7 +253,8 @@ const App: FunctionalComponent = () => {
           <section class="zone-grid" aria-label="Play board zones">
             <article class="panel zone-card zone-card-wide">
               <p class="section-kicker">Encounter ladder</p>
-              <h3>Available opponents</h3>
+              <h3>{encounterSelection.title}</h3>
+              <p>{encounterSelection.body}</p>
               <div class="action-list">
                 {playState.availableEncounters.map((encounter) => (
                   <button
@@ -269,7 +272,7 @@ const App: FunctionalComponent = () => {
                       setPlayState(startEncounter(playState, encounter.id));
                     }}
                   >
-                    Start {encounter.name}
+                    {encounterSelection.buttonLabelPrefix} {encounter.name}
                   </button>
                 ))}
               </div>
