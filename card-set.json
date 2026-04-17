@@ -1,0 +1,345 @@
+{
+  "setId": "grove-vs-ember-core",
+  "title": "Grove vs Ember Core Set",
+  "themes": [
+    "Grove",
+    "Ember"
+  ],
+  "keywords": [
+    {
+      "id": "guard",
+      "name": "Guard",
+      "rulesText": "Enemies must attack a unit with Guard before they attack your hero."
+    },
+    {
+      "id": "charge",
+      "name": "Charge",
+      "rulesText": "This unit can attack the turn it is played."
+    },
+    {
+      "id": "burn",
+      "name": "Burn",
+      "rulesText": "Burn deals damage at the time the card resolves."
+    },
+    {
+      "id": "heal",
+      "name": "Heal",
+      "rulesText": "Heal restores health up to the target's maximum."
+    },
+    {
+      "id": "draw",
+      "name": "Draw",
+      "rulesText": "Draw means take the top card of your deck into your hand."
+    }
+  ],
+  "cards": [
+    {
+      "id": "grove-sapling",
+      "name": "Grove Sapling",
+      "theme": "Grove",
+      "type": "unit",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "keywords": [],
+      "text": "A steady start for Grove decks.",
+      "copies": 2
+    },
+    {
+      "id": "mosswall-keeper",
+      "name": "Mosswall Keeper",
+      "theme": "Grove",
+      "type": "unit",
+      "cost": 2,
+      "attack": 1,
+      "health": 4,
+      "keywords": [
+        "guard"
+      ],
+      "text": "Guard.",
+      "copies": 2
+    },
+    {
+      "id": "grove-scout",
+      "name": "Grove Scout",
+      "theme": "Grove",
+      "type": "unit",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "keywords": [
+        "draw"
+      ],
+      "text": "Draw 1 card.",
+      "copies": 2
+    },
+    {
+      "id": "vineshaper",
+      "name": "Vineshaper",
+      "theme": "Grove",
+      "type": "unit",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "keywords": [],
+      "text": "When played, heal your hero for 2.",
+      "effect": {
+        "trigger": "onPlay",
+        "action": "healHero",
+        "value": 2
+      },
+      "copies": 2
+    },
+    {
+      "id": "ancient-bark",
+      "name": "Ancient Bark",
+      "theme": "Grove",
+      "type": "unit",
+      "cost": 4,
+      "attack": 4,
+      "health": 5,
+      "keywords": [
+        "guard"
+      ],
+      "text": "Guard.",
+      "copies": 2
+    },
+    {
+      "id": "forest-blessing",
+      "name": "Forest Blessing",
+      "theme": "Grove",
+      "type": "spell",
+      "cost": 2,
+      "keywords": [
+        "heal"
+      ],
+      "text": "Heal 3 to your hero. Draw 1 card.",
+      "effect": {
+        "trigger": "onPlay",
+        "actions": [
+          {
+            "action": "healHero",
+            "value": 3
+          },
+          {
+            "action": "drawCards",
+            "value": 1
+          }
+        ]
+      },
+      "copies": 2
+    },
+    {
+      "id": "rootsnare",
+      "name": "Rootsnare",
+      "theme": "Grove",
+      "type": "spell",
+      "cost": 3,
+      "keywords": [],
+      "text": "Deal 2 damage to an enemy unit.",
+      "effect": {
+        "trigger": "onPlay",
+        "action": "damageEnemyUnit",
+        "value": 2
+      },
+      "copies": 2
+    },
+    {
+      "id": "grove-alpha",
+      "name": "Grove Alpha",
+      "theme": "Grove",
+      "type": "unit",
+      "cost": 5,
+      "attack": 5,
+      "health": 6,
+      "keywords": [],
+      "text": "When played, another friendly unit gets +1/+1.",
+      "effect": {
+        "trigger": "onPlay",
+        "action": "buffFriendlyUnit",
+        "attack": 1,
+        "health": 1
+      },
+      "copies": 2
+    },
+    {
+      "id": "cinder-imp",
+      "name": "Cinder Imp",
+      "theme": "Ember",
+      "type": "unit",
+      "cost": 1,
+      "attack": 2,
+      "health": 1,
+      "keywords": [
+        "charge"
+      ],
+      "text": "Charge.",
+      "copies": 2
+    },
+    {
+      "id": "ash-brute",
+      "name": "Ash Brute",
+      "theme": "Ember",
+      "type": "unit",
+      "cost": 2,
+      "attack": 3,
+      "health": 2,
+      "keywords": [],
+      "text": "A simple attacker for Ember decks.",
+      "copies": 2
+    },
+    {
+      "id": "flame-adept",
+      "name": "Flame Adept",
+      "theme": "Ember",
+      "type": "unit",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "keywords": [
+        "burn"
+      ],
+      "text": "When played, deal 1 damage to the enemy hero.",
+      "effect": {
+        "trigger": "onPlay",
+        "action": "damageEnemyHero",
+        "value": 1
+      },
+      "copies": 2
+    },
+    {
+      "id": "blaze-hound",
+      "name": "Blaze Hound",
+      "theme": "Ember",
+      "type": "unit",
+      "cost": 3,
+      "attack": 3,
+      "health": 2,
+      "keywords": [
+        "charge"
+      ],
+      "text": "Charge.",
+      "copies": 2
+    },
+    {
+      "id": "lava-guard",
+      "name": "Lava Guard",
+      "theme": "Ember",
+      "type": "unit",
+      "cost": 3,
+      "attack": 3,
+      "health": 4,
+      "keywords": [
+        "guard"
+      ],
+      "text": "Guard.",
+      "copies": 2
+    },
+    {
+      "id": "emberbolt",
+      "name": "Emberbolt",
+      "theme": "Ember",
+      "type": "spell",
+      "cost": 2,
+      "keywords": [
+        "burn"
+      ],
+      "text": "Deal 3 damage to any target.",
+      "effect": {
+        "trigger": "onPlay",
+        "action": "damageAnyTarget",
+        "value": 3
+      },
+      "copies": 2
+    },
+    {
+      "id": "scorch",
+      "name": "Scorch",
+      "theme": "Ember",
+      "type": "spell",
+      "cost": 4,
+      "keywords": [
+        "burn"
+      ],
+      "text": "Deal 4 damage to the enemy hero.",
+      "effect": {
+        "trigger": "onPlay",
+        "action": "damageEnemyHero",
+        "value": 4
+      },
+      "copies": 2
+    },
+    {
+      "id": "coal-seer",
+      "name": "Coal Seer",
+      "theme": "Ember",
+      "type": "unit",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "keywords": [
+        "draw"
+      ],
+      "text": "Draw 1 card.",
+      "copies": 2
+    },
+    {
+      "id": "volcanic-giant",
+      "name": "Volcanic Giant",
+      "theme": "Ember",
+      "type": "unit",
+      "cost": 5,
+      "attack": 6,
+      "health": 5,
+      "keywords": [],
+      "text": "A heavy finisher for Ember decks.",
+      "copies": 2
+    }
+  ],
+  "decks": {
+    "player": [
+      "grove-sapling",
+      "grove-sapling",
+      "mosswall-keeper",
+      "mosswall-keeper",
+      "grove-scout",
+      "grove-scout",
+      "vineshaper",
+      "vineshaper",
+      "ancient-bark",
+      "ancient-bark",
+      "forest-blessing",
+      "forest-blessing",
+      "rootsnare",
+      "rootsnare",
+      "grove-alpha",
+      "grove-alpha",
+      "cinder-imp",
+      "cinder-imp",
+      "emberbolt",
+      "emberbolt"
+    ],
+    "ai": [
+      "cinder-imp",
+      "cinder-imp",
+      "ash-brute",
+      "ash-brute",
+      "flame-adept",
+      "flame-adept",
+      "blaze-hound",
+      "blaze-hound",
+      "lava-guard",
+      "lava-guard",
+      "emberbolt",
+      "emberbolt",
+      "scorch",
+      "scorch",
+      "coal-seer",
+      "coal-seer",
+      "volcanic-giant",
+      "volcanic-giant",
+      "mosswall-keeper",
+      "mosswall-keeper"
+    ]
+  }
+}
