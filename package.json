@@ -1,0 +1,21 @@
+{
+  "name": "duel-tcg-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "preact": "^10.26.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "@preact/preset-vite": "^2.10.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4"
+  }
+}
