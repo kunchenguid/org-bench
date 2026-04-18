@@ -11,14 +11,16 @@ export type CardFrameProps = {
   size?: 'standard' | 'compact';
 };
 
-export const cardFactionThemes: Record<Faction, { label: string; accent: string }> = {
+export const cardFactionThemes: Record<Faction, { label: string; accent: string; summary: string }> = {
   ember: {
     label: 'Ashfall Covenant',
     accent: '#f4a259',
+    summary: 'Fast pressure and direct damage',
   },
   verdant: {
     label: 'Verdant Loom',
     accent: '#7edb9c',
+    summary: 'Resilience and attrition',
   },
 };
 
