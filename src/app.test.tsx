@@ -46,6 +46,17 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
   });
 
+  it('renders the deterministic play surface summary on the play route', () => {
+    globalThis.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByText('Combat lane')).toBeInTheDocument();
+    expect(screen.getByText(/wins after \d+ turns/i)).toBeInTheDocument();
+    expect(screen.getByText('Draw and charge')).toBeInTheDocument();
+    expect(screen.getByText('Attack and pass')).toBeInTheDocument();
+  });
+
   it('keeps the intended route when the hash includes a trailing slash or query string', () => {
     globalThis.location.hash = '#/rules/?ref=nav';
 
