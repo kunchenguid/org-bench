@@ -1,36 +1,49 @@
-type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+export type JsonValue =
+  | boolean
+  | null
+  | number
+  | string
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
-export function createStorageKey(namespace: string, key: string): string {
-  return `${namespace}:${key}`;
+type StorageLike = Pick<Storage, 'getItem' | 'key' | 'length' | 'removeItem' | 'setItem'>;
+
+const STORAGE_SCOPE = 'duel-tcg';
+
+function toScopedKey(namespace: string, key: string): string {
+  return `${namespace}:${STORAGE_SCOPE}:${key}`;
 }
 
-export function loadPersistedGameState<T>(
-  storage: StorageLike,
-  namespace: string,
-  key: string,
-): T | null {
-  const rawValue = storage.getItem(createStorageKey(namespace, key));
+export function createNamespacedStorage(storage: StorageLike, namespace: string) {
+  return {
+    clear() {
+      const prefix = `${namespace}:${STORAGE_SCOPE}:`;
+      const keys: string[] = [];
 
-  if (rawValue === null) {
-    return null;
-  }
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (key?.startsWith(prefix)) {
+          keys.push(key);
+        }
+      }
 
-  return JSON.parse(rawValue) as T;
-}
+      for (const key of keys) {
+        storage.removeItem(key);
+      }
+    },
+    get<T extends JsonValue>(key: string): T | null {
+      const rawValue = storage.getItem(toScopedKey(namespace, key));
+      if (rawValue === null) {
+        return null;
+      }
 
-export function savePersistedGameState<T>(
-  storage: StorageLike,
-  namespace: string,
-  key: string,
-  state: T,
-): void {
-  storage.setItem(createStorageKey(namespace, key), JSON.stringify(state));
-}
-
-export function clearPersistedGameState(
-  storage: StorageLike,
-  namespace: string,
-  key: string,
-): void {
-  storage.removeItem(createStorageKey(namespace, key));
+      return JSON.parse(rawValue) as T;
+    },
+    remove(key: string) {
+      storage.removeItem(toScopedKey(namespace, key));
+    },
+    set(key: string, value: JsonValue) {
+      storage.setItem(toScopedKey(namespace, key), JSON.stringify(value));
+    },
+  };
 }

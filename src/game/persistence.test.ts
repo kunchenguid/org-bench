@@ -1,52 +1,82 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
-import {
-  clearPersistedGameState,
-  createStorageKey,
-  loadPersistedGameState,
-  savePersistedGameState,
-} from './persistence';
+import { createNamespacedStorage } from './persistence';
 
-type StubStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+type MemoryStorage = {
+  clear(): void;
+  getItem(key: string): string | null;
+  key(index: number): string | null;
+  readonly length: number;
+  removeItem(key: string): void;
+  setItem(key: string, value: string): void;
+};
 
-function createStorageStub(): StubStorage & { values: Map<string, string> } {
+function createMemoryStorage(): MemoryStorage {
   const values = new Map<string, string>();
 
   return {
-    values,
+    clear() {
+      values.clear();
+    },
     getItem(key) {
       return values.get(key) ?? null;
     },
-    setItem(key, value) {
-      values.set(key, value);
+    key(index) {
+      return [...values.keys()][index] ?? null;
+    },
+    get length() {
+      return values.size;
     },
     removeItem(key) {
       values.delete(key);
     },
+    setItem(key, value) {
+      values.set(key, value);
+    },
   };
 }
 
-describe('persistence helpers', () => {
-  it('prefixes every storage key with the harness namespace', () => {
-    expect(createStorageKey('apple-seed-01', 'save')).toBe('apple-seed-01:save');
+describe('createNamespacedStorage', () => {
+  test('prefixes keys with the injected run namespace', () => {
+    const storage = createMemoryStorage();
+    const session = createNamespacedStorage(storage, 'run:apple-seed-01');
+
+    session.set('battle-state', { turn: 3, health: 18 });
+
+    expect(storage.getItem('run:apple-seed-01:duel-tcg:battle-state')).toBe(
+      JSON.stringify({ turn: 3, health: 18 }),
+    );
   });
 
-  it('saves and loads serialized state through a namespaced key', () => {
-    const storage = createStorageStub();
-    const state = { run: 3, hp: 14, resources: 2 };
+  test('reads parsed JSON values back out of storage', () => {
+    const storage = createMemoryStorage();
+    const session = createNamespacedStorage(storage, 'run:apple-seed-01');
 
-    savePersistedGameState(storage, 'apple-seed-01', 'slot-a', state);
+    storage.setItem(
+      'run:apple-seed-01:duel-tcg:encounter',
+      JSON.stringify({ encounterId: 'boss', enemyHealth: 9 }),
+    );
 
-    expect(storage.values.get('apple-seed-01:slot-a')).toBe(JSON.stringify(state));
-    expect(loadPersistedGameState<typeof state>(storage, 'apple-seed-01', 'slot-a')).toEqual(state);
+    expect(session.get<{ encounterId: string; enemyHealth: number }>('encounter')).toEqual({
+      encounterId: 'boss',
+      enemyHealth: 9,
+    });
   });
 
-  it('removes persisted state through the same namespaced key', () => {
-    const storage = createStorageStub();
+  test('removes only keys inside its own duel scope', () => {
+    const storage = createMemoryStorage();
+    const session = createNamespacedStorage(storage, 'run:apple-seed-01');
 
-    storage.setItem('apple-seed-01:slot-a', '{"ok":true}');
-    clearPersistedGameState(storage, 'apple-seed-01', 'slot-a');
+    storage.setItem('run:apple-seed-01:duel-tcg:save-a', '{"value":1}');
+    storage.setItem('run:apple-seed-01:duel-tcg:save-b', '{"value":2}');
+    storage.setItem('run:apple-seed-01:other-game:save-c', '{"value":3}');
+    storage.setItem('run:other-run:duel-tcg:save-d', '{"value":4}');
 
-    expect(storage.getItem('apple-seed-01:slot-a')).toBeNull();
+    session.clear();
+
+    expect(storage.getItem('run:apple-seed-01:duel-tcg:save-a')).toBeNull();
+    expect(storage.getItem('run:apple-seed-01:duel-tcg:save-b')).toBeNull();
+    expect(storage.getItem('run:apple-seed-01:other-game:save-c')).toBe('{"value":3}');
+    expect(storage.getItem('run:other-run:duel-tcg:save-d')).toBe('{"value":4}');
   });
 });
