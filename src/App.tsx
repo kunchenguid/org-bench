@@ -10,9 +10,21 @@ type SavedEncounter = EncounterSnapshot & {
   duelState?: DuelState;
 };
 
+type PageSection = {
+  title: string;
+  body: string;
+};
+
+type PageConfig = {
+  label: string;
+  title: string;
+  body: string;
+  sections?: PageSection[];
+};
+
 const RUN_ID = 'facebook-seed-01';
 
-const routes: Record<RouteKey, { label: string; title: string; body: string }> = {
+const routes: Record<RouteKey, PageConfig> = {
   home: {
     label: 'Home',
     title: 'Duel of Ash and Aether',
@@ -26,7 +38,29 @@ const routes: Record<RouteKey, { label: string; title: string; body: string }> =
   rules: {
     label: 'Rules',
     title: 'Rules',
-    body: 'Learn turn flow, mana growth, creatures, spells, and the ladder structure here as the rules reference fills in.'
+    body: 'Each duel is a race to reduce the opposing champion from 20 health to 0 before your own front line collapses.',
+    sections: [
+      {
+        title: 'Turn Flow',
+        body:
+          'Ready your exhausted cards, draw 1 card, then gain 1 Ember before you play units, cast tactics, and choose attackers for the combat step.'
+      },
+      {
+        title: 'Resources and Board',
+        body:
+          'Banked Ember carries over between turns, but unspent Aether fades at the end of combat. Units enter one of your three board slots and can guard your champion or swing at the rival line.'
+      },
+      {
+        title: 'Card Types',
+        body:
+          'Champions lead your deck, units stay in play to attack or guard, and tactics resolve once before going to the discard.'
+      },
+      {
+        title: 'Victory and Campaign Flow',
+        body:
+          'Win three encounters in a row to clear the gauntlet. Between fights you keep your surviving champion, refill your deck, and carry forward any relic rewards the encounter grants.'
+      }
+    ]
   },
   cards: {
     label: 'Cards',
@@ -148,6 +182,26 @@ export function App() {
   }, [route]);
 
   const page = routes[route];
+  const previewSections =
+    route === 'rules'
+      ? (page.sections ?? []).map((section) => ({ ...section, tone: 'rules' }))
+      : [
+          {
+            title: 'Ember Guild',
+            body: 'A fast pressure faction built around sparks, burn, and battlefield momentum.',
+            tone: 'ember'
+          },
+          {
+            title: 'Aether Covenant',
+            body: 'A tempo faction that manipulates energy, shields, and tactical positioning.',
+            tone: 'aether'
+          },
+          {
+            title: 'Encounter Ladder',
+            body: 'Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.',
+            tone: 'ladder'
+          }
+        ];
   const boardState = getBoardState(savedEncounter);
   const player = boardState.players.player;
   const opponent = boardState.players.opponent;
@@ -410,48 +464,61 @@ export function App() {
               </div>
             </section>
 
-            <section className="section-block" aria-labelledby="faction-previews-title">
-              <div className="section-heading">
-                <p className="eyebrow">Faction Overview</p>
-                <h2 id="faction-previews-title">Faction Previews</h2>
-              </div>
-              <div className="preview-grid factions-grid">
-                <article className="preview-card ember">
-                  <span className="card-kicker">Aggro Tempo</span>
-                  <h3>Emberfire Vanguard</h3>
-                  <p>Explodes onto the board with direct damage, cheap fighters, and relentless pressure.</p>
-                </article>
-                <article className="preview-card aether">
-                  <span className="card-kicker">Control Tempo</span>
-                  <h3>Aether Covenant</h3>
-                  <p>Answers threats with shields and evasive units before locking in a disciplined finish.</p>
-                </article>
-              </div>
-            </section>
+            {route === 'rules' ? (
+              <section className="preview-grid" aria-label="Rules Reference">
+                {previewSections.map((section) => (
+                  <article key={section.title} className={`preview-card ${section.tone}`}>
+                    <h2>{section.title}</h2>
+                    <p>{section.body}</p>
+                  </article>
+                ))}
+              </section>
+            ) : (
+              <>
+                <section className="section-block" aria-labelledby="faction-previews-title">
+                  <div className="section-heading">
+                    <p className="eyebrow">Faction Overview</p>
+                    <h2 id="faction-previews-title">Faction Previews</h2>
+                  </div>
+                  <div className="preview-grid factions-grid">
+                    <article className="preview-card ember">
+                      <span className="card-kicker">Aggro Tempo</span>
+                      <h3>Emberfire Vanguard</h3>
+                      <p>Explodes onto the board with direct damage, cheap fighters, and relentless pressure.</p>
+                    </article>
+                    <article className="preview-card aether">
+                      <span className="card-kicker">Control Tempo</span>
+                      <h3>Aether Covenant</h3>
+                      <p>Answers threats with shields and evasive units before locking in a disciplined finish.</p>
+                    </article>
+                  </div>
+                </section>
 
-            <section className="encounter-strip" aria-labelledby="encounter-path-title">
-              <div className="section-heading">
-                <p className="eyebrow">Campaign Route</p>
-                <h2 id="encounter-path-title">Encounter Path</h2>
-              </div>
-              <div className="encounter-grid">
-                <article className="encounter-card">
-                  <span className="encounter-step">Fight 1</span>
-                  <h3>Gate of Cinders</h3>
-                  <p>Fast Ember assault that teaches early board control and clean trades.</p>
-                </article>
-                <article className="encounter-card">
-                  <span className="encounter-step">Fight 2</span>
-                  <h3>Glassgarden Crossing</h3>
-                  <p>Shield-heavy midboss that punishes overextending into tempo answers.</p>
-                </article>
-                <article className="encounter-card">
-                  <span className="encounter-step">Fight 3</span>
-                  <h3>The Zenith Prism</h3>
-                  <p>Final mirror-tech duel where burn timing and hand discipline decide the run.</p>
-                </article>
-              </div>
-            </section>
+                <section className="encounter-strip" aria-labelledby="encounter-path-title">
+                  <div className="section-heading">
+                    <p className="eyebrow">Campaign Route</p>
+                    <h2 id="encounter-path-title">Encounter Path</h2>
+                  </div>
+                  <div className="encounter-grid">
+                    <article className="encounter-card">
+                      <span className="encounter-step">Fight 1</span>
+                      <h3>Gate of Cinders</h3>
+                      <p>Fast Ember assault that teaches early board control and clean trades.</p>
+                    </article>
+                    <article className="encounter-card">
+                      <span className="encounter-step">Fight 2</span>
+                      <h3>Glassgarden Crossing</h3>
+                      <p>Shield-heavy midboss that punishes overextending into tempo answers.</p>
+                    </article>
+                    <article className="encounter-card">
+                      <span className="encounter-step">Fight 3</span>
+                      <h3>The Zenith Prism</h3>
+                      <p>Final mirror-tech duel where burn timing and hand discipline decide the run.</p>
+                    </article>
+                  </div>
+                </section>
+              </>
+            )}
           </>
         )}
       </main>
