@@ -4,3 +4,4 @@ dist/
 coverage/
 *.log
 *.tsbuildinfo
+.sage-index
