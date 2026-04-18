@@ -117,6 +117,16 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Continue saved duel' })).toHaveAttribute('href', '#/play');
   });
 
+  it('keeps saved duel controls off non-home routes', () => {
+    globalThis.localStorage.setItem(getPersistenceKey('apple-seed-01'), JSON.stringify({ encounter: { id: 'encounter-1' } }));
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.queryByText(/Saved duel available/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Continue saved duel' })).toBeNull();
+  });
+
   it('clears the saved duel state from home', () => {
     globalThis.localStorage.setItem('duel-tcg:last-route', '/play');
     globalThis.localStorage.setItem(getPersistenceKey('apple-seed-01'), JSON.stringify({ encounter: { id: 'encounter-1' } }));
