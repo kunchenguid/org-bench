@@ -62,6 +62,14 @@ describe('App shell', () => {
 
     render(<App />);
 
-    expect(screen.getByText('Saved duel available')).toBeInTheDocument();
+    expect(screen.getByText('Saved duel available - encounter-1')).toBeInTheDocument();
+  });
+
+  it('ignores malformed saved duel state', () => {
+    globalThis.localStorage.setItem(getPersistenceKey('apple-seed-01'), '{bad json');
+
+    render(<App />);
+
+    expect(screen.queryByText(/Saved duel available/)).toBeNull();
   });
 });

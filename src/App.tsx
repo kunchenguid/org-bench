@@ -46,10 +46,25 @@ function clearSavedRoute() {
   globalThis.localStorage?.removeItem(lastRouteStorageKey);
 }
 
+function getSavedDuelEncounterId() {
+  const rawState = globalThis.localStorage?.getItem(getPersistenceKey(runId));
+
+  if (!rawState) {
+    return null;
+  }
+
+  try {
+    const parsedState = JSON.parse(rawState) as { encounter?: { id?: unknown } };
+    return typeof parsedState.encounter?.id === 'string' ? parsedState.encounter.id : null;
+  } catch {
+    return null;
+  }
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
   const [savedRoute, setSavedRoute] = useState<Exclude<RouteKey, '/'> | null>(() => getSavedRoute());
-  const [hasSavedDuel] = useState(() => Boolean(globalThis.localStorage?.getItem(getPersistenceKey(runId))));
+  const [savedDuelEncounterId] = useState(() => getSavedDuelEncounterId());
 
   useEffect(() => {
     const onHashChange = () => {
@@ -92,7 +107,7 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
-        {route === '/' && hasSavedDuel ? <p className="save-indicator">Saved duel available</p> : null}
+        {route === '/' && savedDuelEncounterId ? <p className="save-indicator">Saved duel available - {savedDuelEncounterId}</p> : null}
         {resumeRoute && resumeTitle ? (
           <div className="resume-actions">
             <a className="resume-link" href={`#${resumeRoute}`}>
