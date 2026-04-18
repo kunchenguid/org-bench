@@ -9,21 +9,25 @@ const navItems: Array<{ href: RouteKey; label: string }> = [
   { href: '/cards', label: 'Cards' },
 ];
 
-const routes: Record<RouteKey, { title: string; description: string }> = {
+const routes: Record<RouteKey, { title: string; sectionLabel: string; description: string }> = {
   '/': {
     title: 'Duel TCG',
+    sectionLabel: 'Overview',
     description: 'A polished single-player card duel with campaign encounters and browser persistence is coming together here.',
   },
   '/play': {
     title: 'Play',
+    sectionLabel: 'Battle Board',
     description: 'The playable duel board lands on this route. The scaffold keeps the path and layout stable for game integration.',
   },
   '/rules': {
     title: 'Rules',
+    sectionLabel: 'Rulebook',
     description: 'Turn flow, mana, creatures, spells, and victory rules will be documented here for first-time players.',
   },
   '/cards': {
     title: 'Cards',
+    sectionLabel: 'Card Library',
     description: 'This page will hold the card reference and faction overview for the shipped card pool.',
   },
 };
@@ -71,7 +75,7 @@ export function App() {
       </nav>
 
       <main className="panel">
-        <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
+        <p className="section-label">{page.sectionLabel}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
       </main>

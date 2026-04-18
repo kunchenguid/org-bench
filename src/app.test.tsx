@@ -25,4 +25,13 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
+
+  it('shows route-specific section labels outside the home page', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByText('Card Library')).toBeInTheDocument();
+    expect(screen.queryByText('Scaffold Route')).not.toBeInTheDocument();
+  });
 });
