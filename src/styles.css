@@ -194,6 +194,8 @@ h1 {
 }
 
 .board-shell {
+  display: grid;
+  gap: 20px;
   padding: 28px;
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -202,75 +204,166 @@ h1 {
     rgba(7, 12, 24, 0.84);
 }
 
-.board-shell-header,
-.board-status-grid,
-.lane-grid,
-.resource-row {
+.board-intro p:last-child {
+  max-width: 64ch;
+  margin-bottom: 0;
+  color: #efe6ff;
+}
+
+.turn-banner {
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 226, 163, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffe7b0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.hud-grid,
+.battlefield-shell,
+.lane-cards,
+.hand-cards {
   display: grid;
   gap: 16px;
 }
 
-.board-shell-header {
-  grid-template-columns: 1fr auto;
-  align-items: end;
+.hud-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.board-turn {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffe7b0;
-}
-
-.board-status-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 20px;
-}
-
-.status-card,
-.lane-card,
-.resource-card {
+.hud-card,
+.lane-panel,
+.stack-card,
+.hand-card {
   padding: 18px;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
 
-.status-card p,
-.lane-card p,
-.resource-card p {
-  margin-bottom: 0;
-}
-
-.enemy-status {
-  box-shadow: inset 0 0 0 1px rgba(255, 125, 125, 0.2);
-}
-
-.player-status {
+.hud-card.player {
   box-shadow: inset 0 0 0 1px rgba(129, 231, 182, 0.18);
 }
 
-.hand-status {
-  box-shadow: inset 0 0 0 1px rgba(255, 214, 120, 0.18);
+.hud-card.enemy {
+  box-shadow: inset 0 0 0 1px rgba(255, 125, 125, 0.2);
 }
 
-.lane-grid {
+.hud-label,
+.stack-label,
+.lane-card-name,
+.lane-card-stats {
+  margin-bottom: 0;
+}
+
+.hud-label,
+.stack-label {
+  color: #d4dbef;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.78rem;
+}
+
+.hud-value-row {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  margin: 10px 0 14px;
+}
+
+.hud-value {
+  font-size: 2.4rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.hud-value-meta,
+.hud-stats,
+.lane-header span {
+  color: #d5d8e8;
+}
+
+.hud-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.battlefield-shell {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 180px;
+  align-items: start;
+}
+
+.lane-panel {
+  background: rgba(10, 16, 30, 0.76);
+}
+
+.lane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.lane-header h2,
+.lane-header h3 {
+  margin-bottom: 0;
+}
+
+.lane-cards {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 16px;
 }
 
-.front-lane {
-  background: linear-gradient(180deg, rgba(255, 146, 89, 0.12), rgba(255, 146, 89, 0.03));
+.lane-card {
+  min-height: 120px;
 }
 
-.back-lane {
-  background: linear-gradient(180deg, rgba(136, 160, 255, 0.12), rgba(136, 160, 255, 0.03));
+.lane-card-name {
+  font-weight: 700;
 }
 
-.resource-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 16px;
+.lane-card-stats {
+  margin-top: 18px;
+  color: #ffe7b0;
+  font-weight: 700;
+}
+
+.stack-column {
+  display: grid;
+  gap: 16px;
+}
+
+.stack-card {
+  min-height: 132px;
+  display: grid;
+  align-content: space-between;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.stack-card strong {
+  font-size: 2rem;
+}
+
+.hand-dock {
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 16, 30, 0.72);
+}
+
+.hand-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.hand-card {
+  min-height: 148px;
+  display: grid;
+  place-items: end start;
+  background: linear-gradient(180deg, rgba(255, 214, 160, 0.2), rgba(255, 143, 101, 0.08));
+  font-weight: 700;
 }
 
 .feedback-kit {
@@ -498,16 +591,15 @@ h1 {
   }
 
   .feedback-grid,
-  .board-status-grid,
-  .lane-grid,
-  .resource-row,
+  .hud-grid,
+  .battlefield-shell,
+  .hand-cards,
   .preview-grid {
     grid-template-columns: 1fr;
   }
 
-  .board-shell-header {
+  .lane-cards {
     grid-template-columns: 1fr;
-    align-items: start;
   }
 
   .hero-panel {
