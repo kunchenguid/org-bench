@@ -169,6 +169,12 @@ a {
   margin-top: 24px;
 }
 
+.cards-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
 .cards-preview ul {
   display: grid;
   gap: 10px;

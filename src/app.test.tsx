@@ -89,8 +89,9 @@ describe('App shell', () => {
 
     render(<App />);
 
-    expect(screen.getByText('Lantern Squire')).toBeInTheDocument();
-    expect(screen.getByText('Signal Flare')).toBeInTheDocument();
-    expect(screen.getByText(/Player deck: 3 cards in hand, 3 in draw pile/)).toBeInTheDocument();
+    expect(screen.getByText('Skyforge')).toBeInTheDocument();
+    expect(screen.getByText('Wildroot')).toBeInTheDocument();
+    expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
+    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
   });
 });

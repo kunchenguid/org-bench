@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { cardCatalog, getFactionSummaries } from './app/card-catalog';
 import { ladderSteps, rulesSections } from './app/rules-content';
 import { createGameSession } from './game/engine';
 
@@ -41,7 +42,8 @@ function getRouteFromHash(hash: string): RouteKey {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
-  const previewSession = route === '/play' || route === '/cards' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const previewSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
 
   useEffect(() => {
     const onHashChange = () => {
@@ -119,16 +121,25 @@ export function App() {
             </section>
           </div>
         ) : null}
-        {route === '/cards' && previewSession ? (
-          <section className="rules-card cards-preview">
-            <h3>Opening Hand Preview</h3>
-            <p>Player deck: {previewSession.players.player.hand.length} cards in hand, {previewSession.players.player.deck.length} in draw pile.</p>
-            <ul>
-              {previewSession.players.player.hand.map((card) => (
-                <li key={card.id}>{card.name}</li>
-              ))}
-            </ul>
-          </section>
+        {route === '/cards' ? (
+          <div className="cards-grid">
+            {factionSummaries.map((summary) => (
+              <section className="rules-card cards-preview" key={summary.faction}>
+                <h3>{summary.faction}</h3>
+                <p>{summary.blurb}</p>
+                <p>
+                  {summary.creatureCount} creatures, {summary.spellCount} spells
+                </p>
+                <ul>
+                  {cardCatalog
+                    .filter((card) => card.faction === summary.faction)
+                    .map((card) => (
+                      <li key={card.name}>{card.name}</li>
+                    ))}
+                </ul>
+              </section>
+            ))}
+          </div>
         ) : null}
       </main>
     </div>
