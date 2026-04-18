@@ -14,6 +14,11 @@ const resolveRoute = (hash: string): RouteKey => {
   return match?.[0] ?? 'home';
 };
 
+const normalizeHash = (hash: string): string => {
+  const nextHash = hash || routes.home.hash;
+  return resolveRoute(nextHash) === 'home' && nextHash !== routes.home.hash ? routes.home.hash : nextHash;
+};
+
 const pageCopy: Record<RouteKey, { title: string; eyebrow: string; body: string }> = {
   home: {
     title: 'Duel of Embers',
@@ -38,10 +43,24 @@ const pageCopy: Record<RouteKey, { title: string; eyebrow: string; body: string 
 };
 
 export function App() {
-  const [hash, setHash] = useState(window.location.hash || '#/');
+  const [hash, setHash] = useState(() => normalizeHash(window.location.hash));
+
+  const updateRoute = (nextHash: string) => {
+    window.location.hash = nextHash;
+    setHash(nextHash);
+  };
 
   useEffect(() => {
-    const onHashChange = () => setHash(window.location.hash || '#/');
+    const onHashChange = () => {
+      const nextHash = normalizeHash(window.location.hash);
+      setHash(nextHash);
+
+      if (window.location.hash !== nextHash) {
+        window.location.hash = nextHash;
+      }
+    };
+
+    onHashChange();
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -67,8 +86,9 @@ export function App() {
           <a
             key={key}
             className={route === key ? 'nav-link active' : 'nav-link'}
+            aria-current={route === key ? 'page' : undefined}
             href={value.hash}
-            onClick={() => setHash(value.hash)}
+            onClick={() => updateRoute(value.hash)}
           >
             {value.label}
           </a>
