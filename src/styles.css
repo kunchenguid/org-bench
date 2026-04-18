@@ -115,6 +115,45 @@ a {
   font-weight: 600;
 }
 
+.rules-layout,
+.rules-sections {
+  display: grid;
+  gap: 16px;
+}
+
+.rules-sections {
+  margin-top: 24px;
+}
+
+.rules-card {
+  padding: 18px;
+  border: 1px solid rgba(161, 188, 255, 0.16);
+  border-radius: 20px;
+  background: rgba(13, 26, 49, 0.78);
+}
+
+.rules-card h3,
+.rules-card p,
+.ladder-card ul {
+  margin: 0;
+}
+
+.ladder-card ul {
+  display: grid;
+  gap: 12px;
+  padding-left: 20px;
+}
+
+.ladder-card li {
+  display: grid;
+  gap: 4px;
+}
+
+.ladder-card span {
+  color: #c7d3e2;
+  line-height: 1.5;
+}
+
 @media (max-width: 640px) {
   .shell {
     width: min(100% - 20px, 1040px);

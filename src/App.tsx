@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { ladderSteps, rulesSections } from './app/rules-content';
 import { createGameSession } from './game/engine';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
@@ -94,6 +95,30 @@ export function App() {
             <p>Opponent: {playSession.encounter.opponentName}</p>
             <p>Opening hand: {playSession.players.player.hand.length} cards</p>
             <p>Starting mana: {playSession.players.player.resources.current}</p>
+          </div>
+        ) : null}
+        {route === '/rules' ? (
+          <div className="rules-layout">
+            <div className="rules-sections">
+              {rulesSections.map((section) => (
+                <section className="rules-card" key={section.title}>
+                  <h3>{section.title}</h3>
+                  <p>{section.intro}</p>
+                </section>
+              ))}
+            </div>
+
+            <section className="rules-card ladder-card">
+              <h3>Ladder Focus</h3>
+              <ul>
+                {ladderSteps.map((step) => (
+                  <li key={step.name}>
+                    <strong>{step.name}</strong>
+                    <span>{step.goal}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
         ) : null}
       </main>

@@ -54,4 +54,14 @@ describe('App shell', () => {
 
     expect(document.title).toBe('Cards - Duel TCG');
   });
+
+  it('renders the authored rules content on the rules route', () => {
+    globalThis.location.hash = '#/rules';
+
+    render(<App />);
+
+    expect(screen.getByText('Turn Flow')).toBeInTheDocument();
+    expect(screen.getByText(/Every round follows the same order/)).toBeInTheDocument();
+    expect(screen.getByText('Rookie Table')).toBeInTheDocument();
+  });
 });
