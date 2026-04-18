@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 
+import { createEncounterDuelState, ladderEncounters } from './campaign';
 import { advanceTurn, createDuelState, dealDamage, deployCard, type DuelState } from './game/state';
 import { clearEncounterSnapshot, loadEncounterSnapshot, type EncounterSnapshot } from './persistence';
 
@@ -155,6 +156,11 @@ export function App() {
     document.title = `${page.title} | Duel of Ash and Aether`;
   }, [page.title]);
 
+  const onStartNewRun = () => {
+    clearEncounterSnapshot(window.localStorage, RUN_ID);
+    setSavedEncounter(null);
+  };
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -199,14 +205,7 @@ export function App() {
                       <button className="button primary" type="button">
                         Resume Encounter
                       </button>
-                      <button
-                        className="button secondary"
-                        type="button"
-                        onClick={() => {
-                          clearEncounterSnapshot(window.localStorage, RUN_ID);
-                          setSavedEncounter(null);
-                        }}
-                      >
+                      <button className="button secondary" type="button" onClick={onStartNewRun}>
                         Start New Run
                       </button>
                     </div>
@@ -302,6 +301,37 @@ export function App() {
               </section>
             </section>
 
+            <section className="encounter-strip" aria-labelledby="encounter-ladder-title">
+              <div className="section-heading">
+                <p className="eyebrow">Engine-Bound Ladder</p>
+                <h2 id="encounter-ladder-title">Encounter Ladder</h2>
+              </div>
+              <div className="encounter-grid">
+                {ladderEncounters.map((encounter, index) => {
+                  const duel = createEncounterDuelState(encounter.id);
+
+                  return (
+                    <article className="encounter-card" key={encounter.id}>
+                      <span className="encounter-step">Fight {index + 1}</span>
+                      <h3>{encounter.name}</h3>
+                      <p>{encounter.summary}</p>
+                      <ul className="card-chip-list">
+                        <li>{encounter.playerDeck.name}</li>
+                        <li>{encounter.enemyDeck.name}</li>
+                        <li>{`Opening hand ${duel.state.players.player.hand.length}`}</li>
+                        <li>{`Enemy hand ${duel.state.players.opponent.hand.length}`}</li>
+                      </ul>
+                      <ul className="ai-plan">
+                        {encounter.aiPlan.map((step) => (
+                          <li key={step}>{step}</li>
+                        ))}
+                      </ul>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
             <section className="feedback-kit" aria-labelledby="action-timeline-title">
               <div className="section-copy">
                 <p className="eyebrow">State Sequence</p>
@@ -344,32 +374,83 @@ export function App() {
         ) : (
           <>
             <section className="hero-panel">
-              <p className="eyebrow">Static TCG Campaign</p>
-              <h1>{page.title}</h1>
-              <p>{page.body}</p>
-              <div className="hero-actions">
-                <a className="button primary" href="#/play">
-                  Start Duel
-                </a>
-                <a className="button secondary" href="#/rules">
-                  Learn Rules
-                </a>
+              <div className="hero-home">
+                <div className="hero-copy">
+                  <p className="eyebrow">Static TCG Campaign</p>
+                  <h1>{page.title}</h1>
+                  <p className="hero-lede">Choose a side in a shattered sky war.</p>
+                  <p>{page.body}</p>
+                  <div className="hero-actions">
+                    <a className="button primary strong" href="#/play">
+                      Enter the Gauntlet
+                    </a>
+                    <a className="button secondary" href="#/cards">
+                      Study Both Factions
+                    </a>
+                  </div>
+                </div>
+
+                <aside className="hero-aside">
+                  <span className="hero-badge">Run Snapshot</span>
+                  <ul className="hero-stats">
+                    <li>
+                      <strong>3-step gauntlet</strong>
+                      <span>Fight through three deterministic ladder battles.</span>
+                    </li>
+                    <li>
+                      <strong>12 signature cards</strong>
+                      <span>Each deck recipe expands into a repeatable engine-ready opening state.</span>
+                    </li>
+                    <li>
+                      <strong>Shared duel engine</strong>
+                      <span>Play route snapshots stay anchored to the same deterministic state helpers.</span>
+                    </li>
+                  </ul>
+                </aside>
               </div>
             </section>
 
-            <section className="preview-grid" aria-label="Scaffold Preview">
-              <article className="preview-card ember">
-                <h2>Ember Guild</h2>
-                <p>A fast pressure faction built around sparks, burn, and battlefield momentum.</p>
-              </article>
-              <article className="preview-card aether">
-                <h2>Aether Covenant</h2>
-                <p>A tempo faction that manipulates energy, shields, and tactical positioning.</p>
-              </article>
-              <article className="preview-card ladder">
-                <h2>Encounter Ladder</h2>
-                <p>Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.</p>
-              </article>
+            <section className="section-block" aria-labelledby="faction-previews-title">
+              <div className="section-heading">
+                <p className="eyebrow">Faction Overview</p>
+                <h2 id="faction-previews-title">Faction Previews</h2>
+              </div>
+              <div className="preview-grid factions-grid">
+                <article className="preview-card ember">
+                  <span className="card-kicker">Aggro Tempo</span>
+                  <h3>Emberfire Vanguard</h3>
+                  <p>Explodes onto the board with direct damage, cheap fighters, and relentless pressure.</p>
+                </article>
+                <article className="preview-card aether">
+                  <span className="card-kicker">Control Tempo</span>
+                  <h3>Aether Covenant</h3>
+                  <p>Answers threats with shields and evasive units before locking in a disciplined finish.</p>
+                </article>
+              </div>
+            </section>
+
+            <section className="encounter-strip" aria-labelledby="encounter-path-title">
+              <div className="section-heading">
+                <p className="eyebrow">Campaign Route</p>
+                <h2 id="encounter-path-title">Encounter Path</h2>
+              </div>
+              <div className="encounter-grid">
+                <article className="encounter-card">
+                  <span className="encounter-step">Fight 1</span>
+                  <h3>Gate of Cinders</h3>
+                  <p>Fast Ember assault that teaches early board control and clean trades.</p>
+                </article>
+                <article className="encounter-card">
+                  <span className="encounter-step">Fight 2</span>
+                  <h3>Glassgarden Crossing</h3>
+                  <p>Shield-heavy midboss that punishes overextending into tempo answers.</p>
+                </article>
+                <article className="encounter-card">
+                  <span className="encounter-step">Fight 3</span>
+                  <h3>The Zenith Prism</h3>
+                  <p>Final mirror-tech duel where burn timing and hand discipline decide the run.</p>
+                </article>
+              </div>
             </section>
           </>
         )}

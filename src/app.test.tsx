@@ -7,6 +7,7 @@ afterEach(() => {
   cleanup();
   window.location.hash = '';
   document.title = '';
+  window.localStorage.clear();
 });
 
 describe('App shell', () => {
@@ -76,5 +77,19 @@ describe('App shell', () => {
     expect(within(timeline).getByText(/player deploys ashguard bruiser to the battlefield/i)).toBeInTheDocument();
     expect(within(timeline).getByText(/^damage flash$/i)).toBeInTheDocument();
     expect(within(timeline).getByText(/opponent takes 4 damage and drops to 16 health/i)).toBeInTheDocument();
+  });
+
+  it('renders three ladder encounters with deterministic ai plans on the play route', () => {
+    window.location.hash = '#/play';
+
+    render(<App />);
+
+    const ladder = screen.getByRole('region', { name: /encounter ladder/i });
+
+    expect(within(ladder).getByRole('heading', { name: /cinder bridge ambush/i })).toBeInTheDocument();
+    expect(within(ladder).getByRole('heading', { name: /skyrail siege/i })).toBeInTheDocument();
+    expect(within(ladder).getByRole('heading', { name: /the glass throne/i })).toBeInTheDocument();
+    expect(within(ladder).getByText(/play the cheapest pressure unit first/i)).toBeInTheDocument();
+    expect(within(ladder).getByText(/if lethal burn is available, cast it before developing/i)).toBeInTheDocument();
   });
 });
