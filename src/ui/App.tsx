@@ -5,6 +5,7 @@ import {
   filterCardsByFaction,
   type CardGalleryFactionFilter,
 } from './card-gallery-preferences';
+import { buildPlayBoardReference } from './play-board-reference';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -280,6 +281,8 @@ function BoardZone(props: BoardZoneProps) {
 }
 
 export function PlayBoard() {
+  const reference = buildPlayBoardReference();
+
   return (
     <section className="play-board" aria-label="Play board">
       <div className="board-headline">
@@ -287,34 +290,34 @@ export function PlayBoard() {
           <p className="eyebrow">Play Surface</p>
           <h2>Live duel board</h2>
           <p>
-            A presentational combat table with readable zones, turn state, and primary actions ready
-            for rules wiring.
+            A presentational combat table with readable zones, turn state, and primary actions for
+            the opening {reference.encounterTitle} matchup.
           </p>
         </div>
         <aside className="turn-indicator" aria-label="Turn state">
           <span className="status-label">Turn indicator</span>
           <strong>Your turn</strong>
-          <span className="status-rule">Round 4 · 3 actions available</span>
+          <span className="status-rule">{reference.encounterVariantName} · 3 actions available</span>
         </aside>
       </div>
 
       <div className="combatants" aria-label="Combatant status">
         <article className="combatant-card combatant-card-enemy">
           <span className="combatant-label">Enemy champion</span>
-          <strong>Warden Vey</strong>
+          <strong>{reference.enemyDeckName}</strong>
           <div className="combatant-stats">
             <span>Health 18</span>
             <span>Resources 6</span>
-            <span>Deck 14</span>
+            <span>{reference.enemyDeckCount}</span>
           </div>
         </article>
         <article className="combatant-card combatant-card-player">
           <span className="combatant-label">Player champion</span>
-          <strong>Ashcaller Ren</strong>
+          <strong>{reference.playerDeckName}</strong>
           <div className="combatant-stats">
             <span>Health 22</span>
             <span>Resources 5</span>
-            <span>Deck 19</span>
+            <span>{reference.playerDeckCount}</span>
           </div>
         </article>
       </div>
@@ -331,7 +334,7 @@ export function PlayBoard() {
         <div className="battlefield-band" aria-label="Battlefield focus">
           <div>
             <span className="battlefield-label">Battlefield</span>
-            <strong>Center lane contested</strong>
+            <strong>{reference.battlefieldLabel}</strong>
           </div>
           <p>Two opposing frontlines face off here. Hover and targeting logic can attach to this rail next.</p>
         </div>
@@ -412,7 +415,7 @@ function PageSection(props: {
           <HeroCard title="Three-step ladder" subtitle="Six encounter variants" accent="dusk" />
         </div>
       ) : null}
-      {props.route === 'home' || props.route === 'play' ? <DeckPreview /> : null}
+      {props.route === 'home' ? <DeckPreview /> : null}
       {props.route === 'rules' ? <RulesReference /> : null}
       {props.route === 'cards' ? (
         <CardGallery
