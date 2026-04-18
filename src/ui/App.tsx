@@ -10,6 +10,38 @@ const routeMap: Record<string, RouteKey> = {
   '#/cards': 'cards',
 };
 
+const encounterSteps = ['Play first card', 'Commit attack lane', 'Bank shield charge'];
+
+const rivalReads = [
+  {
+    label: 'Opening gambit',
+    detail: 'Rogue AI floods the left lane first to force an early shield spend.',
+  },
+  {
+    label: 'Counter window',
+    detail: 'Punish the turn after it banks energy instead of pressing damage.',
+  },
+  {
+    label: 'Weak side',
+    detail: 'Its right lane stays under-defended until the second combat cycle.',
+  },
+];
+
+const frontlineCards = [
+  {
+    name: 'Static Broker',
+    text: 'Preconstructed deck opener that converts early energy into a safe first lane.',
+  },
+  {
+    name: 'Glasswall Sentry',
+    text: 'Defender body that buys a full turn against the Rogue AI burst line.',
+  },
+  {
+    name: 'Backline Surge',
+    text: 'Signal finisher that flips stored shield charge into a clean lethal push.',
+  },
+];
+
 const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string }> = {
   home: {
     eyebrow: 'Prototype map',
@@ -17,9 +49,9 @@ const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string
     body: 'Shared shell for home, play, rules, and cards so both divisions can branch from one stable Vite + Preact baseline.',
   },
   play: {
-    eyebrow: 'Encounter ladder',
-    title: 'Combat loop placeholder',
-    body: 'This contested surface will become the final duel board. For now it exposes the primary pillars and a stable mount point.',
+    eyebrow: 'Division B vision',
+    title: 'Division B tactical board',
+    body: 'Lead with readability: show the pilot plan, the frontline cards that matter this turn, and the combat readout the moment pressure shifts.',
   },
   rules: {
     eyebrow: 'Rules reference',
@@ -92,9 +124,24 @@ export function App() {
           <p>{copy.body}</p>
         </section>
 
+        <section class="panel">
+          <h2>Division B tactical board</h2>
+          <p>Division A now reinforces the selected shell with live combat state so the board teaches tempo and response timing instead of staying static.</p>
+          <ul>
+            {encounterSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="panel">
+          <h2>Pilot brief</h2>
+          <p>Preconstructed deck: Midrange Voltage. Encounter ladder starts with the Rogue AI and teaches one clean attack pattern before adding harder reads.</p>
+          <p>Plan your first cycle around a single defended lane, then pivot once the AI spends its banked response.</p>
+        </section>
+
         <section class="panel panel-board">
-          <h2>Division A playtest</h2>
-          <p>Rogue AI challenger</p>
+          <h2>Combat readout</h2>
           <div class="battle-status">
             <div>
               <span class="eyebrow">Turn state</span>
@@ -141,30 +188,25 @@ export function App() {
               ))}
             </ul>
           </div>
+
+          <ul>
+            {rivalReads.map((read) => (
+              <li key={read.label}>
+                <strong>{read.label}</strong>: {read.detail}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section class="panel">
-          <h2>Encounter flow</h2>
-          <div class="flow-grid">
-            <article>
-              <h3>Scout the opener</h3>
-              <p>Confirm whether the AI is posturing, shielding, or baiting a bad trade.</p>
-            </article>
-            <article>
-              <h3>Win the tempo pivot</h3>
-              <p>Spend one decisive card to flip initiative instead of flooding the lane.</p>
-            </article>
-            <article>
-              <h3>Secure the finisher</h3>
-              <p>Close only when the counter-hit is spent and the AI line is exhausted.</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2>AI rival reads</h2>
-          <p>Rogue Sentinel prefers a shielded open, then snaps into a heavy counter if you overextend on turn two.</p>
-          <p>Bait the shield first with a low-cost probe, then punish the heavy swing once the AI spends its answer into the wrong lane.</p>
+          <h2>Frontline cards</h2>
+          <ul>
+            {frontlineCards.map((card) => (
+              <li key={card.name}>
+                <strong>{card.name}</strong>: {card.text}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section class="panel panel-links">
