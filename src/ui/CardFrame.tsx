@@ -1,6 +1,6 @@
-type Faction = 'ember' | 'verdant';
+export type Faction = 'ember' | 'verdant';
 
-type CardFrameProps = {
+export type CardFrameProps = {
   faction: Faction;
   title: string;
   cost: number;

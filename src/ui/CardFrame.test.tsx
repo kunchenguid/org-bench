@@ -2,8 +2,14 @@ import { h } from 'preact';
 import { describe, expect, it } from 'vitest';
 import { renderToString } from 'preact-render-to-string';
 import { CardFrame } from './CardFrame';
+import { showcaseCards } from './cardCatalog';
 
 describe('CardFrame', () => {
+  it('exports a reusable showcase catalog with both factions represented', () => {
+    expect(showcaseCards).toHaveLength(2);
+    expect(showcaseCards.map((card) => card.faction)).toEqual(['ember', 'verdant']);
+  });
+
   it('renders the shared card chrome for ember faction cards', () => {
     const markup = renderToString(
       h(CardFrame, {

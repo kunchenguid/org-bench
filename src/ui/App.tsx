@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { CardFrame } from './CardFrame';
+import { showcaseCards } from './cardCatalog';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -41,27 +42,6 @@ const routeContent: Record<Route, { eyebrow: string; title: string; body: string
       'This route will display the full card library as visual cards, with faction identity, art, stats, and readable rules text.',
   },
 };
-
-const galleryCards = [
-  {
-    faction: 'ember' as const,
-    title: 'Cinder Archivist',
-    cost: 3,
-    kind: 'Spellwright',
-    attack: 4,
-    health: 2,
-    rules: 'When played, deal 1 ember damage to each opposing unit.',
-  },
-  {
-    faction: 'verdant' as const,
-    title: 'Rootwhisper Keeper',
-    cost: 2,
-    kind: 'Warden',
-    attack: 1,
-    health: 5,
-    rules: 'At end of turn, restore 1 health to your champion.',
-  },
-];
 
 function getRouteFromHash(hash: string): Route {
   const key = hash.replace(/^#\/?/, '');
@@ -107,7 +87,7 @@ function PageSection(props: { route: Route }) {
 
       {props.route === 'cards' ? (
         <div className="card-gallery">
-          {galleryCards.map((card) => (
+          {showcaseCards.map((card) => (
             <CardFrame key={card.title} {...card} />
           ))}
         </div>
