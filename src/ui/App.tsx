@@ -280,6 +280,10 @@ function CardGallery() {
 
   const activeCard =
     visibleCards.find((card) => card.id === galleryState.activeCardId) ?? visibleCards[0];
+  const summaryLabel =
+    galleryState.activeFaction === 'All factions'
+      ? `Showing ${visibleCards.length} cards across all factions`
+      : `Showing ${visibleCards.length} cards for ${galleryState.activeFaction}`;
 
   const selectFaction = (activeFaction: Faction | 'All factions') => {
     setGalleryState((currentState) => ({
@@ -310,7 +314,7 @@ function CardGallery() {
         ))}
       </div>
 
-      <p className="gallery-summary">Showing {visibleCards.length} cards</p>
+      <p className="gallery-summary">{summaryLabel}</p>
 
       <div className="gallery-layout">
         <div className="card-grid" role="list" aria-label="Card gallery grid">

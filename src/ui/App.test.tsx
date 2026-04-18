@@ -65,10 +65,10 @@ describe('App card gallery route', () => {
   it('shows an updated visible card count for the active faction filter', () => {
     render(<App />);
 
-    expect(screen.getByText('Showing 6 cards')).toBeTruthy();
+    expect(screen.getByText('Showing 6 cards across all factions')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Gloam Syndicate' }));
 
-    expect(screen.getByText('Showing 2 cards')).toBeTruthy();
+    expect(screen.getByText('Showing 2 cards for Gloam Syndicate')).toBeTruthy();
   });
 });
