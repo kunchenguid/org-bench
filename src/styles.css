@@ -126,7 +126,8 @@ a {
 
 .panel-grid,
 .faction-grid,
-.card-grid {
+.card-grid,
+.ladder-grid {
   display: grid;
   gap: 1rem;
 }
@@ -143,9 +144,14 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.ladder-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .panel,
 .faction-panel,
-.card-frame {
+.card-frame,
+.ladder-entry {
   border: 1px solid rgba(255, 214, 168, 0.14);
   border-radius: 1.5rem;
   background: rgba(19, 12, 23, 0.82);
@@ -153,7 +159,8 @@ a {
 }
 
 .panel,
-.faction-panel {
+.faction-panel,
+.ladder-entry {
   padding: 1.25rem;
 }
 
