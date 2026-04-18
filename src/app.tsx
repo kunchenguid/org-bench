@@ -30,6 +30,21 @@ const pageContent: Record<string, { eyebrow: string; title: string; body: string
   }
 };
 
+const rulesSections = [
+  {
+    heading: 'Match Goal',
+    body: 'Each duelist starts with 20 health. Reduce the rival to 0 health before they do the same to you.'
+  },
+  {
+    heading: 'Turn Flow',
+    body: 'Start of turn: gain 1 ember, draw 1 card, then play cards before sending your field into combat.'
+  },
+  {
+    heading: 'Card Types',
+    body: 'Creatures stay on the field to attack each turn, while spells resolve once and head straight to the discard pile.'
+  }
+] as const;
+
 function getCurrentRoute() {
   if (typeof window === 'undefined') {
     return '#/';
@@ -73,7 +88,19 @@ export function App() {
       <main class="hero-panel">
         <p class="eyebrow">{currentPage.eyebrow}</p>
         <h2>{currentPage.title}</h2>
-        <p>{currentPage.body}</p>
+        {route === '#/rules' ? (
+          <div class="rules-stack">
+            <p>{currentPage.body}</p>
+            {rulesSections.map((section) => (
+              <section class="rules-card" key={section.heading}>
+                <h3>{section.heading}</h3>
+                <p>{section.body}</p>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <p>{currentPage.body}</p>
+        )}
       </main>
     </div>
   );
