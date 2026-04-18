@@ -39,6 +39,9 @@ describe('App shell', () => {
     expect(screen.getByText('You: 20 HP')).toBeInTheDocument();
     expect(screen.getByText('Opponent: 20 HP')).toBeInTheDocument();
     expect(screen.getByText('Hand: 4 cards')).toBeInTheDocument();
+    expect(
+      screen.getByText('This match auto-saves in your browser using localStorage.')
+    ).toBeInTheDocument();
   });
 
   it('exposes a discoverable legal and contact route from the shipped UI', () => {
@@ -49,6 +52,9 @@ describe('App shell', () => {
 
     expect(screen.getByRole('heading', { name: 'Legal and Contact' })).toBeInTheDocument();
     expect(screen.getByText(/All rights reserved\./)).toBeInTheDocument();
+    expect(
+      screen.getByText('Match progress is stored locally in your browser using localStorage.')
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Contact Vera' })).toHaveAttribute(
       'href',
       'mailto:vera@oracle-seed-01.local'

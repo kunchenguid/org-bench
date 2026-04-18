@@ -90,11 +90,13 @@ export function App() {
             <p>{`You: ${gameState.player.health} HP`}</p>
             <p>{`Opponent: ${gameState.opponent.health} HP`}</p>
             <p>{`Hand: ${gameState.player.hand.length} cards`}</p>
+            <p>This match auto-saves in your browser using localStorage.</p>
           </section>
         ) : route === '/legal' ? (
           <section aria-label="Legal and contact">
             <p>All rights reserved.</p>
             <p>This benchmark build is provided for browser evaluation inside the oracle-seed-01 run.</p>
+            <p>Match progress is stored locally in your browser using localStorage.</p>
             <p>
               Contact: <a href="mailto:vera@oracle-seed-01.local">Contact Vera</a>
             </p>
