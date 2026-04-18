@@ -21,6 +21,9 @@ describe('App', () => {
     expect(html).toContain('Static Broker');
     expect(html).toContain('Rogue AI pressure: left lane overloaded');
     expect(html).toContain('Turn 1 - Your move');
+    expect(html).toContain('Division A playtest');
+    expect(html).toContain('Division B tactical board');
+    expect(html).toContain('Pilot brief');
 
     Object.assign(globalThis, { window: previousWindow });
   });
@@ -51,7 +54,7 @@ describe('App', () => {
     expect(html).toContain('Weak side');
   });
 
-  it('renders the divB card archive when the cards route is active', () => {
+  it('renders a visual starter roster on the cards route', () => {
     const previousWindow = globalThis.window;
     Object.assign(globalThis, {
       window: {
@@ -64,9 +67,10 @@ describe('App', () => {
     const html = renderToString(h(App, {}));
 
     expect(html).toContain('Starter card archive');
-    expect(html).toContain('Static Broker');
-    expect(html).toContain('Glasswall Sentry');
+    expect(html).toContain('Deck roles');
+    expect(html).toContain('Unit - Opener');
     expect(html).toContain('Signal - Finisher');
+    expect(html).toContain('Card gallery');
 
     Object.assign(globalThis, { window: previousWindow });
   });

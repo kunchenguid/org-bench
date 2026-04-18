@@ -2,6 +2,12 @@ import { useEffect, useState } from 'preact/hooks';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
+type CardProfile = {
+  name: string;
+  role: string;
+  text: string;
+};
+
 const routeMap: Record<string, RouteKey> = {
   '#/': 'home',
   '#/play': 'play',
@@ -26,7 +32,7 @@ const rivalReads = [
   },
 ];
 
-const frontlineCards = [
+const frontlineCards: CardProfile[] = [
   {
     name: 'Static Broker',
     role: 'Unit - Opener',
@@ -75,6 +81,14 @@ function getRoute(): RouteKey {
   return routeMap[window.location.hash] ?? 'home';
 }
 
+function renderCardList(cards: CardProfile[]) {
+  return cards.map((card) => (
+    <li key={card.name}>
+      <strong>{card.name}</strong>: {card.role}. {card.text}
+    </li>
+  ));
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(getRoute);
 
@@ -85,8 +99,8 @@ export function App() {
   }, []);
 
   const copy = routeCopy[route];
-  const isCardsRoute = route === 'cards';
   const isPlayRoute = route === 'play';
+  const isCardsRoute = route === 'cards';
 
   return (
     <div class="app-shell">
@@ -184,26 +198,18 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>{isCardsRoute ? 'Starter card notes' : 'Combat readout'}</h2>
+          <h2>{isCardsRoute ? 'Card gallery' : 'Combat readout'}</h2>
           <p>{isCardsRoute ? 'Reference text' : 'AI rival reads - Rogue AI'}</p>
-          <ul>
-            {rivalReads.map((read) => (
-              <li key={read.label}>
-                <strong>{read.label}</strong>: {read.detail}
-              </li>
-            ))}
-          </ul>
+          <ul>{isCardsRoute ? renderCardList(frontlineCards) : rivalReads.map((read) => (
+            <li key={read.label}>
+              <strong>{read.label}</strong>: {read.detail}
+            </li>
+          ))}</ul>
         </section>
 
         <section class="panel">
           <h2>Frontline cards</h2>
-          <ul>
-            {frontlineCards.map((card) => (
-              <li key={card.name}>
-                <strong>{card.name}</strong>: {card.role}. {card.text}
-              </li>
-            ))}
-          </ul>
+          <ul>{renderCardList(frontlineCards)}</ul>
         </section>
 
         <section class="panel panel-links">
