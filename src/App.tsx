@@ -15,16 +15,19 @@ function getRoute(): Route {
 
 function RouteLink(props: {
   href: string;
+  route: Route;
+  activeRoute: Route;
   children: string;
   onNavigate: (route: Route, href: string) => void;
 }) {
   return (
     <a
+      aria-current={props.route === props.activeRoute ? 'page' : undefined}
       class="nav-link"
       href={props.href}
       onClick={(event) => {
         event.preventDefault();
-        props.onNavigate(routes[props.href] ?? 'home', props.href);
+        props.onNavigate(props.route, props.href);
       }}
     >
       {props.children}
@@ -95,10 +98,10 @@ export function App() {
           <span>Shards of the Veil</span>
         </a>
         <nav class="site-nav" aria-label="Primary">
-          <RouteLink href="#/" onNavigate={navigate}>Home</RouteLink>
-          <RouteLink href="#/play" onNavigate={navigate}>Play</RouteLink>
-          <RouteLink href="#/rules" onNavigate={navigate}>Rules</RouteLink>
-          <RouteLink href="#/cards" onNavigate={navigate}>Cards</RouteLink>
+          <RouteLink href="#/" route="home" activeRoute={route} onNavigate={navigate}>Home</RouteLink>
+          <RouteLink href="#/play" route="play" activeRoute={route} onNavigate={navigate}>Play</RouteLink>
+          <RouteLink href="#/rules" route="rules" activeRoute={route} onNavigate={navigate}>Rules</RouteLink>
+          <RouteLink href="#/cards" route="cards" activeRoute={route} onNavigate={navigate}>Cards</RouteLink>
         </nav>
       </header>
       <main class="site-main">
