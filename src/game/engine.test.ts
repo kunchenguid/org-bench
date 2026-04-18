@@ -73,4 +73,39 @@ describe('game engine contract', () => {
     expect(next.players.ai.resources).toEqual({ current: 1, max: 1 });
     expect(next.players.player.resources).toEqual({ current: 1, max: 1 });
   });
+
+  it('caps refreshed resources at ten for extended runs', async () => {
+    const { endTurn } = await import('./engine');
+
+    const next = endTurn({
+      encounter: {
+        id: 'encounter-9',
+        opponentName: 'Clockwork Regent'
+      },
+      status: 'in_progress',
+      turn: {
+        number: 12,
+        activePlayerId: 'player'
+      },
+      players: {
+        player: {
+          health: 11,
+          resources: { current: 9, max: 9 },
+          deck: [],
+          hand: [],
+          discardPile: []
+        },
+        ai: {
+          health: 14,
+          resources: { current: 9, max: 10 },
+          deck: [],
+          hand: [],
+          discardPile: []
+        }
+      }
+    });
+
+    expect(next.turn).toEqual({ activePlayerId: 'ai', number: 13 });
+    expect(next.players.ai.resources).toEqual({ current: 10, max: 10 });
+  });
 });

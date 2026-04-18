@@ -115,6 +115,226 @@ h2 {
   margin-top: 1.5rem;
 }
 
+.home-layout {
+  margin-top: 1.5rem;
+}
+
+.home-intro {
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, rgba(111, 124, 255, 0.14), rgba(255, 126, 179, 0.08));
+}
+
+.home-highlight {
+  margin: 0.25rem 0 0.75rem;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  line-height: 1.1;
+  font-weight: 700;
+  color: #f8faff;
+}
+
+.play-layout,
+.cards-layout {
+  margin-top: 1.5rem;
+}
+
+.play-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.9fr);
+  gap: 1rem;
+}
+
+.battlefield-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.battlefield-topline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.status-card {
+  padding: 1rem;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(149, 166, 255, 0.14);
+}
+
+.enemy-status {
+  box-shadow: inset 0 0 0 1px rgba(255, 119, 119, 0.16);
+}
+
+.player-status {
+  box-shadow: inset 0 0 0 1px rgba(104, 247, 188, 0.16);
+}
+
+.status-label,
+.status-note,
+.lane-header span {
+  margin: 0;
+  color: #b8c4f7;
+}
+
+.status-label,
+.lane-header span {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.77rem;
+}
+
+.status-value {
+  margin: 0.35rem 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+}
+
+.resource-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.resource-strip span {
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(149, 166, 255, 0.12);
+  border: 1px solid rgba(149, 166, 255, 0.18);
+  color: #e8ecff;
+}
+
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.lane-card {
+  padding: 1rem;
+  border-radius: 24px;
+}
+
+.lane-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.lane-header h2,
+.log-panel h2,
+.cards-grid h3 {
+  margin-bottom: 0;
+}
+
+.lane-units {
+  margin: 0.45rem 0 0;
+  color: #d4dcff;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.action-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.1rem;
+  font: inherit;
+  color: #f8faff;
+  cursor: pointer;
+}
+
+.primary-action {
+  background: linear-gradient(135deg, #6f7cff, #9d7bff);
+}
+
+.secondary-action {
+  background: rgba(149, 166, 255, 0.12);
+  border: 1px solid rgba(149, 166, 255, 0.18);
+}
+
+.log-panel {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.log-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #d4dcff;
+}
+
+.log-list li + li {
+  margin-top: 0.8rem;
+}
+
+.cards-grid {
+  align-items: start;
+}
+
+.cards-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.section-label {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.74rem;
+  color: #7f93ff;
+}
+
+.reference-card,
+.tcg-card {
+  background: rgba(24, 29, 49, 0.92);
+  border: 1px solid rgba(149, 166, 255, 0.18);
+}
+
+.cards-grid,
+.anatomy-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-top: 0;
+}
+
+.card-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.tcg-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.cost-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: rgba(114, 134, 255, 0.16);
+  border: 1px solid rgba(149, 166, 255, 0.24);
+  color: #eef1ff;
+  font-weight: 700;
+}
+
+.type-line,
+.stats-line,
+.card-role {
+  color: #b9c5f4;
+}
+
 .inset-panel {
   padding: 1.25rem;
   border-radius: 24px;
@@ -146,5 +366,18 @@ h2 {
 
   .feature-grid {
     grid-template-columns: 1fr;
+  }
+
+  .play-layout,
+  .battlefield-topline,
+  .zone-grid,
+  .card-gallery,
+  .cards-grid,
+  .anatomy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lane-header {
+    flex-direction: column;
   }
 }
