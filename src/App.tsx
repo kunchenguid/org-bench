@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 
 import { ladderSteps, rulesSections } from './app/rules-content';
+import { getCardsByFaction, getFactionSummaries } from './app/card-catalog';
 import { createGameSession } from './game/engine';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
@@ -54,6 +55,8 @@ export function App() {
   const page = routes[route];
   const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
   const isRulesRoute = route === '/rules';
+  const isCardsRoute = route === '/cards';
+  const factionSummaries = isCardsRoute ? getFactionSummaries() : [];
 
   useEffect(() => {
     document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
@@ -114,6 +117,28 @@ export function App() {
                 ))}
               </ul>
             </section>
+          </div>
+        ) : null}
+
+        {isCardsRoute ? (
+          <div className="rules-layout">
+            <div className="rules-grid" aria-label="Faction summaries">
+              {factionSummaries.map((summary) => (
+                <section key={summary.faction} className="rules-card">
+                  <p className="section-label">Faction</p>
+                  <h3>{summary.faction}</h3>
+                  <p>{summary.blurb}</p>
+                  <p>
+                    {summary.creatureCount} creatures, {summary.spellCount} spells
+                  </p>
+                  <ul className="rules-points">
+                    {getCardsByFaction(summary.faction).map((card) => (
+                      <li key={card.name}>{card.name}</li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
           </div>
         ) : null}
 

@@ -65,4 +65,15 @@ describe('App shell', () => {
     expect(screen.getByText('Rookie Table')).toBeInTheDocument();
     expect(screen.getByText('Draw one card at the start of your turn.')).toBeInTheDocument();
   });
+
+  it('renders the shared card catalog on the cards route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByText('Skyforge')).toBeInTheDocument();
+    expect(screen.getByText('Wildroot')).toBeInTheDocument();
+    expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
+    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
+  });
 });
