@@ -107,7 +107,14 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
-        {route === '/' && savedDuelEncounterId ? <p className="save-indicator">Saved duel available - {savedDuelEncounterId}</p> : null}
+        {route === '/' && savedDuelEncounterId ? (
+          <div className="saved-duel-actions">
+            <p className="save-indicator">Saved duel available - {savedDuelEncounterId}</p>
+            <a className="saved-duel-link" href="#/play">
+              Continue saved duel
+            </a>
+          </div>
+        ) : null}
         {resumeRoute && resumeTitle ? (
           <div className="resume-actions">
             <a className="resume-link" href={`#${resumeRoute}`}>

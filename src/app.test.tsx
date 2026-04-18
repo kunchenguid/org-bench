@@ -63,6 +63,7 @@ describe('App shell', () => {
     render(<App />);
 
     expect(screen.getByText('Saved duel available - encounter-1')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Continue saved duel' })).toHaveAttribute('href', '#/play');
   });
 
   it('ignores malformed saved duel state', () => {
