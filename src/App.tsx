@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { getPersistenceKey } from './game/engine';
+
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
 const lastRouteStorageKey = 'duel-tcg:last-route';
+const runId = 'apple-seed-01';
 
 const routes: Record<RouteKey, { title: string; description: string }> = {
   '/': {
@@ -46,6 +49,7 @@ function clearSavedRoute() {
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
   const [savedRoute, setSavedRoute] = useState<Exclude<RouteKey, '/'> | null>(() => getSavedRoute());
+  const [hasSavedDuel] = useState(() => Boolean(globalThis.localStorage?.getItem(getPersistenceKey(runId))));
 
   useEffect(() => {
     const onHashChange = () => {
@@ -88,6 +92,7 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+        {route === '/' && hasSavedDuel ? <p className="save-indicator">Saved duel available</p> : null}
         {resumeRoute && resumeTitle ? (
           <div className="resume-actions">
             <a className="resume-link" href={`#${resumeRoute}`}>

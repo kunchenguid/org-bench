@@ -94,6 +94,16 @@ a {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
 }
 
+.save-indicator {
+  display: inline-flex;
+  margin-top: 18px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(61, 105, 191, 0.2);
+  color: #8eb4ff;
+  font-weight: 700;
+}
+
 .resume-link {
   display: inline-flex;
   align-items: center;

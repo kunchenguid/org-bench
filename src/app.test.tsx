@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/preact';
 
 import { App } from './App';
+import { getPersistenceKey } from './game/engine';
 
 describe('App shell', () => {
   beforeEach(() => {
@@ -54,5 +55,13 @@ describe('App shell', () => {
 
     expect(globalThis.localStorage.getItem('duel-tcg:last-route')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Resume Play' })).toBeNull();
+  });
+
+  it('surfaces when a saved duel exists for this run', () => {
+    globalThis.localStorage.setItem(getPersistenceKey('apple-seed-01'), JSON.stringify({ encounter: { id: 'encounter-1' } }));
+
+    render(<App />);
+
+    expect(screen.getByText('Saved duel available')).toBeInTheDocument();
   });
 });
