@@ -78,6 +78,13 @@ a {
   border: 1px solid rgba(161, 188, 255, 0.22);
   border-radius: 999px;
   background: rgba(7, 17, 31, 0.72);
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.nav a[data-active='true'] {
+  border-color: rgba(142, 180, 255, 0.72);
+  background: rgba(44, 80, 150, 0.4);
+  color: #f8fbff;
 }
 
 .panel {
