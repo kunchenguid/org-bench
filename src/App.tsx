@@ -30,24 +30,37 @@ function getRouteFromHash(hash: string): RouteKey {
   return value in routes ? (value as RouteKey) : 'home';
 }
 
+function getHashForRoute(route: RouteKey) {
+  return `#/${route}`;
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
 
   useEffect(() => {
     const onHashChange = () => {
-      setRoute(getRouteFromHash(window.location.hash));
+      const nextRoute = getRouteFromHash(window.location.hash);
+
+      if (window.location.hash !== getHashForRoute(nextRoute)) {
+        window.location.hash = getHashForRoute(nextRoute);
+        return;
+      }
+
+      setRoute(nextRoute);
     };
 
     window.addEventListener('hashchange', onHashChange);
 
-    if (!window.location.hash) {
-      window.location.hash = '#/home';
-    }
+    onHashChange();
 
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   const page = routes[route];
+
+  useEffect(() => {
+    document.title = `${page.title} | Duel of Ash and Aether`;
+  }, [page.title]);
 
   return (
     <div className="app-shell">
@@ -61,7 +74,7 @@ export function App() {
             <a
               key={key}
               className={route === key ? 'nav-link active' : 'nav-link'}
-              href={`#/${key}`}
+              href={getHashForRoute(key as RouteKey)}
             >
               {item.label}
             </a>
