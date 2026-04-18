@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chronicle Clash Play</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #020617;
+        color: #e2e8f0;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px 20px 48px;
+        background: radial-gradient(circle at top, #1e293b 0%, #020617 62%);
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      .panel {
+        padding: 24px;
+        border: 1px solid #334155;
+        border-radius: 20px;
+        background: rgba(15, 23, 42, 0.9);
+      }
+
+      .lanes {
+        display: grid;
+        gap: 16px;
+        margin: 24px 0;
+      }
+
+      .lane {
+        padding: 18px;
+        border-radius: 16px;
+        border: 1px solid #475569;
+        background: rgba(30, 41, 59, 0.75);
+      }
+
+      .queue {
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>Play</h1>
+        <p>Three lanes create visible pressure, so each turn is about lining up efficient trades before the command queue resolves.</p>
+
+        <div class="lanes" aria-label="Three lanes">
+          <div class="lane">
+            <h2>Left Lane</h2>
+            <p>Stall here when you need time to set up value engines.</p>
+          </div>
+          <div class="lane">
+            <h2>Center Lane</h2>
+            <p>Contest the middle to keep momentum and card draw online.</p>
+          </div>
+          <div class="lane">
+            <h2>Right Lane</h2>
+            <p>Push this lane when the opponent overcommits elsewhere.</p>
+          </div>
+        </div>
+
+        <section class="queue panel">
+          <h2>Command Queue</h2>
+          <ol>
+            <li>Deploy or reinforce a lane.</li>
+            <li>Lock the next command into the queue.</li>
+            <li>Resolve Command only after both sides finish reactions.</li>
+          </ol>
+          <p>Pressure favors efficient trades over random burst turns.</p>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
