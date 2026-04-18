@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
+import { createLadder } from './duel-engine';
+
 type PageId = 'home' | 'play' | 'rules' | 'cards';
 type FactionId = 'emberwake' | 'graveglass' | 'stormforged';
 
@@ -146,6 +148,8 @@ const pageLookup = Object.fromEntries(pages.map((page) => [page.id, page])) as R
   PageId,
   PageDefinition
 >;
+
+const ladder = createLadder();
 
 function normalizeHash(hash: string): PageId {
   const raw = hash.replace(/^#\/?/, '').trim().toLowerCase();
@@ -372,6 +376,23 @@ function PlayPage({ hasSavedProgress, clearSavedProgress }: { hasSavedProgress: 
           <h2>Win the duel, unlock the next rival</h2>
           <p>Loss copy highlights the swing turn so players can immediately understand what changed.</p>
         </article>
+      </section>
+      <section className="panel stack" aria-labelledby="ladder-preview-heading">
+        <p className="eyebrow">Encounter ladder</p>
+        <h2 id="ladder-preview-heading">Climb the Ember Ladder</h2>
+        <p className="section-copy">
+          Each rival teaches one readable lesson before the final crown duel asks the player to
+          combine them.
+        </p>
+        <div className="panel-grid">
+          {ladder.map((encounter) => (
+            <article className="panel stack" key={encounter.ladderIndex}>
+              <p className="eyebrow">Encounter {encounter.ladderIndex + 1}</p>
+              <h3>{encounter.title}</h3>
+              <p>Face {encounter.opponentName} and learn the shape of the next duel.</p>
+            </article>
+          ))}
+        </div>
       </section>
     </>
   );
