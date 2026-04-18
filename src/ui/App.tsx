@@ -116,9 +116,9 @@ const rulesSections: RulesSection[] = [
 const routeContent: Record<Route, { eyebrow: string; title: string; body: string }> = {
   home: {
     eyebrow: 'Auric Reach // Prologue',
-    title: 'A duel game scaffold with room for craft.',
+    title: 'The frontier is awake, and it remembers every oath.',
     body:
-      'This initial shell establishes the shared visual language, navigation, and deployment-safe routing for the full single-player card game.',
+      'Choose your line, study the houses circling the Reach, and prepare for a sequence of duels where each victory opens a deeper chamber of the frontier.',
   },
   play: {
     eyebrow: 'Play Surface',
@@ -305,6 +305,144 @@ function RulesPanel() {
   );
 }
 
+const ctaItems: Array<{ route: Exclude<Route, 'home'>; label: string; detail: string }> = [
+  {
+    route: 'play',
+    label: 'Play Now',
+    detail: 'Open the duel table and enter the first frontier trial.',
+  },
+  {
+    route: 'rules',
+    label: 'Read Rules',
+    detail: 'Learn turn flow, combat timing, and the cadence of the Reach.',
+  },
+  {
+    route: 'cards',
+    label: 'View Gallery',
+    detail: 'Survey the vault archive before you commit to one of the two houses.',
+  },
+];
+
+const factionItems = [
+  {
+    name: 'Ashfall Covenant',
+    motto: 'Pressure, heat, and decisive openings.',
+    detail: 'The Covenant burns through hesitation with sharp bodies, ritual sparks, and tempo swings that reward nerve.',
+    accent: 'ember',
+  },
+  {
+    name: 'Verdant Loom',
+    motto: 'Patient growth and stubborn board control.',
+    detail: 'The Loom turns every surviving creature into a longer game, stacking resilience until the field bends around it.',
+    accent: 'verdant',
+  },
+];
+
+const encounterItems = [
+  {
+    step: 'Threshold Duel',
+    title: 'Break the frontier seal',
+    detail: 'A brisk opening test that teaches the table language while demanding early tempo discipline.',
+  },
+  {
+    step: 'Auric Apex',
+    title: 'Survive the final house reckoning',
+    detail: 'The last teaser card now frames a direct two-house showdown instead of implying a third faction lane.',
+  },
+];
+
+export function HomePage() {
+  return (
+    <>
+      <section className="home-hero" aria-labelledby="home-title">
+        <div className="home-hero-copy">
+          <p className="eyebrow">Auric Reach // Frontier Broadcast</p>
+          <h2 id="home-title">Step into the gilded frontier.</h2>
+          <p className="home-lede">
+            A single-player duel campaign set at the edge of a shining empire, where two rival
+            houses define the climb and every encounter sharpens the line between speed and staying
+            power.
+          </p>
+          <div className="cta-row" aria-label="Primary calls to action">
+            {ctaItems.map((item) => (
+              <a
+                key={item.route}
+                className="cta-card"
+                href={`#/${item.route}`}
+                onClick={() => setHash(item.route)}
+              >
+                <strong>{item.label}</strong>
+                <span>{item.detail}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <aside className="hero-stage" aria-label="Auric Reach encounter preview">
+          <div className="hero-stage-panel hero-stage-panel-top">
+            <span>Live Signal</span>
+            <strong>Outer Gate Breach</strong>
+          </div>
+          <div className="hero-stage-core" aria-hidden="true">
+            <div className="hero-stage-ring hero-stage-ring-outer" />
+            <div className="hero-stage-ring hero-stage-ring-inner" />
+            <div className="hero-stage-spark" />
+          </div>
+          <div className="hero-stage-panel hero-stage-panel-bottom">
+            <span>Next Trial</span>
+            <strong>Two houses. One ascent.</strong>
+          </div>
+        </aside>
+      </section>
+
+      <section className="page-panel" aria-labelledby="factions-title">
+        <p className="eyebrow">Faction Briefing</p>
+        <h3 id="factions-title">Factions of the Reach</h3>
+        <p>
+          The Reach now centers on two opposing houses. Pick the tempo you trust, then learn how
+          the frontier punishes overcommitment from either side.
+        </p>
+        <div className="hero-grid">
+          {factionItems.map((item) => (
+            <HeroCard
+              key={item.name}
+              title={item.name}
+              subtitle={item.motto}
+              accent={item.accent}
+            />
+          ))}
+        </div>
+        <div className="faction-copy-grid">
+          {factionItems.map((item) => (
+            <article key={item.name} className="faction-copy-card">
+              <strong>{item.name}</strong>
+              <p>{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="page-panel encounter-panel" aria-labelledby="encounters-title">
+        <p className="eyebrow">Encounter Ladder</p>
+        <h3 id="encounters-title">Encounters on the Horizon</h3>
+        <p>
+          The campaign escalates across a compact sequence of curated duels. Each one is built to
+          sharpen a different instinct before the final chamber opens.
+        </p>
+        <div className="encounter-grid">
+          {encounterItems.map((item) => (
+            <article key={item.step} className="encounter-card">
+              <span>{item.step}</span>
+              <h4>{item.title}</h4>
+              <p>{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
 function PageSection(props: { route: Route }) {
   const content = routeContent[props.route];
 
@@ -321,13 +459,7 @@ function PageSection(props: { route: Route }) {
       <p className="eyebrow">{content.eyebrow}</p>
       <h2>{content.title}</h2>
       <p>{content.body}</p>
-      {props.route === 'home' ? (
-        <div className="hero-grid">
-          <HeroCard title="Ashfall Covenant" subtitle="Aggressive ember faction" accent="ember" />
-          <HeroCard title="Verdant Loom" subtitle="Growth and resilience" accent="verdant" />
-          <HeroCard title="Three duel ascent" subtitle="A compact encounter ladder" accent="dusk" />
-        </div>
-      ) : null}
+      {props.route === 'home' ? <HomePage /> : null}
     </section>
   );
 }
@@ -377,16 +509,16 @@ export function App() {
         <section className="hero-banner">
           <div>
             <p className="eyebrow">Single-player duel TCG</p>
-            <h1>Scaffold in place for the full browser campaign.</h1>
+            <h1>Auric Reach</h1>
             <p>
-              The shared shell is live with the four required surfaces and safe nested-path asset
-              handling. Workers can now build mechanics and visuals on top of this frame.
+              A polished public-facing shell for a browser duel campaign set in a radiant frontier
+              of rival houses, ritual violence, and staged encounters.
             </p>
           </div>
           <aside className="status-card" aria-label="Current route">
             <span className="status-label">Now viewing</span>
             <strong>{activeItem.label}</strong>
-            <span className="status-rule">Round 1 shared baseline</span>
+            <span className="status-rule">Auric Reach field guide</span>
           </aside>
         </section>
 
