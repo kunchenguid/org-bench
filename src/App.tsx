@@ -31,9 +31,9 @@ const routes: Record<RouteKey, { title: string; description: string }> = {
 };
 
 function getRouteFromHash(hash: string): RouteKey {
-  const rawPath = hash.replace(/^#/, '') || '/';
-  if (rawPath === '/play' || rawPath === '/rules' || rawPath === '/cards') {
-    return rawPath;
+  const normalizedPath = (hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/+$/, '') || '/';
+  if (normalizedPath === '/play' || normalizedPath === '/rules' || normalizedPath === '/cards') {
+    return normalizedPath;
   }
   return '/';
 }
@@ -70,6 +70,7 @@ export function App() {
           <a
             key={item.route}
             href={item.href}
+            className={route === item.route ? 'is-active' : undefined}
             aria-current={route === item.route ? 'page' : undefined}
           >
             {item.label}
