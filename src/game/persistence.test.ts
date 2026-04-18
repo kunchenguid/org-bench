@@ -1,7 +1,3 @@
-import { describe, expect, test } from 'vitest';
-
-import { createNamespacedStorage } from './persistence';
-
 type MemoryStorage = {
   clear(): void;
   getItem(key: string): string | null;
@@ -10,6 +6,10 @@ type MemoryStorage = {
   removeItem(key: string): void;
   setItem(key: string, value: string): void;
 };
+
+import { describe, expect, test } from 'vitest';
+
+import { createNamespacedStorage } from './persistence';
 
 function createMemoryStorage(): MemoryStorage {
   const values = new Map<string, string>();

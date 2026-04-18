@@ -227,6 +227,12 @@ export function PlayBoard() {
           <p>Two opposing frontlines face off here. Hover and targeting logic can attach to this rail next.</p>
         </div>
 
+        <div className="board-showcase" aria-label="Playable card previews">
+          {showcaseCards.map((card) => (
+            <CardFrame key={card.title} {...card} />
+          ))}
+        </div>
+
         <div className="board-row">
           <BoardZone title="Your resources" count="5 charged" detail="Available mana to commit before ending the turn." tone="player" />
           <BoardZone title="Your battlefield" count="2 units" detail="Your active creatures, equipment, and persistent effects." tone="player" />

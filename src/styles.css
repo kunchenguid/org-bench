@@ -242,7 +242,9 @@ select {
   margin-top: 8px;
 }
 
-.hero-grid {
+.hero-grid,
+.card-gallery,
+.board-showcase {
   display: grid;
   gap: 16px;
 }
@@ -251,9 +253,10 @@ select {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.card-gallery {
+.card-gallery,
+.board-showcase {
   grid-template-columns: repeat(2, minmax(0, 320px));
-  gap: 20px;
+  justify-content: start;
 }
 
 .hero-card {
@@ -557,6 +560,10 @@ select {
   gap: 18px;
 }
 
+.board-showcase {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .board-row {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -645,8 +652,12 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .hero-grid,
-  .card-gallery {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-gallery,
+  .board-showcase {
     grid-template-columns: 1fr;
   }
 
