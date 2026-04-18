@@ -16,5 +16,9 @@ describe('RulesPanel', () => {
     expect(markup).toContain('Victory and defeat');
     expect(markup).toContain('Encounter progression');
     expect(markup).toContain('Save and resume');
+    expect(markup).toContain('Ashfall Covenant');
+    expect(markup).toContain('Verdant Loom');
+    expect(markup).toContain('Cinder Archivist');
+    expect(markup).toContain('Rootwhisper Keeper');
   });
 });
