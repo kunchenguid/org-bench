@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 1
+    },
+    "narrative": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observations": {
+      "type": "object",
+      "properties": {
+        "edge_utilization": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "minLength": 1
+              },
+              "to": {
+                "type": "string",
+                "minLength": 1
+              },
+              "forward_messages": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reverse_messages": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "forward_messages",
+              "reverse_messages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "decomposition": {
+          "type": "object",
+          "properties": {
+            "leader_direct_subtasks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_delegation_depth": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "leader_direct_subtasks",
+            "max_delegation_depth"
+          ],
+          "additionalProperties": false
+        },
+        "idle_neighbors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "minLength": 1
+              },
+              "to": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "patch_churn": {
+          "type": "object",
+          "properties": {
+            "superseded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reverted": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rewritten": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "superseded",
+            "reverted",
+            "rewritten"
+          ],
+          "additionalProperties": false
+        },
+        "incidents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "brief_handoff",
+                  "miscommunication",
+                  "integration_failure"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "line": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "file",
+                    "line"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "summary",
+              "refs"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "edge_utilization",
+        "decomposition",
+        "idle_neighbors",
+        "patch_churn",
+        "incidents"
+      ],
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "in": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "out": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "in",
+        "out"
+      ],
+      "additionalProperties": false
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "run_id",
+    "schema_version",
+    "narrative",
+    "observations",
+    "model",
+    "tokens",
+    "cost_usd"
+  ],
+  "additionalProperties": false
+}

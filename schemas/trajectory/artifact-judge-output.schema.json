@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 1
+    },
+    "rubric": {
+      "type": "object",
+      "properties": {
+        "functional_completeness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "learnability": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "visual_cohesion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "visual_polish": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "state_legibility": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "aesthetics": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "interaction_feel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "practical_utility": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        }
+      },
+      "required": [
+        "functional_completeness",
+        "learnability",
+        "visual_cohesion",
+        "visual_polish",
+        "state_legibility",
+        "aesthetics",
+        "interaction_feel",
+        "practical_utility"
+      ],
+      "additionalProperties": false
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "in": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "out": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "in",
+        "out"
+      ],
+      "additionalProperties": false
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "run_id",
+    "schema_version",
+    "rubric",
+    "rationale",
+    "model",
+    "tokens",
+    "cost_usd"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 1
+    },
+    "topology": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "leader_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_count": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "culture": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "slug",
+        "name",
+        "leader_id",
+        "node_count"
+      ],
+      "additionalProperties": false
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "brief": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "content_hash"
+      ],
+      "additionalProperties": false
+    },
+    "models": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string",
+          "minLength": 1
+        },
+        "judge": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analyst": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "node",
+        "judge",
+        "analyst"
+      ],
+      "additionalProperties": false
+    },
+    "totals": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "in": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "out": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "in",
+            "out",
+            "total"
+          ],
+          "additionalProperties": false
+        },
+        "cost_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "wall_clock_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "tokens",
+        "cost_usd",
+        "wall_clock_ms"
+      ],
+      "additionalProperties": false
+    },
+    "tokens_by_node": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "in": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "out": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cost_usd": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "in",
+          "out",
+          "total",
+          "cost_usd"
+        ],
+        "additionalProperties": false
+      },
+      "propertyNames": {
+        "minLength": 1
+      }
+    },
+    "messages": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_tag": {
+          "type": "object",
+          "properties": {
+            "decompose": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ask": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "answer": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "deliver": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "status": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "review": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "untagged": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "decompose",
+            "ask",
+            "answer",
+            "deliver",
+            "status",
+            "review",
+            "untagged"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "total",
+        "by_tag"
+      ],
+      "additionalProperties": false
+    },
+    "patches": {
+      "type": "object",
+      "properties": {
+        "proposed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "superseded": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "proposed",
+        "accepted",
+        "rejected",
+        "superseded"
+      ],
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "deploy_success": {
+          "type": "boolean"
+        },
+        "build_success": {
+          "type": "boolean"
+        },
+        "published_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "deploy_success",
+        "build_success",
+        "published_path"
+      ],
+      "additionalProperties": false
+    },
+    "milestones": {
+      "type": "object",
+      "properties": {
+        "time_to_first_build_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "time_to_first_build_ms"
+      ],
+      "additionalProperties": false
+    },
+    "flags": {
+      "type": "object",
+      "properties": {
+        "cap_exceeded": {
+          "type": "boolean"
+        },
+        "truncated_blobs": {
+          "type": "boolean"
+        },
+        "routing_rejections": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pr_activity_unsummarized": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "node_failures": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "cap_exceeded",
+        "truncated_blobs",
+        "routing_rejections",
+        "pr_activity_unsummarized",
+        "node_failures"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "run_id",
+    "schema_version",
+    "topology",
+    "seed",
+    "brief",
+    "models",
+    "totals",
+    "tokens_by_node",
+    "messages",
+    "patches",
+    "artifact",
+    "milestones",
+    "flags"
+  ],
+  "additionalProperties": false
+}
