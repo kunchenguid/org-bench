@@ -50,6 +50,10 @@ export function App() {
 
   const page = routes[route];
 
+  useEffect(() => {
+    document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
+  }, [page.title, route]);
+
   return (
     <div className="shell">
       <header className="hero">

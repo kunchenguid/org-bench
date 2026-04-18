@@ -21,4 +21,12 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
+
+  it('updates the document title for the active route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(document.title).toBe('Cards - Duel TCG');
+  });
 });
