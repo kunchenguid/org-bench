@@ -130,6 +130,23 @@ test("play page surfaces an encounter-specific matchup brief", () => {
   assert.match(html, /trade resources early so your heavier turns take over/i);
 });
 
+test("play page surfaces signature enemy threats inside the matchup brief", () => {
+  const unlockedThird = {
+    ...createReferenceApp(),
+    encounters: createReferenceApp().encounters.map((encounter, index) =>
+      index < 2 ? { ...encounter, completed: true } : encounter,
+    ),
+  };
+  const app = startEncounter(unlockedThird, 2);
+
+  const html = renderAppHtml(app);
+
+  assert.match(html, /Signature threats/i);
+  assert.match(html, /Aerie Skirmisher/);
+  assert.match(html, /Citadel Roc/);
+  assert.match(html, /Heavenfall/);
+});
+
 test("navigateToPage changes which primary page is rendered", () => {
   const app = navigateToPage(createReferenceApp(), "rules");
 

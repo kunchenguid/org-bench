@@ -222,6 +222,19 @@ function describeEncounterPlan(encounter: EncounterSummary): string {
   }
 }
 
+function describeEncounterThreats(encounter: EncounterSummary): string[] {
+  switch (encounter.id) {
+    case "ember-trial":
+      return ["Ember Warden", "Sunsteel Colossus", "Solar Collapse"];
+    case "tidal-crossing":
+      return ["Mistblade Adept", "Tidecall Leviathan", "Tempest Break"];
+    case "sky-citadel":
+      return ["Aerie Skirmisher", "Citadel Roc", "Heavenfall"];
+    default:
+      return [];
+  }
+}
+
 function startPlayerTurn(encounter: EncounterState): EncounterState {
   const nextResources = Math.min(10, encounter.turn);
   const player = drawOne({
@@ -883,6 +896,7 @@ function renderPlay(app: ReferenceAppState): string {
       <p>Enemy resources: ${app.encounter.enemy.resources.current}/${app.encounter.enemy.resources.max}</p>
       <h2>Matchup Brief</h2>
       <p>${escapeHtml(describeEncounterPlan(encounterInfo))}</p>
+      <p>Signature threats: ${escapeHtml(describeEncounterThreats(encounterInfo).join(", "))}</p>
       <p>Player board attacks for ${playerAttack}</p>
       <p>Enemy board attacks for ${enemyAttack}</p>
       <h2>Race Outlook</h2>
@@ -1021,6 +1035,19 @@ function describeEncounterPlan(encounter) {
   }
 }
 
+function describeEncounterThreats(encounter) {
+  switch (encounter.id) {
+    case 'ember-trial':
+      return ['Ember Warden', 'Sunsteel Colossus', 'Solar Collapse'];
+    case 'tidal-crossing':
+      return ['Mistblade Adept', 'Tidecall Leviathan', 'Tempest Break'];
+    case 'sky-citadel':
+      return ['Aerie Skirmisher', 'Citadel Roc', 'Heavenfall'];
+    default:
+      return [];
+  }
+}
+
 function isEncounterUnlocked(encounters, encounterIndex) {
   return encounterIndex === 0 || encounters[encounterIndex - 1]?.completed === true;
 }
@@ -1103,7 +1130,7 @@ function renderPlay(app) {
         ? '<p><strong>Defeat</strong> - The rival deck prevailed.</p>'
         : "";
 
-  return '<section aria-label="play"><h1>' + escapeHtml(encounterInfo.title) + '</h1>' + resultMarkup + '<p>Player HP: ' + app.encounter.player.hp + '</p><p>Enemy HP: ' + app.encounter.enemy.hp + '</p><p>Turn: ' + app.encounter.turn + '</p><p>Resources: ' + app.encounter.player.resources.current + '/' + app.encounter.player.resources.max + '</p><p>Enemy resources: ' + app.encounter.enemy.resources.current + '/' + app.encounter.enemy.resources.max + '</p><h2>Matchup Brief</h2><p>' + escapeHtml(describeEncounterPlan(encounterInfo)) + '</p><p>Player board attacks for ' + playerAttack + '</p><p>Enemy board attacks for ' + enemyAttack + '</p><h2>Race Outlook</h2><p>' + escapeHtml(raceOutlook.playerClock) + '</p><p>' + escapeHtml(raceOutlook.enemyClock) + '</p><h2>Hand</h2><ul>' + handCards + '</ul><h2>Battlefield</h2><ul>' + battlefieldCards + '</ul><h2>Battle Log</h2><ul>' + logEntries + '</ul><button type="button" data-action="end-turn">End Turn</button></section>';
+  return '<section aria-label="play"><h1>' + escapeHtml(encounterInfo.title) + '</h1>' + resultMarkup + '<p>Player HP: ' + app.encounter.player.hp + '</p><p>Enemy HP: ' + app.encounter.enemy.hp + '</p><p>Turn: ' + app.encounter.turn + '</p><p>Resources: ' + app.encounter.player.resources.current + '/' + app.encounter.player.resources.max + '</p><p>Enemy resources: ' + app.encounter.enemy.resources.current + '/' + app.encounter.enemy.resources.max + '</p><h2>Matchup Brief</h2><p>' + escapeHtml(describeEncounterPlan(encounterInfo)) + '</p><p>Signature threats: ' + escapeHtml(describeEncounterThreats(encounterInfo).join(', ')) + '</p><p>Player board attacks for ' + playerAttack + '</p><p>Enemy board attacks for ' + enemyAttack + '</p><h2>Race Outlook</h2><p>' + escapeHtml(raceOutlook.playerClock) + '</p><p>' + escapeHtml(raceOutlook.enemyClock) + '</p><h2>Hand</h2><ul>' + handCards + '</ul><h2>Battlefield</h2><ul>' + battlefieldCards + '</ul><h2>Battle Log</h2><ul>' + logEntries + '</ul><button type="button" data-action="end-turn">End Turn</button></section>';
 }
 
 function renderPage(app) {

@@ -191,6 +191,21 @@ function describeEncounterPlan(encounter: ReferenceAppState["encounters"][number
   }
 }
 
+function describeEncounterThreats(
+  encounter: ReferenceAppState["encounters"][number],
+) {
+  switch (encounter.id) {
+    case "ember-trial":
+      return ["Ember Warden", "Sunsteel Colossus", "Solar Collapse"];
+    case "tidal-crossing":
+      return ["Mistblade Adept", "Tidecall Leviathan", "Tempest Break"];
+    case "sky-citadel":
+      return ["Aerie Skirmisher", "Citadel Roc", "Heavenfall"];
+    default:
+      return [];
+  }
+}
+
 function HomePage(props: {
   app: ReferenceAppState;
   dispatch: (action: ReferenceAppAction) => void;
@@ -352,6 +367,9 @@ function PlayPage(props: {
       <section class="turn-guide" aria-label="Matchup brief">
         <strong>Matchup Brief</strong>
         <p>{describeEncounterPlan(encounterInfo)}</p>
+        <p>
+          Signature threats: {describeEncounterThreats(encounterInfo).join(", ")}
+        </p>
       </section>
 
       <RaceOutlook encounter={encounter} />
