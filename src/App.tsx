@@ -46,6 +46,10 @@ function clearSavedRoute() {
   globalThis.localStorage?.removeItem(lastRouteStorageKey);
 }
 
+function clearSavedDuel() {
+  globalThis.localStorage?.removeItem(getPersistenceKey(runId));
+}
+
 function getSavedDuelEncounterId() {
   const rawState = globalThis.localStorage?.getItem(getPersistenceKey(runId));
 
@@ -64,7 +68,7 @@ function getSavedDuelEncounterId() {
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
   const [savedRoute, setSavedRoute] = useState<Exclude<RouteKey, '/'> | null>(() => getSavedRoute());
-  const [savedDuelEncounterId] = useState(() => getSavedDuelEncounterId());
+  const [savedDuelEncounterId, setSavedDuelEncounterId] = useState(() => getSavedDuelEncounterId());
 
   useEffect(() => {
     const onHashChange = () => {
@@ -113,6 +117,16 @@ export function App() {
             <a className="saved-duel-link" href="#/play">
               Continue saved duel
             </a>
+            <button
+              className="saved-duel-clear"
+              type="button"
+              onClick={() => {
+                clearSavedDuel();
+                setSavedDuelEncounterId(null);
+              }}
+            >
+              Clear saved duel
+            </button>
           </div>
         ) : null}
         {resumeRoute && resumeTitle ? (

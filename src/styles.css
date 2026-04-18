@@ -122,6 +122,16 @@ a {
   font-weight: 600;
 }
 
+.saved-duel-clear {
+  padding: 8px 12px;
+  border: 1px solid rgba(161, 188, 255, 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: #c7d3e2;
+  font: inherit;
+  cursor: pointer;
+}
+
 .resume-link {
   display: inline-flex;
   align-items: center;

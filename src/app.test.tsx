@@ -66,6 +66,17 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Continue saved duel' })).toHaveAttribute('href', '#/play');
   });
 
+  it('clears the saved duel state from home', () => {
+    globalThis.localStorage.setItem(getPersistenceKey('apple-seed-01'), JSON.stringify({ encounter: { id: 'encounter-1' } }));
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear saved duel' }));
+
+    expect(globalThis.localStorage.getItem(getPersistenceKey('apple-seed-01'))).toBeNull();
+    expect(screen.queryByText(/Saved duel available/)).toBeNull();
+  });
+
   it('ignores malformed saved duel state', () => {
     globalThis.localStorage.setItem(getPersistenceKey('apple-seed-01'), '{bad json');
 
