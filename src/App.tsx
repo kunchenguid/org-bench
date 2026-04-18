@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { createGameSession } from './game/engine';
+
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
 const navItems: Array<{ href: `#${RouteKey}`; label: string; route: RouteKey }> = [
@@ -49,6 +51,7 @@ export function App() {
   }, []);
 
   const page = routes[route];
+  const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
 
   useEffect(() => {
     document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
@@ -78,6 +81,16 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+
+        {openingSession ? (
+          <div className="session-summary" aria-label="Opening encounter summary">
+            <p className="section-label">Encounter</p>
+            <h3>{openingSession.encounter.opponentName}</h3>
+            <p>
+              Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
+            </p>
+          </div>
+        ) : null}
       </main>
     </div>
   );

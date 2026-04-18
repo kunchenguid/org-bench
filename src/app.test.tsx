@@ -29,4 +29,13 @@ describe('App shell', () => {
 
     expect(document.title).toBe('Cards - Duel TCG');
   });
+
+  it('shows the opening encounter on the play route', () => {
+    globalThis.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByText('Ashen Vanguard')).toBeInTheDocument();
+    expect(screen.getByText(/20 health/i)).toBeInTheDocument();
+  });
 });

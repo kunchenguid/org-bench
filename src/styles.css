@@ -94,6 +94,17 @@ a {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
 }
 
+.session-summary {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(161, 188, 255, 0.16);
+}
+
+.session-summary h3 {
+  margin: 10px 0 8px;
+  font-size: 1.4rem;
+}
+
 @media (max-width: 640px) {
   .shell {
     width: min(100% - 20px, 1040px);
