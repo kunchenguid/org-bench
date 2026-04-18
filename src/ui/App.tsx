@@ -239,6 +239,23 @@ export function PlayBoard() {
         <button type="button" className="action-secondary">Attack with battlefield</button>
         <button type="button" className="action-secondary">End turn</button>
       </div>
+
+      <section className="selection-tray" aria-label="Selection tray">
+        <div className="selection-tray-copy">
+          <span className="combatant-label">Selection tray</span>
+          <strong>Cinder Archivist</strong>
+          <p>
+            A 3-cost spellwright queued from hand. Playing it will pressure the center lane and open
+            the enemy front line for a cleaner attack.
+          </p>
+        </div>
+        <div className="selection-tray-meta">
+          <span>Cost 3</span>
+          <span>Attack 4</span>
+          <span>Health 2</span>
+          <span>Target: Enemy battlefield</span>
+        </div>
+      </section>
     </section>
   );
 }

@@ -336,7 +336,8 @@ select {
 .turn-indicator,
 .combatant-card,
 .board-zone,
-.battlefield-band {
+.battlefield-band,
+.selection-tray {
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -452,6 +453,40 @@ select {
   font-size: 1.5rem;
 }
 
+.selection-tray {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.selection-tray strong {
+  display: block;
+  margin-top: 6px;
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.5rem;
+}
+
+.selection-tray p {
+  margin: 10px 0 0;
+  color: #d5d1da;
+}
+
+.selection-tray-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-content: start;
+}
+
+.selection-tray-meta span {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f4efe7;
+}
+
 .board-actions {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -495,7 +530,8 @@ select {
   .board-headline,
   .combatants,
   .board-row,
-  .board-actions {
+  .board-actions,
+  .selection-tray {
     grid-template-columns: 1fr;
   }
 

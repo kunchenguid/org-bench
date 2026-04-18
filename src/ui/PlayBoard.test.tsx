@@ -21,5 +21,8 @@ describe('PlayBoard', () => {
     expect(markup).toContain('Your resources');
     expect(markup).toContain('Play selected card');
     expect(markup).toContain('End turn');
+    expect(markup).toContain('Selection tray');
+    expect(markup).toContain('Cinder Archivist');
+    expect(markup).toContain('Target: Enemy battlefield');
   });
 });
