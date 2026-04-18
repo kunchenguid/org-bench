@@ -239,7 +239,7 @@ export function App() {
                     <span className="hud-value-meta">health</span>
                   </div>
                   <div className="hud-stats">
-                    <span>{`Resource ${opponent.resources.current} / ${opponent.resources.max}`}</span>
+                    <span>{`Energy ${opponent.resources.current} / ${opponent.resources.max}`}</span>
                     <span>{`Deck ${opponent.deck.length}`}</span>
                     <span>{`Discard ${opponent.discard.length}`}</span>
                   </div>
