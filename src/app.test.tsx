@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/preact';
+import { fireEvent, render, screen } from '@testing-library/preact';
 
 import { App } from './App';
 
@@ -43,5 +43,16 @@ describe('App shell', () => {
     render(<App />);
 
     expect(screen.getByRole('link', { name: 'Resume Play' })).toHaveAttribute('href', '#/play');
+  });
+
+  it('clears the saved route from home', () => {
+    globalThis.localStorage.setItem('duel-tcg:last-route', '/play');
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear saved route' }));
+
+    expect(globalThis.localStorage.getItem('duel-tcg:last-route')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Resume Play' })).toBeNull();
   });
 });

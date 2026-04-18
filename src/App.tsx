@@ -39,6 +39,10 @@ function getSavedRoute(): Exclude<RouteKey, '/'> | null {
   return null;
 }
 
+function clearSavedRoute() {
+  globalThis.localStorage?.removeItem(lastRouteStorageKey);
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
   const [savedRoute, setSavedRoute] = useState<Exclude<RouteKey, '/'> | null>(() => getSavedRoute());
@@ -85,9 +89,21 @@ export function App() {
         <h2>{page.title}</h2>
         <p>{page.description}</p>
         {resumeRoute && resumeTitle ? (
-          <a className="resume-link" href={`#${resumeRoute}`}>
-            Resume {resumeTitle}
-          </a>
+          <div className="resume-actions">
+            <a className="resume-link" href={`#${resumeRoute}`}>
+              Resume {resumeTitle}
+            </a>
+            <button
+              className="resume-clear"
+              type="button"
+              onClick={() => {
+                clearSavedRoute();
+                setSavedRoute(null);
+              }}
+            >
+              Clear saved route
+            </button>
+          </div>
         ) : null}
       </main>
     </div>

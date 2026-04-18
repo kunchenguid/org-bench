@@ -97,14 +97,30 @@ a {
 .resume-link {
   display: inline-flex;
   align-items: center;
-  margin-top: 20px;
   padding: 10px 14px;
   border: 1px solid rgba(142, 180, 255, 0.35);
   border-radius: 999px;
   background: rgba(23, 42, 79, 0.72);
   color: #f3f7fb;
   font-weight: 600;
- }
+}
+
+.resume-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.resume-clear {
+  padding: 10px 14px;
+  border: 1px solid rgba(161, 188, 255, 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: #c7d3e2;
+  font: inherit;
+  cursor: pointer;
+}
 
 @media (max-width: 640px) {
   .shell {
