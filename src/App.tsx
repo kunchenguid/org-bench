@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -25,29 +25,78 @@ const routes: Record<RouteKey, { label: string; title: string; body: string }> =
   }
 };
 
+const feedbackPatterns = [
+  {
+    name: 'Card Play Lift',
+    tone: 'play',
+    className: 'fx-card-play',
+    body: 'Use for cards leaving hand and settling onto the board with a short upward lift and glow.'
+  },
+  {
+    name: 'Attack Lunge',
+    tone: 'attack',
+    className: 'fx-attack-lunge',
+    body: 'Use on attackers to sell forward momentum before they snap back into their lane.'
+  },
+  {
+    name: 'Damage Flash',
+    tone: 'damage',
+    className: 'fx-damage-flash',
+    body: 'Use when units or heroes take damage to pair a red pulse with a quick shake.'
+  },
+  {
+    name: 'Turn Sweep',
+    tone: 'turn',
+    className: 'fx-turn-sweep',
+    body: 'Use for turn transitions to sweep focus across the active side of the board.'
+  },
+  {
+    name: 'Victory-Loss Overlay',
+    tone: 'outcome',
+    className: 'fx-outcome-rise',
+    body: 'Use for win or loss overlays so results rise in with a soft backdrop bloom.'
+  }
+] as const;
+
 function getRouteFromHash(hash: string): RouteKey {
   const value = hash.replace(/^#\/?/, '');
   return value in routes ? (value as RouteKey) : 'home';
 }
 
+function getHashForRoute(route: RouteKey) {
+  return `#/${route}`;
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
 
+  useLayoutEffect(() => {
+    const normalizedHash = getHashForRoute(route);
+
+    if (window.location.hash !== normalizedHash) {
+      window.location.hash = normalizedHash;
+    }
+  }, [route]);
+
   useEffect(() => {
     const onHashChange = () => {
-      setRoute(getRouteFromHash(window.location.hash));
+      const nextRoute = getRouteFromHash(window.location.hash);
+
+      setRoute(nextRoute);
     };
 
     window.addEventListener('hashchange', onHashChange);
 
-    if (!window.location.hash) {
-      window.location.hash = '#/home';
-    }
+    onHashChange();
 
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   const page = routes[route];
+
+  useLayoutEffect(() => {
+    document.title = `${page.title} | Duel of Ash and Aether`;
+  }, [page.title]);
 
   return (
     <div className="app-shell">
@@ -61,7 +110,7 @@ export function App() {
             <a
               key={key}
               className={route === key ? 'nav-link active' : 'nav-link'}
-              href={`#/${key}`}
+              href={getHashForRoute(key as RouteKey)}
             >
               {item.label}
             </a>
@@ -97,6 +146,30 @@ export function App() {
             <h2>Encounter Ladder</h2>
             <p>Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.</p>
           </article>
+        </section>
+
+        <section className="feedback-kit" aria-labelledby="feedback-kit-title">
+          <div className="section-copy">
+            <p className="eyebrow">Visual Feedback Primitives</p>
+            <h2 id="feedback-kit-title">Combat Feedback Kit</h2>
+            <p>
+              Reusable motion and overlay patterns for card play, attacks, damage hits, turn swaps,
+              and match resolution.
+            </p>
+          </div>
+
+          <div className="feedback-grid">
+            {feedbackPatterns.map((pattern) => (
+              <article key={pattern.name} className={`feedback-card tone-${pattern.tone}`}>
+                <div className={`feedback-demo ${pattern.className}`} aria-hidden="true">
+                  <span className="feedback-chip">Demo</span>
+                </div>
+                <h3>{pattern.name}</h3>
+                <p>{pattern.body}</p>
+                <code>{pattern.className}</code>
+              </article>
+            ))}
+          </div>
         </section>
       </main>
     </div>
