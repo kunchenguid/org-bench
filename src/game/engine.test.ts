@@ -7,8 +7,50 @@ import { deserializeEncounter, serializeEncounter } from './serialization';
 describe('encounter engine', () => {
   it('runs a deterministic player turn into an automated AI turn', () => {
     const state = createEncounter({
-      playerDeck: createDeck(['ember-scout', 'ash-guard', 'blaze-titan', 'ember-scout']),
-      aiDeck: createDeck(['ember-scout', 'ash-guard', 'blaze-titan', 'ember-scout']),
+      playerDeck: createDeck([
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+        'shellguard-ray',
+        'reef-whisper',
+        'fogweave',
+        'undertow-leviathan',
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+      ]),
+      aiDeck: createDeck([
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+        'shellguard-ray',
+        'reef-whisper',
+        'fogweave',
+        'undertow-leviathan',
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+      ]),
     });
 
     const afterPlay = playCard(state, { playerId: 'player', handIndex: 0 });
@@ -22,14 +64,56 @@ describe('encounter engine', () => {
     expect(afterTurn.players.player.board).toHaveLength(1);
     expect(afterTurn.players.player.board[0].exhausted).toBe(false);
     expect(afterTurn.players.ai.board).toHaveLength(1);
-    expect(afterTurn.players.ai.board[0].cardId).toBe('ember-scout');
+    expect(afterTurn.players.ai.board[0].cardId).toBe('lantern-initiate');
     expect(afterTurn.players.ai.mana).toBe(0);
   });
 
   it('round-trips serialized state and preserves pure combat transitions', () => {
     const state = createEncounter({
-      playerDeck: createDeck(['ember-scout', 'ash-guard', 'blaze-titan', 'ember-scout']),
-      aiDeck: createDeck(['ember-scout', 'ash-guard', 'blaze-titan', 'ember-scout']),
+      playerDeck: createDeck([
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+        'shellguard-ray',
+        'reef-whisper',
+        'fogweave',
+        'undertow-leviathan',
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+      ]),
+      aiDeck: createDeck([
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+        'shellguard-ray',
+        'reef-whisper',
+        'fogweave',
+        'undertow-leviathan',
+        'lantern-initiate',
+        'ashen-battlemage',
+        'cinder-lancer',
+        'phoenix-vow',
+        'molten-colossus',
+        'ashfall-rite',
+        'tidal-archivist',
+        'moonpool-sage',
+      ]),
     });
 
     const afterPlay = playCard(state, { playerId: 'player', handIndex: 0 });

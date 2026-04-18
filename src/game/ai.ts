@@ -1,11 +1,14 @@
-import { cards } from './cards';
+import { getUnitCard } from './cards';
 import type { EncounterPlayerState } from './engine';
 
 export function chooseAiHandIndex(player: EncounterPlayerState): number {
   let bestIndex = -1;
 
   for (const [index, cardId] of player.hand.entries()) {
-    const card = cards[cardId];
+    const card = getUnitCard(cardId);
+    if (!card) {
+      continue;
+    }
     if (card.cost > player.mana) {
       continue;
     }
@@ -15,7 +18,11 @@ export function chooseAiHandIndex(player: EncounterPlayerState): number {
       continue;
     }
 
-    const bestCard = cards[player.hand[bestIndex]];
+    const bestCard = getUnitCard(player.hand[bestIndex]);
+    if (!bestCard) {
+      bestIndex = index;
+      continue;
+    }
     if (card.cost > bestCard.cost || (card.cost === bestCard.cost && card.attack > bestCard.attack)) {
       bestIndex = index;
     }

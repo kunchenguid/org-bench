@@ -1,5 +1,5 @@
 import { chooseAiHandIndex } from './ai';
-import { cards, type CardId } from './cards';
+import { getUnitCard, type CardId } from './cards';
 import type { Deck } from './decks';
 
 export type PlayerId = 'player' | 'ai';
@@ -93,7 +93,10 @@ export function playCard(state: EncounterState, options: PlayCardOptions): Encou
     throw new Error('Card not found in hand');
   }
 
-  const card = cards[cardId];
+  const card = getUnitCard(cardId);
+  if (!card) {
+    throw new Error('Only creature cards can be deployed to the board');
+  }
   if (card.cost > player.mana) {
     throw new Error('Not enough mana to play card');
   }
@@ -102,8 +105,8 @@ export function playCard(state: EncounterState, options: PlayCardOptions): Encou
   const unit: UnitState = {
     instanceId: `unit-${state.nextInstanceId}`,
     cardId,
-    attack: card.attack,
-    health: card.health,
+    attack: card.stats.power,
+    health: card.stats.health,
     exhausted: true,
   };
 

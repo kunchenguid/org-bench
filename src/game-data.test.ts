@@ -2,22 +2,21 @@ import {
   CARD_GALLERY,
   CARDS,
   ENCOUNTERS,
-  KEYWORDS,
-  STORAGE_KEYS,
-  STORAGE_NAMESPACE,
   STARTER_DECK,
   countDeckCards,
+  createStorageKeys,
 } from './game-data';
+import { cardLibrary } from './cards';
 
 describe('game data contract', () => {
-  it('keeps the card pool compact and faction-limited', () => {
+  it('reuses the canonical shared card library', () => {
     const cardIds = new Set(CARDS.map((card) => card.id));
     const factions = new Set(CARDS.map((card) => card.faction));
 
+    expect(CARDS).toBe(cardLibrary);
     expect(CARDS).toHaveLength(12);
     expect(cardIds.size).toBe(CARDS.length);
-    expect(factions.size).toBeLessThanOrEqual(2);
-    expect(KEYWORDS).toHaveLength(5);
+    expect(factions).toEqual(new Set(['Ember Covenant', 'Tidemark Circle']));
   });
 
   it('keeps starter and encounter decks legal at 20 cards with known cards only', () => {
@@ -53,11 +52,13 @@ describe('game data contract', () => {
     expect(galleryCardIds).toHaveLength(CARDS.length);
   });
 
-  it('uses harness-prefixed storage keys', () => {
-    expect(STORAGE_NAMESPACE).toBe('org-bench:google-seed-01:duel-of-embers');
+  it('builds storage keys from an injected namespace', () => {
+    const storageKeys = createStorageKeys('org-bench:test-run');
 
-    for (const key of Object.values(STORAGE_KEYS)) {
-      expect(key.startsWith(`${STORAGE_NAMESPACE}:`)).toBe(true);
-    }
+    expect(storageKeys).toEqual({
+      profile: 'org-bench:test-run:profile',
+      campaign: 'org-bench:test-run:campaign',
+      decks: 'org-bench:test-run:decks',
+    });
   });
 });
