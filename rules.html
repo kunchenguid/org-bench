@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Signal Clash Rules</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #0b1020;
+        color: #e5eefc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 32px 18px;
+        background:
+          radial-gradient(circle at top, rgba(64, 124, 255, 0.18), transparent 32%),
+          linear-gradient(180deg, #0b1020 0%, #10182d 100%);
+      }
+
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 32px;
+        border: 1px solid rgba(120, 154, 255, 0.24);
+        border-radius: 24px;
+        background: rgba(10, 16, 33, 0.92);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      h1,
+      h2 {
+        margin-top: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.1rem, 5vw, 3rem);
+        margin-bottom: 0.75rem;
+      }
+
+      p,
+      li {
+        line-height: 1.65;
+        color: #ccdbff;
+      }
+
+      .lede {
+        font-size: 1.05rem;
+        color: #f4f7ff;
+      }
+
+      section + section {
+        margin-top: 28px;
+      }
+
+      .panel {
+        padding: 22px;
+        border-radius: 18px;
+        background: rgba(18, 28, 56, 0.92);
+        border: 1px solid rgba(143, 173, 255, 0.16);
+      }
+
+      ol,
+      ul {
+        padding-left: 1.25rem;
+        margin-bottom: 0;
+      }
+
+      strong {
+        color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Signal Clash Rules</h1>
+      <p class="lede">
+        Signal Clash is a compact duel where each player tries to stabilize the board,
+        line up efficient attacks, and break through before the opposing command core collapses.
+      </p>
+
+      <section class="panel">
+        <h2>Setup</h2>
+        <p>
+          Each duelist starts with exactly 20 health and a deck of exactly 20 cards.
+          Shuffle your deck, draw four cards, and place all played cards face up so the board state stays easy to read.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Turn Flow</h2>
+        <ol>
+          <li><strong>Refresh:</strong> Ready your exhausted units and draw one card.</li>
+          <li><strong>Deploy:</strong> Spend energy to play one unit or one signal from your hand.</li>
+          <li><strong>Battle:</strong> Ready units can attack the enemy core unless a defender intercepts.</li>
+          <li><strong>End:</strong> Resolve end-of-turn effects and pass play to the AI.</li>
+        </ol>
+      </section>
+
+      <section class="panel">
+        <h2>Deckbuilding Rules</h2>
+        <ul>
+          <li>Bring exactly 20 cards.</li>
+          <li>No more than 2 copies of the same card name.</li>
+          <li>Decks should stay within a single faction theme so your draws stay coherent.</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Win Condition</h2>
+        <p>
+          You win as soon as the opposing core reaches 0 health. If your core is reduced to 0 first,
+          the encounter ends in defeat and you restart from that ladder match.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

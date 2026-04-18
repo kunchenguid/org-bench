@@ -1,0 +1,8 @@
+{
+  "name": "microsoft-seed-01-ella",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
