@@ -7,11 +7,91 @@ type NavItem = {
   label: string;
 };
 
+type RulesSection = {
+  title: string;
+  body: string;
+  bullets?: string[];
+};
+
 const navItems: NavItem[] = [
   { route: 'home', label: 'Home' },
   { route: 'play', label: 'Play' },
   { route: 'rules', label: 'How to Play' },
   { route: 'cards', label: 'Card Gallery' },
+];
+
+const rulesSections: RulesSection[] = [
+  {
+    title: 'Turn flow',
+    body:
+      'Each encounter follows a clean cadence. Start your turn by readying your board, draw back into options, spend your energy, then send creatures into combat before the enemy answers on its turn.',
+    bullets: [
+      'Ready all exhausted cards, then resolve any start-of-turn effects.',
+      'Draw one card and gain your turn energy refill.',
+      'Play creatures and spells in any order while you can afford them.',
+      'Declare attacks, resolve blockers, and finish end-of-turn effects before passing play.',
+    ],
+  },
+  {
+    title: 'Resources',
+    body:
+      'Energy is the resource that lets a hand become a board. You refresh your energy each turn, so the core decision is whether to commit pressure now or hold enough back to answer the next swing.',
+    bullets: [
+      'Every card shows its energy cost in the top corner.',
+      'Unspent energy disappears at the end of your turn.',
+      'A cheaper curve lets you establish tempo early, while expensive cards swing a duel if you survive long enough to cast them.',
+    ],
+  },
+  {
+    title: 'Creature cards and spell cards',
+    body:
+      'Creatures stay on the battlefield and win combat through repeated pressure. Spells resolve once, deliver their effect, then leave play. Good decks mix durable board presence with precise spell timing.',
+    bullets: [
+      'Creatures enter your battlefield with attack and health values that matter every turn.',
+      'Spells can deal burst damage, protect a creature, disrupt the enemy, or change the state of combat.',
+      'If a card breaks parity the turn you cast it, it usually belongs in your hand plan for that matchup.',
+    ],
+  },
+  {
+    title: 'Combat',
+    body:
+      'Combat is where the duel actually tilts. Attack with any ready creatures, let the defender assign blockers, then deal damage simultaneously. Surviving creatures remain in play carrying whatever health they have left.',
+    bullets: [
+      'Unblocked damage hits the opposing champion directly.',
+      'When a creature takes damage equal to or greater than its health, it is defeated and removed from the field.',
+      'Combat tricks matter because they change trades after attacks are declared, not before.',
+    ],
+  },
+  {
+    title: 'Victory and defeat',
+    body:
+      'Your goal is simple: reduce the opposing champion to zero before they do the same to you. Some encounters pressure with speed, some with attrition, but every duel resolves around preserving just enough life to keep your plan online.',
+    bullets: [
+      'You win immediately when the enemy champion reaches zero health.',
+      'You lose immediately when your champion reaches zero health.',
+      'If your deck runs low, card advantage still matters because fewer answers means worse future turns.',
+    ],
+  },
+  {
+    title: 'Encounter progression',
+    body:
+      'The campaign is a short ascent, not an endless ladder. Clear one encounter to unlock the next, with each opponent asking for cleaner sequencing and a sharper read on when to race versus when to defend.',
+    bullets: [
+      'Early fights teach the base rhythm of energy, board presence, and blocking.',
+      'Later encounters introduce tighter pressure and demand more disciplined card timing.',
+      'A full run is about surviving the sequence, not farming a single easy duel.',
+    ],
+  },
+  {
+    title: 'Save and resume',
+    body:
+      'Runs are designed to survive an interrupted session. The game stores your campaign state locally so you can close the browser and continue from the same point later without replaying finished encounters.',
+    bullets: [
+      'Your current encounter progress and cleared fights are saved automatically.',
+      'Returning to the game should restore the run state from local storage on this device.',
+      'Starting a fresh run replaces the previous in-progress campaign.',
+    ],
+  },
 ];
 
 const routeContent: Record<Route, { eyebrow: string; title: string; body: string }> = {
@@ -67,8 +147,44 @@ function HeroCard(props: { title: string; subtitle: string; accent: string }) {
   );
 }
 
+function RulesPanel() {
+  return (
+    <section className="page-panel rules-panel">
+      <div className="rules-intro">
+        <p className="eyebrow">Field Manual</p>
+        <h2>How to play the Auric Reach campaign.</h2>
+        <p>
+          Auric Reach is a single-player duel card game. You build a board, spend energy with
+          intent, and navigate a short sequence of encounters where clean combat math and timing
+          matter more than flashy turns.
+        </p>
+      </div>
+
+      <div className="rules-grid">
+        {rulesSections.map((section) => (
+          <article key={section.title} className="rules-card">
+            <h3>{section.title}</h3>
+            <p>{section.body}</p>
+            {section.bullets ? (
+              <ul>
+                {section.bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PageSection(props: { route: Route }) {
   const content = routeContent[props.route];
+
+  if (props.route === 'rules') {
+    return <RulesPanel />;
+  }
 
   return (
     <section className="page-panel">

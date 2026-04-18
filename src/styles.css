@@ -193,6 +193,47 @@ select {
   font-size: clamp(1.9rem, 4vw, 3rem);
 }
 
+.rules-panel {
+  gap: 26px;
+}
+
+.rules-intro {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.rules-card {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.rules-card h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+}
+
+.rules-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #c7c2cf;
+}
+
+.rules-card li + li {
+  margin-top: 8px;
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -264,6 +305,10 @@ select {
   }
 
   .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-grid {
     grid-template-columns: 1fr;
   }
 }
