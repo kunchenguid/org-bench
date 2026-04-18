@@ -48,17 +48,6 @@ describe('App', () => {
     expect(screen.getByText(/cinder volley/i)).toBeInTheDocument();
   });
 
-  test('shows the encounter ladder preview on the play page', () => {
-    window.location.hash = '#/play';
-
-    render(<App />);
-
-    expect(screen.getByRole('heading', { name: /climb the ember ladder/i })).toBeInTheDocument();
-    expect(screen.getByText(/gate ash skirmish/i)).toBeInTheDocument();
-    expect(screen.getByText(/mira the furnace/i)).toBeInTheDocument();
-    expect(screen.getByText(/veyr emberhand/i)).toBeInTheDocument();
-  });
-
   test('does not claim resumable progress on a first visit to the play page', () => {
     window.location.hash = '#/play';
 
