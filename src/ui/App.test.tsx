@@ -4,16 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
-  it('renders the divB play page with battlefield readability and card presentation', () => {
-    const html = renderToString(h(App, {}));
-
-    expect(html).toContain('Division B tactical board');
-    expect(html).toContain('Pilot brief');
-    expect(html).toContain('Frontline cards');
-    expect(html).toContain('Combat readout');
-    expect(html).toContain('Preconstructed deck');
-  });
-
   it('renders the division A combat-forward play page shell', () => {
     const html = renderToString(h(App, {}));
 
@@ -24,6 +14,9 @@ describe('App', () => {
     expect(html).toContain('Play first card');
     expect(html).toContain('Commit attack lane');
     expect(html).toContain('Bank shield charge');
+    expect(html).not.toContain('Division B tactical board');
+    expect(html).not.toContain('Pilot brief');
+    expect(html).not.toContain('Combat readout');
   });
 
   it('renders concrete AI rival reads for the opening encounter', () => {

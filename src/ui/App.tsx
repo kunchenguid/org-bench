@@ -48,9 +48,9 @@ const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string
     body: 'Shared shell for home, play, rules, and cards so both divisions can branch from one stable Vite + Preact baseline.',
   },
   play: {
-    eyebrow: 'Division B vision',
-    title: 'Division B tactical board',
-    body: 'Lead with readability: show the pilot plan, the frontline cards that matter this turn, and the combat readout the moment pressure shifts.',
+    eyebrow: 'Encounter ladder',
+    title: 'Combat loop placeholder',
+    body: 'Lead with pressure and counterplay: show the lane commitment, the enemy read, and the next combat beat the instant the turn pivots.',
   },
   rules: {
     eyebrow: 'Rules reference',
@@ -107,8 +107,8 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>Division B tactical board</h2>
-          <p>Division A playtest scaffold retained the shell. DivB turns it into a readable board where new players can see the sequence before they commit.</p>
+          <h2>Division A playtest</h2>
+          <p>Combat-forward board beats for the opening duel so encounter flow can ship before the full board renderer lands.</p>
           <ul>
             {encounterSteps.map((step) => (
               <li key={step}>{step}</li>
@@ -117,14 +117,14 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>Pilot brief</h2>
-          <p>Preconstructed deck: Midrange Voltage. Encounter ladder starts with the Rogue AI and teaches one clean attack pattern before adding harder reads.</p>
-          <p>Plan your first cycle around a single defended lane, then pivot once the AI spends its banked response.</p>
+          <h2>Encounter ladder</h2>
+          <p>Open on Rogue AI, learn one clean attack lane, then escalate into rematches with sharper punish windows.</p>
+          <p>Start with a defended commit, then pivot once the opponent burns its banked response.</p>
         </section>
 
         <section class="panel">
-          <h2>Combat readout</h2>
-          <p>AI rival reads - Rogue AI</p>
+          <h2>AI rival reads</h2>
+          <p>Rogue AI</p>
           <ul>
             {rivalReads.map((read) => (
               <li key={read.label}>
@@ -135,7 +135,7 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>Frontline cards</h2>
+          <h2>Combat line</h2>
           <ul>
             {frontlineCards.map((card) => (
               <li key={card.name}>
