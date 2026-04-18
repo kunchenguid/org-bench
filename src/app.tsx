@@ -7,26 +7,31 @@ const routes = [
   { hash: '#/cards', label: 'Cards' }
 ] as const;
 
-const pageContent: Record<string, { eyebrow: string; title: string; body: string }> = {
+const siteTitle = 'Duel of Ash and Aether';
+
+const pageContent: Record<string, { eyebrow: string; title: string; body: string[] }> = {
   '#/': {
     eyebrow: 'Static site scaffold',
-    title: 'Duel of Ash and Aether',
-    body: 'A polished single-player duel TCG is taking shape here. The scaffold now includes navigation, route placeholders, and nested-path-safe builds so gameplay work can land on top.'
+    title: siteTitle,
+    body: ['A polished single-player duel TCG is taking shape here. The scaffold now includes navigation, route placeholders, and nested-path-safe builds so gameplay work can land on top.']
   },
   '#/play': {
     eyebrow: 'Play',
     title: 'Encounter Table',
-    body: 'This page will host the full browser duel board, encounter ladder, and persistence-driven resume flow.'
+    body: ['This page will host the full browser duel board, encounter ladder, and persistence-driven resume flow.']
   },
   '#/rules': {
     eyebrow: 'How to Play',
     title: 'Rules Primer',
-    body: 'This placeholder will become the customer-facing rules page explaining turn flow, resources, card types, and victory.'
+    body: [
+      'Reach 10 renown before your rival does, or leave them with no cards left to draw at the start of their turn.',
+      'Each turn has four beats: ready, draw, main, and clash. Ready refreshes your exhausted cards, draw refills your hand, main lets you deploy allies and relics, and clash sends your front line into combat.'
+    ]
   },
   '#/cards': {
     eyebrow: 'Card Gallery',
     title: 'Field Archive',
-    body: 'This gallery placeholder will be replaced by the illustrated card reference used across the site and in play.'
+    body: ['This gallery placeholder will be replaced by the illustrated card reference used across the site and in play.']
   }
 };
 
@@ -47,6 +52,11 @@ export function App() {
 
     return () => window.removeEventListener('hashchange', syncRoute);
   }, []);
+
+  useEffect(() => {
+    const currentPage = pageContent[route];
+    document.title = route === '#/' ? siteTitle : `${currentPage.title} - ${siteTitle}`;
+  }, [route]);
 
   const currentPage = pageContent[route];
 
@@ -73,7 +83,9 @@ export function App() {
       <main class="hero-panel">
         <p class="eyebrow">{currentPage.eyebrow}</p>
         <h2>{currentPage.title}</h2>
-        <p>{currentPage.body}</p>
+        {currentPage.body.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
       </main>
     </div>
   );
