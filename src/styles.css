@@ -201,8 +201,50 @@ select {
   font-size: clamp(1.9rem, 4vw, 3rem);
 }
 
+.rules-panel {
+  gap: 26px;
+}
+
+.rules-intro {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.rules-card {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.rules-card h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+}
+
+.rules-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #c7c2cf;
+}
+
+.rules-card li + li {
+  margin-top: 8px;
+}
+
 .hero-grid,
-.card-gallery {
+.card-gallery,
+.board-showcase {
   display: grid;
   gap: 16px;
 }
@@ -211,9 +253,10 @@ select {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.card-gallery {
+.card-gallery,
+.board-showcase {
   grid-template-columns: repeat(2, minmax(0, 320px));
-  gap: 20px;
+  justify-content: start;
 }
 
 .hero-card {
@@ -517,8 +560,12 @@ select {
   gap: 18px;
 }
 
+.board-showcase {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .board-row {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .board-zone {
@@ -605,8 +652,12 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .hero-grid,
-  .card-gallery {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-gallery,
+  .board-showcase {
     grid-template-columns: 1fr;
   }
 
@@ -614,6 +665,10 @@ select {
   .combatants,
   .board-row,
   .board-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-grid {
     grid-template-columns: 1fr;
   }
 }
