@@ -176,6 +176,20 @@ test("rules page explains the fixed deckbuilding constraints for the ladder", ()
   assert.match(html, /fixed Ember list/i);
 });
 
+test("rules page summarizes the three ladder rival archetypes", () => {
+  const app = navigateToPage(createReferenceApp(), "rules");
+
+  const html = renderAppHtml(app);
+
+  assert.match(html, /Ladder Rivals/i);
+  assert.match(html, /Ashen Sentinel/);
+  assert.match(html, /Mist Channeler/);
+  assert.match(html, /Aerie Marshal/);
+  assert.match(html, /straight race/i);
+  assert.match(html, /tempo/i);
+  assert.match(html, /larger aerial bodies/i);
+});
+
 test("card gallery references the full ladder card pool", () => {
   const app = navigateToPage(createReferenceApp(), "gallery");
   const html = renderAppHtml(app);

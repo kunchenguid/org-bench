@@ -521,6 +521,21 @@ function RulesPage() {
         puzzle is learning when to spend your low-cost pressure versus holding
         burst spells to close a race.
       </p>
+      <h3>Ladder Rivals</h3>
+      <ul>
+        <li>
+          <strong>Ashen Sentinel</strong> forces a straight race and rewards the
+          cleanest curve.
+        </li>
+        <li>
+          <strong>Mist Channeler</strong> leans on tempo and steady chip damage,
+          so stabilizing the midgame matters.
+        </li>
+        <li>
+          <strong>Aerie Marshal</strong> closes with larger aerial bodies, which
+          means preserving life totals for the final swing turns.
+        </li>
+      </ul>
       <h3>Zones</h3>
       <p>
         Deck holds future draws. Hand holds playable cards. Battlefield keeps
