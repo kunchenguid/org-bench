@@ -3,3 +3,6 @@ dist/
 *.tsbuildinfo
 vite.config.d.ts
 vite.config.js
+coverage/
+.DS_Store
+*.log
