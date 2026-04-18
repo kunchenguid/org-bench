@@ -287,7 +287,7 @@ const ctaItems: Array<{ route: Exclude<Route, 'home'>; label: string; detail: st
   {
     route: 'cards',
     label: 'View Gallery',
-    detail: 'Survey the vault archive before you commit to a faction line.',
+    detail: 'Survey the vault archive before you commit to one of the two houses.',
   },
 ];
 
@@ -304,12 +304,6 @@ const factionItems = [
     detail: 'The Loom turns every surviving creature into a longer game, stacking resilience until the field bends around it.',
     accent: 'verdant',
   },
-  {
-    name: 'Gloam Cartel',
-    motto: 'Secrets, debt, and precision from the dark.',
-    detail: 'The Cartel trades in hidden edges, disruption, and exact damage that lands one turn later than comfort allows.',
-    accent: 'dusk',
-  },
 ];
 
 const encounterItems = [
@@ -319,14 +313,9 @@ const encounterItems = [
     detail: 'A brisk opening test that teaches the table language while demanding early tempo discipline.',
   },
   {
-    step: 'House Reckoning',
-    title: 'Read the rival across two turns',
-    detail: 'Mid-run opponents start signaling faction identity and punish careless sequencing with harder counters.',
-  },
-  {
     step: 'Auric Apex',
-    title: 'Survive the chamber that rewrites the rules',
-    detail: 'The teaser for the final ascent: a boss duel where the Reach itself intrudes on the board state.',
+    title: 'Survive the final house reckoning',
+    detail: 'The last teaser card now frames a direct two-house showdown instead of implying a third faction lane.',
   },
 ];
 
@@ -338,8 +327,9 @@ export function HomePage() {
           <p className="eyebrow">Auric Reach // Frontier Broadcast</p>
           <h2 id="home-title">Step into the gilded frontier.</h2>
           <p className="home-lede">
-            A single-player duel campaign set at the edge of a shining empire, where each
-            encounter reveals a new faction, a new cost, and a new reason to keep climbing.
+            A single-player duel campaign set at the edge of a shining empire, where two rival
+            houses define the climb and every encounter sharpens the line between speed and staying
+            power.
           </p>
           <div className="cta-row" aria-label="Primary calls to action">
             {ctaItems.map((item) => (
@@ -368,7 +358,7 @@ export function HomePage() {
           </div>
           <div className="hero-stage-panel hero-stage-panel-bottom">
             <span>Next Trial</span>
-            <strong>Three encounters. One ascent.</strong>
+            <strong>Two houses. One ascent.</strong>
           </div>
         </aside>
       </section>
@@ -377,8 +367,8 @@ export function HomePage() {
         <p className="eyebrow">Faction Briefing</p>
         <h3 id="factions-title">Factions of the Reach</h3>
         <p>
-          Every house presents a different read on power. Pick the line that matches your
-          instincts, then learn how the frontier punishes it.
+          The Reach now centers on two opposing houses. Pick the tempo you trust, then learn how
+          the frontier punishes overcommitment from either side.
         </p>
         <div className="hero-grid">
           {factionItems.map((item) => (

@@ -4,7 +4,7 @@ import renderToString from 'preact-render-to-string';
 import { HomePage } from './App';
 
 describe('HomePage', () => {
-  it('renders a publishable landing page with hero, CTAs, factions, and encounter teaser', () => {
+  it('stays within the final two-faction home scope', () => {
     const html = renderToString(h(HomePage, {}));
 
     expect(html).toContain('Auric Reach');
@@ -14,5 +14,10 @@ describe('HomePage', () => {
     expect(html).toContain('View Gallery');
     expect(html).toContain('Factions of the Reach');
     expect(html).toContain('Encounters on the Horizon');
+    expect(html).toContain('Ashfall Covenant');
+    expect(html).toContain('Verdant Loom');
+    expect(html).not.toContain('Gloam Cartel');
+    expect((html.match(/class="hero-card hero-card-/g) ?? []).length).toBe(2);
+    expect((html.match(/class="encounter-card"/g) ?? []).length).toBe(2);
   });
 });
