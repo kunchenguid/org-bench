@@ -327,7 +327,12 @@ function PlayPanel() {
           <p className="eyebrow">Play</p>
           <h2>{state.encounterName}</h2>
         </div>
-        <div className="turn-pill">Turn {state.turn} - Your turn</div>
+        <div className="action-row">
+          <div className="turn-pill">Turn {state.turn} - Your turn</div>
+          <button className="secondary-button" onClick={() => setState(null)} type="button">
+            Return to encounter table
+          </button>
+        </div>
       </div>
 
       <div className="score-grid" role="list">

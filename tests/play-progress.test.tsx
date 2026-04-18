@@ -102,4 +102,18 @@ describe('Play progression surface', () => {
     expect(screen.getByText(/turn 1 - your turn/i)).toBeInTheDocument();
     expect(screen.getByText(/enemy health: 20/i)).toBeInTheDocument();
   });
+
+  test('lets the player leave the active duel and return to the idle resume surface', () => {
+    window.location.hash = '#/play';
+    window.localStorage.clear();
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /start ember ridge encounter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /return to encounter table/i }));
+
+    expect(screen.getByRole('heading', { level: 2, name: /encounter table/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resume encounter/i })).toBeInTheDocument();
+    expect(screen.getByText(/saved run: ember ridge on turn 1/i)).toBeInTheDocument();
+  });
 });
