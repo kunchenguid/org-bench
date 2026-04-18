@@ -64,6 +64,82 @@ type SavedEncounterPreview = {
   turn: number;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isCardInstance(value: unknown): value is CardInstance {
+  if (!isRecord(value) || !isString(value.id) || !isString(value.name) || !isString(value.text)) {
+    return false;
+  }
+
+  if (!isNumber(value.cost) || (value.type !== 'creature' && value.type !== 'spell')) {
+    return false;
+  }
+
+  if (value.type === 'creature') {
+    return isNumber(value.attack) && isNumber(value.health);
+  }
+
+  return isNumber(value.damage);
+}
+
+function isBattlefieldCard(value: unknown): value is BattlefieldCard {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.name) &&
+    isString(value.text) &&
+    value.type === 'creature' &&
+    isNumber(value.cost) &&
+    isNumber(value.attack) &&
+    isNumber(value.health) &&
+    isNumber(value.currentHealth)
+  );
+}
+
+function isManaState(value: unknown): value is GameState['player']['mana'] {
+  return isRecord(value) && isNumber(value.current) && isNumber(value.max);
+}
+
+function isSideState(value: unknown): value is GameState['player'] {
+  return (
+    isRecord(value) &&
+    isString(value.name) &&
+    isNumber(value.health) &&
+    isManaState(value.mana) &&
+    Array.isArray(value.deck) &&
+    value.deck.every(isCardInstance) &&
+    Array.isArray(value.hand) &&
+    value.hand.every(isCardInstance) &&
+    Array.isArray(value.discard) &&
+    value.discard.every(isCardInstance) &&
+    Array.isArray(value.battlefield) &&
+    value.battlefield.every(isBattlefieldCard)
+  );
+}
+
+function isGameState(value: unknown): value is GameState {
+  return (
+    isRecord(value) &&
+    isString(value.encounterName) &&
+    isNumber(value.turn) &&
+    (value.currentPlayer === 'player' || value.currentPlayer === 'opponent') &&
+    isSideState(value.player) &&
+    isSideState(value.opponent) &&
+    Array.isArray(value.log) &&
+    value.log.every(isString)
+  );
+}
+
 function getRouteFromHash(hash: string): Route {
   const normalized = hash.replace(/^#/, '') || '/';
   const match = routes.find((route) => route.href.replace(/^#/, '') === normalized);
@@ -92,7 +168,13 @@ function loadSavedEncounter(): GameState | null {
   }
 
   try {
-    return JSON.parse(serialized) as GameState;
+    const parsed = JSON.parse(serialized) as unknown;
+    if (!isGameState(parsed)) {
+      window.localStorage.removeItem(encounterStorageKey);
+      return null;
+    }
+
+    return parsed;
   } catch {
     window.localStorage.removeItem(encounterStorageKey);
     return null;

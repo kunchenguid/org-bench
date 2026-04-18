@@ -42,6 +42,31 @@ describe('Play progression surface', () => {
     expect(window.localStorage.getItem('/duel-tcg:active-encounter')).toBeNull();
   });
 
+  test('ignores and clears a structurally invalid saved encounter payload', () => {
+    window.location.hash = '#/play';
+    window.localStorage.clear();
+    window.localStorage.setItem('/duel-tcg:active-encounter', JSON.stringify({ encounterName: 'Ember Ridge', turn: 3 }));
+
+    render(<App />);
+
+    expect(screen.queryByRole('button', { name: /resume encounter/i })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('/duel-tcg:active-encounter')).toBeNull();
+  });
+
+  test('ignores and clears a malformed saved encounter shape', () => {
+    window.location.hash = '#/play';
+    window.localStorage.clear();
+    window.localStorage.setItem(
+      '/duel-tcg:active-encounter',
+      JSON.stringify({ encounterName: 'Broken Save', turn: 2, player: { health: 20 } }),
+    );
+
+    render(<App />);
+
+    expect(screen.queryByRole('button', { name: /resume encounter/i })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('/duel-tcg:active-encounter')).toBeNull();
+  });
+
   test('lets the player clear a saved checkpoint from the play surface', () => {
     window.location.hash = '#/play';
     window.localStorage.clear();
