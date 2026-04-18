@@ -1,4 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
+import {
+  encounters,
+  factions,
+  keywordGlossary,
+  starterDeck,
+  uniqueCards
+} from './content/gameData';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -37,7 +44,15 @@ function PageContent(props: { route: Route }) {
     return (
       <section class="panel">
         <h1>Play</h1>
-        <p>Prototype play page for the duel board and encounter flow.</p>
+        <p>
+          The board prototype will use the Solar Accord starter deck against a
+          three-duel encounter ladder. The next round will replace this overview
+          with the playable battlefield.
+        </p>
+        <p>
+          Starter deck: {starterDeck.name} with {starterDeck.cards.length} cards.
+          Ladder: {encounters.map((encounter) => encounter.name).join(', ')}.
+        </p>
       </section>
     );
   }
@@ -46,7 +61,14 @@ function PageContent(props: { route: Route }) {
     return (
       <section class="panel">
         <h1>Rules</h1>
-        <p>Prototype rules page for turn flow, resources, and card types.</p>
+        <p>
+          Core keywords are already pinned down for the playable build:{' '}
+          {keywordGlossary.map((entry) => entry.keyword).join(', ')}.
+        </p>
+        <p>
+          Rules prototype for turn flow, resources, and card types. The public
+          rules page will teach these mechanics in full next.
+        </p>
       </section>
     );
   }
@@ -55,6 +77,10 @@ function PageContent(props: { route: Route }) {
     return (
       <section class="panel">
         <h1>Cards</h1>
+        <p>
+          The shared card pool currently spans {uniqueCards.length} unique cards
+          across {factions.map((faction) => faction.name).join(' and ')}.
+        </p>
         <p>Prototype card gallery for the shared card pool and factions.</p>
       </section>
     );
@@ -64,7 +90,13 @@ function PageContent(props: { route: Route }) {
     <section class="hero panel">
       <p class="eyebrow">Single-player tactical card duels</p>
       <h1>Shards of the Veil</h1>
-      <p>Prototype home page for the public-facing duel TCG site scaffold.</p>
+      <p>
+        Prototype home page for the public-facing duel TCG site scaffold.
+      </p>
+      <p>
+        Two factions, {uniqueCards.length} illustrated cards, and a three-step
+        duel ladder are now defined in shared content data for the full site.
+      </p>
     </section>
   );
 }
