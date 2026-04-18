@@ -12,4 +12,15 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute('href', '#/cards');
     expect(screen.getByRole('heading', { level: 1, name: 'Duel TCG' })).toBeInTheDocument();
   });
+
+  it('marks the active route in primary navigation', () => {
+    globalThis.location.hash = '#/rules';
+
+    render(<App />);
+
+    expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
+
+    globalThis.location.hash = '';
+  });
 });
