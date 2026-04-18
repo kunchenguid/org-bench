@@ -51,7 +51,7 @@ describe('App shell', () => {
         .length,
     ).toBeGreaterThan(0);
     expect(screen.getByText(/mana 0\/1/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/you played ash striker/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/you played ash striker/i)).toHaveLength(1);
 
     fireEvent.click(screen.getByRole('button', { name: /end turn/i }));
 
