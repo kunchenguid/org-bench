@@ -47,7 +47,8 @@ a {
 }
 
 .hero h1,
-.panel h2 {
+.panel h2,
+.panel h3 {
   margin: 0 0 12px;
 }
 
@@ -88,6 +89,122 @@ a {
   font-weight: 700;
 }
 
+.stack-lg {
+  display: grid;
+  gap: 20px;
+}
+
+.primary-button,
+.card-tile button {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #71a6ff 0%, #957cff 100%);
+  color: #091120;
+}
+
+.card-tile button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.section-heading,
+.zone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.turn-pill,
+.score-card,
+.zone,
+.card-tile {
+  border: 1px solid rgba(169, 194, 255, 0.18);
+  background: rgba(17, 25, 45, 0.6);
+  border-radius: 18px;
+}
+
+.turn-pill {
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+.score-grid,
+.zone-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.score-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.score-card,
+.zone,
+.card-tile {
+  padding: 16px;
+}
+
+.score-card {
+  display: grid;
+  gap: 6px;
+}
+
+.score-card strong {
+  font-size: 2rem;
+}
+
+.score-label {
+  color: #89a9ff;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+}
+
+.zone-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.zone {
+  display: grid;
+  gap: 14px;
+}
+
+.zone-meta p {
+  margin: 0;
+}
+
+.card-list,
+.log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.card-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-tile p {
+  margin: 6px 0 0;
+  color: #d2ddf8;
+}
+
+.log-list li {
+  padding-left: 16px;
+  border-left: 2px solid rgba(113, 166, 255, 0.5);
+  color: #d2ddf8;
+}
+
 @media (max-width: 640px) {
   .shell {
     padding: 24px 16px 40px;
@@ -97,5 +214,17 @@ a {
   .panel {
     padding: 20px;
     border-radius: 20px;
+  }
+
+  .section-heading,
+  .zone-header,
+  .card-tile {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .score-grid,
+  .zone-grid {
+    grid-template-columns: 1fr;
   }
 }
