@@ -12,6 +12,9 @@ test('play page presents Division A combat loop priorities', () => {
   assert.match(html, /Win the tempo pivot/i);
   assert.match(html, /Secure the finisher/i);
   assert.match(html, /AI Opponent Read/i);
+  assert.match(html, /Counter Window/i);
+  assert.match(html, /Bait the shield first/i);
+  assert.match(html, /Punish the heavy swing/i);
   assert.match(html, /Encounter Ladder/i);
   assert.match(html, /Play First Card/i);
   assert.match(html, /Commit Attack Lane/i);
