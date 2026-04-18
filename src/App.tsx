@@ -80,13 +80,10 @@ export function App() {
 
   useEffect(() => {
     const onHashChange = () => {
-      const nextRoute = getRouteFromHash(window.location.hash);
-
-      setRoute(nextRoute);
+      setRoute(getRouteFromHash(window.location.hash));
     };
 
     window.addEventListener('hashchange', onHashChange);
-
     onHashChange();
 
     return () => window.removeEventListener('hashchange', onHashChange);
@@ -147,6 +144,55 @@ export function App() {
             <p>Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.</p>
           </article>
         </section>
+
+        {route === 'play' ? (
+          <section className="board-shell" aria-labelledby="board-shell-title">
+            <div className="board-shell-header">
+              <div>
+                <p className="eyebrow">Encounter Snapshot</p>
+                <h2 id="board-shell-title">Live Duel Board</h2>
+              </div>
+              <p className="board-turn">Turn 4 - Ember Guild attack</p>
+            </div>
+
+            <div className="board-status-grid">
+              <article className="status-card enemy-status">
+                <h3>Enemy Health</h3>
+                <p>16 / 20</p>
+              </article>
+              <article className="status-card player-status">
+                <h3>Player Health</h3>
+                <p>18 / 20</p>
+              </article>
+              <article className="status-card hand-status">
+                <h3>Hand Dock</h3>
+                <p>4 cards ready to deploy</p>
+              </article>
+            </div>
+
+            <div className="lane-grid">
+              <section className="lane-card front-lane">
+                <h3>Front Lane</h3>
+                <p>Pressure units clash here first.</p>
+              </section>
+              <section className="lane-card back-lane">
+                <h3>Back Lane</h3>
+                <p>Support units and relics stay protected here.</p>
+              </section>
+            </div>
+
+            <div className="resource-row" aria-label="Deck and discard piles">
+              <article className="resource-card">
+                <h3>Deck</h3>
+                <p>18 cards</p>
+              </article>
+              <article className="resource-card">
+                <h3>Discard</h3>
+                <p>5 cards</p>
+              </article>
+            </div>
+          </section>
+        ) : null}
 
         <section className="feedback-kit" aria-labelledby="feedback-kit-title">
           <div className="section-copy">
