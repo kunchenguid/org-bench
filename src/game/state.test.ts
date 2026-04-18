@@ -1,4 +1,4 @@
-import { createCampaignState, createDuelState, playCard } from './state';
+import { createCampaignState, createDuelState, endTurn, playCard } from './state';
 
 describe('shared duel state', () => {
   it('creates a namespaced campaign ladder from the shared encounter list', () => {
@@ -86,5 +86,42 @@ describe('shared duel state', () => {
       instanceId: spell!.instanceId,
       type: 'spell'
     });
+  });
+
+  it('advances from the player turn to the AI turn with a draw and refreshed resources', () => {
+    const duel = createDuelState('oracle-seed-01', 'ashen-adept');
+
+    duel.phase = 'end';
+    duel.player.resources = { current: 0, max: 1 };
+
+    const next = endTurn(duel);
+
+    expect(next.activePlayerId).toBe('ashen-adept');
+    expect(next.turnNumber).toBe(2);
+    expect(next.phase).toBe('draw');
+    expect(next.opponent.resources).toEqual({ current: 1, max: 1 });
+    expect(next.opponent.hand).toHaveLength(5);
+    expect(next.opponent.deck).toHaveLength(15);
+    expect(next.player.resources).toEqual({ current: 0, max: 1 });
+  });
+
+  it('advances from the AI turn back to the player and increments capped resources', () => {
+    const duel = createDuelState('oracle-seed-01', 'ashen-adept');
+
+    duel.activePlayerId = 'ashen-adept';
+    duel.turnNumber = 2;
+    duel.phase = 'end';
+    duel.player.resources = { current: 1, max: 1 };
+    duel.opponent.resources = { current: 0, max: 1 };
+
+    const next = endTurn(duel);
+
+    expect(next.activePlayerId).toBe('player');
+    expect(next.turnNumber).toBe(3);
+    expect(next.phase).toBe('draw');
+    expect(next.player.resources).toEqual({ current: 2, max: 2 });
+    expect(next.player.hand).toHaveLength(5);
+    expect(next.player.deck).toHaveLength(15);
+    expect(next.opponent.resources).toEqual({ current: 0, max: 1 });
   });
 });

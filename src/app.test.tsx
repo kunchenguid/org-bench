@@ -1,7 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/preact';
+import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { App } from './App';
 
 describe('App scaffold', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('renders navigation and switches between placeholder pages', () => {
     render(<App />);
 
@@ -30,5 +34,19 @@ describe('App scaffold', () => {
     expect(screen.getAllByRole('article')).toHaveLength(12);
     expect(screen.getByText(/cinder scout/i)).toBeInTheDocument();
     expect(screen.getByText(/glass current/i)).toBeInTheDocument();
+  });
+
+  it('restores the in-progress duel from local storage after reload', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('link', { name: /play/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: /play cinder scout/i })[0]);
+
+    cleanup();
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('link', { name: /play/i }));
+    expect(screen.getByText(/resources: 0\/1/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /play cinder scout/i })).toHaveLength(1);
   });
 });

@@ -7,8 +7,11 @@ import {
   uniqueCards
 } from './content/gameData';
 import { createDuelState, playCard, type DuelState } from './game/state';
+import { loadDuelState, saveDuelState } from './game/persistence';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
+
+const STORAGE_NAMESPACE = 'oracle-seed-01';
 
 const routes: Record<string, Route> = {
   '#/': 'home',
@@ -152,9 +155,14 @@ function ZoneSummary(props: {
 
 function PageContent(props: { route: Route }) {
   const [duel, setDuel] = useState<DuelState>(() => ({
-    ...createDuelState('oracle-seed-01', encounters[0].id),
+    ...(loadDuelState(window.localStorage, STORAGE_NAMESPACE, encounters[0].id) ??
+      createDuelState(STORAGE_NAMESPACE, encounters[0].id)),
     phase: 'main' as const
   }));
+
+  useEffect(() => {
+    saveDuelState(window.localStorage, duel);
+  }, [duel]);
 
   if (props.route === 'play') {
     return (

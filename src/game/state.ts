@@ -125,6 +125,30 @@ export function playCard(
   }
 }
 
+export function endTurn(duel: DuelState): DuelState {
+  if (duel.phase !== 'end') {
+    throw new Error('Turns can only advance from the end phase')
+  }
+
+  const nextActorKey = duel.activePlayerId === duel.player.id ? 'opponent' : 'player'
+  const nextActor = duel[nextActorKey]
+  const nextActorResources = incrementResources(nextActor.resources)
+  const [drawnCard, ...remainingDeck] = nextActor.deck
+
+  return {
+    ...duel,
+    activePlayerId: nextActor.id,
+    turnNumber: duel.turnNumber + 1,
+    phase: 'draw',
+    [nextActorKey]: {
+      ...nextActor,
+      resources: nextActorResources,
+      hand: drawnCard ? [...nextActor.hand, drawnCard] : nextActor.hand,
+      deck: drawnCard ? remainingDeck : nextActor.deck
+    }
+  }
+}
+
 function createCombatant(
   ownerId: string,
   cardIds: string[],
@@ -155,6 +179,15 @@ function createCardInstance(cardId: string, ownerId: string, index: number): Car
     cardId,
     instanceId: `${ownerId}-${cardId}-${index + 1}`,
     ownerId
+  }
+}
+
+function incrementResources(resources: ResourceState): ResourceState {
+  const max = Math.min(resources.max + 1, 10)
+
+  return {
+    current: max,
+    max
   }
 }
 
