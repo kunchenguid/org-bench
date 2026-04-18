@@ -8,3 +8,7 @@ This file gives integrators a minimal, namespaced landing area for future n6 con
 
 - `README.md` - explains why the n6 area exists
 - `PR-FAQ.md` - lightweight customer-first handoff template for future delegated work
+
+## Definition Of Done
+
+Future delegated n6 changes should keep scope small, explain the customer problem first, and call out any risk that an integrator should watch during merge.
