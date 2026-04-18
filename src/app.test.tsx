@@ -59,7 +59,7 @@ describe('App shell', () => {
     expect(screen.getByText(/win three encounters in a row to clear the gauntlet/i)).toBeInTheDocument();
   });
 
-  it('renders the play board shell with core duel zones', () => {
+  it('renders the play board shell with core duel zones and illustrated opening hand cards', () => {
     window.location.hash = '#/play';
 
     render(<App />);
@@ -78,6 +78,10 @@ describe('App shell', () => {
     expect(within(board).getByText(/^ashguard bruiser$/i)).toBeInTheDocument();
     expect(within(board).getByText(/^skyhook snare$/i)).toBeInTheDocument();
     expect(within(board).getByText(/resource 1/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /opening hand/i })).toBeInTheDocument();
+    expect(screen.getByText(/opening hand previews the same illustrated card frame/i)).toBeInTheDocument();
+    expect(screen.getByText(/ashmarked scout/i)).toBeInTheDocument();
+    expect(screen.getByText(/ward current/i)).toBeInTheDocument();
   });
 
   it('renders a deterministic action timeline tied to duel state transitions', () => {
@@ -108,5 +112,17 @@ describe('App shell', () => {
     expect(within(ladder).getByRole('heading', { name: /the glass throne/i })).toBeInTheDocument();
     expect(within(ladder).getByText(/play the cheapest pressure unit first/i)).toBeInTheDocument();
     expect(within(ladder).getByText(/if lethal burn is available, cast it before developing/i)).toBeInTheDocument();
+  });
+
+  it('renders faction identities and the initial card pool on the cards route', () => {
+    window.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: /card gallery/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /emberfire syndicate/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /aether covenant/i })).toBeInTheDocument();
+    expect(screen.getByText(/cinder tactician/i)).toBeInTheDocument();
+    expect(screen.getByText(/sky archive lens/i)).toBeInTheDocument();
   });
 });

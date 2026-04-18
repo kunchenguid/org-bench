@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 
+import { IllustratedCard } from './components/IllustratedCard';
+import { cardPool, factions } from './data/cards';
 import { createEncounterDuelState, ladderEncounters } from './campaign';
 import { advanceTurn, createDuelState, dealDamage, deployCard, type DuelState } from './game/state';
 import { clearEncounterSnapshot, loadEncounterSnapshot, type EncounterSnapshot } from './persistence';
@@ -65,7 +67,7 @@ const routes: Record<RouteKey, PageConfig> = {
   cards: {
     label: 'Cards',
     title: 'Card Gallery',
-    body: 'Browse the Ember and Aether card catalog here as the illustrated card pool is added.'
+    body: 'Browse the opening card pool, compare faction identities, and inspect the reusable illustrated frame for each card.'
   }
 };
 
@@ -117,6 +119,8 @@ const actionTimeline = [
   }
 ] as const;
 
+const openingHand = [cardPool[0], cardPool[3], cardPool[1]];
+
 const duelPreviewState = createPreviewState();
 
 function createPreviewState(): DuelState {
@@ -148,6 +152,65 @@ function getBoardState(savedEncounter: SavedEncounter | null) {
 
 function getTurnBanner(state: DuelState) {
   return `Turn ${state.turn} - ${state.activePlayer === 'player' ? 'Player active' : 'Opponent active'}`;
+}
+
+function renderCardsRoute() {
+  return (
+    <>
+      <section className="hero-panel">
+        <div className="hero-home">
+          <div className="hero-copy">
+            <p className="eyebrow">Static TCG Campaign</p>
+            <h1>{routes.cards.title}</h1>
+            <p className="hero-lede">Illustrated card frames now match the battlefield.</p>
+            <p>{routes.cards.body}</p>
+            <div className="hero-actions">
+              <a className="button primary strong" href="#/play">
+                Start Duel
+              </a>
+              <a className="button secondary" href="#/rules">
+                Learn Rules
+              </a>
+            </div>
+          </div>
+          <aside className="hero-aside">
+            <span className="hero-badge">Card Archive</span>
+            <ul className="hero-stats">
+              <li>
+                <strong>6 opening cards</strong>
+                <span>Enough variety to teach tempo, burn, shields, and relic value.</span>
+              </li>
+              <li>
+                <strong>2 faction identities</strong>
+                <span>Card names, art gradients, and text all reinforce the house theme.</span>
+              </li>
+              <li>
+                <strong>Shared frame</strong>
+                <span>The same visual card object appears here and in the play opening hand.</span>
+              </li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section className="faction-grid" aria-label="Faction Identities">
+        {factions.map((faction) => (
+          <article key={faction.id} className={`faction-card ${faction.id}`}>
+            <p className="faction-kicker">Faction identity</p>
+            <h2>{faction.name}</h2>
+            <p>{faction.epithet}</p>
+            <p>{faction.identity}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="card-gallery" aria-label="Initial Card Pool">
+        {cardPool.map((card) => (
+          <IllustratedCard key={card.id} card={card} surface="gallery" />
+        ))}
+      </section>
+    </>
+  );
 }
 
 export function App() {
@@ -386,6 +449,19 @@ export function App() {
               </div>
             </section>
 
+            <section className="play-surface" aria-labelledby="opening-hand-title">
+              <div className="play-copy">
+                <p className="eyebrow">Reusable Card Frame</p>
+                <h2 id="opening-hand-title">Opening Hand</h2>
+                <p>Opening hand previews the same illustrated card frame used in the gallery.</p>
+              </div>
+              <div className="play-hand">
+                {openingHand.map((card) => (
+                  <IllustratedCard key={card.id} card={card} surface="play" />
+                ))}
+              </div>
+            </section>
+
             <section className="feedback-kit" aria-labelledby="action-timeline-title">
               <div className="section-copy">
                 <p className="eyebrow">State Sequence</p>
@@ -425,6 +501,8 @@ export function App() {
               </div>
             </section>
           </>
+        ) : route === 'cards' ? (
+          renderCardsRoute()
         ) : (
           <>
             <section className="hero-panel">
