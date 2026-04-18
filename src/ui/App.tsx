@@ -186,6 +186,13 @@ export function PlayBoard() {
           <span className="status-label">Turn indicator</span>
           <strong>Your turn</strong>
           <span className="status-rule">Round 4 · 3 actions available</span>
+          <div className="turn-sequence" aria-label="Turn sequence">
+            <span>Ready</span>
+            <span>Draw</span>
+            <span className="is-active">Main</span>
+            <span>Combat</span>
+            <span>End</span>
+          </div>
         </aside>
       </div>
 

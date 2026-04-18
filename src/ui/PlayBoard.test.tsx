@@ -26,5 +26,7 @@ describe('PlayBoard', () => {
     expect(markup).toContain('Target: Enemy battlefield');
     expect(markup).toContain('Enemy intent');
     expect(markup).toContain('Projected attack: 7');
+    expect(markup).toContain('Turn sequence');
+    expect(markup).toContain('Main');
   });
 });

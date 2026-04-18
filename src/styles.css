@@ -544,6 +544,26 @@ select {
   font-size: 1.8rem;
 }
 
+.turn-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.turn-sequence span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #d5d1da;
+  font-size: 0.78rem;
+}
+
+.turn-sequence .is-active {
+  background: linear-gradient(135deg, rgba(245, 165, 93, 0.28), rgba(212, 81, 69, 0.28));
+  color: #fff6ea;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
 .combatant-card {
   display: grid;
   gap: 10px;
