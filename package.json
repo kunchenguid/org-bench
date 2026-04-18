@@ -13,10 +13,10 @@
     "preact": "^10.26.4"
   },
   "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/preact": "^3.2.4",
     "@types/node": "^24.5.2",
-    "@types/testing-library__jest-dom": "^6.0.0",
-    "@preact/preset-vite": "^2.10.2",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.2",
     "vite": "^7.1.5",
