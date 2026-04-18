@@ -58,6 +58,46 @@ const feedbackPatterns = [
   }
 ] as const;
 
+const homeStats = [
+  { value: '3-step gauntlet', label: 'Escalating encounters with carry-over pressure.' },
+  { value: '12 signature cards', label: 'Faction-defining creatures, spells, and relics.' },
+  { value: '8 minute runs', label: 'Fast browser sessions built for instant retries.' }
+] as const;
+
+const factions = [
+  {
+    name: 'Emberfire Vanguard',
+    tone: 'Aggro pressure',
+    description:
+      'Rush the board with scorch hounds, reckless captains, and finishers that reward every point of chip damage.',
+    cards: ['Cinder Pup', 'Forge Banner', 'Final Spark'],
+    className: 'ember'
+  },
+  {
+    name: 'Aether Covenant',
+    tone: 'Tempo control',
+    description:
+      'Float between lanes with shield drones, delayed bursts, and precision tricks that flip losing turns.',
+    cards: ['Static Warden', 'Slipstream Ward', 'Zenith Archive'],
+    className: 'aether'
+  }
+] as const;
+
+const encounters = [
+  {
+    name: 'Gate of Cinders',
+    detail: 'Open against a redline swarm that teaches combat math under pressure.'
+  },
+  {
+    name: 'Glassgarden Crossing',
+    detail: 'Shift into a mirror-like midboss with shields, resets, and punishing counters.'
+  },
+  {
+    name: 'The Zenith Prism',
+    detail: 'Finish with a skyforge duel where one clean setup turn decides the run.'
+  }
+] as const;
+
 function getRouteFromHash(hash: string): RouteKey {
   const value = hash.replace(/^#\/?/, '');
   return value in routes ? (value as RouteKey) : 'home';
@@ -90,6 +130,7 @@ export function App() {
   }, []);
 
   const page = routes[route];
+  const isHome = route === 'home';
 
   useLayoutEffect(() => {
     document.title = `${page.title} | Duel of Ash and Aether`;
@@ -116,19 +157,91 @@ export function App() {
       </header>
 
       <main className="layout">
-        <section className="hero-panel">
-          <p className="eyebrow">Static TCG Campaign</p>
-          <h1>{page.title}</h1>
-          <p>{page.body}</p>
-          <div className="hero-actions">
-            <a className="button primary" href="#/play">
-              Start Duel
-            </a>
-            <a className="button secondary" href="#/rules">
-              Learn Rules
-            </a>
-          </div>
-        </section>
+        {isHome ? (
+          <>
+            <section className="hero-panel hero-home">
+              <div className="hero-copy">
+                <p className="eyebrow">Static TCG Campaign</p>
+                <h1>{page.title}</h1>
+                <p className="hero-lede">Choose a side in a shattered sky war.</p>
+                <p>{page.body}</p>
+                <div className="hero-actions">
+                  <a className="button primary strong" href="#/play">
+                    Enter the Gauntlet
+                  </a>
+                  <a className="button secondary" href="#/cards">
+                    Study Both Factions
+                  </a>
+                </div>
+              </div>
+
+              <aside className="hero-aside" aria-label="Run snapshot">
+                <div className="hero-badge">Live preview</div>
+                <ul className="hero-stats">
+                  {homeStats.map((stat) => (
+                    <li key={stat.value}>
+                      <strong>{stat.value}</strong>
+                      <span>{stat.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </aside>
+            </section>
+
+            <section className="section-block" aria-labelledby="faction-previews-title">
+              <div className="section-heading">
+                <p className="eyebrow">Faction previews</p>
+                <h2 id="faction-previews-title">Faction Previews</h2>
+              </div>
+
+              <div className="preview-grid factions-grid">
+                {factions.map((faction) => (
+                  <article key={faction.name} className={`preview-card faction-card ${faction.className}`}>
+                    <p className="card-kicker">{faction.tone}</p>
+                    <h3>{faction.name}</h3>
+                    <p>{faction.description}</p>
+                    <ul className="card-chip-list" aria-label={`${faction.name} signature cards`}>
+                      {faction.cards.map((card) => (
+                        <li key={card}>{card}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="section-block encounter-strip" aria-labelledby="encounter-path-title">
+              <div className="section-heading">
+                <p className="eyebrow">Boss route</p>
+                <h2 id="encounter-path-title">Encounter Path</h2>
+              </div>
+
+              <div className="encounter-grid">
+                {encounters.map((encounter, index) => (
+                  <article key={encounter.name} className="encounter-card">
+                    <span className="encounter-step">0{index + 1}</span>
+                    <h3>{encounter.name}</h3>
+                    <p>{encounter.detail}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="hero-panel">
+            <p className="eyebrow">Static TCG Campaign</p>
+            <h1>{page.title}</h1>
+            <p>{page.body}</p>
+            <div className="hero-actions">
+              <a className="button primary" href="#/play">
+                Start Duel
+              </a>
+              <a className="button secondary" href="#/rules">
+                Learn Rules
+              </a>
+            </div>
+          </section>
+        )}
 
         <section className="preview-grid" aria-label="Scaffold Preview">
           <article className="preview-card ember">
@@ -148,49 +261,95 @@ export function App() {
         {route === 'play' ? (
           <section className="board-shell" aria-labelledby="board-shell-title">
             <div className="board-shell-header">
-              <div>
+              <div className="board-intro">
                 <p className="eyebrow">Encounter Snapshot</p>
                 <h2 id="board-shell-title">Live Duel Board</h2>
+                <p>Scaffold the HUD, lanes, hand dock, and deck-discard stacks here before the live encounter wiring lands.</p>
               </div>
-              <p className="board-turn">Turn 4 - Ember Guild attack</p>
+              <p className="turn-banner">Turn 4 - Ember Guild attack</p>
             </div>
 
-            <div className="board-status-grid">
-              <article className="status-card enemy-status">
-                <h3>Enemy Health</h3>
-                <p>16 / 20</p>
+            <div className="hud-grid">
+              <article className="hud-card enemy">
+                <p className="hud-label">Enemy health</p>
+                <div className="hud-value-row">
+                  <strong className="hud-value">16</strong>
+                  <span className="hud-value-meta">/ 20</span>
+                </div>
+                <p className="hud-stats">2 creatures in lane | 5 cards in deck</p>
               </article>
-              <article className="status-card player-status">
-                <h3>Player Health</h3>
-                <p>18 / 20</p>
-              </article>
-              <article className="status-card hand-status">
-                <h3>Hand Dock</h3>
-                <p>4 cards ready to deploy</p>
+
+              <article className="hud-card player">
+                <p className="hud-label">Player health</p>
+                <div className="hud-value-row">
+                  <strong className="hud-value">18</strong>
+                  <span className="hud-value-meta">/ 20</span>
+                </div>
+                <p className="hud-stats">4 mana live | 4 cards in hand</p>
               </article>
             </div>
 
-            <div className="lane-grid">
-              <section className="lane-card front-lane">
-                <h3>Front Lane</h3>
-                <p>Pressure units clash here first.</p>
-              </section>
-              <section className="lane-card back-lane">
-                <h3>Back Lane</h3>
-                <p>Support units and relics stay protected here.</p>
-              </section>
-            </div>
+            <section className="battlefield-shell" aria-label="Battlefield lanes and card stacks">
+              <article className="lane-panel front">
+                <div className="lane-header">
+                  <h3>Front lane</h3>
+                  <span>Pressure clash zone</span>
+                </div>
+                <div className="lane-cards">
+                  <article className="lane-card">
+                    <p className="lane-card-name">Blazebound Raider</p>
+                    <p className="lane-card-stats">4 / 3</p>
+                  </article>
+                  <article className="lane-card">
+                    <p className="lane-card-name">Glass Warden</p>
+                    <p className="lane-card-stats">2 / 5</p>
+                  </article>
+                </div>
+              </article>
 
-            <div className="resource-row" aria-label="Deck and discard piles">
-              <article className="resource-card">
-                <h3>Deck</h3>
-                <p>18 cards</p>
+              <article className="lane-panel back">
+                <div className="lane-header">
+                  <h3>Back lane</h3>
+                  <span>Support and relic zone</span>
+                </div>
+                <div className="lane-cards">
+                  <article className="lane-card">
+                    <p className="lane-card-name">Aether Lens</p>
+                    <p className="lane-card-stats">Spell engine</p>
+                  </article>
+                  <article className="lane-card">
+                    <p className="lane-card-name">Forge Banner</p>
+                    <p className="lane-card-stats">Team buff</p>
+                  </article>
+                </div>
               </article>
-              <article className="resource-card">
-                <h3>Discard</h3>
-                <p>5 cards</p>
-              </article>
-            </div>
+
+              <aside className="stack-column">
+                <article className="stack-card">
+                  <p className="stack-label">Deck</p>
+                  <strong>18</strong>
+                  <p>cards</p>
+                </article>
+                <article className="stack-card">
+                  <p className="stack-label">Discard</p>
+                  <strong>5</strong>
+                  <p>cards</p>
+                </article>
+              </aside>
+            </section>
+
+            <section className="hand-dock" aria-labelledby="hand-dock-title">
+              <div className="lane-header">
+                <h3 id="hand-dock-title">Hand dock</h3>
+                <span>Cards ready to deploy this turn</span>
+              </div>
+              <div className="hand-cards">
+                <article className="hand-card">Spark Javelin</article>
+                <article className="hand-card">Static Warden</article>
+                <article className="hand-card">Forge Banner</article>
+                <article className="hand-card">Zenith Burst</article>
+              </div>
+            </section>
           </section>
         ) : null}
 
