@@ -56,6 +56,15 @@ describe('App', () => {
     expect(screen.getByText(/cinder volley/i)).toBeInTheDocument();
   });
 
+  test('does not claim resumable progress on a first visit to the play page', () => {
+    window.location.hash = '#/play';
+
+    render(<App storageNamespace="run-amazon-seed-01" />);
+
+    expect(screen.getByText(/no local save yet/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /clear saved progress/i })).toBeDisabled();
+  });
+
   test('restores and clears saved progress from a namespaced key', () => {
     window.localStorage.setItem(
       'run-amazon-seed-01:duel-of-embers:app',
@@ -65,6 +74,7 @@ describe('App', () => {
     render(<App storageNamespace="run-amazon-seed-01" />);
 
     expect(screen.getByRole('heading', { name: /play the first duel/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /clear saved progress/i })).toBeEnabled();
 
     fireEvent.click(screen.getByRole('button', { name: /clear saved progress/i }));
 
