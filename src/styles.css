@@ -94,6 +94,10 @@ button {
   gap: 24px;
 }
 
+.section-copy {
+  max-width: 64ch;
+}
+
 .hero-panel {
   padding: 32px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -199,6 +203,8 @@ h1 {
   padding: 12px 18px;
   border-radius: 999px;
   font-weight: 700;
+  border: 0;
+  cursor: pointer;
 }
 
 .button.primary {
@@ -213,6 +219,18 @@ h1 {
 
 .button.strong {
   padding-inline: 22px;
+}
+
+.play-status {
+  margin-top: 20px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(10, 17, 29, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.play-status p:last-child {
+  margin-bottom: 0;
 }
 
 .section-block {
@@ -259,6 +277,86 @@ h1 {
 
 .preview-card.ladder {
   box-shadow: inset 0 0 0 1px rgba(229, 213, 255, 0.16);
+}
+
+.board-shell {
+  padding: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(145, 92, 255, 0.08), rgba(255, 141, 92, 0.08)),
+    rgba(7, 12, 24, 0.84);
+}
+
+.board-shell-header,
+.board-status-grid,
+.lane-grid,
+.resource-row {
+  display: grid;
+  gap: 16px;
+}
+
+.board-shell-header {
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+.board-turn {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffe7b0;
+}
+
+.board-status-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 20px;
+}
+
+.status-card,
+.lane-card,
+.resource-card {
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.status-card p,
+.lane-card p,
+.resource-card p {
+  margin-bottom: 0;
+}
+
+.enemy-status {
+  box-shadow: inset 0 0 0 1px rgba(255, 125, 125, 0.2);
+}
+
+.player-status {
+  box-shadow: inset 0 0 0 1px rgba(129, 231, 182, 0.18);
+}
+
+.hand-status {
+  box-shadow: inset 0 0 0 1px rgba(255, 214, 120, 0.18);
+}
+
+.lane-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.front-lane {
+  background: linear-gradient(180deg, rgba(255, 146, 89, 0.12), rgba(255, 146, 89, 0.03));
+}
+
+.back-lane {
+  background: linear-gradient(180deg, rgba(136, 160, 255, 0.12), rgba(136, 160, 255, 0.03));
+}
+
+.resource-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
 }
 
 .card-kicker,
@@ -311,18 +409,251 @@ h1 {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.feedback-kit {
+  padding: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 16, 30, 0.82);
+}
+
+.feedback-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.feedback-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.feedback-card h3,
+.feedback-card p,
+.feedback-card code {
+  margin: 0;
+}
+
+.feedback-card h3 {
+  margin-top: 14px;
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.feedback-card p {
+  color: #d5d8e8;
+  min-height: 88px;
+}
+
+.feedback-card code {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff2c1;
+}
+
+.feedback-demo {
+  position: relative;
+  min-height: 112px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
+    #0d1426;
+}
+
+.feedback-demo::before,
+.feedback-demo::after {
+  content: '';
+  position: absolute;
+}
+
+.feedback-demo::before {
+  inset: 20px auto auto 18px;
+  width: 52px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 214, 160, 0.95), rgba(255, 143, 101, 0.9));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+.feedback-demo::after {
+  inset: auto 14px 12px auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.feedback-chip {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(8, 11, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tone-play .feedback-demo::after {
+  background: radial-gradient(circle, rgba(255, 220, 120, 0.85), rgba(255, 146, 89, 0));
+}
+
+.tone-attack .feedback-demo::after {
+  inset: 44px 10px auto auto;
+  width: 88px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 120, 89, 0), rgba(255, 120, 89, 0.92));
+}
+
+.tone-damage .feedback-demo::after {
+  inset: 18px 12px auto auto;
+  width: 48px;
+  height: 48px;
+  background: radial-gradient(circle, rgba(255, 105, 105, 0.85), rgba(255, 105, 105, 0));
+}
+
+.tone-turn .feedback-demo::after {
+  inset: 0;
+  width: auto;
+  height: auto;
+  border-radius: 18px;
+  background: linear-gradient(90deg, rgba(138, 165, 255, 0), rgba(138, 165, 255, 0.18), rgba(138, 165, 255, 0));
+}
+
+.tone-outcome .feedback-demo::after {
+  inset: auto 16px 12px auto;
+  width: 72px;
+  height: 72px;
+  background: radial-gradient(circle, rgba(179, 255, 191, 0.36), rgba(179, 255, 191, 0));
+}
+
+.fx-card-play::before {
+  animation: card-play-lift 1.4s ease-in-out infinite;
+}
+
+.fx-attack-lunge::before {
+  animation: attack-lunge 1.15s ease-in-out infinite;
+}
+
+.fx-damage-flash::before {
+  animation: damage-flash 1.1s ease-in-out infinite;
+}
+
+.fx-turn-sweep::after {
+  animation: turn-sweep 1.8s ease-in-out infinite;
+}
+
+.fx-outcome-rise::before {
+  animation: outcome-rise 1.6s ease-in-out infinite;
+}
+
+@keyframes card-play-lift {
+  0%,
+  100% {
+    transform: translate3d(0, 14px, 0) scale(0.94);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  }
+
+  45% {
+    transform: translate3d(0, -4px, 0) scale(1);
+    box-shadow: 0 18px 28px rgba(255, 184, 96, 0.28);
+  }
+}
+
+@keyframes attack-lunge {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-2deg);
+  }
+
+  40% {
+    transform: translate3d(22px, -4px, 0) rotate(1deg);
+  }
+}
+
+@keyframes damage-flash {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    filter: saturate(1);
+  }
+
+  20%,
+  60% {
+    transform: translate3d(5px, 0, 0);
+    filter: saturate(1.7) brightness(1.2);
+  }
+
+  40%,
+  80% {
+    transform: translate3d(-5px, 0, 0);
+  }
+}
+
+@keyframes turn-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  55% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes outcome-rise {
+  0%,
+  100% {
+    transform: translate3d(0, 12px, 0) scale(0.9);
+    opacity: 0.75;
+  }
+
+  45% {
+    transform: translate3d(0, -6px, 0) scale(1);
+    opacity: 1;
+  }
+}
+
 @media (max-width: 800px) {
   .app-shell {
     padding: 16px;
   }
 
+  .feedback-grid,
+  .board-status-grid,
+  .lane-grid,
+  .resource-row,
   .hero-home,
   .preview-grid,
   .encounter-grid {
     grid-template-columns: 1fr;
   }
 
+  .board-shell-header {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
   .hero-panel {
     padding: 24px;
+  }
+
+  .board-shell,
+  .feedback-kit {
+    padding: 22px;
   }
 }
