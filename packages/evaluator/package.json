@@ -1,0 +1,15 @@
+{
+  "name": "@org-bench/evaluator",
+  "version": "0.0.0",
+  "private": true,
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@org-bench/schemas": "0.0.0",
+    "zod": "^3.24.4"
+  },
+  "scripts": {
+    "evaluate": "tsx src/cli.ts",
+    "test": "tsx --test src/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@org-bench/viewer",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "cytoscape": "^3.33.2",
+    "preact": "^10.26.4"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "@types/cytoscape": "^3.21.9",
+    "vite": "^6.3.5"
+  },
+  "scripts": {
+    "build": "tsx scripts/build-manifest.mts && vite build",
+    "build:manifest": "tsx scripts/build-manifest.mts",
+    "test": "tsx --test src/**/*.test.ts scripts/*.test.mts",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

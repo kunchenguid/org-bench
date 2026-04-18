@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pr_number": {
+      "type": "integer",
+      "exclusiveMinimum": 0
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 1
+    },
+    "url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "author": {
+      "type": "object",
+      "properties": {
+        "agent_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "agent_name",
+        "node_id"
+      ],
+      "additionalProperties": false
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "body": {
+      "type": "string"
+    },
+    "reviewers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "agent_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "agent_name",
+          "node_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "state_timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "opened",
+              "approved",
+              "changes-requested",
+              "merged",
+              "closed"
+            ]
+          },
+          "ts": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "state",
+          "ts"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "comments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "object",
+            "properties": {
+              "agent_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "node_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "agent_name",
+              "node_id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ts": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "author",
+          "body",
+          "ts"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "run_id",
+    "pr_number",
+    "schema_version",
+    "url",
+    "author",
+    "title",
+    "body",
+    "reviewers",
+    "state_timeline",
+    "comments"
+  ],
+  "additionalProperties": false
+}
