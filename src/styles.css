@@ -276,6 +276,30 @@ select {
   gap: 16px;
 }
 
+.card-gallery-houses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card-gallery-house-note {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.card-gallery-house-note strong {
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.15rem;
+}
+
+.card-gallery-house-note span {
+  color: #d5d1da;
+}
+
 .page-panel h3,
 .encounter-card h4 {
   margin: 0;
@@ -437,7 +461,6 @@ select {
     radial-gradient(circle at top left, rgba(139, 137, 233, 0.12), transparent 26%),
     rgba(13, 16, 23, 0.82);
 }
-
 .hero-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -517,6 +540,12 @@ select {
   box-shadow: 0 28px 48px rgba(0, 0, 0, 0.34);
 }
 
+.card-frame-compact {
+  min-height: 410px;
+  gap: 12px;
+  padding: 16px;
+}
+
 .card-frame::before {
   content: '';
   position: absolute;
@@ -580,6 +609,17 @@ select {
   font-size: 1.55rem;
 }
 
+.card-frame-compact .card-cost {
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+}
+
+.card-frame-compact .card-cost span {
+  font-size: 1.35rem;
+}
+
 .card-art {
   position: relative;
   overflow: hidden;
@@ -614,6 +654,23 @@ select {
   margin: 0;
   font-size: 1.9rem;
   line-height: 0.94;
+}
+
+.card-frame-compact .card-art {
+  min-height: 180px;
+}
+
+.card-frame-compact .card-copy h3 {
+  font-size: 1.6rem;
+}
+
+.card-frame-compact .card-rules {
+  min-height: 72px;
+  padding: 12px;
+}
+
+.card-frame-compact .stat-badge strong {
+  font-size: 1.6rem;
 }
 
 .card-rules {
@@ -704,6 +761,26 @@ select {
 
 .turn-indicator strong {
   font-size: 1.8rem;
+}
+
+.turn-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.turn-sequence span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #d5d1da;
+  font-size: 0.78rem;
+}
+
+.turn-sequence .is-active {
+  background: linear-gradient(135deg, rgba(245, 165, 93, 0.28), rgba(212, 81, 69, 0.28));
+  color: #fff6ea;
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .combatant-card {
@@ -798,6 +875,12 @@ select {
   font-size: 1.5rem;
 }
 
+.board-sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+  gap: 16px;
+}
+
 .selection-tray {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
@@ -830,6 +913,26 @@ select {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: #f4efe7;
+}
+
+.intent-panel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 18px 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(141, 77, 89, 0.22), rgba(255, 255, 255, 0.03));
+}
+
+.intent-panel strong {
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.45rem;
+}
+
+.intent-panel p {
+  margin: 0;
+  color: #d5d1da;
 }
 
 .board-actions {
@@ -883,6 +986,7 @@ select {
   .combatants,
   .board-row,
   .board-actions,
+  .board-sidebar,
   .selection-tray {
     grid-template-columns: 1fr;
   }
@@ -892,7 +996,8 @@ select {
   }
 
   .rules-factions,
-  .rules-faction-cards {
+  .rules-faction-cards,
+  .card-gallery-houses {
     grid-template-columns: 1fr;
   }
 }

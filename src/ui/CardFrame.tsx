@@ -8,16 +8,19 @@ export type CardFrameProps = {
   attack: number;
   health: number;
   rules: string;
+  size?: 'standard' | 'compact';
 };
 
-export const cardFactionThemes: Record<Faction, { label: string; accent: string }> = {
+export const cardFactionThemes: Record<Faction, { label: string; accent: string; summary: string }> = {
   ember: {
     label: 'Ashfall Covenant',
     accent: '#f4a259',
+    summary: 'Fast pressure and direct damage',
   },
   verdant: {
     label: 'Verdant Loom',
     accent: '#7edb9c',
+    summary: 'Resilience and attrition',
   },
 };
 
@@ -55,9 +58,10 @@ function CardMotif(props: { faction: Faction }) {
 
 export function CardFrame(props: CardFrameProps) {
   const theme = cardFactionThemes[props.faction];
+  const sizeClass = props.size === 'compact' ? ' card-frame-compact' : '';
 
   return (
-    <article className={`card-frame card-frame-${props.faction}`}>
+    <article className={`card-frame card-frame-${props.faction}${sizeClass}`}>
       <header className="card-topline">
         <span className="card-faction">{theme.label}</span>
         <span className="card-type">{props.kind}</span>
