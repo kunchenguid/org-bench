@@ -76,7 +76,10 @@ select {
 .status-card strong,
 .page-panel h2,
 .hero-banner h1,
-.hero-card h3 {
+.hero-card h3,
+.card-cost span,
+.card-copy h3,
+.stat-badge strong {
   font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
 }
 
@@ -89,7 +92,8 @@ select {
 .eyebrow,
 .status-label,
 .status-rule,
-.nav a {
+.nav a,
+.card-topline {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -193,10 +197,19 @@ select {
   font-size: clamp(1.9rem, 4vw, 3rem);
 }
 
-.hero-grid {
+.hero-grid,
+.card-gallery {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+
+.hero-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.card-gallery {
+  grid-template-columns: repeat(2, minmax(0, 320px));
+  gap: 20px;
 }
 
 .hero-card {
@@ -258,12 +271,158 @@ select {
   font-size: 1.45rem;
 }
 
+.card-frame {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  min-height: 480px;
+  padding: 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 30%),
+    linear-gradient(180deg, rgba(27, 20, 25, 0.98), rgba(10, 11, 16, 0.98));
+  box-shadow: 0 28px 48px rgba(0, 0, 0, 0.34);
+}
+
+.card-frame::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 21px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.card-frame-ember {
+  background:
+    radial-gradient(circle at top, rgba(244, 162, 89, 0.15), transparent 28%),
+    linear-gradient(180deg, rgba(42, 19, 17, 0.98), rgba(13, 11, 16, 0.98));
+}
+
+.card-frame-verdant {
+  background:
+    radial-gradient(circle at top, rgba(126, 219, 156, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(16, 35, 27, 0.98), rgba(10, 12, 16, 0.98));
+}
+
+.card-topline,
+.card-stats,
+.stat-badge,
+.card-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.card-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 56px;
+  color: #e8dece;
+  font-size: 0.76rem;
+}
+
+.card-faction,
+.card-type,
+.stat-badge span {
+  color: #d2c8bb;
+}
+
+.card-cost {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(7, 8, 11, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.card-cost span {
+  font-size: 1.55rem;
+}
+
+.card-art {
+  position: relative;
+  overflow: hidden;
+  min-height: 210px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.card-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 10%, rgba(6, 7, 12, 0.12) 100%);
+}
+
+.card-motif {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.card-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.card-copy h3 {
+  margin: 0;
+  font-size: 1.9rem;
+  line-height: 0.94;
+}
+
+.card-rules {
+  min-height: 88px;
+  margin: 0;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #efe8dc;
+}
+
+.card-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: auto;
+}
+
+.stat-badge {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-badge strong {
+  font-size: 1.9rem;
+}
+
 @media (max-width: 900px) {
   .hero-banner {
     grid-template-columns: 1fr;
   }
 
-  .hero-grid {
+  .hero-grid,
+  .card-gallery {
     grid-template-columns: 1fr;
   }
 }

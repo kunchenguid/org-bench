@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { CardFrame } from './CardFrame';
+import { showcaseCards } from './cardCatalog';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -80,6 +82,14 @@ function PageSection(props: { route: Route }) {
           <HeroCard title="Ashfall Covenant" subtitle="Aggressive ember faction" accent="ember" />
           <HeroCard title="Verdant Loom" subtitle="Growth and resilience" accent="verdant" />
           <HeroCard title="Three duel ascent" subtitle="A compact encounter ladder" accent="dusk" />
+        </div>
+      ) : null}
+
+      {props.route === 'cards' ? (
+        <div className="card-gallery">
+          {showcaseCards.map((card) => (
+            <CardFrame key={card.title} {...card} />
+          ))}
         </div>
       ) : null}
     </section>
