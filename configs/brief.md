@@ -1,0 +1,46 @@
+# Leader Brief: Duel TCG Canvas Game
+
+You are building a polished single-player duel trading card game that runs entirely in the browser. The finished artifact must feel like a real game a stranger would want to play, not a website that happens to describe a card game. There is exactly one page: the gameplay page. No home page, no rules page, no card gallery, no splash screens, no instruction screens, no settings menus wrapping the game. A player who opens the site drops directly into playable gameplay within a second or two. Any onboarding, tutorialization, or rule explanation happens inside the game itself - a first encounter that teaches through play, contextual hints on the board, tooltips that appear on hover/tap, a guided first turn, or similar in-game affordances. Do not gate gameplay behind a wall of text.
+
+Use plain vanilla HTML, CSS, and JavaScript only. No TypeScript, no Vite or other bundlers, no Preact/React or any UI framework, no npm or package managers, no build step. There is no backend and no network dependency. The game must be directly playable by opening the entry HTML file from a local `file://...` URL in a browser - no dev server, no `npm install`, no compile step. If you need to split code across files, use classic `<script>` tags or self-contained inline scripts that work under `file://` (note that native ES module imports are blocked under `file://` in most browsers - design around that, for example by concatenating sources into a single script or by using `<script>` tags without `type="module"`).
+
+Treat deployment as trivially static: the final artifact is just the game files in a directory. The harness will copy that directory into a published run location and will also open the entry HTML directly from the local filesystem. All asset references must be relative (no absolute `/...` paths), work from a nested subpath when served over HTTP, and work from `file://` when opened locally. No build output directory - the source files are the deliverable.
+
+Persistence is required. The game must save enough local state for a player to reload and resume an in-progress encounter. Browser-local storage is allowed, including `localStorage` or IndexedDB. The harness will inject a run-scoped storage namespace string; every persisted key must be prefixed with that namespace so different benchmark runs do not collide in the same browser profile.
+
+The acceptance bar is user-facing. A player must be able to open the site and land in gameplay without runtime errors, understand what to do from the visible board and in-game cues, take a legal turn, see the AI respond with visible animation, finish an encounter in a visible win or loss state, reload mid-game, and resume from the saved state. The game must teach itself - a first-time player who has never read a brief should be able to play a turn.
+
+The evaluator will interact with the built site like a real player. It will read what is visible on the rendered canvas and any surrounding UI, click visible controls, start a game, complete a turn, finish an encounter, reload, and resume. It will judge whether the game is self-teaching from its in-game presentation. This benchmark does not ship any hidden test code, required DOM hook list, or mandated selector contract. Build for clarity and playability in the rendered game itself rather than relying on hidden test APIs or implementation-only knowledge.
+
+Keep the rules narrow. Use preconstructed decks only, with no deckbuilder, no multiplayer, and no backend services. Do not add instant-speed interaction, priority passing, or stack-resolution complexity. This benchmark is intentionally not asking for a Magic-scale rules engine.
+
+Stay within the recommended content bounds unless there is a strong reason not to: use 20-card decks, keep the card pool to roughly 12 to 24 unique cards, limit the game to at most 2 factions or themes, and keep keyword mechanics to about 4 to 6 total. Favor a small set of understandable mechanics that can be taught clearly through play over a larger, harder-to-finish system.
+
+## This must be a real canvas game, not a DOM site
+
+Real TCGs are visual, animated, and alive. Think Hearthstone: cards physically move, flip, glow, and crunch into the board. Mana crystals fill. Heroes breathe. Attacks collide. Damage numbers pop. The board reacts. This benchmark is judged as a game, which means the gameplay surface must be a `<canvas>` element driven by WebGL, rendering at a stable 60 fps, with real animated 2D game assets.
+
+Concrete requirements:
+
+- **Gameplay is rendered on `<canvas>` via WebGL.** The entire play surface - board, cards, hand, heroes, effects, HUD - draws through a WebGL rendering loop. Do not implement the game as DOM elements styled to look like cards. The HTML document may contain a minimal shell that hosts the canvas and a thin overlay for essential HTML controls if unavoidable; the game itself lives inside the canvas.
+- **60 fps, always animating.** The render loop runs continuously via `requestAnimationFrame` and targets a stable 60 fps on a modern laptop. Idle state is not static: cards subtly float, mana crystals shimmer, the hero portrait has a slow breathing motion, the board has ambient particles or parallax. The screen should never look frozen.
+- **Real 2D game assets.** Ship actual art files - textured card frames, painted-style card illustrations, faction sigils, hero portraits, board backgrounds, effect sprites. PNG sprite sheets, authored SVGs compiled to textures, or procedurally generated textures baked at build time are all acceptable. Emoji, plain geometric primitives, CSS gradients dressed as cards, and raw text in place of art are not. Each card's illustration must be distinct and recognizable at a glance.
+- **Cards behave like physical objects.** Cards in hand fan out and react to the cursor (lift on hover, tilt with parallax). Drawing a card flies it from the deck into the hand. Playing a card animates it from hand to board with scale, rotation, and easing. Attacks move the attacker toward the target, impact with a hit flash and shake, and spawn damage numbers that rise and fade. Dying minions crumble or dissolve, not just disappear. Turn changes sweep a banner or light pass across the board.
+- **Factions and themes show through the art.** Each faction has a consistent visual identity in its card frame, color palette, sigil, and hero portrait, carried consistently across every card of that faction on the board.
+- **HUD is drawn, not typed.** Health, mana, deck count, and turn state render as in-game iconography on the canvas - gauges, pips, crystals, stack heights - with numeric readouts where useful. Readability still matters; the point is that the HUD is part of the game art, not a sidebar of paragraphs.
+- **Tutorialization is in-game.** Teach through a scripted first encounter, contextual prompts that pulse on playable cards, hover tooltips on cards and heroes, and visible affordances (end-turn button that glows when it's the player's turn, targeting reticles on attack). Do not ship a rules page.
+
+A crude but genuinely animated canvas game beats a beautifully styled DOM layout. A DOM site that looks like a website will be scored low regardless of mechanical completeness.
+
+## Quality dimensions we value
+
+The judge will score the finished artifact on these dimensions. Design with them explicitly in mind.
+
+1. **Visual craft and animation.** Does it look like a game and move like one? Card art, frames, iconography, typography, color discipline, particle and motion polish, consistent 60 fps feel. A single coherent look that carries through every moment of play beats a page of one-offs.
+2. **Gameplay depth and fun.** Does each turn present a real decision? Are there card interactions that feel surprising or satisfying (synergies, counters, tempo swings)? Are there moments where a player can feel they made a good call? Mechanically complete but flat ("tap to attack, repeat") scores low here.
+3. **Replayability.** Does an encounter feel meaningfully different from the last one, through varied deck matchups, encounter mechanics, card draws, or enemy behavior? Could a player reasonably play three runs in a row without it feeling identical? A single one-shot encounter scores low here even if polished.
+4. **Learnability through play.** Can a first-time player drop into the game and figure out a turn from what they see and feel? Are playable cards highlighted, are targets obvious, do hovers reveal what a card does, does the first encounter ease the player in? No rules page means the game itself must teach.
+5. **Cohesion and theme.** Art, card names, faction names, encounter names, and mechanics all reinforce the same world. Nothing feels like it was generated by a different team than everything else.
+6. **Completeness and polish.** Build is clean, no runtime errors, persistence actually works, no broken states, no half-finished surfaces, frame rate holds. This is table stakes, but still graded.
+
+Optimize for all six. A game strong on mechanics and weak on visuals, or vice versa, will be scored below a game that is merely adequate on both. The judge and the public-comparison site will show these dimensions side by side.

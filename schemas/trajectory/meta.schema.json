@@ -1,0 +1,436 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 1
+    },
+    "topology": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "leader_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_count": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "culture": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "slug",
+        "name",
+        "leader_id",
+        "node_count"
+      ],
+      "additionalProperties": false
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "brief": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "content_hash"
+      ],
+      "additionalProperties": false
+    },
+    "models": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "judge": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analyst": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "node",
+        "evaluator",
+        "judge",
+        "analyst"
+      ],
+      "additionalProperties": false
+    },
+    "prompts": {
+      "type": "object",
+      "properties": {
+        "evaluator_scenarios_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "judge_prompt_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analyst_prompt_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "evaluator_scenarios_version",
+        "judge_prompt_version",
+        "analyst_prompt_version"
+      ],
+      "additionalProperties": false
+    },
+    "totals": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "in": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "out": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "in",
+            "out",
+            "total"
+          ],
+          "additionalProperties": false
+        },
+        "cost_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "wall_clock_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "tokens",
+        "cost_usd",
+        "wall_clock_ms"
+      ],
+      "additionalProperties": false
+    },
+    "tokens_by_node": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "in": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "out": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cost_usd": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "in",
+          "out",
+          "total",
+          "cost_usd"
+        ],
+        "additionalProperties": false
+      },
+      "propertyNames": {
+        "minLength": 1
+      }
+    },
+    "messages": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_tag": {
+          "type": "object",
+          "properties": {
+            "decompose": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ask": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "answer": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "deliver": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "status": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "review": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "untagged": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "decompose",
+            "ask",
+            "answer",
+            "deliver",
+            "status",
+            "review",
+            "untagged"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "total",
+        "by_tag"
+      ],
+      "additionalProperties": false
+    },
+    "patches": {
+      "type": "object",
+      "properties": {
+        "proposed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "superseded": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "proposed",
+        "accepted",
+        "rejected",
+        "superseded"
+      ],
+      "additionalProperties": false
+    },
+    "evaluator": {
+      "type": "object",
+      "properties": {
+        "attempts_per_scenario": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "overall_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scenarios": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "passed_attempts": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_attempts": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "pass_rate": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "passed_attempts",
+              "total_attempts",
+              "pass_rate"
+            ],
+            "additionalProperties": false
+          },
+          "propertyNames": {
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "attempts_per_scenario",
+        "overall_pass_rate",
+        "scenarios"
+      ],
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "deploy_success": {
+          "type": "boolean"
+        },
+        "build_success": {
+          "type": "boolean"
+        },
+        "published_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "deploy_success",
+        "build_success",
+        "published_path"
+      ],
+      "additionalProperties": false
+    },
+    "milestones": {
+      "type": "object",
+      "properties": {
+        "time_to_first_playable_build_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "time_to_first_passing_scenario_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "time_to_first_playable_build_ms",
+        "time_to_first_passing_scenario_ms"
+      ],
+      "additionalProperties": false
+    },
+    "flags": {
+      "type": "object",
+      "properties": {
+        "cap_exceeded": {
+          "type": "boolean"
+        },
+        "truncated_blobs": {
+          "type": "boolean"
+        },
+        "routing_rejections": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pr_activity_unsummarized": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "node_failures": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "cap_exceeded",
+        "truncated_blobs",
+        "routing_rejections",
+        "pr_activity_unsummarized",
+        "node_failures"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "run_id",
+    "schema_version",
+    "topology",
+    "seed",
+    "brief",
+    "models",
+    "prompts",
+    "totals",
+    "tokens_by_node",
+    "messages",
+    "patches",
+    "evaluator",
+    "artifact",
+    "milestones",
+    "flags"
+  ],
+  "additionalProperties": false
+}
