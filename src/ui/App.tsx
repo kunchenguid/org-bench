@@ -276,6 +276,16 @@ function RulesPanel() {
         ))}
       </div>
 
+      <div className="rules-cta" aria-label="Next step">
+        <div>
+          <span className="rules-cta-label">Ready to test the flow?</span>
+          <strong>Open the play board and read the guide against the live surface.</strong>
+        </div>
+        <a className="rules-cta-link" href="#/play" onClick={() => setHash('play')}>
+          Go to Play
+        </a>
+      </div>
+
       <div className="rules-grid">
         {rulesSections.map((section) => (
           <article key={section.title} className="rules-card">

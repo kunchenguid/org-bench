@@ -234,6 +234,53 @@ select {
   font-size: 1.15rem;
 }
 
+.rules-cta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(245, 165, 93, 0.12), rgba(212, 81, 69, 0.08));
+}
+
+.rules-cta div {
+  display: grid;
+  gap: 8px;
+}
+
+.rules-cta-label {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.73rem;
+  color: #f5b26b;
+}
+
+.rules-cta strong {
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.25rem;
+}
+
+.rules-cta-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff6ea;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.rules-cta-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+}
+
 .rules-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -530,6 +577,7 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .rules-cta,
   .rules-highlights,
   .rules-grid {
     grid-template-columns: 1fr;
@@ -559,5 +607,10 @@ select {
   .page-panel,
   .play-board {
     padding: 20px;
+  }
+
+  .rules-cta {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
