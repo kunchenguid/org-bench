@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { createInitialState, performPlayerAction, resolveEnemyTurn } from '../game';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -8,8 +9,6 @@ const routeMap: Record<string, RouteKey> = {
   '#/rules': 'rules',
   '#/cards': 'cards',
 };
-
-const encounterSteps = ['Play first card', 'Commit attack lane', 'Bank shield charge'];
 
 const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string }> = {
   home: {
@@ -44,6 +43,7 @@ function getRoute(): RouteKey {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(getRoute);
+  const [battle, setBattle] = useState(createInitialState);
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute());
@@ -51,7 +51,23 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  useEffect(() => {
+    if (battle.turn !== 'enemy') {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setBattle((current) => resolveEnemyTurn(current));
+    }, 900);
+
+    return () => window.clearTimeout(timer);
+  }, [battle.turn]);
+
   const copy = routeCopy[route];
+
+  const handleAction = (action: 'attack' | 'defend') => {
+    setBattle((current) => performPlayerAction(current, action));
+  };
 
   return (
     <div class="app-shell">
@@ -76,24 +92,79 @@ export function App() {
           <p>{copy.body}</p>
         </section>
 
-        <section class="panel">
+        <section class="panel panel-board">
           <h2>Division A playtest</h2>
-          <p>Initial combat-forward board beats that downstream branches can replace without reworking the app shell.</p>
-          <ul>
-            {encounterSteps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ul>
+          <p>Rogue AI challenger</p>
+          <div class="battle-status">
+            <div>
+              <span class="eyebrow">Turn state</span>
+              <p>{battle.turn === 'player' ? 'Player action' : battle.turn === 'enemy' ? 'AI response' : 'Encounter secured'}</p>
+            </div>
+            <div>
+              <span class="eyebrow">Encounter ladder</span>
+              <p>Gate Scout - Rogue Sentinel - Apex Mirror</p>
+            </div>
+          </div>
+
+          <div class="board-zones">
+            <section class="zone">
+              <span class="eyebrow">Player rig</span>
+              <h3>{battle.player.hp} integrity</h3>
+              <p>{battle.player.shielded ? 'Shield charge banked for the counter hit.' : 'No shield charge stored.'}</p>
+            </section>
+            <section class="zone">
+              <span class="eyebrow">Center lane</span>
+              <h3>Tempo lane</h3>
+              <p>Commit pressure only when the Rogue AI shield line is exposed.</p>
+            </section>
+            <section class="zone">
+              <span class="eyebrow">Rogue AI core</span>
+              <h3>{battle.enemy.hp} integrity</h3>
+              <p>Opening script favors a shielded read before the heavy swing.</p>
+            </section>
+          </div>
+
+          <div class="action-row" aria-label="Combat actions">
+            <button type="button" onClick={() => handleAction('attack')} disabled={battle.turn !== 'player' || battle.status !== 'active'}>
+              Strike for 6
+            </button>
+            <button type="button" onClick={() => handleAction('defend')} disabled={battle.turn !== 'player' || battle.status !== 'active'}>
+              Bank shield
+            </button>
+          </div>
+
+          <div class="combat-log">
+            <span class="eyebrow">Combat log</span>
+            <ul>
+              {battle.log.slice(-3).map((entry) => (
+                <li key={entry}>{entry}</li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         <section class="panel">
-          <h2>Encounter ladder</h2>
-          <p>Starter duel against the Rogue AI, followed by harder rematches once card content and encounter logic land.</p>
+          <h2>Encounter flow</h2>
+          <div class="flow-grid">
+            <article>
+              <h3>Scout the opener</h3>
+              <p>Confirm whether the AI is posturing, shielding, or baiting a bad trade.</p>
+            </article>
+            <article>
+              <h3>Win the tempo pivot</h3>
+              <p>Spend one decisive card to flip initiative instead of flooding the lane.</p>
+            </article>
+            <article>
+              <h3>Secure the finisher</h3>
+              <p>Close only when the counter-hit is spent and the AI line is exhausted.</p>
+            </article>
+          </div>
         </section>
 
         <section class="panel">
           <h2>AI rival reads</h2>
-          <p>Telegraph lane pressure, shield timing, and combat logs here so encounter flow has a consistent visual home.</p>
+          <p>Rogue Sentinel prefers a shielded open, then snaps into a heavy counter if you overextend on turn two.</p>
+          <p>Bait the shield first with a low-cost probe, then punish the heavy swing once the AI spends its answer into the wrong lane.</p>
         </section>
 
         <section class="panel panel-links">
