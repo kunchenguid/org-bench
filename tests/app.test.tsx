@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/preact';
+import { fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { App } from '../src/app';
 
 describe('App shell', () => {
@@ -60,7 +60,7 @@ describe('App shell', () => {
     expect(screen.getByText(/your health: 18/i)).toBeInTheDocument();
   });
 
-  test('updates the visible page after a hash change event', () => {
+  test('updates the visible page after a hash change event', async () => {
     window.location.hash = '#/';
 
     render(<App />);
@@ -68,8 +68,10 @@ describe('App shell', () => {
     window.location.hash = '#/cards';
     window.dispatchEvent(new HashChangeEvent('hashchange'));
 
-    expect(screen.getByRole('heading', { level: 2, name: /card gallery/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /cards/i })).toHaveClass('active');
-    expect(screen.getByText(/emberblade knight/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /card gallery/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /cards/i })).toHaveClass('active');
+      expect(screen.getByText(/emberblade knight/i)).toBeInTheDocument();
+    });
   });
 });

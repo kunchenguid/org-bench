@@ -28,5 +28,6 @@ describe('Play progression surface', () => {
 
     expect(screen.getByRole('button', { name: /resume encounter/i })).toBeInTheDocument();
     expect(screen.getByText(/saved run: ember ridge on turn 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/current checkpoint/i)).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 import { createEncounterState, endTurn, playCard, type BattlefieldCard, type CardInstance, type GameState } from './game';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
@@ -193,6 +193,7 @@ function PlayPanel() {
             {encounterLadder.map((encounter, index) => (
               <li key={encounter}>
                 Act {index + 1}: {encounter}
+                {savedPreview?.encounterName === encounter ? <span className="checkpoint-pill">Current checkpoint</span> : null}
               </li>
             ))}
           </ol>
@@ -326,7 +327,7 @@ function PlayPanel() {
 export function App() {
   const [hash, setHash] = useState(window.location.hash);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const handleHashChange = () => setHash(window.location.hash);
 
     window.addEventListener('hashchange', handleHashChange);
