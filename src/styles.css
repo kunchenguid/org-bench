@@ -94,6 +94,18 @@ a {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
 }
 
+.resume-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 20px;
+  padding: 10px 14px;
+  border: 1px solid rgba(142, 180, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(23, 42, 79, 0.72);
+  color: #f3f7fb;
+  font-weight: 600;
+ }
+
 @media (max-width: 640px) {
   .shell {
     width: min(100% - 20px, 1040px);

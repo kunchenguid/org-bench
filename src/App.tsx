@@ -2,6 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
+const lastRouteStorageKey = 'duel-tcg:last-route';
+
 const routes: Record<RouteKey, { title: string; description: string }> = {
   '/': {
     title: 'Duel TCG',
@@ -29,8 +31,17 @@ function getRouteFromHash(hash: string): RouteKey {
   return '/';
 }
 
+function getSavedRoute(): Exclude<RouteKey, '/'> | null {
+  const savedRoute = globalThis.localStorage?.getItem(lastRouteStorageKey);
+  if (savedRoute === '/play' || savedRoute === '/rules' || savedRoute === '/cards') {
+    return savedRoute;
+  }
+  return null;
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
+  const [savedRoute, setSavedRoute] = useState<Exclude<RouteKey, '/'> | null>(() => getSavedRoute());
 
   useEffect(() => {
     const onHashChange = () => {
@@ -41,7 +52,18 @@ export function App() {
     return () => globalThis.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  useEffect(() => {
+    if (route === '/') {
+      return;
+    }
+
+    globalThis.localStorage?.setItem(lastRouteStorageKey, route);
+    setSavedRoute(route);
+  }, [route]);
+
   const page = routes[route];
+  const resumeRoute = route === '/' ? savedRoute : null;
+  const resumeTitle = resumeRoute ? routes[resumeRoute].title : null;
 
   return (
     <div className="shell">
@@ -62,6 +84,11 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+        {resumeRoute && resumeTitle ? (
+          <a className="resume-link" href={`#${resumeRoute}`}>
+            Resume {resumeTitle}
+          </a>
+        ) : null}
       </main>
     </div>
   );
