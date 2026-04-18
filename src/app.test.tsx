@@ -4,6 +4,7 @@ import { App } from './app';
 describe('App scaffold', () => {
   beforeEach(() => {
     window.location.hash = '#/';
+    document.title = 'Duel of Embers';
   });
 
   it('normalizes an unsupported hash back to the home route', () => {
@@ -26,6 +27,18 @@ describe('App scaffold', () => {
     expect(window.location.hash).toBe('#/cards');
     expect(screen.getByRole('link', { name: /cards/i })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current');
+  });
+
+  it('updates the document title when the active route changes', () => {
+    render(<App />);
+
+    expect(document.title).toBe('Duel of Embers');
+
+    fireEvent.click(screen.getByRole('link', { name: /rules/i }));
+    expect(document.title).toBe('How to Play - Duel of Embers');
+
+    fireEvent.click(screen.getByRole('link', { name: /cards/i }));
+    expect(document.title).toBe('Card Gallery - Duel of Embers');
   });
 
   it('renders the home page and navigates to placeholder routes', () => {
