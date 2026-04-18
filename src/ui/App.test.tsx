@@ -61,4 +61,14 @@ describe('App card gallery route', () => {
       screen.getByText(/Deal 3 damage to a unit\. If that unit leaves play this turn, draw a card\./),
     ).toBeTruthy();
   });
+
+  it('shows an updated visible card count for the active faction filter', () => {
+    render(<App />);
+
+    expect(screen.getByText('Showing 6 cards')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Gloam Syndicate' }));
+
+    expect(screen.getByText('Showing 2 cards')).toBeTruthy();
+  });
 });
