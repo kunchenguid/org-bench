@@ -7,6 +7,8 @@ test('rules page documents core play loop and deck rules', () => {
 
   assert.match(html, /<title>.*Rules.*<\/title>/i);
   assert.match(html, /Setup/i);
+  assert.match(html, /Opening Hand/i);
+  assert.match(html, /After drawing five cards, each player may redraw up to two of them once\./i);
   assert.match(html, /Turn Sequence/i);
   assert.match(html, /Combat Resolution/i);
   assert.match(html, /Momentum windows let defenders blunt an attack or punish an overcommit\./i);
