@@ -327,7 +327,7 @@ export function RulesPanel() {
 
         <div className="rules-faction-cards">
           {showcaseCards.map((card) => (
-            <CardFrame key={card.title} {...card} />
+            <CardFrame key={card.title} {...card} size="compact" />
           ))}
         </div>
       </div>
@@ -349,7 +349,7 @@ export function CardGalleryPanel() {
 
       <div className="card-gallery">
         {showcaseCards.map((card) => (
-          <CardFrame key={card.title} {...card} />
+          <CardFrame key={card.title} {...card} size="compact" />
         ))}
       </div>
     </section>

@@ -355,6 +355,12 @@ select {
   box-shadow: 0 28px 48px rgba(0, 0, 0, 0.34);
 }
 
+.card-frame-compact {
+  min-height: 410px;
+  gap: 12px;
+  padding: 16px;
+}
+
 .card-frame::before {
   content: '';
   position: absolute;
@@ -418,6 +424,17 @@ select {
   font-size: 1.55rem;
 }
 
+.card-frame-compact .card-cost {
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+}
+
+.card-frame-compact .card-cost span {
+  font-size: 1.35rem;
+}
+
 .card-art {
   position: relative;
   overflow: hidden;
@@ -452,6 +469,23 @@ select {
   margin: 0;
   font-size: 1.9rem;
   line-height: 0.94;
+}
+
+.card-frame-compact .card-art {
+  min-height: 180px;
+}
+
+.card-frame-compact .card-copy h3 {
+  font-size: 1.6rem;
+}
+
+.card-frame-compact .card-rules {
+  min-height: 72px;
+  padding: 12px;
+}
+
+.card-frame-compact .stat-badge strong {
+  font-size: 1.6rem;
 }
 
 .card-rules {
