@@ -52,10 +52,30 @@ export function App() {
       </header>
 
       <nav aria-label="Primary" className="nav">
-        <a href="#/">Home</a>
-        <a href="#/play">Play</a>
-        <a href="#/rules">Rules</a>
-        <a href="#/cards">Cards</a>
+        <a aria-current={route === '/' ? 'page' : undefined} className={route === '/' ? 'is-active' : undefined} href="#/">
+          Home
+        </a>
+        <a
+          aria-current={route === '/play' ? 'page' : undefined}
+          className={route === '/play' ? 'is-active' : undefined}
+          href="#/play"
+        >
+          Play
+        </a>
+        <a
+          aria-current={route === '/rules' ? 'page' : undefined}
+          className={route === '/rules' ? 'is-active' : undefined}
+          href="#/rules"
+        >
+          Rules
+        </a>
+        <a
+          aria-current={route === '/cards' ? 'page' : undefined}
+          className={route === '/cards' ? 'is-active' : undefined}
+          href="#/cards"
+        >
+          Cards
+        </a>
       </nav>
 
       <main className="panel">
