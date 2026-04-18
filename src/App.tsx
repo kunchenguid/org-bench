@@ -44,6 +44,10 @@ export function App() {
     return () => globalThis.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  useEffect(() => {
+    document.title = route === '/' ? 'Duel TCG' : `${routes[route].title} - Duel TCG`;
+  }, [route]);
+
   const page = routes[route];
 
   return (

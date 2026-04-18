@@ -5,6 +5,7 @@ import { App } from './App';
 describe('App shell', () => {
   beforeEach(() => {
     globalThis.location.hash = '#/';
+    document.title = 'Duel TCG';
   });
 
   it('shows navigation for all required pages', () => {
@@ -44,5 +45,13 @@ describe('App shell', () => {
     expect(screen.getByText(/Opponent: Ashen Vanguard/)).toBeInTheDocument();
     expect(screen.getByText(/Opening hand: 3 cards/)).toBeInTheDocument();
     expect(screen.getByText(/Starting mana: 1/)).toBeInTheDocument();
+  });
+
+  it('updates the browser title for the active route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(document.title).toBe('Cards - Duel TCG');
   });
 });
