@@ -1,23 +1,15 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { getCardsByFaction, getFactionSummaries } from './app/card-catalog';
+import { createGameSession } from './game/engine';
+
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
-const navItems: Array<{ href: RouteKey; label: string }> = [
-  { href: '/', label: 'Home' },
-  { href: '/play', label: 'Play' },
-  { href: '/rules', label: 'Rules' },
-  { href: '/cards', label: 'Cards' },
-];
-
-const cardGroups = [
-  {
-    name: 'Sunsteel Vanguard',
-    cards: ['Lantern Squire', 'Copper Scout', 'Aegis Burst'],
-  },
-  {
-    name: 'Ashen Vanguard',
-    cards: ['Cinder Familiar', 'Scorch Volley', 'Inferno Drake'],
-  },
+const navItems: Array<{ href: `#${RouteKey}`; label: string; route: RouteKey }> = [
+  { href: '#/', label: 'Home', route: '/' },
+  { href: '#/play', label: 'Play', route: '/play' },
+  { href: '#/rules', label: 'Rules', route: '/rules' },
+  { href: '#/cards', label: 'Cards', route: '/cards' },
 ];
 
 const routes: Record<RouteKey, { title: string; description: string }> = {
@@ -40,9 +32,9 @@ const routes: Record<RouteKey, { title: string; description: string }> = {
 };
 
 function getRouteFromHash(hash: string): RouteKey {
-  const rawPath = hash.replace(/^#/, '') || '/';
-  if (rawPath === '/play' || rawPath === '/rules' || rawPath === '/cards') {
-    return rawPath;
+  const normalizedPath = (hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/+$/, '') || '/';
+  if (normalizedPath === '/play' || normalizedPath === '/rules' || normalizedPath === '/cards') {
+    return normalizedPath;
   }
   return '/';
 }
@@ -60,6 +52,12 @@ export function App() {
   }, []);
 
   const page = routes[route];
+  const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
+
+  useEffect(() => {
+    document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
+  }, [page.title, route]);
 
   return (
     <div className="shell">
@@ -70,29 +68,49 @@ export function App() {
       </header>
 
       <nav aria-label="Primary" className="nav">
-        {navItems.map((item) => {
-          const isCurrent = route === item.href;
-
-          return (
-            <a aria-current={isCurrent ? 'page' : undefined} data-active={isCurrent} href={`#${item.href}`}>
-              {item.label}
-            </a>
-          );
-        })}
+        {navItems.map((item) => (
+          <a
+            key={item.route}
+            href={item.href}
+            className={route === item.route ? 'is-active' : undefined}
+            aria-current={route === item.route ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))}
       </nav>
 
       <main className="panel">
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+
+        {openingSession ? (
+          <div className="session-summary" aria-label="Opening encounter summary">
+            <p className="section-label">Encounter</p>
+            <h3>{openingSession.encounter.opponentName}</h3>
+            <p>
+              Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
+            </p>
+          </div>
+        ) : null}
+
         {route === '/cards' ? (
-          <div className="card-groups">
-            {cardGroups.map((group) => (
-              <section className="card-group" key={group.name}>
-                <h3>{group.name}</h3>
-                <ul>
-                  {group.cards.map((card) => (
-                    <li key={card}>{card}</li>
+          <div className="catalog-grid" aria-label="Card catalog by faction">
+            {factionSummaries.map((summary) => (
+              <section className="catalog-panel" key={summary.faction}>
+                <p className="section-label">Faction</p>
+                <h3>{summary.faction}</h3>
+                <p>{summary.blurb}</p>
+                <p className="catalog-meta">
+                  {summary.creatureCount} creatures - {summary.spellCount} spells
+                </p>
+                <ul className="catalog-list">
+                  {getCardsByFaction(summary.faction).map((card) => (
+                    <li key={card.name}>
+                      <span>{card.name}</span>
+                      <span>{card.cost}</span>
+                    </li>
                   ))}
                 </ul>
               </section>

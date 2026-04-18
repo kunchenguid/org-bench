@@ -18,24 +18,53 @@ describe('App shell', () => {
   });
 
   it('marks the current route in navigation', () => {
-    globalThis.location.hash = '#/play';
+    globalThis.location.hash = '#/rules';
 
     render(<App />);
 
-    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
 
-  it('shows starter deck references on the cards route', () => {
+  it('updates the document title for the active route', () => {
     globalThis.location.hash = '#/cards';
 
     render(<App />);
 
-    expect(screen.getByRole('heading', { level: 3, name: 'Sunsteel Vanguard' })).toBeInTheDocument();
-    expect(screen.getByText('Lantern Squire')).toBeInTheDocument();
-    expect(screen.getByText('Aegis Burst')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Ashen Vanguard' })).toBeInTheDocument();
-    expect(screen.getByText('Cinder Familiar')).toBeInTheDocument();
-    expect(screen.getByText('Inferno Drake')).toBeInTheDocument();
+    expect(document.title).toBe('Cards - Duel TCG');
+  });
+
+  it('shows the opening encounter on the play route', () => {
+    globalThis.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByText('Ashen Vanguard')).toBeInTheDocument();
+    expect(screen.getByText(/20 health/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Play' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
+  });
+
+  it('keeps the intended route when the hash includes a trailing slash or query string', () => {
+    globalThis.location.hash = '#/rules/?ref=nav';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Rules' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('renders the shared card catalog on the cards route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Skyforge' })).toBeInTheDocument();
+    expect(screen.getByText('disciplined tempo and formation combat')).toBeInTheDocument();
+    expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Wildroot' })).toBeInTheDocument();
+    expect(screen.getByText('growth, healing, and oversized bodies')).toBeInTheDocument();
+    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
   });
 });
