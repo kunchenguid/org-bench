@@ -208,6 +208,16 @@ test("card gallery labels each card with its ladder faction", () => {
   assert.match(html, /Aerie faction/i);
 });
 
+test("card gallery explains which ladder encounter each faction belongs to", () => {
+  const app = navigateToPage(createReferenceApp(), "gallery");
+  const html = renderAppHtml(app);
+
+  assert.match(html, /Gallery Legend/i);
+  assert.match(html, /Ember faction - your fixed player deck/i);
+  assert.match(html, /Mist faction - Encounter 2: Tidal Crossing/i);
+  assert.match(html, /Aerie faction - Encounter 3: Sky Citadel/i);
+});
+
 test("endEncounterTurn advances the active encounter through a full visible turn", () => {
   const app = startEncounter(createReferenceApp(), 0);
 

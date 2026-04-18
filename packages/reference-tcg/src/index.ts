@@ -826,6 +826,10 @@ function renderGallery(): string {
   return `
     <section aria-label="gallery">
       <h1>Card Gallery</h1>
+      <h2>Gallery Legend</h2>
+      <p>Ember faction - your fixed player deck.</p>
+      <p>Mist faction - Encounter 2: Tidal Crossing.</p>
+      <p>Aerie faction - Encounter 3: Sky Citadel.</p>
       <ul>
         ${uniqueCards
           .map(
@@ -1110,7 +1114,7 @@ function renderRules() {
 }
 
 function renderGallery() {
-  return '<section aria-label="gallery"><h1>Card Gallery</h1><ul>' + galleryCards
+  return '<section aria-label="gallery"><h1>Card Gallery</h1><h2>Gallery Legend</h2><p>Ember faction - your fixed player deck.</p><p>Mist faction - Encounter 2: Tidal Crossing.</p><p>Aerie faction - Encounter 3: Sky Citadel.</p><ul>' + galleryCards
     .map((card) => '<li>' + escapeHtml(card.name) + ' - ' + escapeHtml(card.summary) + ' - ' + escapeHtml(card.faction) + '</li>')
     .join("") + '</ul></section>';
 }

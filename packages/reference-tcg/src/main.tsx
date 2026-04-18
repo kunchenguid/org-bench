@@ -583,6 +583,12 @@ function GalleryPage(props: { cards: Card[] }) {
         Reference the full ladder pool here, including the Ember player deck and
         the enemy cards used in the Mist and Aerie encounters.
       </p>
+      <section aria-label="Gallery legend">
+        <h3>Gallery Legend</h3>
+        <p>Ember faction - your fixed player deck.</p>
+        <p>Mist faction - Encounter 2: Tidal Crossing.</p>
+        <p>Aerie faction - Encounter 3: Sky Citadel.</p>
+      </section>
       <div class="gallery-grid">
         {props.cards.map((card) => (
           <article class="gallery-card" key={card.id}>
