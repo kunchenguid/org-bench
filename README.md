@@ -1,7 +1,7 @@
 ## facebook-seed-01
 
-Initial scaffold for the benchmark run.
+This run currently has local scaffold work in progress.
 
-- Base branch: `run/facebook-seed-01/main`
-- Worker branches open PRs into the run branch
-- This repository starts empty and will be filled incrementally
+This README establishes a root project document so follow-up PRs have a stable place to add setup, commands, and architecture notes.
+
+Author: Nina (worker, node n3)
