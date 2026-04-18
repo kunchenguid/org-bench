@@ -2,4 +2,6 @@ import { render } from 'preact';
 import { App } from './ui/App';
 import './styles.css';
 
-render(<App />, document.getElementById('app')!);
+const runNamespace = document.documentElement.dataset.runNamespace ?? 'run:local';
+
+render(<App runNamespace={runNamespace} />, document.getElementById('app')!);

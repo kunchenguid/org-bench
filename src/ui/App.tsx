@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { createNamespacedStorage } from '../game/persistence';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
-type Faction = 'Ashfall Covenant' | 'Verdant Loom' | 'Gloam Syndicate';
+type Faction = 'Ashfall Covenant' | 'Verdant Loom';
 
 type Card = {
   id: string;
@@ -13,7 +13,7 @@ type Card = {
   power?: number;
   guard?: number;
   rules: string;
-  accent: 'ember' | 'verdant' | 'gloam';
+  accent: 'ember' | 'verdant';
 };
 
 type GalleryState = {
@@ -37,6 +37,10 @@ type RulesSection = {
   title: string;
   body: string;
   bullets: string[];
+};
+
+type AppProps = {
+  runNamespace: string;
 };
 
 const navItems: NavItem[] = [
@@ -79,33 +83,13 @@ const cardLibrary: Card[] = [
     accent: 'verdant',
   },
   {
-    id: 'graft-of-spring',
-    name: 'Graft of Spring',
+    id: 'bloom-reservoir',
+    name: 'Bloom Reservoir',
     faction: 'Verdant Loom',
-    typeLine: 'Spell - Growth',
-    cost: 2,
-    rules: 'Give a creature +1/+3. Draw a card if it already had guard.',
-    accent: 'verdant',
-  },
-  {
-    id: 'veilbroker',
-    name: 'Veilbroker Adept',
-    faction: 'Gloam Syndicate',
-    typeLine: 'Creature - Rogue',
+    typeLine: 'Spell - Ritual',
     cost: 3,
-    power: 2,
-    guard: 2,
-    rules: 'When Veilbroker Adept deals combat damage, look at the top two cards of your deck and keep one.',
-    accent: 'gloam',
-  },
-  {
-    id: 'midnight-contract',
-    name: 'Midnight Contract',
-    faction: 'Gloam Syndicate',
-    typeLine: 'Spell - Scheme',
-    cost: 1,
-    rules: 'Sacrifice 1 health to reduce the next card you play this turn by 2.',
-    accent: 'gloam',
+    rules: 'Restore 3 health to your champion, then give a creature +1/+1 until end of turn.',
+    accent: 'verdant',
   },
 ];
 
@@ -113,10 +97,7 @@ const factionFilters: Array<Faction | 'All factions'> = [
   'All factions',
   'Ashfall Covenant',
   'Verdant Loom',
-  'Gloam Syndicate',
 ];
-
-const galleryStorage = createNamespacedStorage(window.localStorage, 'run:apple-seed-01');
 
 const rulesSections: RulesSection[] = [
   {
@@ -244,7 +225,8 @@ function HeroCard(props: { title: string; subtitle: string; accent: string }) {
   );
 }
 
-function CardGallery() {
+function CardGallery(props: { runNamespace: string }) {
+  const galleryStorage = createNamespacedStorage(window.localStorage, props.runNamespace);
   const [galleryState, setGalleryState] = useState<GalleryState>(() => {
     const persistedState = galleryStorage.get<GalleryState>('gallery-state');
 
@@ -502,7 +484,7 @@ export function RulesPanel() {
   );
 }
 
-function PageSection(props: { route: Route }) {
+function PageSection(props: { route: Route; runNamespace: string }) {
   const content = routeContent[props.route];
 
   if (props.route === 'play') {
@@ -518,7 +500,7 @@ function PageSection(props: { route: Route }) {
       <p className="eyebrow">{content.eyebrow}</p>
       <h2>{content.title}</h2>
       <p>{content.body}</p>
-      {props.route === 'cards' ? <CardGallery /> : null}
+      {props.route === 'cards' ? <CardGallery runNamespace={props.runNamespace} /> : null}
       {props.route === 'home' ? (
         <div className="hero-grid">
           <HeroCard title="Ashfall Covenant" subtitle="Aggressive ember faction" accent="ember" />
@@ -530,7 +512,7 @@ function PageSection(props: { route: Route }) {
   );
 }
 
-export function App() {
+export function App(props: AppProps) {
   const [route, setRoute] = useState<Route>(() => getRouteFromHash(window.location.hash));
 
   useEffect(() => {
@@ -588,7 +570,7 @@ export function App() {
           </aside>
         </section>
 
-        <PageSection route={route} />
+        <PageSection route={route} runNamespace={props.runNamespace} />
       </main>
     </div>
   );

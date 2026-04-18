@@ -18,16 +18,15 @@ describe('App card gallery route', () => {
   });
 
   it('renders faction filters, card tiles, and reveals rules text on selection', () => {
-    render(<App />);
+    render(<App runNamespace="run:test-scope" />);
 
     expect(screen.getByRole('heading', { name: 'Card Gallery' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'All factions' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Ashfall Covenant' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Verdant Loom' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Gloam Syndicate' })).toBeTruthy();
 
     const cards = screen.getAllByRole('article');
-    expect(cards.length).toBeGreaterThanOrEqual(6);
+    expect(cards).toHaveLength(4);
 
     fireEvent.click(screen.getByRole('button', { name: 'Reveal Emberstrike Apprentice rules' }));
 
@@ -37,7 +36,7 @@ describe('App card gallery route', () => {
   });
 
   it('restores the last selected faction and card from persisted gallery state', () => {
-    const firstRender = render(<App />);
+    const firstRender = render(<App runNamespace="run:test-scope" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Verdant Loom' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reveal Canopy Warden rules' }));
@@ -46,14 +45,14 @@ describe('App card gallery route', () => {
     expect(screen.getByText(/When Canopy Warden enters play, restore 2 health to your nexus\./)).toBeTruthy();
 
     firstRender.unmount();
-    render(<App />);
+    render(<App runNamespace="run:test-scope" />);
 
     expect(screen.getAllByRole('article')).toHaveLength(2);
     expect(screen.getByText(/When Canopy Warden enters play, restore 2 health to your nexus\./)).toBeTruthy();
   });
 
   it('reveals a card when its keyboard control receives focus', () => {
-    render(<App />);
+    render(<App runNamespace="run:test-scope" />);
 
     fireEvent.focus(screen.getByRole('button', { name: 'Reveal Cinder Oath rules' }));
 
@@ -63,12 +62,22 @@ describe('App card gallery route', () => {
   });
 
   it('shows an updated visible card count for the active faction filter', () => {
-    render(<App />);
+    render(<App runNamespace="run:test-scope" />);
 
-    expect(screen.getByText('Showing 6 cards across all factions')).toBeTruthy();
+    expect(screen.getByText('Showing 4 cards across all factions')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Gloam Syndicate' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Verdant Loom' }));
 
-    expect(screen.getByText('Showing 2 cards for Gloam Syndicate')).toBeTruthy();
+    expect(screen.getByText('Showing 2 cards for Verdant Loom')).toBeTruthy();
+  });
+
+  it('stores gallery state under the injected run namespace', () => {
+    render(<App runNamespace="run:test-scope" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verdant Loom' }));
+
+    expect(window.localStorage.getItem('run:test-scope:duel-tcg:gallery-state')).toContain(
+      'Verdant Loom',
+    );
   });
 });
