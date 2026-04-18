@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'preact/hooks';
-import { createInitialState, performPlayerAction, resolveEnemyTurn } from '../game';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -75,7 +74,6 @@ function getRoute(): RouteKey {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(getRoute);
-  const [battle, setBattle] = useState(createInitialState);
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute());
@@ -83,23 +81,7 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  useEffect(() => {
-    if (battle.turn !== 'enemy') {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setBattle((current) => resolveEnemyTurn(current));
-    }, 900);
-
-    return () => window.clearTimeout(timer);
-  }, [battle.turn]);
-
   const copy = routeCopy[route];
-
-  const handleAction = (action: 'attack' | 'defend') => {
-    setBattle((current) => performPlayerAction(current, action));
-  };
 
   return (
     <div class="app-shell">
@@ -126,7 +108,7 @@ export function App() {
 
         <section class="panel">
           <h2>Division B tactical board</h2>
-          <p>Division A now reinforces the selected shell with live combat state so the board teaches tempo and response timing instead of staying static.</p>
+          <p>Division A playtest scaffold retained the shell. DivB turns it into a readable board where new players can see the sequence before they commit.</p>
           <ul>
             {encounterSteps.map((step) => (
               <li key={step}>{step}</li>
@@ -140,55 +122,9 @@ export function App() {
           <p>Plan your first cycle around a single defended lane, then pivot once the AI spends its banked response.</p>
         </section>
 
-        <section class="panel panel-board">
+        <section class="panel">
           <h2>Combat readout</h2>
-          <div class="battle-status">
-            <div>
-              <span class="eyebrow">Turn state</span>
-              <p>{battle.turn === 'player' ? 'Player action' : battle.turn === 'enemy' ? 'AI response' : 'Encounter secured'}</p>
-            </div>
-            <div>
-              <span class="eyebrow">Encounter ladder</span>
-              <p>Gate Scout - Rogue Sentinel - Apex Mirror</p>
-            </div>
-          </div>
-
-          <div class="board-zones">
-            <section class="zone">
-              <span class="eyebrow">Player rig</span>
-              <h3>{battle.player.hp} integrity</h3>
-              <p>{battle.player.shielded ? 'Shield charge banked for the counter hit.' : 'No shield charge stored.'}</p>
-            </section>
-            <section class="zone">
-              <span class="eyebrow">Center lane</span>
-              <h3>Tempo lane</h3>
-              <p>Commit pressure only when the Rogue AI shield line is exposed.</p>
-            </section>
-            <section class="zone">
-              <span class="eyebrow">Rogue AI core</span>
-              <h3>{battle.enemy.hp} integrity</h3>
-              <p>Opening script favors a shielded read before the heavy swing.</p>
-            </section>
-          </div>
-
-          <div class="action-row" aria-label="Combat actions">
-            <button type="button" onClick={() => handleAction('attack')} disabled={battle.turn !== 'player' || battle.status !== 'active'}>
-              Strike for 6
-            </button>
-            <button type="button" onClick={() => handleAction('defend')} disabled={battle.turn !== 'player' || battle.status !== 'active'}>
-              Bank shield
-            </button>
-          </div>
-
-          <div class="combat-log">
-            <span class="eyebrow">Combat log</span>
-            <ul>
-              {battle.log.slice(-3).map((entry) => (
-                <li key={entry}>{entry}</li>
-              ))}
-            </ul>
-          </div>
-
+          <p>AI rival reads - Rogue AI</p>
           <ul>
             {rivalReads.map((read) => (
               <li key={read.label}>

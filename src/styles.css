@@ -99,65 +99,9 @@ nav a,
   padding-left: 18px;
 }
 
-.panel h3 {
-  margin: 0;
-}
-
 .panel p,
 .panel li {
   color: #bfd0e6;
-}
-
-.panel-board {
-  display: grid;
-  gap: 18px;
-}
-
-.battle-status,
-.board-zones,
-.flow-grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-
-.zone,
-.flow-grid article {
-  padding: 16px;
-  border: 1px solid rgba(122, 197, 255, 0.18);
-  border-radius: 16px;
-  background: rgba(14, 25, 42, 0.92);
-}
-
-.action-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.action-row button {
-  padding: 12px 16px;
-  border: 1px solid rgba(122, 197, 255, 0.32);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(44, 96, 186, 0.95), rgba(25, 61, 124, 0.95));
-  color: #f3f7fc;
-  cursor: pointer;
-}
-
-.action-row button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.combat-log {
-  padding: 16px;
-  border: 1px solid rgba(122, 197, 255, 0.18);
-  border-radius: 16px;
-  background: rgba(14, 25, 42, 0.92);
-}
-
-.combat-log ul {
-  margin: 12px 0 0;
 }
 
 @media (max-width: 720px) {

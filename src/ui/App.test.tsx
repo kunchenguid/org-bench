@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
-  it('renders the selected tactical board with readable card presentation', () => {
+  it('renders the divB play page with battlefield readability and card presentation', () => {
     const html = renderToString(h(App, {}));
 
     expect(html).toContain('Division B tactical board');
@@ -14,16 +14,16 @@ describe('App', () => {
     expect(html).toContain('Preconstructed deck');
   });
 
-  it('adds live combat state underneath the chosen board', () => {
+  it('renders the division A combat-forward play page shell', () => {
     const html = renderToString(h(App, {}));
 
-    expect(html).toContain('Turn state');
-    expect(html).toContain('Player action');
-    expect(html).toContain('Player rig');
-    expect(html).toContain('Rogue AI core');
-    expect(html).toContain('Strike for 6');
-    expect(html).toContain('Bank shield');
-    expect(html).toContain('Combat log');
+    expect(html).toContain('Signal Clash');
+    expect(html).toContain('Division A playtest');
+    expect(html).toContain('Encounter ladder');
+    expect(html).toContain('AI rival reads');
+    expect(html).toContain('Play first card');
+    expect(html).toContain('Commit attack lane');
+    expect(html).toContain('Bank shield charge');
   });
 
   it('renders concrete AI rival reads for the opening encounter', () => {
