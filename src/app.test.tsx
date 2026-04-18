@@ -26,4 +26,13 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
   });
+
+  it('keeps the intended route when the hash includes a trailing slash or query string', () => {
+    globalThis.location.hash = '#/rules/?ref=nav';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Rules' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
+  });
 });
