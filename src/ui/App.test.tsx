@@ -20,10 +20,18 @@ describe('App', () => {
     expect(html).toContain('Signal Clash');
     expect(html).toContain('Division A playtest');
     expect(html).toContain('Encounter ladder');
+    expect(html).toContain('Turn state');
+    expect(html).toContain('Player action');
+    expect(html).toContain('Player rig');
+    expect(html).toContain('Rogue AI core');
     expect(html).toContain('AI rival reads');
     expect(html).toContain('Play first card');
     expect(html).toContain('Commit attack lane');
     expect(html).toContain('Bank shield charge');
+    expect(html).toContain('Strike for 6');
+    expect(html).toContain('Bank shield');
+    expect(html).toContain('Save checkpoint');
+    expect(html).toContain('Advance encounter');
   });
 
   it('renders concrete AI rival reads for the opening encounter', () => {

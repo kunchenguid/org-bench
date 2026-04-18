@@ -1,4 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
+import {
+  advanceEncounter,
+  createInitialState,
+  deserializeBattleState,
+  performPlayerAction,
+  resolveEnemyTurn,
+  serializeBattleState,
+} from '../game';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -41,6 +49,8 @@ const frontlineCards = [
   },
 ];
 
+const saveKey = 'signal-clash-battle-state';
+
 const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string }> = {
   home: {
     eyebrow: 'Prototype map',
@@ -72,8 +82,27 @@ function getRoute(): RouteKey {
   return routeMap[window.location.hash] ?? 'home';
 }
 
+function getSavedBattleState() {
+  if (typeof window === 'undefined') {
+    return createInitialState();
+  }
+
+  const saved = window.localStorage.getItem(saveKey);
+
+  if (!saved) {
+    return createInitialState();
+  }
+
+  try {
+    return deserializeBattleState(saved);
+  } catch {
+    return createInitialState();
+  }
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(getRoute);
+  const [battle, setBattle] = useState(getSavedBattleState);
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute());
@@ -81,7 +110,43 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(saveKey, serializeBattleState(battle));
+  }, [battle]);
+
+  useEffect(() => {
+    if (battle.turn !== 'enemy') {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setBattle((current) => resolveEnemyTurn(current));
+    }, 900);
+
+    return () => window.clearTimeout(timer);
+  }, [battle.turn]);
+
   const copy = routeCopy[route];
+
+  const handleAction = (action: 'attack' | 'defend') => {
+    setBattle((current) => performPlayerAction(current, action));
+  };
+
+  const handleSave = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(saveKey, serializeBattleState(battle));
+  };
+
+  const handleAdvanceEncounter = () => {
+    setBattle((current) => advanceEncounter(current));
+  };
 
   return (
     <div class="app-shell">
@@ -125,6 +190,42 @@ export function App() {
         <section class="panel">
           <h2>Combat readout</h2>
           <p>AI rival reads - Rogue AI</p>
+          <div class="battle-status">
+            <div>
+              <span class="eyebrow">Turn state</span>
+              <p>{battle.turn === 'player' ? 'Player action' : battle.turn === 'enemy' ? 'AI response' : 'Encounter secured'}</p>
+            </div>
+            <div>
+              <span class="eyebrow">Encounter ladder</span>
+              <p>{battle.encounterIndex === 0 ? 'Rogue AI challenger live' : 'Apex Mirror live'}</p>
+            </div>
+          </div>
+          <div class="board-zones">
+            <section class="zone">
+              <span class="eyebrow">Player rig</span>
+              <h3>{battle.player.hp} integrity</h3>
+              <p>{battle.player.shielded ? 'Shield charge banked.' : 'Shield charge empty.'}</p>
+            </section>
+            <section class="zone">
+              <span class="eyebrow">Rogue AI core</span>
+              <h3>{battle.enemy.hp} integrity</h3>
+              <p>{battle.log.at(-1)}</p>
+            </section>
+          </div>
+          <div class="action-row" aria-label="Combat actions">
+            <button type="button" onClick={() => handleAction('attack')} disabled={battle.turn !== 'player' || battle.status !== 'active'}>
+              Strike for 6
+            </button>
+            <button type="button" onClick={() => handleAction('defend')} disabled={battle.turn !== 'player' || battle.status !== 'active'}>
+              Bank shield
+            </button>
+            <button type="button" onClick={handleSave}>
+              Save checkpoint
+            </button>
+            <button type="button" onClick={handleAdvanceEncounter} disabled={battle.status !== 'won'}>
+              Advance encounter
+            </button>
+          </div>
           <ul>
             {rivalReads.map((read) => (
               <li key={read.label}>

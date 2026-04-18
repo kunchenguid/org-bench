@@ -99,9 +99,49 @@ nav a,
   padding-left: 18px;
 }
 
+.panel h3 {
+  margin: 0;
+}
+
 .panel p,
 .panel li {
   color: #bfd0e6;
+}
+
+.battle-status,
+.board-zones {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 16px;
+}
+
+.zone {
+  padding: 16px;
+  border: 1px solid rgba(122, 197, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(14, 25, 42, 0.92);
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.action-row button {
+  padding: 10px 14px;
+  border: 1px solid rgba(122, 197, 255, 0.32);
+  border-radius: 999px;
+  background: rgba(18, 32, 56, 0.9);
+  color: #f3f7fc;
+  cursor: pointer;
+}
+
+.action-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 @media (max-width: 720px) {
