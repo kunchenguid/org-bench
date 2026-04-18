@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Signal Clash</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, Helvetica, sans-serif;
+        line-height: 1.5;
+        background: #08111f;
+        color: #e6eefc;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+        background:
+          radial-gradient(circle at top, rgba(48, 114, 255, 0.18), transparent 35%),
+          linear-gradient(180deg, #0c1628 0%, #08111f 100%);
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 28px;
+        border: 1px solid rgba(120, 155, 255, 0.24);
+        border-radius: 20px;
+        background: rgba(7, 13, 24, 0.88);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      section {
+        margin-top: 24px;
+        padding: 18px;
+        border-radius: 16px;
+        background: rgba(15, 28, 50, 0.95);
+        border: 1px solid rgba(122, 165, 255, 0.18);
+      }
+
+      .action {
+        display: inline-block;
+        margin: 8px 12px 0 0;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(142, 182, 255, 0.4);
+        background: rgba(31, 61, 111, 0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>Division A playtest</p>
+      <h1>Signal Clash</h1>
+      <p>Our lane is the live fight. This play page is built around readable combat decisions, fast AI tells, and a ladder that keeps each encounter pushing the next one.</p>
+
+      <section>
+        <h2>Combat Loop</h2>
+        <p>Read the board, spend one decisive card, pressure the exposed lane, then hand the turn back with as little waste as possible. The page keeps the core exchange obvious so the next combat system pass has a clean target.</p>
+      </section>
+
+      <div class="grid">
+        <section>
+          <h2>AI Opponent Read</h2>
+          <p>Rogue Sentinel prefers a shielded open, then snaps into a heavy counter if you overextend on turn two.</p>
+        </section>
+
+        <section>
+          <h2>Encounter Ladder</h2>
+          <p>Gate Scout -> Rogue Sentinel -> Apex Mirror</p>
+        </section>
+      </div>
+
+      <section>
+        <h2>Action Rail</h2>
+        <span class="action">Play First Card</span>
+        <span class="action">Commit Attack Lane</span>
+        <span class="action">End Turn Clean</span>
+      </section>
+    </main>
+  </body>
+  </html>
