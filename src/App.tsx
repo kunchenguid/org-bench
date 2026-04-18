@@ -9,6 +9,12 @@ const navItems: Array<{ href: RouteKey; label: string }> = [
   { href: '/cards', label: 'Cards' },
 ];
 
+const rulesSummary = [
+  'Reduce the rival to 0 life before they do the same to you.',
+  'Each turn, refill mana, draw a card, and take up to two actions.',
+  'Creatures stay in play, while spells resolve once and go to the discard pile.',
+];
+
 const routes: Record<RouteKey, { title: string; sectionLabel: string; description: string }> = {
   '/': {
     title: 'Duel TCG',
@@ -78,6 +84,13 @@ export function App() {
         <p className="section-label">{page.sectionLabel}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+        {route === '/rules' ? (
+          <ul className="panel-list">
+            {rulesSummary.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : null}
       </main>
     </div>
   );

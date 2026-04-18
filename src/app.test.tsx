@@ -34,4 +34,14 @@ describe('App shell', () => {
     expect(screen.getByText('Card Library')).toBeInTheDocument();
     expect(screen.queryByText('Scaffold Route')).not.toBeInTheDocument();
   });
+
+  it('shows a compact rules summary on the rules route', () => {
+    globalThis.location.hash = '#/rules';
+
+    render(<App />);
+
+    expect(screen.getByText('Reduce the rival to 0 life before they do the same to you.')).toBeInTheDocument();
+    expect(screen.getByText('Each turn, refill mana, draw a card, and take up to two actions.')).toBeInTheDocument();
+    expect(screen.getByText('Creatures stay in play, while spells resolve once and go to the discard pile.')).toBeInTheDocument();
+  });
 });
