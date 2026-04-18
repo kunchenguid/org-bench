@@ -143,6 +143,50 @@ h1 {
   gap: 30px;
 }
 
+.rules-view {
+  display: grid;
+  gap: 24px;
+}
+
+.rules-intro {
+  display: grid;
+  gap: 10px;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.rules-card {
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 18px;
+}
+
+.rules-card h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.rules-card p:last-child {
+  margin-bottom: 0;
+}
+
+.faction-callout {
+  min-height: 100%;
+}
+
+.ember-callout {
+  background: linear-gradient(180deg, rgba(122, 30, 35, 0.2), rgba(255, 255, 255, 0.04));
+}
+
+.tide-callout {
+  background: linear-gradient(180deg, rgba(27, 79, 150, 0.22), rgba(255, 255, 255, 0.04));
+}
+
 .gallery-intro {
   display: grid;
   gap: 10px;

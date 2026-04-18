@@ -15,6 +15,9 @@ describe('App scaffold', () => {
 
     fireEvent.click(screen.getByRole('link', { name: /rules/i }));
     expect(screen.getByRole('heading', { level: 1, name: /how to play/i })).toBeInTheDocument();
+    expect(screen.getByText(/each turn gives you 1 more ember until you reach 6/i)).toBeInTheDocument();
+    expect(screen.getByText(/play creature cards onto your battlefield row/i)).toBeInTheDocument();
+    expect(screen.getByText(/win the campaign by defeating all 4 encounters in order/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('link', { name: /cards/i }));
     expect(screen.getByRole('heading', { level: 1, name: /card gallery/i })).toBeInTheDocument();
