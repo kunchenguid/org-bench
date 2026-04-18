@@ -1,14 +1,25 @@
 {
-  "name": "org-bench",
+  "name": "duel-tcg-static-site",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "test": "node --test",
-    "typecheck": "tsc -b --pretty false"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "preact": "^10.26.4"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/preact": "^3.2.4",
+    "@types/node": "^24.6.0",
+    "@preact/preset-vite": "^2.10.2",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.3"
   }
 }

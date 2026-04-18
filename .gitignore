@@ -1,5 +1,4 @@
-runs/
-node_modules/
+.DS_Store
 dist/
-.opencode/
+node_modules/
 *.tsbuildinfo
