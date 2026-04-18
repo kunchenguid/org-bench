@@ -1,0 +1,150 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #f5f7ff;
+  background:
+    radial-gradient(circle at top, rgba(81, 111, 255, 0.3), transparent 38%),
+    linear-gradient(180deg, #101322 0%, #090b13 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.app-shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1rem 0 3rem;
+}
+
+.panel {
+  background: rgba(12, 16, 29, 0.78);
+  border: 1px solid rgba(140, 159, 255, 0.18);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(18px);
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-radius: 24px;
+}
+
+.wordmark,
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #95a6ff;
+  font-size: 0.8rem;
+}
+
+.subhead {
+  margin: 0.3rem 0 0;
+  color: #d4dcff;
+}
+
+.nav-list {
+  list-style: none;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0;
+  margin: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-link {
+  display: inline-flex;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(149, 166, 255, 0.16);
+  color: #dce3ff;
+}
+
+.nav-link.active,
+.nav-link:hover {
+  background: rgba(114, 134, 255, 0.16);
+  border-color: rgba(149, 166, 255, 0.42);
+}
+
+main {
+  margin-top: 1.25rem;
+}
+
+.hero-panel {
+  padding: 2rem;
+  border-radius: 32px;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+}
+
+.lede {
+  max-width: 64ch;
+  color: #d8def8;
+  font-size: 1.05rem;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.inset-panel {
+  padding: 1.25rem;
+  border-radius: 24px;
+}
+
+.inset-panel p {
+  margin-bottom: 0;
+  color: #cad3f4;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    width: min(100% - 1rem, 1120px);
+    padding-top: 0.5rem;
+  }
+
+  .site-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nav-list {
+    justify-content: flex-start;
+  }
+
+  .hero-panel {
+    padding: 1.5rem;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
