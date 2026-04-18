@@ -240,7 +240,6 @@ function useCurrentPage(storageNamespace?: string) {
     }
 
     savePage(namespace, page);
-    setHasSavedProgress(true);
   }, [namespace, page, saveSuppressed]);
 
   const clearSavedProgress = () => {
@@ -356,7 +355,12 @@ function PlayPage({ hasSavedProgress, clearSavedProgress }: { hasSavedProgress: 
         <p className="eyebrow">Browser save</p>
         <h2>Resume without setup friction</h2>
         <p>{hasSavedProgress ? 'Saved progress ready to resume.' : 'No local save yet.'}</p>
-        <button className="nav-link clear-button" onClick={clearSavedProgress} type="button">
+        <button
+          className="nav-link clear-button"
+          disabled={!hasSavedProgress}
+          onClick={clearSavedProgress}
+          type="button"
+        >
           Clear Saved Progress
         </button>
       </section>
