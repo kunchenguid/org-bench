@@ -2,6 +2,7 @@
   "name": "duel-tcg-static-site",
   "private": true,
   "version": "0.1.0",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",
