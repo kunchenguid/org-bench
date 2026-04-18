@@ -6,7 +6,7 @@ import {
   starterDeck,
   uniqueCards
 } from './content/gameData';
-import { createDuelState } from './game/state';
+import { createDuelState, playCard, type DuelState } from './game/state';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -79,10 +79,14 @@ function CardArt(props: { factionId: string }) {
   );
 }
 
-function CardView(props: { card: (typeof uniqueCards)[number] }) {
+function CardView(props: {
+  card: (typeof uniqueCards)[number];
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   const theme = getFactionTheme(props.card.faction);
 
-  return (
+  const content = (
     <article
       class="card-frame"
       style={{
@@ -117,6 +121,16 @@ function CardView(props: { card: (typeof uniqueCards)[number] }) {
       )}
     </article>
   );
+
+  if (props.actionLabel && props.onAction) {
+    return (
+      <button class="card-button" type="button" aria-label={props.actionLabel} onClick={props.onAction}>
+        {content}
+      </button>
+    );
+  }
+
+  return content;
 }
 
 function ZoneSummary(props: {
@@ -137,9 +151,12 @@ function ZoneSummary(props: {
 }
 
 function PageContent(props: { route: Route }) {
-  if (props.route === 'play') {
-    const duel = createDuelState('oracle-seed-01', encounters[0].id);
+  const [duel, setDuel] = useState<DuelState>(() => ({
+    ...createDuelState('oracle-seed-01', encounters[0].id),
+    phase: 'main' as const
+  }));
 
+  if (props.route === 'play') {
     return (
       <section class="panel play-panel">
         <h1>Play</h1>
@@ -163,6 +180,7 @@ function PageContent(props: { route: Route }) {
             <strong>
               {duel.opponent.resources.current}/{duel.opponent.resources.max}
             </strong>
+            <p>Resources: {duel.opponent.resources.current}/{duel.opponent.resources.max}</p>
           </div>
           <div>
             <p class="eyebrow">Enemy hand</p>
@@ -197,6 +215,7 @@ function PageContent(props: { route: Route }) {
             <strong>
               {duel.player.resources.current}/{duel.player.resources.max}
             </strong>
+            <p>Resources: {duel.player.resources.current}/{duel.player.resources.max}</p>
           </div>
           <div>
             <p class="eyebrow">Your hand</p>
@@ -206,7 +225,12 @@ function PageContent(props: { route: Route }) {
 
         <div class="hand-row">
           {duel.player.hand.map((card) => (
-            <CardView key={card.instanceId} card={card} />
+            <CardView
+              key={card.instanceId}
+              card={card}
+              actionLabel={`Play ${card.name}`}
+              onAction={() => setDuel((current) => playCard(current, 'player', card.instanceId))}
+            />
           ))}
         </div>
       </section>

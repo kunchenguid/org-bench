@@ -17,6 +17,10 @@ describe('App scaffold', () => {
     expect(screen.getByText(/enemy health/i)).toBeInTheDocument();
     expect(screen.getByText(/your hand/i)).toBeInTheDocument();
     expect(screen.getByText(/enemy hand/i)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: /play cinder scout/i })[0]);
+    expect(screen.getByText(/your battlefield/i)).toBeInTheDocument();
+    expect(screen.getByText(/resources: 0\/1/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /play cinder scout/i })).toHaveLength(1);
 
     fireEvent.click(screen.getByRole('link', { name: /rules/i }));
     expect(screen.getByRole('heading', { name: /rules/i })).toBeInTheDocument();
