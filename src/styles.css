@@ -1,0 +1,99 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background:
+    radial-gradient(circle at top, rgba(88, 145, 255, 0.2), transparent 36%),
+    linear-gradient(180deg, #101522 0%, #06080f 100%);
+  color: #f3f6ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: transparent;
+}
+
+#app,
+.shell {
+  min-height: 100vh;
+}
+
+.hero,
+.content {
+  padding-inline: 1.5rem;
+}
+
+.hero {
+  padding-top: 2rem;
+  padding-bottom: 1rem;
+}
+
+.hero h1,
+.panel h2,
+.worker-card h3 {
+  margin: 0;
+}
+
+.hero h1 {
+  font-size: clamp(2.75rem, 8vw, 5rem);
+  letter-spacing: -0.04em;
+}
+
+.eyebrow,
+.worker-id {
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.75rem;
+  color: #9db9ff;
+}
+
+.lede,
+.worker-card p {
+  margin: 1rem 0 0;
+  color: rgba(243, 246, 255, 0.82);
+}
+
+.content {
+  padding-bottom: 2rem;
+}
+
+.panel {
+  border: 1px solid rgba(145, 178, 255, 0.18);
+  border-radius: 1.5rem;
+  background: rgba(10, 14, 24, 0.78);
+  padding: 1.25rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.worker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.worker-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(145, 178, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  .hero,
+  .content {
+    padding-inline: 1rem;
+  }
+
+  .hero {
+    padding-top: 1.5rem;
+  }
+}

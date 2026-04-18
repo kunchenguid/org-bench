@@ -1,5 +1,5 @@
-facebook-seed-01
+## facebook-seed-01
 
-This run workspace started empty.
+Initial scaffold for the `run/facebook-seed-01` worktree.
 
-Bootstrap commit from Rosa to establish a tracked project root and unblock follow-on changes.
+This repository starts empty, so round 1 establishes a minimal front door and app shell that other workers can extend without first reconstructing the project setup from git state.
