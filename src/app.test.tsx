@@ -67,6 +67,7 @@ describe('App shell', () => {
   });
 
   it('clears the saved duel state from home', () => {
+    globalThis.localStorage.setItem('duel-tcg:last-route', '/play');
     globalThis.localStorage.setItem(getPersistenceKey('apple-seed-01'), JSON.stringify({ encounter: { id: 'encounter-1' } }));
 
     render(<App />);
@@ -74,7 +75,9 @@ describe('App shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear saved duel' }));
 
     expect(globalThis.localStorage.getItem(getPersistenceKey('apple-seed-01'))).toBeNull();
+    expect(globalThis.localStorage.getItem('duel-tcg:last-route')).toBeNull();
     expect(screen.queryByText(/Saved duel available/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Resume Play' })).toBeNull();
   });
 
   it('ignores malformed saved duel state', () => {

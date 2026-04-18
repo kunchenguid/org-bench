@@ -123,6 +123,10 @@ export function App() {
               onClick={() => {
                 clearSavedDuel();
                 setSavedDuelEncounterId(null);
+                if (savedRoute === '/play') {
+                  clearSavedRoute();
+                  setSavedRoute(null);
+                }
               }}
             >
               Clear saved duel
