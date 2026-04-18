@@ -111,6 +111,10 @@ function getSavedEncounterPreview(): SavedEncounterPreview | null {
   };
 }
 
+function clearSavedEncounter() {
+  window.localStorage.removeItem(encounterStorageKey);
+}
+
 function RulesPanel() {
   return (
     <main className="panel stack-lg">
@@ -209,9 +213,21 @@ function PlayPanel() {
               <p>
                 Saved run: {savedPreview.encounterName} on turn {savedPreview.turn}.
               </p>
-              <button className="primary-button" onClick={() => setState(loadSavedEncounter())} type="button">
-                Resume encounter
-              </button>
+              <div className="action-row">
+                <button className="primary-button" onClick={() => setState(loadSavedEncounter())} type="button">
+                  Resume encounter
+                </button>
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    clearSavedEncounter();
+                    setSavedPreview(null);
+                  }}
+                  type="button"
+                >
+                  Clear saved run
+                </button>
+              </div>
             </>
           ) : null}
         </section>
