@@ -113,6 +113,23 @@ test("play page surfaces a race outlook after you commit board pressure", () => 
   assert.match(html, /Enemy has no return lethal clock yet\./);
 });
 
+test("play page surfaces an encounter-specific matchup brief", () => {
+  const unlockedSecond = {
+    ...createReferenceApp(),
+    encounters: createReferenceApp().encounters.map((encounter, index) =>
+      index === 0 ? { ...encounter, completed: true } : encounter,
+    ),
+  };
+  const app = startEncounter(unlockedSecond, 1);
+
+  const html = renderAppHtml(app);
+
+  assert.match(html, /Matchup Brief/);
+  assert.match(html, /Mist Channeler/);
+  assert.match(html, /steady chip damage and efficient tempo/i);
+  assert.match(html, /trade resources early so your heavier turns take over/i);
+});
+
 test("navigateToPage changes which primary page is rendered", () => {
   const app = navigateToPage(createReferenceApp(), "rules");
 

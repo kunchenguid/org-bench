@@ -209,6 +209,19 @@ function describeRaceOutlook(encounter: EncounterState): {
   };
 }
 
+function describeEncounterPlan(encounter: EncounterSummary): string {
+  switch (encounter.id) {
+    case "ember-trial":
+      return "Ashen Sentinel mirrors your fundamentals. Stay efficient on board so your cleaner curve wins the straight race.";
+    case "tidal-crossing":
+      return "Mist Channeler pressures with steady chip damage and efficient tempo. Trade resources early so your heavier turns take over.";
+    case "sky-citadel":
+      return "Aerie Marshal closes with larger aerial bodies. Preserve enough life to absorb early hits before you swing back with bigger burn turns.";
+    default:
+      return `${encounter.enemyName} brings a fixed ladder list. Spend early mana cleanly and plan around the race clock.`;
+  }
+}
+
 function startPlayerTurn(encounter: EncounterState): EncounterState {
   const nextResources = Math.min(10, encounter.turn);
   const player = drawOne({
@@ -868,6 +881,8 @@ function renderPlay(app: ReferenceAppState): string {
       <p>Turn: ${app.encounter.turn}</p>
       <p>Resources: ${app.encounter.player.resources.current}/${app.encounter.player.resources.max}</p>
       <p>Enemy resources: ${app.encounter.enemy.resources.current}/${app.encounter.enemy.resources.max}</p>
+      <h2>Matchup Brief</h2>
+      <p>${escapeHtml(describeEncounterPlan(encounterInfo))}</p>
       <p>Player board attacks for ${playerAttack}</p>
       <p>Enemy board attacks for ${enemyAttack}</p>
       <h2>Race Outlook</h2>
@@ -993,6 +1008,19 @@ function describeRaceOutlook(encounter) {
   };
 }
 
+function describeEncounterPlan(encounter) {
+  switch (encounter.id) {
+    case 'ember-trial':
+      return 'Ashen Sentinel mirrors your fundamentals. Stay efficient on board so your cleaner curve wins the straight race.';
+    case 'tidal-crossing':
+      return 'Mist Channeler pressures with steady chip damage and efficient tempo. Trade resources early so your heavier turns take over.';
+    case 'sky-citadel':
+      return 'Aerie Marshal closes with larger aerial bodies. Preserve enough life to absorb early hits before you swing back with bigger burn turns.';
+    default:
+      return encounter.enemyName + ' brings a fixed ladder list. Spend early mana cleanly and plan around the race clock.';
+  }
+}
+
 function isEncounterUnlocked(encounters, encounterIndex) {
   return encounterIndex === 0 || encounters[encounterIndex - 1]?.completed === true;
 }
@@ -1075,7 +1103,7 @@ function renderPlay(app) {
         ? '<p><strong>Defeat</strong> - The rival deck prevailed.</p>'
         : "";
 
-  return '<section aria-label="play"><h1>' + escapeHtml(encounterInfo.title) + '</h1>' + resultMarkup + '<p>Player HP: ' + app.encounter.player.hp + '</p><p>Enemy HP: ' + app.encounter.enemy.hp + '</p><p>Turn: ' + app.encounter.turn + '</p><p>Resources: ' + app.encounter.player.resources.current + '/' + app.encounter.player.resources.max + '</p><p>Enemy resources: ' + app.encounter.enemy.resources.current + '/' + app.encounter.enemy.resources.max + '</p><p>Player board attacks for ' + playerAttack + '</p><p>Enemy board attacks for ' + enemyAttack + '</p><h2>Race Outlook</h2><p>' + escapeHtml(raceOutlook.playerClock) + '</p><p>' + escapeHtml(raceOutlook.enemyClock) + '</p><h2>Hand</h2><ul>' + handCards + '</ul><h2>Battlefield</h2><ul>' + battlefieldCards + '</ul><h2>Battle Log</h2><ul>' + logEntries + '</ul><button type="button" data-action="end-turn">End Turn</button></section>';
+  return '<section aria-label="play"><h1>' + escapeHtml(encounterInfo.title) + '</h1>' + resultMarkup + '<p>Player HP: ' + app.encounter.player.hp + '</p><p>Enemy HP: ' + app.encounter.enemy.hp + '</p><p>Turn: ' + app.encounter.turn + '</p><p>Resources: ' + app.encounter.player.resources.current + '/' + app.encounter.player.resources.max + '</p><p>Enemy resources: ' + app.encounter.enemy.resources.current + '/' + app.encounter.enemy.resources.max + '</p><h2>Matchup Brief</h2><p>' + escapeHtml(describeEncounterPlan(encounterInfo)) + '</p><p>Player board attacks for ' + playerAttack + '</p><p>Enemy board attacks for ' + enemyAttack + '</p><h2>Race Outlook</h2><p>' + escapeHtml(raceOutlook.playerClock) + '</p><p>' + escapeHtml(raceOutlook.enemyClock) + '</p><h2>Hand</h2><ul>' + handCards + '</ul><h2>Battlefield</h2><ul>' + battlefieldCards + '</ul><h2>Battle Log</h2><ul>' + logEntries + '</ul><button type="button" data-action="end-turn">End Turn</button></section>';
 }
 
 function renderPage(app) {

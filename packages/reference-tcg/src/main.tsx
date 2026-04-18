@@ -178,6 +178,19 @@ function RaceOutlook(props: { encounter: EncounterState }) {
   );
 }
 
+function describeEncounterPlan(encounter: ReferenceAppState["encounters"][number]) {
+  switch (encounter.id) {
+    case "ember-trial":
+      return "Ashen Sentinel mirrors your fundamentals. Stay efficient on board so your cleaner curve wins the straight race.";
+    case "tidal-crossing":
+      return "Mist Channeler pressures with steady chip damage and efficient tempo. Trade resources early so your heavier turns take over.";
+    case "sky-citadel":
+      return "Aerie Marshal closes with larger aerial bodies. Preserve enough life to absorb early hits before you swing back with bigger burn turns.";
+    default:
+      return `${encounter.enemyName} brings a fixed ladder list. Spend early mana cleanly and plan around the race clock.`;
+  }
+}
+
 function HomePage(props: {
   app: ReferenceAppState;
   dispatch: (action: ReferenceAppAction) => void;
@@ -334,6 +347,11 @@ function PlayPage(props: {
           There are no blockers, instant-speed effects, or hidden reactions in
           Sky Duel.
         </p>
+      </section>
+
+      <section class="turn-guide" aria-label="Matchup brief">
+        <strong>Matchup Brief</strong>
+        <p>{describeEncounterPlan(encounterInfo)}</p>
       </section>
 
       <RaceOutlook encounter={encounter} />
