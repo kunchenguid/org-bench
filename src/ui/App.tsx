@@ -315,7 +315,7 @@ const encounterItems = [
   {
     step: 'Auric Apex',
     title: 'Survive the final house reckoning',
-    detail: 'The last teaser card now frames a direct two-house showdown instead of implying a third faction lane.',
+    detail: 'The last teaser card frames a direct two-house showdown at the top of the Reach.',
   },
 ];
 

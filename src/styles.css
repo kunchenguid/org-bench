@@ -452,10 +452,6 @@ select {
   background: radial-gradient(circle at 65% 35%, rgba(121, 219, 150, 0.28), transparent 24%), #112018;
 }
 
-.hero-card-dusk .hero-card-art {
-  background: radial-gradient(circle at 50% 50%, rgba(139, 137, 233, 0.3), transparent 30%), #161524;
-}
-
 .hero-card p {
   color: #bcb7c9;
 }

@@ -17,6 +17,7 @@ describe('HomePage', () => {
     expect(html).toContain('Ashfall Covenant');
     expect(html).toContain('Verdant Loom');
     expect(html).not.toContain('Gloam Cartel');
+    expect(html).not.toContain('third faction');
     expect((html.match(/class="hero-card hero-card-/g) ?? []).length).toBe(2);
     expect((html.match(/class="encounter-card"/g) ?? []).length).toBe(2);
   });
