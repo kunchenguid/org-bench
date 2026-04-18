@@ -104,15 +104,66 @@ a {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
 }
 
+.rules-layout {
+  display: grid;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.rules-card {
+  padding: 20px;
+  border: 1px solid rgba(161, 188, 255, 0.14);
+  border-radius: 20px;
+  background: rgba(10, 21, 39, 0.72);
+}
+
+.rules-card h3,
+.session-summary h3 {
+  margin: 10px 0 8px;
+  font-size: 1.4rem;
+}
+
+.rules-points {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  color: #c7d3e2;
+}
+
+.rules-points li + li {
+  margin-top: 8px;
+}
+
 .session-summary {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid rgba(161, 188, 255, 0.16);
 }
 
-.session-summary h3 {
-  margin: 10px 0 8px;
-  font-size: 1.4rem;
+.ladder-list {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+}
+
+.ladder-list li {
+  display: grid;
+  gap: 4px;
+}
+
+.ladder-list strong {
+  color: #f3f7fb;
+}
+
+.ladder-list span {
+  color: #c7d3e2;
 }
 
 @media (max-width: 640px) {

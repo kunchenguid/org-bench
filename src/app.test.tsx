@@ -54,4 +54,15 @@ describe('App shell', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Rules' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
   });
+
+  it('renders authored rules sections on the rules route', () => {
+    globalThis.location.hash = '#/rules';
+
+    render(<App />);
+
+    expect(screen.getByText('Turn Flow')).toBeInTheDocument();
+    expect(screen.getByText('Keywords')).toBeInTheDocument();
+    expect(screen.getByText('Rookie Table')).toBeInTheDocument();
+    expect(screen.getByText('Draw one card at the start of your turn.')).toBeInTheDocument();
+  });
 });

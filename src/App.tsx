@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { ladderSteps, rulesSections } from './app/rules-content';
 import { createGameSession } from './game/engine';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
@@ -52,6 +53,7 @@ export function App() {
 
   const page = routes[route];
   const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const isRulesRoute = route === '/rules';
 
   useEffect(() => {
     document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
@@ -82,6 +84,38 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+
+        {isRulesRoute ? (
+          <div className="rules-layout">
+            <div className="rules-grid" aria-label="Rules sections">
+              {rulesSections.map((section) => (
+                <section key={section.title} className="rules-card">
+                  <p className="section-label">Rule Section</p>
+                  <h3>{section.title}</h3>
+                  <p>{section.intro}</p>
+                  <ul className="rules-points">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+
+            <section className="session-summary" aria-label="Ladder progression guidance">
+              <p className="section-label">Ladder</p>
+              <h3>Progression Goals</h3>
+              <ul className="ladder-list">
+                {ladderSteps.map((step) => (
+                  <li key={step.name}>
+                    <strong>{step.name}</strong>
+                    <span>{step.goal}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        ) : null}
 
         {openingSession ? (
           <div className="session-summary" aria-label="Opening encounter summary">
