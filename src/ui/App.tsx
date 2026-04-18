@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { cards, decks, encounterLadder, keywordGlossary } from '../game-data';
 import {
   createCardGalleryPreferences,
+  describeFactionSelection,
   filterCardsByFaction,
   type CardGalleryFactionFilter,
 } from './card-gallery-preferences';
@@ -200,9 +201,11 @@ function CardGallery(props: {
   onSelectFaction: (faction: CardGalleryFactionFilter) => void;
 }) {
   const visibleCards = filterCardsByFaction(cards, props.selectedFaction);
+  const selectionLabel = describeFactionSelection(cards, props.selectedFaction);
 
   return (
     <div className="stack-blocks">
+      <p className="card-gallery-summary">{selectionLabel}</p>
       <div className="filter-row" aria-label="Faction filter">
         {factionFilters.map((faction) => (
           <button

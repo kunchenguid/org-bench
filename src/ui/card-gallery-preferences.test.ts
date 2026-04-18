@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Card } from '../game-data';
 import {
   createCardGalleryPreferences,
+  describeFactionSelection,
   filterCardsByFaction,
   type CardGalleryFactionFilter,
 } from './card-gallery-preferences';
@@ -94,5 +95,15 @@ describe('card gallery preferences', () => {
     expect(filterCardsByFaction(sampleCards, 'all')).toHaveLength(2);
     expect(filterCardsByFaction(sampleCards, 'Ashfall Covenant')).toEqual([sampleCards[0]]);
     expect(filterCardsByFaction(sampleCards, 'Verdant Loom')).toEqual([sampleCards[1]]);
+  });
+
+  it('describes the current filter selection in player-facing language', () => {
+    expect(describeFactionSelection(sampleCards, 'all')).toBe('Showing all 2 cards');
+    expect(describeFactionSelection(sampleCards, 'Ashfall Covenant')).toBe(
+      'Showing 1 Ashfall Covenant card',
+    );
+    expect(describeFactionSelection(sampleCards, 'Verdant Loom')).toBe(
+      'Showing 1 Verdant Loom card',
+    );
   });
 });
