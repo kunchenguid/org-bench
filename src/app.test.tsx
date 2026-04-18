@@ -55,6 +55,19 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
   });
 
+  it('renders the shared card catalog on the cards route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Skyforge' })).toBeInTheDocument();
+    expect(screen.getByText('disciplined tempo and formation combat')).toBeInTheDocument();
+    expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Wildroot' })).toBeInTheDocument();
+    expect(screen.getByText('growth, healing, and oversized bodies')).toBeInTheDocument();
+    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
+  });
+
   it('renders authored rules sections on the rules route', () => {
     globalThis.location.hash = '#/rules';
 

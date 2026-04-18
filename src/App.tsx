@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { getCardsByFaction, getFactionSummaries } from './app/card-catalog';
 import { ladderSteps, rulesSections } from './app/rules-content';
 import { createGameSession } from './game/engine';
 
@@ -53,6 +54,7 @@ export function App() {
 
   const page = routes[route];
   const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
   const isRulesRoute = route === '/rules';
 
   useEffect(() => {
@@ -116,7 +118,6 @@ export function App() {
             </section>
           </div>
         ) : null}
-
         {openingSession ? (
           <div className="session-summary" aria-label="Opening encounter summary">
             <p className="section-label">Encounter</p>
@@ -124,6 +125,29 @@ export function App() {
             <p>
               Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
             </p>
+          </div>
+        ) : null}
+
+        {route === '/cards' ? (
+          <div className="catalog-grid" aria-label="Card catalog by faction">
+            {factionSummaries.map((summary) => (
+              <section className="catalog-panel" key={summary.faction}>
+                <p className="section-label">Faction</p>
+                <h3>{summary.faction}</h3>
+                <p>{summary.blurb}</p>
+                <p className="catalog-meta">
+                  {summary.creatureCount} creatures - {summary.spellCount} spells
+                </p>
+                <ul className="catalog-list">
+                  {getCardsByFaction(summary.faction).map((card) => (
+                    <li key={card.name}>
+                      <span>{card.name}</span>
+                      <span>{card.cost}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
           </div>
         ) : null}
       </main>
