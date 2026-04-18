@@ -2,3 +2,4 @@ runs/
 node_modules/
 dist/
 .opencode/
+*.tsbuildinfo
