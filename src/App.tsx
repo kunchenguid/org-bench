@@ -2,6 +2,13 @@ import { useEffect, useState } from 'preact/hooks';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
+const navItems: Array<{ href: `#${RouteKey}`; label: string; route: RouteKey }> = [
+  { href: '#/', label: 'Home', route: '/' },
+  { href: '#/play', label: 'Play', route: '/play' },
+  { href: '#/rules', label: 'Rules', route: '/rules' },
+  { href: '#/cards', label: 'Cards', route: '/cards' },
+];
+
 const routes: Record<RouteKey, { title: string; description: string }> = {
   '/': {
     title: 'Duel TCG',
@@ -52,10 +59,15 @@ export function App() {
       </header>
 
       <nav aria-label="Primary" className="nav">
-        <a href="#/">Home</a>
-        <a href="#/play">Play</a>
-        <a href="#/rules">Rules</a>
-        <a href="#/cards">Cards</a>
+        {navItems.map((item) => (
+          <a
+            key={item.route}
+            href={item.href}
+            aria-current={route === item.route ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))}
       </nav>
 
       <main className="panel">
