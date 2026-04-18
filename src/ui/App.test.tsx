@@ -4,21 +4,40 @@ import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
+  it('renders visible board zones and encounter feedback on the play route', () => {
+    const previousWindow = globalThis.window;
+    Object.assign(globalThis, {
+      window: {
+        location: { hash: '#/play' },
+        addEventListener() {},
+        removeEventListener() {},
+      },
+    });
+
+    const html = renderToString(h(App, {}));
+
+    expect(html).toContain('Player board');
+    expect(html).toContain('Enemy board');
+    expect(html).toContain('Static Broker');
+    expect(html).toContain('Rogue AI pressure: left lane overloaded');
+    expect(html).toContain('Turn 1 - Your move');
+    expect(html).toContain('Division A playtest');
+    expect(html).toContain('Division B tactical board');
+    expect(html).toContain('Pilot brief');
+
+    Object.assign(globalThis, { window: previousWindow });
+  });
+
   it('renders the divB play page with battlefield readability and card presentation', () => {
     const html = renderToString(h(App, {}));
 
+    expect(html).toContain('Signal Clash');
+    expect(html).toContain('Division A playtest');
     expect(html).toContain('Division B tactical board');
     expect(html).toContain('Pilot brief');
     expect(html).toContain('Frontline cards');
     expect(html).toContain('Combat readout');
     expect(html).toContain('Preconstructed deck');
-  });
-
-  it('renders the division A combat-forward play page shell', () => {
-    const html = renderToString(h(App, {}));
-
-    expect(html).toContain('Signal Clash');
-    expect(html).toContain('Division A playtest');
     expect(html).toContain('Encounter ladder');
     expect(html).toContain('Turn state');
     expect(html).toContain('Player action');
@@ -32,6 +51,7 @@ describe('App', () => {
     expect(html).toContain('Strike for 6');
     expect(html).toContain('Bank shield');
     expect(html).toContain('Save checkpoint');
+    expect(html).toContain('Resume checkpoint');
     expect(html).toContain('Advance encounter');
   });
 
@@ -42,5 +62,26 @@ describe('App', () => {
     expect(html).toContain('Opening gambit');
     expect(html).toContain('Counter window');
     expect(html).toContain('Weak side');
+  });
+
+  it('renders a visual starter roster on the cards route', () => {
+    const previousWindow = globalThis.window;
+    Object.assign(globalThis, {
+      window: {
+        location: { hash: '#/cards' },
+        addEventListener() {},
+        removeEventListener() {},
+      },
+    });
+
+    const html = renderToString(h(App, {}));
+
+    expect(html).toContain('Starter card archive');
+    expect(html).toContain('Deck roles');
+    expect(html).toContain('Unit - Opener');
+    expect(html).toContain('Signal - Finisher');
+    expect(html).toContain('Card gallery');
+
+    Object.assign(globalThis, { window: previousWindow });
   });
 });
