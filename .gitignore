@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Node package managers
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Logs
+*.log
