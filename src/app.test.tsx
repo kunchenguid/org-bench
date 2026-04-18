@@ -31,4 +31,13 @@ describe('App scaffold', () => {
     expect(cardLibrary.map((card) => card.name)).toContain('Tidal Archivist');
     expect(new Set(cardLibrary.map((card) => card.faction))).toEqual(new Set(['Ember Covenant', 'Tidemark Circle']));
   });
+
+  it('normalizes unsupported hashes back to the home route', () => {
+    window.location.hash = '#/unknown-route';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 1, name: /duel of embers/i })).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/');
+  });
 });

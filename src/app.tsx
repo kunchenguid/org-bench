@@ -15,6 +15,8 @@ const resolveRoute = (hash: string): RouteKey => {
   return match?.[0] ?? 'home';
 };
 
+const normalizeHash = (hash: string) => (resolveRoute(hash) === 'home' && hash !== routes.home.hash ? routes.home.hash : hash || routes.home.hash);
+
 const pageCopy: Record<RouteKey, { title: string; eyebrow: string; body: string }> = {
   home: {
     title: 'Duel of Embers',
@@ -162,10 +164,18 @@ function DefaultView({ page }: { page: (typeof pageCopy)[RouteKey] }) {
 }
 
 export function App() {
-  const [hash, setHash] = useState(window.location.hash || '#/');
+  const [hash, setHash] = useState(normalizeHash(window.location.hash || '#/'));
 
   useEffect(() => {
-    const onHashChange = () => setHash(window.location.hash || '#/');
+    const onHashChange = () => {
+      const nextHash = normalizeHash(window.location.hash || '#/');
+      if (window.location.hash !== nextHash) {
+        window.location.hash = nextHash;
+      }
+      setHash(nextHash);
+    };
+
+    onHashChange();
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
