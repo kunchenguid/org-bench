@@ -58,12 +58,40 @@
         background: rgba(14, 165, 233, 0.16);
         font-weight: 700;
       }
+
+      .status-grid {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+
+      .status-card {
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid #64748b;
+      }
     </style>
   </head>
   <body>
     <main>
       <h1>Chronicle Clash Play</h1>
       <p>Pressure favors efficient trades over random burst turns.</p>
+
+      <section class="panel">
+        <h2>Match Status</h2>
+        <div class="status-grid">
+          <div class="status-card"><strong>Tempo Lead</strong><br>Player</div>
+          <div class="status-card"><strong>Life</strong><br>18 - 14</div>
+          <div class="status-card"><strong>Queue Depth</strong><br>2 commands</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Match Status</h2>
+        <p><strong>Tempo Lead</strong> - you are ahead when your board controls two lanes or forces the AI to fortify instead of strike.</p>
+      </section>
 
       <section class="panel">
         <h2>Command Queue</h2>
@@ -79,6 +107,11 @@
           <div class="lane"><strong>Center Lane</strong> - direct pressure and tempo swings.</div>
           <div class="lane"><strong>Right Lane</strong> - setup space for your next reinforce turn.</div>
         </div>
+      </section>
+
+      <section class="panel">
+        <h2>Target Priority</h2>
+        <p>The AI strikes the lane with the weakest blocker first, then converts overflow into face pressure.</p>
       </section>
     </main>
   </body>
