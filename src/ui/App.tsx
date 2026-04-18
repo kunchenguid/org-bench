@@ -26,6 +26,21 @@ const rivalReads = [
   },
 ];
 
+const frontlineCards = [
+  {
+    name: 'Static Broker',
+    text: 'Preconstructed deck opener that converts early energy into a safe first lane.',
+  },
+  {
+    name: 'Glasswall Sentry',
+    text: 'Defender body that buys a full turn against the Rogue AI burst line.',
+  },
+  {
+    name: 'Backline Surge',
+    text: 'Signal finisher that flips stored shield charge into a clean lethal push.',
+  },
+];
+
 const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string }> = {
   home: {
     eyebrow: 'Prototype map',
@@ -33,9 +48,9 @@ const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string
     body: 'Shared shell for home, play, rules, and cards so both divisions can branch from one stable Vite + Preact baseline.',
   },
   play: {
-    eyebrow: 'Encounter ladder',
-    title: 'Combat loop placeholder',
-    body: 'This contested surface will become the final duel board. For now it exposes the primary pillars and a stable mount point.',
+    eyebrow: 'Division B vision',
+    title: 'Division B tactical board',
+    body: 'Lead with readability: show the pilot plan, the frontline cards that matter this turn, and the combat readout the moment pressure shifts.',
   },
   rules: {
     eyebrow: 'Rules reference',
@@ -92,8 +107,8 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>Division A playtest</h2>
-          <p>Initial combat-forward board beats that downstream branches can replace without reworking the app shell.</p>
+          <h2>Division B tactical board</h2>
+          <p>Division A playtest scaffold retained the shell. DivB turns it into a readable board where new players can see the sequence before they commit.</p>
           <ul>
             {encounterSteps.map((step) => (
               <li key={step}>{step}</li>
@@ -102,17 +117,29 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>Encounter ladder</h2>
-          <p>Starter duel against the Rogue AI, followed by harder rematches once card content and encounter logic land.</p>
+          <h2>Pilot brief</h2>
+          <p>Preconstructed deck: Midrange Voltage. Encounter ladder starts with the Rogue AI and teaches one clean attack pattern before adding harder reads.</p>
+          <p>Plan your first cycle around a single defended lane, then pivot once the AI spends its banked response.</p>
         </section>
 
         <section class="panel">
-          <h2>AI rival reads</h2>
-          <p>Rogue AI</p>
+          <h2>Combat readout</h2>
+          <p>AI rival reads - Rogue AI</p>
           <ul>
             {rivalReads.map((read) => (
               <li key={read.label}>
                 <strong>{read.label}</strong>: {read.detail}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="panel">
+          <h2>Frontline cards</h2>
+          <ul>
+            {frontlineCards.map((card) => (
+              <li key={card.name}>
+                <strong>{card.name}</strong>: {card.text}
               </li>
             ))}
           </ul>
