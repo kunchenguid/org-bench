@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/orchestrator" },
+    { "path": "./packages/schemas" },
+    { "path": "./packages/evaluator" },
+    { "path": "./packages/judge" },
+    { "path": "./packages/analyst" },
+    { "path": "./packages/viewer" }
+  ]
+}
