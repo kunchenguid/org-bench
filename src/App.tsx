@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 
-import { ladderSteps, rulesSections } from './app/rules-content';
 import { getCardsByFaction, getFactionSummaries } from './app/card-catalog';
+import { ladderSteps, rulesSections } from './app/rules-content';
 import { createGameSession } from './game/engine';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
@@ -54,9 +54,8 @@ export function App() {
 
   const page = routes[route];
   const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
   const isRulesRoute = route === '/rules';
-  const isCardsRoute = route === '/cards';
-  const factionSummaries = isCardsRoute ? getFactionSummaries() : [];
 
   useEffect(() => {
     document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
@@ -145,6 +144,7 @@ export function App() {
                       <div className="catalog-card-copy">
                         <strong>{card.name}</strong>
                         <span>{`Cost ${card.cost} - ${card.type}`}</span>
+                        <p>{card.text}</p>
                       </div>
                     </li>
                   ))}

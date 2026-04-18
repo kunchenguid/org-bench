@@ -70,6 +70,7 @@ describe('App shell', () => {
     const skyforgeSquireEntry = screen.getByText('Skyforge Squire').closest('li');
     expect(skyforgeSquireEntry).not.toBeNull();
     expect(within(skyforgeSquireEntry!).getByText('Cost 1 - Creature')).toBeInTheDocument();
+    expect(within(skyforgeSquireEntry!).getByText(/contest the board from turn one/i)).toBeInTheDocument();
   });
 
   it('renders authored rules sections on the rules route', () => {
