@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -59,13 +59,58 @@ const routes: Record<RouteKey, PageConfig> = {
   }
 };
 
+const feedbackPatterns = [
+  {
+    name: 'Card Play Lift',
+    tone: 'play',
+    className: 'fx-card-play',
+    body: 'Use for cards leaving hand and settling onto the board with a short upward lift and glow.'
+  },
+  {
+    name: 'Attack Lunge',
+    tone: 'attack',
+    className: 'fx-attack-lunge',
+    body: 'Use on attackers to sell forward momentum before they snap back into their lane.'
+  },
+  {
+    name: 'Damage Flash',
+    tone: 'damage',
+    className: 'fx-damage-flash',
+    body: 'Use when units or heroes take damage to pair a red pulse with a quick shake.'
+  },
+  {
+    name: 'Turn Sweep',
+    tone: 'turn',
+    className: 'fx-turn-sweep',
+    body: 'Use for turn transitions to sweep focus across the active side of the board.'
+  },
+  {
+    name: 'Victory-Loss Overlay',
+    tone: 'outcome',
+    className: 'fx-outcome-rise',
+    body: 'Use for win or loss overlays so results rise in with a soft backdrop bloom.'
+  }
+] as const;
+
 function getRouteFromHash(hash: string): RouteKey {
   const value = hash.replace(/^#\/?/, '');
   return value in routes ? (value as RouteKey) : 'home';
 }
 
+function getHashForRoute(route: RouteKey) {
+  return `#/${route}`;
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
+
+  useLayoutEffect(() => {
+    const normalizedHash = getHashForRoute(route);
+
+    if (window.location.hash !== normalizedHash) {
+      window.location.hash = normalizedHash;
+    }
+  }, [route]);
 
   useEffect(() => {
     const onHashChange = () => {
@@ -73,10 +118,7 @@ export function App() {
     };
 
     window.addEventListener('hashchange', onHashChange);
-
-    if (!window.location.hash) {
-      window.location.hash = '#/home';
-    }
+    onHashChange();
 
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -103,6 +145,10 @@ export function App() {
           }
         ];
 
+  useLayoutEffect(() => {
+    document.title = `${page.title} | Duel of Ash and Aether`;
+  }, [page.title]);
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -115,7 +161,7 @@ export function App() {
             <a
               key={key}
               className={route === key ? 'nav-link active' : 'nav-link'}
-              href={`#/${key}`}
+              href={getHashForRoute(key as RouteKey)}
             >
               {item.label}
             </a>
@@ -145,6 +191,79 @@ export function App() {
               <p>{section.body}</p>
             </article>
           ))}
+        </section>
+
+        {route === 'play' ? (
+          <section className="board-shell" aria-labelledby="board-shell-title">
+            <div className="board-shell-header">
+              <div>
+                <p className="eyebrow">Encounter Snapshot</p>
+                <h2 id="board-shell-title">Live Duel Board</h2>
+              </div>
+              <p className="board-turn">Turn 4 - Ember Guild attack</p>
+            </div>
+
+            <div className="board-status-grid">
+              <article className="status-card enemy-status">
+                <h3>Enemy Health</h3>
+                <p>16 / 20</p>
+              </article>
+              <article className="status-card player-status">
+                <h3>Player Health</h3>
+                <p>18 / 20</p>
+              </article>
+              <article className="status-card hand-status">
+                <h3>Hand Dock</h3>
+                <p>4 cards ready to deploy</p>
+              </article>
+            </div>
+
+            <div className="lane-grid">
+              <section className="lane-card front-lane">
+                <h3>Front Lane</h3>
+                <p>Pressure units clash here first.</p>
+              </section>
+              <section className="lane-card back-lane">
+                <h3>Back Lane</h3>
+                <p>Support units and relics stay protected here.</p>
+              </section>
+            </div>
+
+            <div className="resource-row" aria-label="Deck and discard piles">
+              <article className="resource-card">
+                <h3>Deck</h3>
+                <p>18 cards</p>
+              </article>
+              <article className="resource-card">
+                <h3>Discard</h3>
+                <p>5 cards</p>
+              </article>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="feedback-kit" aria-labelledby="feedback-kit-title">
+          <div className="section-copy">
+            <p className="eyebrow">Visual Feedback Primitives</p>
+            <h2 id="feedback-kit-title">Combat Feedback Kit</h2>
+            <p>
+              Reusable motion and overlay patterns for card play, attacks, damage hits, turn swaps,
+              and match resolution.
+            </p>
+          </div>
+
+          <div className="feedback-grid">
+            {feedbackPatterns.map((pattern) => (
+              <article key={pattern.name} className={`feedback-card tone-${pattern.tone}`}>
+                <div className={`feedback-demo ${pattern.className}`} aria-hidden="true">
+                  <span className="feedback-chip">Demo</span>
+                </div>
+                <h3>{pattern.name}</h3>
+                <p>{pattern.body}</p>
+                <code>{pattern.className}</code>
+              </article>
+            ))}
+          </div>
         </section>
       </main>
     </div>
