@@ -18,5 +18,8 @@ describe('App scaffold', () => {
 
     fireEvent.click(screen.getByRole('link', { name: /cards/i }));
     expect(screen.getByRole('heading', { name: /cards/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('article')).toHaveLength(12);
+    expect(screen.getByText(/cinder scout/i)).toBeInTheDocument();
+    expect(screen.getByText(/glass current/i)).toBeInTheDocument();
   });
 });

@@ -39,6 +39,85 @@ function RouteLink(props: {
   );
 }
 
+function getFactionTheme(factionId: string) {
+  if (factionId === 'ember') {
+    return {
+      accent: '#ff8a5b',
+      accentSoft: 'rgba(255, 138, 91, 0.2)',
+      panel: 'linear-gradient(180deg, rgba(60, 18, 16, 0.96), rgba(25, 11, 14, 0.96))',
+      art: 'radial-gradient(circle at 30% 30%, rgba(255, 208, 118, 0.9), rgba(255, 110, 77, 0.28) 36%, rgba(17, 7, 14, 0.95) 76%)'
+    };
+  }
+
+  return {
+    accent: '#66d6ff',
+    accentSoft: 'rgba(102, 214, 255, 0.2)',
+    panel: 'linear-gradient(180deg, rgba(10, 28, 43, 0.96), rgba(8, 12, 25, 0.96))',
+    art: 'radial-gradient(circle at 30% 30%, rgba(109, 214, 255, 0.82), rgba(70, 119, 255, 0.24) 34%, rgba(6, 12, 28, 0.95) 76%)'
+  };
+}
+
+function CardArt(props: { factionId: string }) {
+  if (props.factionId === 'ember') {
+    return (
+      <svg viewBox="0 0 160 110" class="card-art-svg" aria-hidden="true">
+        <circle cx="58" cy="42" r="26" fill="rgba(255, 211, 132, 0.88)" />
+        <path d="M38 90L78 20L98 64L122 32L138 90H38Z" fill="rgba(255, 122, 87, 0.82)" />
+        <path d="M62 86L84 46L97 70L116 42L126 86H62Z" fill="rgba(255, 245, 225, 0.7)" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 160 110" class="card-art-svg" aria-hidden="true">
+      <circle cx="54" cy="36" r="18" fill="rgba(182, 230, 255, 0.9)" />
+      <path d="M18 78C38 50 58 38 80 40C98 42 118 56 142 40V90H18V78Z" fill="rgba(72, 164, 255, 0.7)" />
+      <path d="M18 86C42 66 62 58 86 60C110 62 126 72 142 64V90H18V86Z" fill="rgba(58, 235, 220, 0.48)" />
+      <path d="M76 20L90 44L118 48L98 66L102 92L76 78L50 92L54 66L34 48L62 44L76 20Z" fill="rgba(214, 247, 255, 0.72)" />
+    </svg>
+  );
+}
+
+function CardView(props: { card: (typeof uniqueCards)[number] }) {
+  const theme = getFactionTheme(props.card.faction);
+
+  return (
+    <article
+      class="card-frame"
+      style={{
+        '--card-accent': theme.accent,
+        '--card-accent-soft': theme.accentSoft,
+        '--card-panel': theme.panel,
+        '--card-art': theme.art
+      }}
+    >
+      <header class="card-header">
+        <div>
+          <p class="card-faction">{props.card.faction}</p>
+          <h2>{props.card.name}</h2>
+        </div>
+        <span class="card-cost">{props.card.cost}</span>
+      </header>
+      <div class="card-art">
+        <CardArt factionId={props.card.faction} />
+      </div>
+      <div class="card-type-row">
+        <span>{props.card.type}</span>
+        <span>{factions.find((faction) => faction.id === props.card.faction)?.name}</span>
+      </div>
+      <p class="card-rules">{props.card.text}</p>
+      {props.card.attack !== undefined && props.card.health !== undefined ? (
+        <div class="card-stats">
+          <span>{props.card.attack}</span>
+          <span>{props.card.health}</span>
+        </div>
+      ) : (
+        <div class="card-spell-badge">Spellcraft</div>
+      )}
+    </article>
+  );
+}
+
 function PageContent(props: { route: Route }) {
   if (props.route === 'play') {
     return (
@@ -81,7 +160,11 @@ function PageContent(props: { route: Route }) {
           The shared card pool currently spans {uniqueCards.length} unique cards
           across {factions.map((faction) => faction.name).join(' and ')}.
         </p>
-        <p>Prototype card gallery for the shared card pool and factions.</p>
+        <div class="card-gallery">
+          {uniqueCards.map((card) => (
+            <CardView key={card.id} card={card} />
+          ))}
+        </div>
       </section>
     );
   }
