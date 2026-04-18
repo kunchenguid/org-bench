@@ -15,4 +15,13 @@ describe('App', () => {
     expect(html).toContain('Commit attack lane');
     expect(html).toContain('Bank shield charge');
   });
+
+  it('renders concrete AI rival reads for the opening encounter', () => {
+    const html = renderToString(h(App, {}));
+
+    expect(html).toContain('Rogue AI');
+    expect(html).toContain('Opening gambit');
+    expect(html).toContain('Counter window');
+    expect(html).toContain('Weak side');
+  });
 });

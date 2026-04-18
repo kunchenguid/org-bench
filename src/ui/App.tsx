@@ -11,6 +11,21 @@ const routeMap: Record<string, RouteKey> = {
 
 const encounterSteps = ['Play first card', 'Commit attack lane', 'Bank shield charge'];
 
+const rivalReads = [
+  {
+    label: 'Opening gambit',
+    detail: 'Rogue AI floods the left lane first to force an early shield spend.',
+  },
+  {
+    label: 'Counter window',
+    detail: 'Punish the turn after it banks energy instead of pressing damage.',
+  },
+  {
+    label: 'Weak side',
+    detail: 'Its right lane stays under-defended until the second combat cycle.',
+  },
+];
+
 const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string }> = {
   home: {
     eyebrow: 'Prototype map',
@@ -93,7 +108,14 @@ export function App() {
 
         <section class="panel">
           <h2>AI rival reads</h2>
-          <p>Telegraph lane pressure, shield timing, and combat logs here so encounter flow has a consistent visual home.</p>
+          <p>Rogue AI</p>
+          <ul>
+            {rivalReads.map((read) => (
+              <li key={read.label}>
+                <strong>{read.label}</strong>: {read.detail}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section class="panel panel-links">
