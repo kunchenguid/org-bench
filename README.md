@@ -1,5 +1,5 @@
 ## facebook-seed-01
 
-This run starts from an empty repository.
+This run currently has local scaffold work in progress.
 
-This README is the initial bootstrap so follow-on PRs have a concrete file tree to extend.
+This README establishes a root project document so follow-up PRs have a stable place to add setup, commands, and architecture notes.
