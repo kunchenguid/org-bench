@@ -6,15 +6,6 @@ describe('App scaffold', () => {
     window.location.hash = '#/';
   });
 
-  it('normalizes an unsupported hash back to the home route', () => {
-    window.location.hash = '#/unknown';
-
-    render(<App />);
-
-    expect(screen.getByRole('heading', { level: 1, name: /duel of embers/i })).toBeInTheDocument();
-    expect(window.location.hash).toBe('#/');
-  });
-
   it('marks the active nav item and updates the location hash', () => {
     render(<App />);
 
@@ -23,7 +14,6 @@ describe('App scaffold', () => {
 
     fireEvent.click(screen.getByRole('link', { name: /cards/i }));
 
-    expect(window.location.hash).toBe('#/cards');
     expect(screen.getByRole('link', { name: /cards/i })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current');
   });

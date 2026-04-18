@@ -167,21 +167,15 @@ function DefaultView({ page }: { page: (typeof pageCopy)[RouteKey] }) {
 }
 
 export function App() {
-  const [hash, setHash] = useState(() => normalizeHash(window.location.hash));
-
-  const updateRoute = (nextHash: string) => {
-    window.location.hash = nextHash;
-    setHash(nextHash);
-  };
+  const [hash, setHash] = useState(normalizeHash(window.location.hash || '#/'));
 
   useEffect(() => {
     const onHashChange = () => {
-      const nextHash = normalizeHash(window.location.hash);
-      setHash(nextHash);
-
+      const nextHash = normalizeHash(window.location.hash || '#/');
       if (window.location.hash !== nextHash) {
         window.location.hash = nextHash;
       }
+      setHash(nextHash);
     };
 
     onHashChange();
@@ -191,10 +185,6 @@ export function App() {
 
   const route = useMemo(() => resolveRoute(hash), [hash]);
   const page = pageCopy[route];
-
-  useEffect(() => {
-    document.title = route === 'home' ? page.title : `${page.title} - Duel of Embers`;
-  }, [page.title, route]);
 
   return (
     <div className="shell">
@@ -216,7 +206,7 @@ export function App() {
             className={route === key ? 'nav-link active' : 'nav-link'}
             aria-current={route === key ? 'page' : undefined}
             href={value.hash}
-            onClick={() => updateRoute(value.hash)}
+            onClick={() => setHash(value.hash)}
           >
             {value.label}
           </a>
