@@ -1,0 +1,104 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background: #07111f;
+  color: #f2f7ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(78, 140, 255, 0.22), transparent 40%),
+    linear-gradient(180deg, #0b1630 0%, #07111f 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell {
+  width: min(960px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.hero,
+.panel,
+.nav {
+  border: 1px solid rgba(153, 184, 255, 0.2);
+  background: rgba(8, 17, 35, 0.82);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.hero,
+.panel {
+  border-radius: 24px;
+  padding: 1.5rem;
+}
+
+.hero {
+  margin-bottom: 1rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: #92b1ff;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+}
+
+.hero h1,
+.panel h2 {
+  margin: 0;
+}
+
+.lede,
+.panel p {
+  margin-bottom: 0;
+  color: #cedbff;
+}
+
+.nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  border-radius: 20px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.nav-link {
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  text-align: center;
+  color: #d9e5ff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nav-link.active {
+  background: linear-gradient(135deg, #4a7dff 0%, #7e5dff 100%);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: min(100% - 1rem, 960px);
+    padding-top: 1rem;
+  }
+
+  .nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
