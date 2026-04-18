@@ -228,6 +228,10 @@ export function App() {
   const route = useMemo(() => resolveRoute(hash), [hash]);
   const page = pageCopy[route];
 
+  useEffect(() => {
+    document.title = route === 'home' ? page.title : `${page.title} - Duel of Embers`;
+  }, [page.title, route]);
+
   return (
     <div className="shell">
       <header className="hero">

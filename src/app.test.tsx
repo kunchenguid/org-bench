@@ -5,6 +5,19 @@ import { cardLibrary } from './cards';
 describe('App scaffold', () => {
   beforeEach(() => {
     window.location.hash = '#/';
+    document.title = 'Duel of Embers';
+  });
+
+  it('updates the browser title as the active route changes', () => {
+    render(<App />);
+
+    expect(document.title).toBe('Duel of Embers');
+
+    fireEvent.click(screen.getByRole('link', { name: /rules/i }));
+    expect(document.title).toBe('How to Play - Duel of Embers');
+
+    fireEvent.click(screen.getByRole('link', { name: /cards/i }));
+    expect(document.title).toBe('Card Gallery - Duel of Embers');
   });
 
   it('renders the home page and navigates to placeholder routes', () => {
