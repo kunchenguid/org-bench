@@ -338,6 +338,10 @@ function runAiTurn(encounter: EncounterState): EncounterState {
 }
 
 export function endTurn(encounter: EncounterState): EncounterState {
+  if (encounter.player.health === 0 || encounter.opponent.health === 0) {
+    return encounter;
+  }
+
   if (encounter.turn.activeSide === 'player') {
     const afterAiTurn = runAiTurn(encounter);
     return beginTurn(afterAiTurn, 'player', encounter.turn.number + 1);
