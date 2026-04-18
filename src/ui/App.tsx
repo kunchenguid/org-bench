@@ -383,6 +383,19 @@ export function RulesPanel() {
           </article>
         ))}
       </div>
+
+      <div className="rules-reference-block">
+        <div className="rules-intro">
+          <p className="eyebrow">Set Reference</p>
+          <h2>Keywords and encounter beats.</h2>
+          <p>
+            The launch set stays intentionally compact, so the full keyword glossary and campaign
+            ladder fit on one screen and become part of the player’s mental model quickly.
+          </p>
+        </div>
+
+        <RulesReference />
+      </div>
     </section>
   );
 }

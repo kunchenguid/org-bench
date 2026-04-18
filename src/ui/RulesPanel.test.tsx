@@ -16,5 +16,9 @@ describe('RulesPanel', () => {
     expect(markup).toContain('Victory and defeat');
     expect(markup).toContain('Encounter progression');
     expect(markup).toContain('Save and resume');
+    expect(markup).toContain('Ambush');
+    expect(markup).toContain('Guard');
+    expect(markup).toContain('Border Skirmish');
+    expect(markup).toContain('Crown Ascent');
   });
 });
