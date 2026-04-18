@@ -15,10 +15,7 @@ const resolveRoute = (hash: string): RouteKey => {
   return match?.[0] ?? 'home';
 };
 
-const normalizeHash = (hash: string): string => {
-  const nextHash = hash || routes.home.hash;
-  return resolveRoute(nextHash) === 'home' && nextHash !== routes.home.hash ? routes.home.hash : nextHash;
-};
+const normalizeHash = (hash: string) => (resolveRoute(hash) === 'home' && hash !== routes.home.hash ? routes.home.hash : hash || routes.home.hash);
 
 const pageCopy: Record<RouteKey, { title: string; eyebrow: string; body: string }> = {
   home: {
@@ -157,6 +154,51 @@ function GalleryView() {
   );
 }
 
+function RulesView() {
+  return (
+    <section className="rules-view">
+      <div className="rules-intro">
+        <h2>How to Play</h2>
+        <p>Each turn gives you 1 more Ember until you reach 6. Spend that resource to deploy creatures and cast spells before sending your battlefield forward.</p>
+      </div>
+
+      <div className="rules-grid">
+        <article className="rules-card">
+          <h3>Turn Flow</h3>
+          <p>Start of turn: ready your creatures, draw 1 card, and refill your Ember to the new limit.</p>
+          <p>Main phase: play creature cards onto your battlefield row or cast spells from your hand.</p>
+          <p>Attack phase: your ready creatures strike the enemy leader unless later rules add blockers or guards.</p>
+        </article>
+
+        <article className="rules-card">
+          <h3>Card Types</h3>
+          <p>Creatures stay on the battlefield and use their power and health values in combat.</p>
+          <p>Spells resolve once for tempo swings, damage, card flow, or support effects, then go away.</p>
+          <p>Use the gallery to learn each faction style before you start the campaign ladder.</p>
+        </article>
+
+        <article className="rules-card">
+          <h3>Winning</h3>
+          <p>Drop the opposing leader to 0 health to win the duel.</p>
+          <p>Win the campaign by defeating all 4 encounters in order.</p>
+          <p>If you reload mid-encounter, the browser save system should resume that run from the same battle state.</p>
+        </article>
+      </div>
+
+      <div className="rules-grid">
+        <article className="rules-card faction-callout ember-callout">
+          <h3>Ember Covenant</h3>
+          <p>Fast pressure, direct damage, and hard-closing finishers. Use them when you want to push tempo.</p>
+        </article>
+        <article className="rules-card faction-callout tide-callout">
+          <h3>Tidemark Circle</h3>
+          <p>Steady defense, card flow, and resilient late-game threats. Use them to outlast explosive starts.</p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function DefaultView({ page }: { page: (typeof pageCopy)[RouteKey] }) {
   return (
     <section>
@@ -167,21 +209,15 @@ function DefaultView({ page }: { page: (typeof pageCopy)[RouteKey] }) {
 }
 
 export function App() {
-  const [hash, setHash] = useState(() => normalizeHash(window.location.hash));
-
-  const updateRoute = (nextHash: string) => {
-    window.location.hash = nextHash;
-    setHash(nextHash);
-  };
+  const [hash, setHash] = useState(normalizeHash(window.location.hash || '#/'));
 
   useEffect(() => {
     const onHashChange = () => {
-      const nextHash = normalizeHash(window.location.hash);
-      setHash(nextHash);
-
+      const nextHash = normalizeHash(window.location.hash || '#/');
       if (window.location.hash !== nextHash) {
         window.location.hash = nextHash;
       }
+      setHash(nextHash);
     };
 
     onHashChange();
@@ -214,16 +250,15 @@ export function App() {
           <a
             key={key}
             className={route === key ? 'nav-link active' : 'nav-link'}
-            aria-current={route === key ? 'page' : undefined}
             href={value.hash}
-            onClick={() => updateRoute(value.hash)}
+            onClick={() => setHash(value.hash)}
           >
             {value.label}
           </a>
         ))}
       </nav>
       <main className="panel">
-        {route === 'cards' ? <GalleryView /> : <DefaultView page={page} />}
+        {route === 'cards' ? <GalleryView /> : route === 'rules' ? <RulesView /> : <DefaultView page={page} />}
       </main>
     </div>
   );
