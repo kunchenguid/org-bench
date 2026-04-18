@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { CardFrame, cardFactionThemes } from './CardFrame';
+import { showcaseCards } from './cardCatalog';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -285,6 +287,31 @@ export function RulesPanel() {
             </ul>
           </article>
         ))}
+      </div>
+
+      <div className="rules-factions">
+        <div className="rules-factions-copy">
+          <p className="eyebrow">Faction primer</p>
+          <h3>Learn the two core identities before your first duel.</h3>
+          <p>
+            The card frame language stays constant, but the two factions ask for different combat
+            instincts. One pushes tempo and direct damage, the other stabilizes and outlasts.
+          </p>
+          <ul>
+            {showcaseCards.map((card) => (
+              <li key={card.title}>
+                <strong>{cardFactionThemes[card.faction].label}</strong>: {card.title} shows the
+                faction&apos;s baseline rhythm.
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rules-faction-cards">
+          {showcaseCards.map((card) => (
+            <CardFrame key={card.title} {...card} />
+          ))}
+        </div>
       </div>
     </section>
   );
