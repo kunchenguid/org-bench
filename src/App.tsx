@@ -6,6 +6,7 @@ import {
   starterDeck,
   uniqueCards
 } from './content/gameData';
+import { createDuelState } from './game/state';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -118,20 +119,96 @@ function CardView(props: { card: (typeof uniqueCards)[number] }) {
   );
 }
 
+function ZoneSummary(props: {
+  label: string;
+  count: number;
+  icon: string;
+  tone?: 'player' | 'enemy';
+}) {
+  return (
+    <div class={`zone-summary ${props.tone ?? 'player'}`}>
+      <span class="zone-icon">{props.icon}</span>
+      <div>
+        <p>{props.label}</p>
+        <strong>{props.count}</strong>
+      </div>
+    </div>
+  );
+}
+
 function PageContent(props: { route: Route }) {
   if (props.route === 'play') {
+    const duel = createDuelState('oracle-seed-01', encounters[0].id);
+
     return (
-      <section class="panel">
+      <section class="panel play-panel">
         <h1>Play</h1>
-        <p>
-          The board prototype will use the Solar Accord starter deck against a
-          three-duel encounter ladder. The next round will replace this overview
-          with the playable battlefield.
-        </p>
-        <p>
-          Starter deck: {starterDeck.name} with {starterDeck.cards.length} cards.
-          Ladder: {encounters.map((encounter) => encounter.name).join(', ')}.
-        </p>
+        <div class="turn-banner">
+          <div>
+            <p class="eyebrow">Current encounter</p>
+            <strong>{encounters[0].name}</strong>
+          </div>
+          <div class="turn-pill">
+            Turn {duel.turnNumber} - {duel.phase}
+          </div>
+        </div>
+
+        <div class="combatant-strip enemy-strip">
+          <div>
+            <p class="eyebrow">Enemy health</p>
+            <strong>{duel.opponent.health}</strong>
+          </div>
+          <div>
+            <p class="eyebrow">Enemy resources</p>
+            <strong>
+              {duel.opponent.resources.current}/{duel.opponent.resources.max}
+            </strong>
+          </div>
+          <div>
+            <p class="eyebrow">Enemy hand</p>
+            <strong>{duel.opponent.hand.length}</strong>
+          </div>
+        </div>
+
+        <div class="battle-lane enemy-lane">
+          <div class="battlefield-header">Enemy battlefield</div>
+          <div class="empty-battlefield">No enemy units deployed yet.</div>
+        </div>
+
+        <div class="zone-row">
+          <ZoneSummary label="Enemy deck" count={duel.opponent.deck.length} icon="🂠" tone="enemy" />
+          <ZoneSummary label="Enemy discard" count={duel.opponent.discard.length} icon="✦" tone="enemy" />
+          <ZoneSummary label="Your discard" count={duel.player.discard.length} icon="✦" />
+          <ZoneSummary label="Your deck" count={duel.player.deck.length} icon="🂠" />
+        </div>
+
+        <div class="battle-lane player-lane">
+          <div class="battlefield-header">Your battlefield</div>
+          <div class="empty-battlefield">Play creatures here to pressure the enemy hero.</div>
+        </div>
+
+        <div class="combatant-strip player-strip">
+          <div>
+            <p class="eyebrow">Your health</p>
+            <strong>{duel.player.health}</strong>
+          </div>
+          <div>
+            <p class="eyebrow">Your resources</p>
+            <strong>
+              {duel.player.resources.current}/{duel.player.resources.max}
+            </strong>
+          </div>
+          <div>
+            <p class="eyebrow">Your hand</p>
+            <strong>{duel.player.hand.length}</strong>
+          </div>
+        </div>
+
+        <div class="hand-row">
+          {duel.player.hand.map((card) => (
+            <CardView key={card.instanceId} card={card} />
+          ))}
+        </div>
       </section>
     );
   }

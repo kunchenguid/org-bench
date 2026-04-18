@@ -12,6 +12,11 @@ describe('App scaffold', () => {
 
     fireEvent.click(screen.getByRole('link', { name: /play/i }));
     expect(screen.getByRole('heading', { name: /play/i })).toBeInTheDocument();
+    expect(screen.getByText(/turn 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/your health/i)).toBeInTheDocument();
+    expect(screen.getByText(/enemy health/i)).toBeInTheDocument();
+    expect(screen.getByText(/your hand/i)).toBeInTheDocument();
+    expect(screen.getByText(/enemy hand/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('link', { name: /rules/i }));
     expect(screen.getByRole('heading', { name: /rules/i })).toBeInTheDocument();
