@@ -12,4 +12,12 @@ describe('App', () => {
     expect(screen.getByRole('link', { name: /rules/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /cards/i })).toBeInTheDocument();
   });
+
+  test('offers a direct call to start the first duel from the hero', () => {
+    render(<App />);
+
+    const [heroCallToAction] = screen.getAllByRole('link', { name: /start first duel/i });
+
+    expect(heroCallToAction).toHaveAttribute('href', '#/play');
+  });
 });

@@ -100,6 +100,11 @@ export function App() {
           <p className="eyebrow">{current.eyebrow}</p>
           <h1>{current.title}</h1>
           <p className="lede">{current.body}</p>
+          <div className="hero-actions">
+            <a className="hero-action" href={pageHref('play')}>
+              Start First Duel
+            </a>
+          </div>
         </div>
       </header>
 

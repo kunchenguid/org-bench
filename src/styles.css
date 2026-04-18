@@ -73,6 +73,21 @@ a {
   padding: 5rem 0 3rem;
 }
 
+.hero-actions {
+  margin-top: 1.5rem;
+}
+
+.hero-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 166, 112, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 166, 112, 0.24), rgba(255, 145, 77, 0.12));
+  padding: 0.85rem 1.2rem;
+  font-weight: 700;
+}
+
 .hero-copy h1,
 .panel h2 {
   margin: 0;
