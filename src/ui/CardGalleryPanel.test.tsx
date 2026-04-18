@@ -13,5 +13,7 @@ describe('CardGalleryPanel', () => {
     expect(markup).toContain('Rootwhisper Keeper');
     expect(markup).toContain('Ashfall Covenant');
     expect(markup).toContain('Verdant Loom');
+    expect(markup).toContain('Fast pressure and direct damage');
+    expect(markup).toContain('Resilience and attrition');
   });
 });
