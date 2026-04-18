@@ -41,7 +41,7 @@ describe('rules content', () => {
   it('defines ladder progression guidance from tutorial to champion', () => {
     expect(ladderSteps).toHaveLength(4);
     expect(ladderSteps[0].name).toMatch(/initiate|rookie|tutorial/i);
-    expect(ladderSteps.at(-1)?.name).toMatch(/champion|boss|final/i);
+    expect(ladderSteps[ladderSteps.length - 1]?.name).toMatch(/champion|boss|final/i);
     expect(ladderSteps.every((step) => step.goal.length > 0)).toBe(true);
   });
 });
