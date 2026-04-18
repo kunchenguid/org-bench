@@ -7,10 +7,14 @@ const rulesHtml = readFileSync(new URL('../rules.html', import.meta.url), 'utf8'
 test('rules page teaches setup turn flow card types deck rules and win condition', () => {
   assert.match(rulesHtml, /<h1[^>]*>Signal Clash Rules<\/h1>/i);
   assert.match(rulesHtml, /<h2[^>]*>Setup<\/h2>/i);
+  assert.match(rulesHtml, /<h2[^>]*>Quick Reference<\/h2>/i);
   assert.match(rulesHtml, /<h2[^>]*>Turn Flow<\/h2>/i);
   assert.match(rulesHtml, /<h2[^>]*>Card Types<\/h2>/i);
   assert.match(rulesHtml, /<h2[^>]*>Deckbuilding Rules<\/h2>/i);
   assert.match(rulesHtml, /<h2[^>]*>Win Condition<\/h2>/i);
+  assert.match(rulesHtml, /core is your life total/i);
+  assert.match(rulesHtml, /discard pile holds spent cards/i);
+  assert.match(rulesHtml, /ready units can attack/i);
   assert.match(rulesHtml, /draw one card/i);
   assert.match(rulesHtml, /units hold the board/i);
   assert.match(rulesHtml, /signals are one-shot effects/i);
