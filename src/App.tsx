@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 
-import { ladderEncounters } from './campaign';
+import { createEncounterDuelState, ladderEncounters } from './campaign';
+import { clearEncounterSnapshot, loadEncounterSnapshot, type EncounterSnapshot } from './persistence';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
+
+const runId = 'facebook-seed-01';
 
 const routes: Record<RouteKey, { label: string; title: string; body: string }> = {
   home: {
@@ -27,13 +30,61 @@ const routes: Record<RouteKey, { label: string; title: string; body: string }> =
   }
 };
 
+const feedbackPatterns = [
+  {
+    name: 'Card Play Lift',
+    tone: 'play',
+    className: 'fx-card-play',
+    body: 'Use for cards leaving hand and settling onto the board with a short upward lift and glow.'
+  },
+  {
+    name: 'Attack Lunge',
+    tone: 'attack',
+    className: 'fx-attack-lunge',
+    body: 'Use on attackers to sell forward momentum before they snap back into their lane.'
+  },
+  {
+    name: 'Damage Flash',
+    tone: 'damage',
+    className: 'fx-damage-flash',
+    body: 'Use when units or heroes take damage to pair a red pulse with a quick shake.'
+  },
+  {
+    name: 'Turn Sweep',
+    tone: 'turn',
+    className: 'fx-turn-sweep',
+    body: 'Use for turn transitions to sweep focus across the active side of the board.'
+  },
+  {
+    name: 'Victory-Loss Overlay',
+    tone: 'outcome',
+    className: 'fx-outcome-rise',
+    body: 'Use for win or loss overlays so results rise in with a soft backdrop bloom.'
+  }
+] as const;
+
 function getRouteFromHash(hash: string): RouteKey {
   const value = hash.replace(/^#\/?/, '');
   return value in routes ? (value as RouteKey) : 'home';
 }
 
+function getHashForRoute(route: RouteKey) {
+  return `#/${route}`;
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
+  const [savedEncounter, setSavedEncounter] = useState<EncounterSnapshot | null>(() =>
+    loadEncounterSnapshot(window.localStorage, runId)
+  );
+
+  useLayoutEffect(() => {
+    const normalizedHash = getHashForRoute(route);
+
+    if (window.location.hash !== normalizedHash) {
+      window.location.hash = normalizedHash;
+    }
+  }, [route]);
 
   useEffect(() => {
     const onHashChange = () => {
@@ -41,16 +92,25 @@ export function App() {
     };
 
     window.addEventListener('hashchange', onHashChange);
-
-    if (!window.location.hash) {
-      window.location.hash = '#/home';
-    }
+    onHashChange();
 
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   const page = routes[route];
   const isPlayRoute = route === 'play';
+  const featuredEncounter = createEncounterDuelState(ladderEncounters[0].id);
+  const playerState = featuredEncounter.state.players.player;
+  const opponentState = featuredEncounter.state.players.opponent;
+
+  useLayoutEffect(() => {
+    document.title = `${page.title} | Duel of Ash and Aether`;
+  }, [page.title]);
+
+  const onStartNewRun = () => {
+    clearEncounterSnapshot(window.localStorage, runId);
+    setSavedEncounter(null);
+  };
 
   return (
     <div className="app-shell">
@@ -64,7 +124,7 @@ export function App() {
             <a
               key={key}
               className={route === key ? 'nav-link active' : 'nav-link'}
-              href={`#/${key}`}
+              href={getHashForRoute(key as RouteKey)}
             >
               {item.label}
             </a>
@@ -87,40 +147,133 @@ export function App() {
           </div>
         </section>
 
+        <section className="preview-grid" aria-label="Scaffold Preview">
+          <article className="preview-card ember">
+            <h2>Ember Guild</h2>
+            <p>A fast pressure faction built around sparks, burn, and battlefield momentum.</p>
+          </article>
+          <article className="preview-card aether">
+            <h2>Aether Covenant</h2>
+            <p>A tempo faction that manipulates energy, shields, and tactical positioning.</p>
+          </article>
+          <article className="preview-card ladder">
+            <h2>Encounter Ladder</h2>
+            <p>Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.</p>
+          </article>
+        </section>
+
         {isPlayRoute ? (
-          <section className="preview-grid" aria-label="Encounter Ladder">
-            {ladderEncounters.map((encounter) => (
-              <article key={encounter.id} className="preview-card ladder encounter-card">
-                <p className="eyebrow">{encounter.opponent}</p>
-                <h2>{encounter.name}</h2>
-                <p>{encounter.summary}</p>
-                <p><strong>Player deck:</strong> {encounter.playerDeck.name}</p>
-                <p><strong>Enemy deck:</strong> {encounter.enemyDeck.name}</p>
-                <p><strong>AI plan:</strong></p>
-                <ul className="ai-plan">
-                  {encounter.aiPlan.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ul>
+          <>
+            <section className="play-status" aria-live="polite">
+              {savedEncounter ? (
+                <>
+                  <p>Saved encounter: {savedEncounter.encounterName}</p>
+                  <div className="hero-actions">
+                    <button className="button primary" type="button">
+                      Resume encounter
+                    </button>
+                    <button className="button secondary" type="button" onClick={onStartNewRun}>
+                      Start new run
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p>No active encounter saved for this run.</p>
+              )}
+            </section>
+
+            <section className="board-shell" aria-labelledby="board-shell-title">
+              <div className="board-shell-header">
+                <div>
+                  <p className="eyebrow">{featuredEncounter.encounter.opponent}</p>
+                  <h2 id="board-shell-title">Live Duel Board</h2>
+                </div>
+                <p className="board-turn">
+                  Turn {featuredEncounter.state.turn} - {featuredEncounter.encounter.name}
+                </p>
+              </div>
+
+              <div className="board-status-grid">
+                <article className="status-card enemy-status">
+                  <h3>Enemy Health</h3>
+                  <p>{opponentState.health} / 20</p>
+                </article>
+                <article className="status-card player-status">
+                  <h3>Player Health</h3>
+                  <p>{playerState.health} / 20</p>
+                </article>
+                <article className="status-card hand-status">
+                  <h3>Hand Dock</h3>
+                  <p>{playerState.hand.length} cards ready to deploy</p>
+                </article>
+              </div>
+
+              <div className="lane-grid">
+                <section className="lane-card front-lane">
+                  <h3>Front Lane</h3>
+                  <p>Pressure units clash here first.</p>
+                </section>
+                <section className="lane-card back-lane">
+                  <h3>Back Lane</h3>
+                  <p>Support units and relics stay protected here.</p>
+                </section>
+              </div>
+
+              <div className="resource-row" aria-label="Deck and discard piles">
+                <article className="resource-card">
+                  <h3>Deck</h3>
+                  <p>{playerState.deck.length} cards</p>
+                </article>
+                <article className="resource-card">
+                  <h3>Discard</h3>
+                  <p>{playerState.discard.length} cards</p>
+                </article>
+              </div>
+            </section>
+
+            <section className="preview-grid" aria-label="Encounter Ladder">
+              {ladderEncounters.map((encounter) => (
+                <article key={encounter.id} className="preview-card ladder encounter-card">
+                  <p className="eyebrow">{encounter.opponent}</p>
+                  <h2>{encounter.name}</h2>
+                  <p>{encounter.summary}</p>
+                  <p><strong>Player deck:</strong> {encounter.playerDeck.name}</p>
+                  <p><strong>Enemy deck:</strong> {encounter.enemyDeck.name}</p>
+                  <p><strong>AI plan:</strong></p>
+                  <ul className="ai-plan">
+                    {encounter.aiPlan.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </section>
+          </>
+        ) : null}
+
+        <section className="feedback-kit" aria-labelledby="feedback-kit-title">
+          <div className="section-copy">
+            <p className="eyebrow">Visual Feedback Primitives</p>
+            <h2 id="feedback-kit-title">Combat Feedback Kit</h2>
+            <p>
+              Reusable motion and overlay patterns for card play, attacks, damage hits, turn swaps,
+              and match resolution.
+            </p>
+          </div>
+
+          <div className="feedback-grid">
+            {feedbackPatterns.map((pattern) => (
+              <article key={pattern.name} className={`feedback-card tone-${pattern.tone}`}>
+                <div className={`feedback-demo ${pattern.className}`} aria-hidden="true">
+                  <span className="feedback-chip">Demo</span>
+                </div>
+                <h3>{pattern.name}</h3>
+                <p>{pattern.body}</p>
+                <code>{pattern.className}</code>
               </article>
             ))}
-          </section>
-        ) : (
-          <section className="preview-grid" aria-label="Scaffold Preview">
-            <article className="preview-card ember">
-              <h2>Ember Guild</h2>
-              <p>A fast pressure faction built around sparks, burn, and battlefield momentum.</p>
-            </article>
-            <article className="preview-card aether">
-              <h2>Aether Covenant</h2>
-              <p>A tempo faction that manipulates energy, shields, and tactical positioning.</p>
-            </article>
-            <article className="preview-card ladder">
-              <h2>Encounter Ladder</h2>
-              <p>Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.</p>
-            </article>
-          </section>
-        )}
+          </div>
+        </section>
       </main>
     </div>
   );

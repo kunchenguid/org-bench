@@ -1,3 +1,5 @@
+import { createDuelState, type DuelState } from './game/state';
+
 export type DeckCard = {
   name: string;
   count: number;
@@ -17,6 +19,11 @@ export type Encounter = {
     cards: DeckCard[];
   };
   aiPlan: string[];
+};
+
+export type EncounterDuel = {
+  encounter: Encounter;
+  state: DuelState;
 };
 
 export const ladderEncounters: Encounter[] = [
@@ -108,3 +115,24 @@ export const ladderEncounters: Encounter[] = [
     ]
   }
 ];
+
+function expandDeck(cards: DeckCard[]) {
+  return cards.flatMap((card) => Array.from({ length: card.count }, () => card.name));
+}
+
+export function createEncounterDuelState(encounterId: string): EncounterDuel {
+  const encounter = ladderEncounters.find((item) => item.id === encounterId);
+
+  if (!encounter) {
+    throw new Error(`Unknown encounter: ${encounterId}`);
+  }
+
+  return {
+    encounter,
+    state: createDuelState({
+      playerDeck: expandDeck(encounter.playerDeck.cards),
+      opponentDeck: expandDeck(encounter.enemyDeck.cards),
+      openingHandSize: 3
+    })
+  };
+}
