@@ -50,6 +50,21 @@ const pageLookup = Object.fromEntries(pages.map((page) => [page.id, page])) as R
   PageDefinition
 >;
 
+const rulesQuickStart = [
+  {
+    title: '1. Spark',
+    body: 'Start your turn by refreshing your ember, drawing a card, and reading the board before you commit resources.',
+  },
+  {
+    title: '2. Deploy',
+    body: 'Spend ember to summon creatures or cast spells, then place your pressure where the rival binder is exposed.',
+  },
+  {
+    title: '3. Clash',
+    body: 'Attack across open lanes, trade into defenders when needed, and sequence your final push before ending the turn.',
+  },
+];
+
 function normalizeHash(hash: string): PageId {
   const raw = hash.replace(/^#\/?/, '').trim().toLowerCase();
   return raw in pageLookup ? (raw as PageId) : 'home';
@@ -63,21 +78,10 @@ function useCurrentPage(): PageId {
   const [page, setPage] = useState<PageId>(() => normalizeHash(window.location.hash));
 
   useEffect(() => {
-    const syncHash = () => {
-      const nextPage = normalizeHash(window.location.hash);
-      const nextHash = pageHref(nextPage);
+    const onHashChange = () => setPage(normalizeHash(window.location.hash));
 
-      setPage(nextPage);
-
-      if (window.location.hash !== nextHash) {
-        window.location.hash = nextHash;
-      }
-    };
-
-    syncHash();
-
-    window.addEventListener('hashchange', syncHash);
-    return () => window.removeEventListener('hashchange', syncHash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   return page;
@@ -86,6 +90,7 @@ function useCurrentPage(): PageId {
 export function App() {
   const currentPage = useCurrentPage();
   const current = pageLookup[currentPage];
+  const isRulesPage = currentPage === 'rules';
 
   return (
     <div className="shell">
@@ -116,23 +121,47 @@ export function App() {
 
       <main className="content">
         <section className="panel">
-          <h2>Round 1 Shared Scaffold</h2>
-          <p>
-            The app shell, navigation model, relative-path build config, and page placeholders are
-            in place so the team can parallelize game systems, card art, and encounter design in
-            round 2.
-          </p>
+          {isRulesPage ? (
+            <>
+              <h2>Quick Duel Flow</h2>
+              <p>
+                Reduce the rival binder to 0 ember before they break through yours. Every turn is
+                a short loop: refill, deploy, and press the lane where you can convert tempo into
+                direct damage.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>Round 1 Shared Scaffold</h2>
+              <p>
+                The app shell, navigation model, relative-path build config, and page placeholders
+                are in place so the team can parallelize game systems, card art, and encounter
+                design in round 2.
+              </p>
+            </>
+          )}
         </section>
 
-        <section className="panel-grid" aria-label="Site surfaces">
-          {pages.map((page) => (
-            <article className="panel" key={page.id}>
-              <p className="eyebrow">{page.eyebrow}</p>
-              <h2>{page.label}</h2>
-              <p>{page.body}</p>
-            </article>
-          ))}
-        </section>
+        {isRulesPage ? (
+          <section className="panel-grid" aria-label="Quick duel steps">
+            {rulesQuickStart.map((step) => (
+              <article className="panel" key={step.title}>
+                <h2>{step.title}</h2>
+                <p>{step.body}</p>
+              </article>
+            ))}
+          </section>
+        ) : (
+          <section className="panel-grid" aria-label="Site surfaces">
+            {pages.map((page) => (
+              <article className="panel" key={page.id}>
+                <p className="eyebrow">{page.eyebrow}</p>
+                <h2>{page.label}</h2>
+                <p>{page.body}</p>
+              </article>
+            ))}
+          </section>
+        )}
       </main>
     </div>
   );
