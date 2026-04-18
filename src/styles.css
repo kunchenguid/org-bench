@@ -26,6 +26,10 @@ a {
   text-decoration: none;
 }
 
+button {
+  font: inherit;
+}
+
 #app {
   min-height: 100vh;
 }
@@ -66,6 +70,21 @@ a {
 }
 
 .nav-link[aria-current='page'] {
+  border-color: rgba(255, 166, 112, 0.7);
+  background: rgba(255, 166, 112, 0.12);
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.filter-button {
+  cursor: pointer;
+}
+
+.filter-button[aria-pressed='true'] {
   border-color: rgba(255, 166, 112, 0.7);
   background: rgba(255, 166, 112, 0.12);
 }
