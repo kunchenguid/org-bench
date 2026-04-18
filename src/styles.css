@@ -459,6 +459,12 @@ select {
   font-weight: 600;
 }
 
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .info-card,
 .game-card,
 .variant-card,
@@ -529,6 +535,11 @@ select {
   color: #fff2de;
 }
 
+.pill.is-active {
+  background: linear-gradient(135deg, rgba(245, 165, 93, 0.26), rgba(212, 81, 69, 0.2));
+  border: 1px solid rgba(245, 178, 107, 0.45);
+}
+
 .cost-badge {
   min-width: 30px;
   padding: 0;
@@ -549,7 +560,7 @@ select {
   .board-headline,
   .combatants,
   .board-row,
-  .board-actions {
+  .board-actions,
   .info-grid,
   .card-grid,
   .variant-list {
