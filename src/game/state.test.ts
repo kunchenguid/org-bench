@@ -1,4 +1,4 @@
-import { createCampaignState, createDuelState } from './state';
+import { createCampaignState, createDuelState, playCard } from './state';
 
 describe('shared duel state', () => {
   it('creates a namespaced campaign ladder from the shared encounter list', () => {
@@ -40,6 +40,51 @@ describe('shared duel state', () => {
     expect(duel.player.hand[0]).toMatchObject({
       cardId: 'cinder-scout',
       type: 'creature'
+    });
+  });
+
+  it('moves creatures from hand to battlefield and spends resources', () => {
+    const duel = createDuelState('oracle-seed-01', 'ashen-adept');
+
+    duel.phase = 'main';
+    const playedCardId = duel.player.hand[0].instanceId;
+
+    const next = playCard(duel, 'player', playedCardId);
+
+    expect(next.player.resources).toEqual({ current: 0, max: 1 });
+    expect(next.player.hand).toHaveLength(3);
+    expect(next.player.battlefield).toHaveLength(1);
+    expect(next.player.battlefield[0]).toMatchObject({
+      instanceId: playedCardId,
+      cardId: 'cinder-scout',
+      type: 'creature'
+    });
+    expect(next.player.discard).toEqual([]);
+  });
+
+  it('moves spells from hand to discard and spends resources', () => {
+    const duel = createDuelState('oracle-seed-01', 'ashen-adept');
+
+    duel.phase = 'main';
+    duel.player.resources = { current: 3, max: 3 };
+    const spellIndex = duel.player.deck.findIndex((card) => card.type === 'spell');
+
+    expect(spellIndex).toBeGreaterThanOrEqual(0);
+
+    const [spell] = duel.player.deck.splice(spellIndex, 1);
+    duel.player.hand = [...duel.player.hand.slice(0, 3), spell];
+
+    expect(spell).toBeDefined();
+
+    const next = playCard(duel, 'player', spell!.instanceId);
+
+    expect(next.player.resources).toEqual({ current: 1, max: 3 });
+    expect(next.player.hand).toHaveLength(3);
+    expect(next.player.battlefield).toEqual([]);
+    expect(next.player.discard).toHaveLength(1);
+    expect(next.player.discard[0]).toMatchObject({
+      instanceId: spell!.instanceId,
+      type: 'spell'
     });
   });
 });

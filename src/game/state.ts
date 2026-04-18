@@ -81,6 +81,50 @@ export function createDuelState(namespace: string, encounterId: string): DuelSta
   }
 }
 
+export function playCard(
+  duel: DuelState,
+  playerId: 'player' | string,
+  cardInstanceId: string
+): DuelState {
+  if (duel.phase !== 'main') {
+    throw new Error('Cards can only be played during the main phase')
+  }
+
+  const actorKey = duel.player.id === playerId ? 'player' : duel.opponent.id === playerId ? 'opponent' : null
+
+  if (!actorKey) {
+    throw new Error(`Unknown player id: ${playerId}`)
+  }
+
+  const actor = duel[actorKey]
+  const card = actor.hand.find((entry) => entry.instanceId === cardInstanceId)
+
+  if (!card) {
+    throw new Error(`Card is not in hand: ${cardInstanceId}`)
+  }
+
+  if (actor.resources.current < card.cost) {
+    throw new Error(`Not enough resources for ${card.instanceId}`)
+  }
+
+  const hand = actor.hand.filter((entry) => entry.instanceId !== cardInstanceId)
+  const updatedActor: CombatantState = {
+    ...actor,
+    resources: {
+      ...actor.resources,
+      current: actor.resources.current - card.cost
+    },
+    hand,
+    battlefield: card.type === 'creature' ? [...actor.battlefield, card] : actor.battlefield,
+    discard: card.type === 'spell' ? [...actor.discard, card] : actor.discard
+  }
+
+  return {
+    ...duel,
+    [actorKey]: updatedActor
+  }
+}
+
 function createCombatant(
   ownerId: string,
   cardIds: string[],
