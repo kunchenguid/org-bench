@@ -1,0 +1,7 @@
+runs/
+node_modules/
+dist/
+.opencode/
+.claude/
+.DS_Store
+packages/viewer/public/runs.json

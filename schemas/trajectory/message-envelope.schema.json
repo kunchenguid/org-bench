@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "round": {
+      "type": "integer",
+      "exclusiveMinimum": 0
+    },
+    "from": {
+      "type": "string",
+      "minLength": 1
+    },
+    "to": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 1
+    },
+    "ts": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tag": {
+      "type": "string",
+      "enum": [
+        "decompose",
+        "ask",
+        "answer",
+        "deliver",
+        "status",
+        "review"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "run_id",
+    "round",
+    "from",
+    "to",
+    "schema_version",
+    "ts",
+    "content"
+  ],
+  "additionalProperties": false
+}
