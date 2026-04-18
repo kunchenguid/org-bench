@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { cards, decks, encounterLadder, keywordGlossary } from '../game-data';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -24,29 +25,111 @@ const navItems: NavItem[] = [
 const routeContent: Record<Route, { eyebrow: string; title: string; body: string }> = {
   home: {
     eyebrow: 'Auric Reach // Prologue',
-    title: 'A duel game scaffold with room for craft.',
+    title: 'A compact duel campaign with two sharp faction identities.',
     body:
-      'This initial shell establishes the shared visual language, navigation, and deployment-safe routing for the full single-player card game.',
+      'The run now has a complete paper design slice: twelve unique cards, two twenty-card decks, and a three-step encounter ladder with variant bosses.',
   },
   play: {
     eyebrow: 'Play Surface',
     title: 'Live duel board',
     body:
-      'A polished board shell for reading state at a glance, staging card plays, and handing turn control back and forth.',
+      'A polished board shell for reading state at a glance, now backed by the designed decks and encounter ladder that will drive the duel flow.',
   },
   rules: {
     eyebrow: 'Field Manual',
-    title: 'Rules page placeholder',
+    title: 'Four evergreen keywords, three encounter beats',
     body:
-      'This route will explain turn flow, resources, creatures, spells, combat, the encounter ladder, and save-and-resume behavior.',
+      'The set stays intentionally lean so a player can internalize the whole card pool quickly and still see meaningful matchup texture across the ladder.',
   },
   cards: {
     eyebrow: 'Vault Archive',
-    title: 'Card gallery placeholder',
+    title: 'Twelve-card launch set',
     body:
-      'This route will display the full card library as visual cards, with faction identity, art, stats, and readable rules text.',
+      'The card file is split evenly across the two factions, with mirrored deck sizes and just enough texture for replayable matchups.',
   },
 };
+
+function DeckPreview() {
+  return (
+    <div className="info-grid">
+      {decks.map((deck) => {
+        const size = deck.list.reduce((total, entry) => total + entry.count, 0);
+
+        return (
+          <article className="info-card" key={deck.id}>
+            <p className="eyebrow">{deck.faction}</p>
+            <h3>{deck.name}</h3>
+            <p>{deck.style}</p>
+            <span className="pill">{size} cards</span>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function RulesReference() {
+  return (
+    <div className="stack-blocks">
+      <section className="info-grid">
+        {keywordGlossary.map((entry) => (
+          <article className="info-card" key={entry.keyword}>
+            <p className="eyebrow">Keyword</p>
+            <h3>{entry.keyword}</h3>
+            <p>{entry.reminder}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="stack-blocks">
+        {encounterLadder.map((step) => (
+          <article className="ladder-step" key={step.step}>
+            <div>
+              <p className="eyebrow">Step {step.step}</p>
+              <h3>{step.title}</h3>
+              <p>{step.purpose}</p>
+            </div>
+            <div className="variant-list">
+              {step.variants.map((variant) => (
+                <article className="variant-card" key={variant.id}>
+                  <strong>{variant.name}</strong>
+                  <p>{variant.twist}</p>
+                  <span className="pill">{variant.reward}</span>
+                </article>
+              ))}
+            </div>
+          </article>
+        ))}
+      </section>
+    </div>
+  );
+}
+
+function CardGallery() {
+  return (
+    <div className="card-grid">
+      {cards.map((card) => (
+        <article className="game-card" key={card.id}>
+          <div className="game-card-topline">
+            <span className="pill">{card.faction}</span>
+            <span className="cost-badge">{card.cost}</span>
+          </div>
+          <h3>{card.name}</h3>
+          <p className="card-type">{card.type}</p>
+          <p>{card.text}</p>
+          <div className="game-card-footer">
+            <span>{card.keywords.join(' - ') || 'No keyword'}</span>
+            {card.attack !== undefined && card.health !== undefined ? (
+              <strong>
+                {card.attack}/{card.health}
+              </strong>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
 
 function getRouteFromHash(hash: string): Route {
   const key = hash.replace(/^#\/?/, '');
@@ -175,11 +258,14 @@ function PageSection(props: { route: Route }) {
       <p>{content.body}</p>
       {props.route === 'home' ? (
         <div className="hero-grid">
-          <HeroCard title="Ashfall Covenant" subtitle="Aggressive ember faction" accent="ember" />
-          <HeroCard title="Verdant Loom" subtitle="Growth and resilience" accent="verdant" />
-          <HeroCard title="Three duel ascent" subtitle="A compact encounter ladder" accent="dusk" />
+          <HeroCard title="Ashfall Covenant" subtitle="Ambush tempo deck" accent="ember" />
+          <HeroCard title="Verdant Loom" subtitle="Guard and Renew midrange" accent="verdant" />
+          <HeroCard title="Three-step ladder" subtitle="Six encounter variants" accent="dusk" />
         </div>
       ) : null}
+      {props.route === 'home' || props.route === 'play' ? <DeckPreview /> : null}
+      {props.route === 'rules' ? <RulesReference /> : null}
+      {props.route === 'cards' ? <CardGallery /> : null}
     </section>
   );
 }
@@ -232,7 +318,8 @@ export function App() {
             <h1>Scaffold in place for the full browser campaign.</h1>
             <p>
               The shared shell is live with the four required surfaces and safe nested-path asset
-              handling. Workers can now build mechanics and visuals on top of this frame.
+              handling. This slice fills in the actual launch set so later rounds can focus on
+              match rules, AI behavior, and presentation polish.
             </p>
           </div>
           <aside className="status-card" aria-label="Current route">
