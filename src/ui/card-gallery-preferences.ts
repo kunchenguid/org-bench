@@ -19,6 +19,17 @@ export function filterCardsByFaction(cards: Card[], faction: CardGalleryFactionF
   return cards.filter((card) => card.faction === faction);
 }
 
+export function describeFactionSelection(cards: Card[], faction: CardGalleryFactionFilter): string {
+  const visibleCards = filterCardsByFaction(cards, faction);
+  const noun = visibleCards.length === 1 ? 'card' : 'cards';
+
+  if (faction === 'all') {
+    return `Showing all ${visibleCards.length} ${noun}`;
+  }
+
+  return `Showing ${visibleCards.length} ${faction} ${noun}`;
+}
+
 export function createCardGalleryPreferences(storage: StorageLike, namespace: string) {
   const session = createNamespacedStorage(storage, namespace);
 
