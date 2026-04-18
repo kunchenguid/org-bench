@@ -119,32 +119,6 @@ export function App() {
             </section>
           </div>
         ) : null}
-
-        {isCardsRoute ? (
-          <div className="rules-layout">
-            <div className="rules-grid" aria-label="Faction summaries">
-              {factionSummaries.map((summary) => (
-                <section key={summary.faction} className="rules-card">
-                  <p className="section-label">Faction</p>
-                  <h3>{summary.faction}</h3>
-                  <p>{summary.blurb}</p>
-                  <p>
-                    {summary.creatureCount} creatures, {summary.spellCount} spells
-                  </p>
-                  <ul className="rules-points">
-                    {getCardsByFaction(summary.faction).map((card) => (
-                      <li key={card.name}>
-                        <strong>{card.name}</strong>
-                        <span>{`Cost ${card.cost} - ${card.type}`}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
         {openingSession ? (
           <div className="session-summary" aria-label="Opening encounter summary">
             <p className="section-label">Encounter</p>
@@ -152,6 +126,31 @@ export function App() {
             <p>
               Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
             </p>
+          </div>
+        ) : null}
+
+        {route === '/cards' ? (
+          <div className="catalog-grid" aria-label="Card catalog by faction">
+            {factionSummaries.map((summary) => (
+              <section className="catalog-panel" key={summary.faction}>
+                <p className="section-label">Faction</p>
+                <h3>{summary.faction}</h3>
+                <p>{summary.blurb}</p>
+                <p className="catalog-meta">
+                  {summary.creatureCount} creatures - {summary.spellCount} spells
+                </p>
+                <ul className="catalog-list">
+                  {getCardsByFaction(summary.faction).map((card) => (
+                    <li key={card.name}>
+                      <div className="catalog-card-copy">
+                        <strong>{card.name}</strong>
+                        <span>{`Cost ${card.cost} - ${card.type}`}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
           </div>
         ) : null}
       </main>
