@@ -1,0 +1,8 @@
+{
+  "name": "microsoft-seed-01-xena",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
