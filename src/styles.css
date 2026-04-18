@@ -1,0 +1,237 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background:
+    radial-gradient(circle at top, rgba(255, 140, 78, 0.28), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(124, 92, 255, 0.18), transparent 32%),
+    linear-gradient(180deg, #120d18 0%, #07050b 100%);
+  color: #f7ecdf;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.shell {
+  min-height: 100vh;
+}
+
+.hero {
+  padding: 1.5rem 1.5rem 1rem;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand,
+.nav-link {
+  border: 1px solid rgba(255, 214, 168, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.65rem 1rem;
+  backdrop-filter: blur(12px);
+}
+
+.brand {
+  font-weight: 700;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.nav-link[aria-current='page'] {
+  border-color: rgba(255, 166, 112, 0.7);
+  background: rgba(255, 166, 112, 0.12);
+}
+
+.hero-copy {
+  max-width: 46rem;
+  padding: 5rem 0 2rem;
+}
+
+.hero-copy h1,
+.panel h2,
+.panel h3,
+.card-frame h3 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.02em;
+}
+
+.hero-copy h1 {
+  font-size: clamp(3.25rem, 8vw, 5.8rem);
+}
+
+.eyebrow,
+.card-kind,
+.faction-name {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 0.76rem;
+  color: #f6b878;
+}
+
+.lede,
+.panel p,
+.card-text,
+.card-art p,
+.section-copy {
+  margin: 0;
+  color: rgba(247, 236, 223, 0.86);
+}
+
+.content {
+  display: grid;
+  gap: 1.25rem;
+  padding: 0 1.5rem 2rem;
+}
+
+.panel-grid,
+.faction-grid,
+.card-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.faction-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.panel,
+.faction-panel,
+.card-frame {
+  border: 1px solid rgba(255, 214, 168, 0.14);
+  border-radius: 1.5rem;
+  background: rgba(19, 12, 23, 0.82);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+}
+
+.panel,
+.faction-panel {
+  padding: 1.25rem;
+}
+
+.stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.faction-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.faction-panel::before,
+.card-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 35%);
+}
+
+.faction-panel[data-faction='emberwake'],
+.card-frame[data-faction='emberwake'] {
+  border-color: rgba(255, 130, 91, 0.5);
+  background: linear-gradient(180deg, rgba(73, 26, 16, 0.92), rgba(19, 12, 23, 0.88));
+}
+
+.faction-panel[data-faction='graveglass'],
+.card-frame[data-faction='graveglass'] {
+  border-color: rgba(176, 144, 255, 0.45);
+  background: linear-gradient(180deg, rgba(39, 25, 61, 0.92), rgba(19, 12, 23, 0.88));
+}
+
+.faction-panel[data-faction='stormforged'],
+.card-frame[data-faction='stormforged'] {
+  border-color: rgba(110, 195, 255, 0.45);
+  background: linear-gradient(180deg, rgba(17, 38, 62, 0.92), rgba(19, 12, 23, 0.88));
+}
+
+.card-frame {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.card-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card-cost {
+  margin: 0;
+  min-width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 244, 230, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+.card-art {
+  min-height: 8.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 240, 220, 0.1);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent),
+    rgba(255, 255, 255, 0.04);
+  padding: 1rem;
+  display: flex;
+  align-items: end;
+}
+
+.card-art p {
+  font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+  .hero-copy {
+    padding-top: 3rem;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(2.75rem, 14vw, 4.2rem);
+  }
+}

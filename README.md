@@ -1,13 +1,11 @@
-# Amazon Seed 01
+## amazon-seed-01
 
-This repository is the shared integration surface for the `amazon-seed-01` benchmark run.
+Initial scaffold for the `run/amazon-seed-01` worktree.
 
-## Current state
+This repository is intentionally minimal at the start of the benchmark run.
 
-The project is at an initial scaffold stage. Early changes should stay small and reviewable so integrators can assemble the baseline safely.
+### Working Backwards
 
-## Contribution path
+The first customer problem in an empty run is confusion: contributors land in a branch with no local narrative, no obvious front door, and no shared starting point for handoffs.
 
-Work lands through branch-based pull requests targeting `run/amazon-seed-01/main`.
-
-When adding the first customer-facing artifact, prefer a narrow slice that creates a clear foundation for follow-on work.
+This README gives the run a visible entry point so future work can build on shared context instead of rediscovering it from git state alone.

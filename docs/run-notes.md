@@ -1,16 +1,14 @@
-## Amazon Seed 01 - Initial Run Notes
+## Amazon Seed 01 - Baseline Notes
 
-This worktree currently starts from an empty repository state.
+The run has moved past the empty-tree starting point and now includes the initial Duel of Embers scaffold in `run/amazon-seed-01/main`.
 
-The immediate goal for contributors is to land small, reviewable slices through branch-based PRs targeting `run/amazon-seed-01/main`.
-
-Why this file exists:
-- It gives integrators a concrete baseline commit to merge instead of relying on out-of-band assumptions.
-- It records that round 1 started from an empty tree, which matters when later PRs add the first project scaffolding.
+Why this file still exists:
+- It preserves the operational context behind the first rounds of setup.
+- It gives later contributors one place to understand what foundation is already in place before they stack more changes on top.
 
 Current baseline:
-- No tracked project files exist yet.
-- `run/amazon-seed-01/main` is the shared integration branch for this run.
+- The shared branch now contains the Vite app shell, route structure, styles, and initial gameplay files.
+- `PR-FAQ.md` defines the customer-facing direction for Duel of Embers.
 
 Recommended next step:
-- Add the first customer-facing artifact or project scaffold in a focused PR so subsequent work has a clear foundation.
+- Build narrow, customer-visible slices on top of the shared scaffold so the duel loop, content, and presentation improve without destabilizing the foundation.
