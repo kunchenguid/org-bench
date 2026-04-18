@@ -9,6 +9,17 @@ const navItems: Array<{ href: RouteKey; label: string }> = [
   { href: '/cards', label: 'Cards' },
 ];
 
+const cardGroups = [
+  {
+    name: 'Sunsteel Vanguard',
+    cards: ['Lantern Squire', 'Copper Scout', 'Aegis Burst'],
+  },
+  {
+    name: 'Ashen Vanguard',
+    cards: ['Cinder Familiar', 'Scorch Volley', 'Inferno Drake'],
+  },
+];
+
 const routes: Record<RouteKey, { title: string; description: string }> = {
   '/': {
     title: 'Duel TCG',
@@ -74,6 +85,20 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+        {route === '/cards' ? (
+          <div className="card-groups">
+            {cardGroups.map((group) => (
+              <section className="card-group" key={group.name}>
+                <h3>{group.name}</h3>
+                <ul>
+                  {group.cards.map((card) => (
+                    <li key={card}>{card}</li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        ) : null}
       </main>
     </div>
   );

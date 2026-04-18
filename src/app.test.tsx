@@ -25,4 +25,17 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
+
+  it('shows starter deck references on the cards route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Sunsteel Vanguard' })).toBeInTheDocument();
+    expect(screen.getByText('Lantern Squire')).toBeInTheDocument();
+    expect(screen.getByText('Aegis Burst')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Ashen Vanguard' })).toBeInTheDocument();
+    expect(screen.getByText('Cinder Familiar')).toBeInTheDocument();
+    expect(screen.getByText('Inferno Drake')).toBeInTheDocument();
+  });
 });
