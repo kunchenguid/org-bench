@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { cardLibrary, type CardDefinition } from './cards';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -38,9 +39,132 @@ const pageCopy: Record<RouteKey, { title: string; eyebrow: string; body: string 
   cards: {
     title: 'Card Gallery',
     eyebrow: 'Faction archive',
-    body: 'The full illustrated card reference will be published here, using the same card frame language as the play board.',
+    body: '12 illustrated cards across two factions, built to become the shared visual language for encounters, rules, and the playable board.',
   },
 };
+
+const factionMeta = {
+  'Ember Covenant': {
+    sigil: 'Ember sigil',
+    crest: 'EC',
+    className: 'ember',
+    summary: 'A militant flame order built around tempo, direct damage, and decisive finishers.',
+  },
+  'Tidemark Circle': {
+    sigil: 'Tide sigil',
+    crest: 'TC',
+    className: 'tide',
+    summary: 'Moonlit sea mages who outlast opponents with flow, defense, and card advantage.',
+  },
+} as const;
+
+function CardArt({ artSeed, faction }: { artSeed: CardDefinition['artSeed']; faction: CardDefinition['faction'] }) {
+  const isEmber = faction === 'Ember Covenant';
+  const palettes: Record<CardDefinition['artSeed'], { a: string; b: string; c: string }> = {
+    flame: { a: '#ffb366', b: '#ff6847', c: '#62172c' },
+    forge: { a: '#ffd878', b: '#db4d30', c: '#40151e' },
+    phoenix: { a: '#ffe57b', b: '#ff6e4a', c: '#5b1535' },
+    volcano: { a: '#ffb347', b: '#b92d2d', c: '#321018' },
+    lantern: { a: '#ffe59b', b: '#ff9248', c: '#44203a' },
+    ash: { a: '#f6c48d', b: '#c95a3d', c: '#47242f' },
+    wave: { a: '#7ed7ff', b: '#4a8cff', c: '#0f2753' },
+    moon: { a: '#d2e2ff', b: '#74bfff', c: '#1c3277' },
+    shell: { a: '#b7f7ff', b: '#4ed0c4', c: '#14435f' },
+    reef: { a: '#91f0d9', b: '#54a6ff', c: '#133857' },
+    mist: { a: '#dff4ff', b: '#6cb9ff', c: '#324f7e' },
+    current: { a: '#8ce0ff', b: '#2f81ff', c: '#0f245d' },
+  };
+  const palette = palettes[artSeed];
+
+  return (
+    <svg viewBox="0 0 240 160" className="card-art" role="img" aria-label={`${artSeed} illustration`}>
+      <defs>
+        <linearGradient id={`${artSeed}-bg`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color={palette.a} />
+          <stop offset="55%" stop-color={palette.b} />
+          <stop offset="100%" stop-color={palette.c} />
+        </linearGradient>
+      </defs>
+      <rect width="240" height="160" rx="18" fill={`url(#${artSeed}-bg)`} />
+      <circle cx="186" cy="38" r="24" fill="rgba(255,255,255,0.22)" />
+      <path d={isEmber ? 'M50 132 C70 110, 95 78, 118 40 C122 64, 136 88, 170 132 Z' : 'M24 112 C64 88, 116 92, 154 68 C176 54, 190 44, 216 54 C208 96, 152 136, 74 136 Z'} fill="rgba(255,255,255,0.26)" />
+      <path d={isEmber ? 'M118 16 C138 44, 130 66, 148 88 C133 86, 114 96, 104 118 C98 94, 82 78, 66 68 C86 62, 104 48, 118 16 Z' : 'M34 104 C72 62, 104 38, 154 34 C142 56, 152 84, 194 114 C128 132, 78 128, 34 104 Z'} fill="rgba(255,255,255,0.44)" />
+      <circle cx={isEmber ? 78 : 150} cy={isEmber ? 46 : 56} r="16" fill="rgba(255,255,255,0.3)" />
+    </svg>
+  );
+}
+
+function CardFace({ card }: { card: CardDefinition }) {
+  const faction = factionMeta[card.faction];
+
+  return (
+    <article className={`card-face ${faction.className}`}>
+      <div className="card-chrome">
+        <div className="cost-pip" aria-label={`Cost ${card.cost}`}>
+          {card.cost}
+        </div>
+        <div className="card-title-row">
+          <div>
+            <p className="card-faction">{card.faction}</p>
+            <h3>{card.name}</h3>
+          </div>
+          <div className="faction-crest" aria-label={faction.sigil}>
+            {faction.crest}
+          </div>
+        </div>
+        <CardArt artSeed={card.artSeed} faction={card.faction} />
+        <div className="type-line">
+          <span>{card.type}</span>
+          {card.stats ? <span>{card.stats.power}/{card.stats.health}</span> : <span>Spellcraft</span>}
+        </div>
+        <p className="rules-text">{card.rules}</p>
+      </div>
+    </article>
+  );
+}
+
+function GalleryView() {
+  const factions = ['Ember Covenant', 'Tidemark Circle'] as const;
+
+  return (
+    <section className="gallery-view">
+      <div className="gallery-intro">
+        <h2>Card Gallery</h2>
+        <p>12 illustrated cards across two factions. This library is the source of truth for the duel board, rules examples, and encounter decks.</p>
+      </div>
+      {factions.map((factionName) => {
+        const factionCards = cardLibrary.filter((card) => card.faction === factionName);
+        const faction = factionMeta[factionName];
+
+        return (
+          <section key={factionName} className="faction-section">
+            <div className="faction-header">
+              <div className={`faction-badge ${faction.className}`}>{faction.crest}</div>
+              <div>
+                <h2>{factionName}</h2>
+                <p>{faction.summary}</p>
+              </div>
+            </div>
+            <div className="card-grid">
+              {factionCards.map((card) => (
+                <CardFace key={card.id} card={card} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </section>
+  );
+}
+
+function DefaultView({ page }: { page: (typeof pageCopy)[RouteKey] }) {
+  return (
+    <section>
+      <h2>{page.title}</h2>
+      <p>{page.body}</p>
+    </section>
+  );
+}
 
 export function App() {
   const [hash, setHash] = useState(() => normalizeHash(window.location.hash));
@@ -82,7 +206,7 @@ export function App() {
         </div>
         <div className="hero-card" aria-hidden="true">
           <div className="hero-sigil">*</div>
-          <div className="hero-ribbon">Scaffold</div>
+          <div className="hero-ribbon">{route === 'cards' ? 'Archive Live' : 'Scaffold'}</div>
         </div>
       </header>
       <nav className="nav" aria-label="Primary">
@@ -99,10 +223,7 @@ export function App() {
         ))}
       </nav>
       <main className="panel">
-        <section>
-          <h2>{page.title}</h2>
-          <p>{page.body}</p>
-        </section>
+        {route === 'cards' ? <GalleryView /> : <DefaultView page={page} />}
       </main>
     </div>
   );
