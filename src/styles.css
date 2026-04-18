@@ -139,6 +139,19 @@ a {
   margin-top: 8px;
 }
 
+.rules-points strong,
+.rules-points span {
+  display: block;
+}
+
+.rules-points strong {
+  color: #f3f7fb;
+}
+
+.rules-points span {
+  color: #9eb4cf;
+}
+
 .session-summary {
   margin-top: 24px;
   padding-top: 20px;

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/preact';
+import { render, screen, within } from '@testing-library/preact';
 
 import { App } from './App';
 
@@ -75,5 +75,9 @@ describe('App shell', () => {
     expect(screen.getByText('Wildroot')).toBeInTheDocument();
     expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
     expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
+
+    const skyforgeSquireEntry = screen.getByText('Skyforge Squire').closest('li');
+    expect(skyforgeSquireEntry).not.toBeNull();
+    expect(within(skyforgeSquireEntry!).getByText('Cost 1 - Creature')).toBeInTheDocument();
   });
 });

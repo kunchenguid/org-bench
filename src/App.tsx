@@ -133,7 +133,10 @@ export function App() {
                   </p>
                   <ul className="rules-points">
                     {getCardsByFaction(summary.faction).map((card) => (
-                      <li key={card.name}>{card.name}</li>
+                      <li key={card.name}>
+                        <strong>{card.name}</strong>
+                        <span>{`Cost ${card.cost} - ${card.type}`}</span>
+                      </li>
                     ))}
                   </ul>
                 </section>
