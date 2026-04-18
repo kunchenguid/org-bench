@@ -1,8 +1,21 @@
 {
-  "name": "microsoft-seed-01-ella",
+  "name": "signal-clash",
   "private": true,
-  "type": "module",
+  "version": "0.0.1",
   "scripts": {
-    "test": "node --test"
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run src/ui/App.test.tsx && tsx --test test/*.js test/*.mjs src/content/rules.test.ts"
+  },
+  "dependencies": {
+    "preact": "^10.26.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "preact-render-to-string": "^6.6.7",
+    "tsx": "^4.19.3",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3",
+    "vitest": "^3.2.4"
   }
 }
