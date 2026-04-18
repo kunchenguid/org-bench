@@ -25,4 +25,52 @@ describe('game engine contract', () => {
 
     expect(getPersistenceKey('amazon-seed-01')).toBe('amazon-seed-01:duel-tcg:game-state');
   });
+
+  it('creates a game storage wrapper that saves and loads the current session', async () => {
+    const { createGameSession, createGameStorage } = await import('./engine');
+
+    const values = new Map<string, string>();
+    const storage: Storage = {
+      get length() {
+        return values.size;
+      },
+      clear() {
+        values.clear();
+      },
+      getItem(key) {
+        return values.get(key) ?? null;
+      },
+      key(index) {
+        return Array.from(values.keys())[index] ?? null;
+      },
+      removeItem(key) {
+        values.delete(key);
+      },
+      setItem(key, value) {
+        values.set(key, value);
+      }
+    };
+    const session = createGameSession({ encounterId: 'encounter-1' });
+    const gameStorage = createGameStorage(storage, 'amazon-seed-01');
+
+    gameStorage.save(session);
+
+    expect(storage.getItem('amazon-seed-01:duel-tcg:game-state')).toBeTruthy();
+    expect(gameStorage.load()).toEqual(session);
+
+    gameStorage.clear();
+
+    expect(storage.getItem('amazon-seed-01:duel-tcg:game-state')).toBeNull();
+  });
+
+  it('hands the turn to the opponent and refreshes their resources', async () => {
+    const { createGameSession, endTurn } = await import('./engine');
+
+    const session = createGameSession({ encounterId: 'encounter-1' });
+    const next = endTurn(session);
+
+    expect(next.turn).toEqual({ activePlayerId: 'ai', number: 2 });
+    expect(next.players.ai.resources).toEqual({ current: 1, max: 1 });
+    expect(next.players.player.resources).toEqual({ current: 1, max: 1 });
+  });
 });
