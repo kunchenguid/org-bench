@@ -8,6 +8,11 @@ export const rulesSections = [
     body: 'At the start of your turn, draw 1 card, refresh your field, gain energy, then play units or signals before ending the turn.',
   },
   {
+    title: 'Combat Resolution',
+    body:
+      'When a lane clashes, attackers and defenders hit at the same time unless a signal rewrites the exchange. The momentum response window comes after assignments lock, giving each side one last chance to bank shield charge or punish an overcommit.',
+  },
+  {
     title: 'Card Types',
     body: 'Creatures stay on the battlefield to attack or guard. Signals are one-shot tactical effects that swing tempo right away.',
   },
