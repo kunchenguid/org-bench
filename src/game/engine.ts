@@ -1,3 +1,5 @@
+import { createNamespacedStorage } from '../lib/storage';
+
 type SessionOptions = {
   encounterId: string;
 };
@@ -9,6 +11,8 @@ type Card = {
   type: 'unit' | 'spell';
 };
 
+type PlayerId = 'player' | 'ai';
+
 type PlayerState = {
   health: number;
   resources: {
@@ -18,6 +22,28 @@ type PlayerState = {
   deck: Card[];
   hand: Card[];
   discardPile: Card[];
+};
+
+type GameSession = {
+  encounter: {
+    id: string;
+    opponentName: string;
+  };
+  status: 'in_progress';
+  turn: {
+    number: number;
+    activePlayerId: PlayerId;
+  };
+  players: {
+    player: PlayerState;
+    ai: PlayerState;
+  };
+};
+
+type GameStorage = {
+  clear: () => void;
+  load: () => GameSession | null;
+  save: (session: GameSession) => void;
 };
 
 const playerDeck: Card[] = [
@@ -48,24 +74,69 @@ function createPlayerState(deck: Card[], startingResources: { current: number; m
   };
 }
 
+function refreshResources(player: PlayerState): PlayerState {
+  const nextMax = Math.min(player.resources.max + 1, 10);
+
+  return {
+    ...player,
+    resources: {
+      current: nextMax,
+      max: nextMax
+    }
+  };
+}
+
 export function getPersistenceKey(runId: string): string {
   return `${runId}:duel-tcg:game-state`;
 }
 
-export function createGameSession({ encounterId }: SessionOptions) {
+export function createGameSession({ encounterId }: SessionOptions): GameSession {
   return {
     encounter: {
       id: encounterId,
       opponentName: 'Ashen Vanguard'
     },
-    status: 'in_progress' as const,
+    status: 'in_progress',
     turn: {
       number: 1,
-      activePlayerId: 'player' as const
+      activePlayerId: 'player'
     },
     players: {
       player: createPlayerState(playerDeck, { current: 1, max: 1 }),
       ai: createPlayerState(aiDeck, { current: 0, max: 0 })
+    }
+  };
+}
+
+export function createGameStorage(storage: Storage, runId: string): GameStorage {
+  const namespacedStorage = createNamespacedStorage(storage, runId);
+  const gameStateKey = 'duel-tcg:game-state';
+
+  return {
+    clear() {
+      namespacedStorage.remove(gameStateKey);
+    },
+    load() {
+      return namespacedStorage.getJson<GameSession>(gameStateKey);
+    },
+    save(session) {
+      namespacedStorage.setJson(gameStateKey, session);
+    }
+  };
+}
+
+export function endTurn(session: GameSession): GameSession {
+  const nextActivePlayerId = session.turn.activePlayerId === 'player' ? 'ai' : 'player';
+
+  return {
+    ...session,
+    players: {
+      ...session.players,
+      [nextActivePlayerId]: refreshResources(session.players[nextActivePlayerId])
+    },
+    turn: {
+      activePlayerId: nextActivePlayerId,
+      number: session.turn.number + 1
     }
   };
 }
