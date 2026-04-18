@@ -8,6 +8,9 @@ test('play page frames divB lane play and command queue', () => {
   assert.match(html, /<title>.*Play.*<\/title>/i);
   assert.match(html, /Match Status/i);
   assert.match(html, /Tempo Lead/i);
+  assert.match(html, /Opening Grip/i);
+  assert.match(html, /Frontline Archivist/i);
+  assert.match(html, /Patch Bay Saboteur/i);
   assert.match(html, /Command Queue/i);
   assert.match(html, /Three lanes/i);
   assert.match(html, /Target Priority/i);
