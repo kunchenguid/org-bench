@@ -1,27 +1,18 @@
-export type RulesSection = {
-  title: string;
-  body: string;
-};
-
-export const rulesSections: RulesSection[] = [
+export const rulesSections = [
   {
     title: 'Goal',
-    body:
-      'Break the rogue AI defense line before it breaks yours. Reduce the opposing core to zero integrity while keeping enough tempo to survive the next exchange.',
+    body: 'Drop the rival nexus to 0 before your own control rig collapses.',
   },
   {
     title: 'Turn Flow',
-    body:
-      'At the start of your turn, draw 1 card, ready your rig, and resolve any start-of-turn effects. Then spend your action window to deploy units, trigger tactics, and line up the attack that forces the enemy AI off its script.',
+    body: 'At the start of your turn, draw 1 card, refresh your field, gain energy, then play units or signals before ending the turn.',
   },
   {
     title: 'Card Types',
-    body:
-      'Creatures hold the lane and trade damage over multiple turns, while signals are fast tactical effects that bend one combat step in your favor. Winning lists mix durable creatures with signals that punish predictable AI responses.',
+    body: 'Creatures stay on the battlefield to attack or guard. Signals are one-shot tactical effects that swing tempo right away.',
   },
   {
     title: 'Winning Tips',
-    body:
-      'Pressure early when the enemy is open, bank defense when the retaliation math looks bad, and treat each encounter like a read on the next AI pattern instead of a single isolated fight.',
+    body: 'Pressure the enemy early, save burst tools for lethal turns, and use defenders to buy time when the AI curves out first.',
   },
-];
+] as const;
