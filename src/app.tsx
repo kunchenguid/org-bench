@@ -349,6 +349,8 @@ function HomePage() {
 }
 
 function PlayPage({ hasSavedProgress, clearSavedProgress }: { hasSavedProgress: boolean; clearSavedProgress: () => void }) {
+  const ladder = createLadder();
+
   return (
     <>
       <section className="panel persistence-panel stack">
@@ -363,6 +365,19 @@ function PlayPage({ hasSavedProgress, clearSavedProgress }: { hasSavedProgress: 
         >
           Clear Saved Progress
         </button>
+      </section>
+      <section className="panel stack" aria-labelledby="ladder-heading">
+        <p className="eyebrow">Encounter ladder</p>
+        <h2 id="ladder-heading">Three duels, three readable lessons</h2>
+        <div className="ladder-grid">
+          {ladder.map((encounter) => (
+            <article className="ladder-entry" key={encounter.ladderIndex}>
+              <p className="faction-name">Encounter {encounter.ladderIndex + 1}</p>
+              <h3>{encounter.title}</h3>
+              <p>Opponent: {encounter.opponentName}</p>
+            </article>
+          ))}
+        </div>
       </section>
       <section className="panel-grid" aria-label="Play patterns">
         <article className="panel stack">
