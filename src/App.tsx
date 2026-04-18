@@ -1,5 +1,8 @@
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 
+import { advanceTurn, createDuelState, dealDamage, deployCard, type DuelState } from './game/state';
+import { clearEncounterSnapshot, loadEncounterSnapshot, type EncounterSnapshot } from './persistence';
+
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
 type PageSection = {
@@ -14,6 +17,12 @@ type PageConfig = {
   sections?: PageSection[];
 };
 
+type SavedEncounter = EncounterSnapshot & {
+  duelState?: DuelState;
+};
+
+const RUN_ID = 'facebook-seed-01';
+
 const routes: Record<RouteKey, PageConfig> = {
   home: {
     label: 'Home',
@@ -23,7 +32,7 @@ const routes: Record<RouteKey, PageConfig> = {
   play: {
     label: 'Play',
     title: 'Play',
-    body: 'Scaffold play surface for the single-player duel flow. Encounter setup, board zones, and persistence hooks land next.'
+    body: 'Pilot a deterministic duel snapshot wired from the shared state engine so the shell reflects real turn, hand, resource, and battlefield data.'
   },
   rules: {
     label: 'Rules',
@@ -92,6 +101,65 @@ const feedbackPatterns = [
   }
 ] as const;
 
+const actionTimeline = [
+  {
+    title: 'Turn Sweep',
+    body: 'Turn 2 - Player initiative'
+  },
+  {
+    title: 'Card Play Lift',
+    body: 'Player deploys Ashguard Bruiser to the battlefield'
+  },
+  {
+    title: 'Damage Flash',
+    body: 'Opponent takes 4 damage and drops to 16 health'
+  }
+] as const;
+
+const homeHighlights = [
+  {
+    title: '3-Step Gauntlet',
+    body: 'Battle three handcrafted encounters with escalating pressure and faction-specific twists.',
+    tone: 'ladder'
+  },
+  {
+    title: '12 Signature Cards',
+    body: 'Learn the Emberfire and Aether core packages before you enter the first duel.',
+    tone: 'ember'
+  }
+] as const;
+
+const homeFactions = [
+  {
+    title: 'Emberfire Vanguard',
+    body: 'Aggressive pressure tools, burn finishers, and frontline bruisers for decisive turns.',
+    tone: 'ember'
+  },
+  {
+    title: 'Aether Covenant',
+    body: 'Shielding tricks, tempo swings, and patient setup that rewards careful sequencing.',
+    tone: 'aether'
+  }
+] as const;
+
+const encounterPath = ['Gate of Cinders', 'Glassgarden Crossing', 'The Zenith Prism'] as const;
+
+const duelPreviewState = createPreviewState();
+
+function createPreviewState(): DuelState {
+  const playerDeck = ['Ashguard Bruiser', 'Skyhook Snare', 'Forge Banner', 'Cinder Scribe', 'Blaze Volley'];
+  const opponentDeck = ['Aether Medic', 'Ward Relay', 'Mist Archivist', 'Prism Pike', 'Null Shell'];
+
+  let state = createDuelState({ playerDeck, opponentDeck, openingHandSize: 3 });
+
+  state = advanceTurn(state);
+  state = deployCard(state, 'opponent', 0, 0);
+  state = advanceTurn(state);
+  state = deployCard(state, 'player', 0, 0);
+
+  return dealDamage(state, 'opponent', 4);
+}
+
 function getRouteFromHash(hash: string): RouteKey {
   const value = hash.replace(/^#\/?/, '');
   return value in routes ? (value as RouteKey) : 'home';
@@ -101,8 +169,19 @@ function getHashForRoute(route: RouteKey) {
   return `#/${route}`;
 }
 
+function getBoardState(savedEncounter: SavedEncounter | null) {
+  return savedEncounter?.duelState ?? duelPreviewState;
+}
+
+function getTurnBanner(state: DuelState) {
+  return `Turn ${state.turn} - ${state.activePlayer === 'player' ? 'Player active' : 'Opponent active'}`;
+}
+
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
+  const [savedEncounter, setSavedEncounter] = useState<SavedEncounter | null>(() =>
+    loadEncounterSnapshot(window.localStorage, RUN_ID) as SavedEncounter | null
+  );
 
   useLayoutEffect(() => {
     const normalizedHash = getHashForRoute(route);
@@ -122,6 +201,12 @@ export function App() {
 
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  useEffect(() => {
+    if (route === 'play') {
+      setSavedEncounter(loadEncounterSnapshot(window.localStorage, RUN_ID) as SavedEncounter | null);
+    }
+  }, [route]);
 
   const page = routes[route];
   const previewSections =
@@ -144,6 +229,9 @@ export function App() {
             tone: 'ladder'
           }
         ];
+  const boardState = getBoardState(savedEncounter);
+  const player = boardState.players.player;
+  const opponent = boardState.players.opponent;
 
   useLayoutEffect(() => {
     document.title = `${page.title} | Duel of Ash and Aether`;
@@ -170,101 +258,255 @@ export function App() {
       </header>
 
       <main className="layout">
-        <section className="hero-panel">
-          <p className="eyebrow">Static TCG Campaign</p>
-          <h1>{page.title}</h1>
-          <p>{page.body}</p>
-          <div className="hero-actions">
-            <a className="button primary" href="#/play">
-              Start Duel
-            </a>
-            <a className="button secondary" href="#/rules">
-              Learn Rules
-            </a>
-          </div>
-        </section>
-
-        <section className="preview-grid" aria-label={route === 'rules' ? 'Rules Reference' : 'Scaffold Preview'}>
-          {previewSections.map((section) => (
-            <article key={section.title} className={`preview-card ${section.tone}`}>
-              <h2>{section.title}</h2>
-              <p>{section.body}</p>
-            </article>
-          ))}
-        </section>
-
         {route === 'play' ? (
-          <section className="board-shell" aria-labelledby="board-shell-title">
-            <div className="board-shell-header">
-              <div>
-                <p className="eyebrow">Encounter Snapshot</p>
-                <h2 id="board-shell-title">Live Duel Board</h2>
+          <>
+            <section className="board-shell" aria-labelledby="live-duel-board-title">
+              <div className="board-intro">
+                <p className="eyebrow">State-Driven Snapshot</p>
+                <h1 id="live-duel-board-title">Live Duel Board</h1>
+                <p>{page.body}</p>
               </div>
-              <p className="board-turn">Turn 4 - Ember Guild attack</p>
-            </div>
 
-            <div className="board-status-grid">
-              <article className="status-card enemy-status">
-                <h3>Enemy Health</h3>
-                <p>16 / 20</p>
-              </article>
-              <article className="status-card player-status">
-                <h3>Player Health</h3>
-                <p>18 / 20</p>
-              </article>
-              <article className="status-card hand-status">
-                <h3>Hand Dock</h3>
-                <p>4 cards ready to deploy</p>
-              </article>
-            </div>
-
-            <div className="lane-grid">
-              <section className="lane-card front-lane">
-                <h3>Front Lane</h3>
-                <p>Pressure units clash here first.</p>
+              <section className="play-status" aria-label="Encounter Persistence">
+                {savedEncounter ? (
+                  <>
+                    <p>{`Saved encounter: ${savedEncounter.encounterName}`}</p>
+                    {savedEncounter.duelState ? (
+                      <>
+                        <p>{`Turn ${savedEncounter.duelState.turn} - ${savedEncounter.duelState.activePlayer} turn`}</p>
+                        <p>{`Player health ${savedEncounter.duelState.players.player.health} - Opponent health ${savedEncounter.duelState.players.opponent.health}`}</p>
+                      </>
+                    ) : null}
+                    <div className="hero-actions">
+                      <button className="button primary" type="button">
+                        Resume Encounter
+                      </button>
+                      <button
+                        className="button secondary"
+                        type="button"
+                        onClick={() => {
+                          clearEncounterSnapshot(window.localStorage, RUN_ID);
+                          setSavedEncounter(null);
+                        }}
+                      >
+                        Start New Run
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p>No active encounter saved for this run.</p>
+                )}
               </section>
-              <section className="lane-card back-lane">
-                <h3>Back Lane</h3>
-                <p>Support units and relics stay protected here.</p>
+
+              <div className="turn-banner">{getTurnBanner(boardState)}</div>
+
+              <section className="hud-grid" aria-label="Combatant Status">
+                <article className="hud-card player">
+                  <p className="hud-label">Player Health</p>
+                  <div className="hud-value-row">
+                    <span className="hud-value">{player.health}</span>
+                    <span className="hud-value-meta">health</span>
+                  </div>
+                  <div className="hud-stats">
+                    <span>{`Resource ${player.resources.current} / ${player.resources.max}`}</span>
+                    <span>{`Deck ${player.deck.length}`}</span>
+                    <span>{`Discard ${player.discard.length}`}</span>
+                  </div>
+                </article>
+
+                <article className="hud-card enemy">
+                  <p className="hud-label">Enemy Health</p>
+                  <div className="hud-value-row">
+                    <span className="hud-value">{opponent.health}</span>
+                    <span className="hud-value-meta">health</span>
+                  </div>
+                  <div className="hud-stats">
+                    <span>{`Energy ${opponent.resources.current} / ${opponent.resources.max}`}</span>
+                    <span>{`Deck ${opponent.deck.length}`}</span>
+                    <span>{`Discard ${opponent.discard.length}`}</span>
+                  </div>
+                </article>
               </section>
-            </div>
 
-            <div className="resource-row" aria-label="Deck and discard piles">
-              <article className="resource-card">
-                <h3>Deck</h3>
-                <p>18 cards</p>
-              </article>
-              <article className="resource-card">
-                <h3>Discard</h3>
-                <p>5 cards</p>
-              </article>
-            </div>
-          </section>
-        ) : null}
+              <section className="battlefield-shell" aria-label="Battlefield Lanes">
+                <section className="lane-panel" aria-label="Front Lane">
+                  <div className="lane-header">
+                    <h3>Front Lane</h3>
+                    <span>{player.battlefield.length} unit</span>
+                  </div>
+                  <div className="lane-cards">
+                    {player.battlefield.map((card) => (
+                      <article className="lane-card" key={card}>
+                        <p className="lane-card-name">{card}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
 
-        <section className="feedback-kit" aria-labelledby="feedback-kit-title">
-          <div className="section-copy">
-            <p className="eyebrow">Visual Feedback Primitives</p>
-            <h2 id="feedback-kit-title">Combat Feedback Kit</h2>
-            <p>
-              Reusable motion and overlay patterns for card play, attacks, damage hits, turn swaps,
-              and match resolution.
-            </p>
-          </div>
+                <section className="lane-panel" aria-label="Back Lane">
+                  <div className="lane-header">
+                    <h3>Back Lane</h3>
+                    <span>{opponent.battlefield.length} unit</span>
+                  </div>
+                  <div className="lane-cards">
+                    {opponent.battlefield.map((card) => (
+                      <article className="lane-card" key={card}>
+                        <p className="lane-card-name">{card}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
 
-          <div className="feedback-grid">
-            {feedbackPatterns.map((pattern) => (
-              <article key={pattern.name} className={`feedback-card tone-${pattern.tone}`}>
-                <div className={`feedback-demo ${pattern.className}`} aria-hidden="true">
-                  <span className="feedback-chip">Demo</span>
+                <aside className="stack-column" aria-label="Card Stacks">
+                  <article className="stack-card">
+                    <p className="stack-label">Deck</p>
+                    <strong>{player.deck.length}</strong>
+                  </article>
+                  <article className="stack-card">
+                    <p className="stack-label">Discard</p>
+                    <strong>{player.discard.length}</strong>
+                  </article>
+                </aside>
+              </section>
+
+              <section className="hand-dock" aria-label="Hand Dock">
+                <div className="lane-header">
+                  <h2>Hand Dock</h2>
+                  <span>{`${player.hand.length} cards`}</span>
                 </div>
-                <h3>{pattern.name}</h3>
-                <p>{pattern.body}</p>
-                <code>{pattern.className}</code>
-              </article>
-            ))}
-          </div>
-        </section>
+                <div className="hand-cards">
+                  {player.hand.map((card) => (
+                    <article className="hand-card" key={card}>
+                      {card}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </section>
+
+            <section className="feedback-kit" aria-labelledby="action-timeline-title">
+              <div className="section-copy">
+                <p className="eyebrow">State Sequence</p>
+                <h2 id="action-timeline-title">Action Timeline</h2>
+              </div>
+              <div className="preview-grid" aria-label="Action Timeline Steps">
+                {actionTimeline.map((step) => (
+                  <article className="preview-card ladder" key={step.title}>
+                    <h3>{step.title}</h3>
+                    <p>{step.body}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="feedback-kit" aria-labelledby="feedback-kit-title">
+              <div className="section-copy">
+                <p className="eyebrow">Visual Feedback Primitives</p>
+                <h2 id="feedback-kit-title">Combat Feedback Kit</h2>
+                <p>
+                  Reusable motion and overlay patterns for card play, attacks, damage hits, turn
+                  swaps, and match resolution.
+                </p>
+              </div>
+
+              <div className="feedback-grid">
+                {feedbackPatterns.map((pattern) => (
+                  <article key={pattern.name} className={`feedback-card tone-${pattern.tone}`}>
+                    <div className={`feedback-demo ${pattern.className}`} aria-hidden="true">
+                      <span className="feedback-chip">Demo</span>
+                    </div>
+                    <h3>{pattern.name}</h3>
+                    <p>{pattern.body}</p>
+                    <code>{pattern.className}</code>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            {route === 'home' ? (
+              <>
+                <section className="hero-panel">
+                  <p className="eyebrow">Static TCG Campaign</p>
+                  <h1>{page.title}</h1>
+                  <p>Choose a side in a shattered sky war and pilot a compact three-fight card gauntlet.</p>
+                  <div className="hero-actions">
+                    <a className="button primary" href="#/play">
+                      Enter the Gauntlet
+                    </a>
+                    <a className="button secondary" href="#/rules">
+                      Study Both Factions
+                    </a>
+                  </div>
+                </section>
+
+                <section className="preview-grid" aria-label="Home Highlights">
+                  {homeHighlights.map((section) => (
+                    <article key={section.title} className={`preview-card ${section.tone}`}>
+                      <h2>{section.title}</h2>
+                      <p>{section.body}</p>
+                    </article>
+                  ))}
+                </section>
+
+                <section className="feedback-kit" aria-labelledby="faction-previews-title">
+                  <div className="section-copy">
+                    <p className="eyebrow">Deck Identity</p>
+                    <h2 id="faction-previews-title">Faction Previews</h2>
+                  </div>
+                  <div className="preview-grid" aria-label="Faction Previews">
+                    {homeFactions.map((section) => (
+                      <article key={section.title} className={`preview-card ${section.tone}`}>
+                        <h3>{section.title}</h3>
+                        <p>{section.body}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="feedback-kit" aria-labelledby="encounter-path-title">
+                  <div className="section-copy">
+                    <p className="eyebrow">Campaign Route</p>
+                    <h2 id="encounter-path-title">Encounter Path</h2>
+                  </div>
+                  <div className="preview-grid" aria-label="Encounter Path">
+                    {encounterPath.map((encounter) => (
+                      <article key={encounter} className="preview-card ladder">
+                        <h3>{encounter}</h3>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </>
+            ) : (
+              <>
+                <section className="hero-panel">
+                  <p className="eyebrow">Static TCG Campaign</p>
+                  <h1>{page.title}</h1>
+                  <p>{page.body}</p>
+                  <div className="hero-actions">
+                    <a className="button primary" href="#/play">
+                      Start Duel
+                    </a>
+                    <a className="button secondary" href="#/rules">
+                      Learn Rules
+                    </a>
+                  </div>
+                </section>
+
+                <section className="preview-grid" aria-label={route === 'rules' ? 'Rules Reference' : 'Scaffold Preview'}>
+                  {previewSections.map((section) => (
+                    <article key={section.title} className={`preview-card ${section.tone}`}>
+                      <h2>{section.title}</h2>
+                      <p>{section.body}</p>
+                    </article>
+                  ))}
+                </section>
+              </>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

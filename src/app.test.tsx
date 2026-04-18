@@ -63,14 +63,35 @@ describe('App shell', () => {
 
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: /live duel board/i })).toBeInTheDocument();
-    expect(screen.getByText(/turn 4 - ember guild attack/i)).toBeInTheDocument();
-    expect(screen.getByText(/player health/i)).toBeInTheDocument();
-    expect(screen.getByText(/enemy health/i)).toBeInTheDocument();
-    expect(screen.getByText(/hand dock/i)).toBeInTheDocument();
-    expect(screen.getByText(/front lane/i)).toBeInTheDocument();
-    expect(screen.getByText(/back lane/i)).toBeInTheDocument();
-    expect(screen.getByText(/^deck$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^discard$/i)).toBeInTheDocument();
+    const board = screen.getByRole('region', { name: /live duel board/i });
+
+    expect(within(board).getByRole('heading', { name: /live duel board/i })).toBeInTheDocument();
+    expect(within(board).getByText(/turn 2 - player active/i)).toBeInTheDocument();
+    expect(within(board).getByText(/player health/i)).toBeInTheDocument();
+    expect(within(board).getByText(/enemy health/i)).toBeInTheDocument();
+    expect(within(board).getByText(/hand dock/i)).toBeInTheDocument();
+    expect(within(board).getByText(/front lane/i)).toBeInTheDocument();
+    expect(within(board).getByText(/back lane/i)).toBeInTheDocument();
+    expect(within(board).getByText(/^deck$/i)).toBeInTheDocument();
+    expect(within(board).getByText(/^discard$/i)).toBeInTheDocument();
+    expect(within(board).getByText(/^ashguard bruiser$/i)).toBeInTheDocument();
+    expect(within(board).getByText(/^skyhook snare$/i)).toBeInTheDocument();
+    expect(within(board).getByText(/resource 1/i)).toBeInTheDocument();
+  });
+
+  it('renders a deterministic action timeline tied to duel state transitions', () => {
+    window.location.hash = '#/play';
+
+    render(<App />);
+
+    const timeline = screen.getByRole('region', { name: /action timeline/i });
+
+    expect(within(timeline).getByRole('heading', { name: /action timeline/i })).toBeInTheDocument();
+    expect(within(timeline).getByText(/^turn sweep$/i)).toBeInTheDocument();
+    expect(within(timeline).getByText(/turn 2 - player initiative/i)).toBeInTheDocument();
+    expect(within(timeline).getByText(/^card play lift$/i)).toBeInTheDocument();
+    expect(within(timeline).getByText(/player deploys ashguard bruiser to the battlefield/i)).toBeInTheDocument();
+    expect(within(timeline).getByText(/^damage flash$/i)).toBeInTheDocument();
+    expect(within(timeline).getByText(/opponent takes 4 damage and drops to 16 health/i)).toBeInTheDocument();
   });
 });
