@@ -12,6 +12,8 @@ test('play page frames divB lane play and command queue', () => {
   assert.match(html, /Frontline Archivist/i);
   assert.match(html, /Patch Bay Saboteur/i);
   assert.match(html, /Command Queue/i);
+  assert.match(html, /Turn Plan/i);
+  assert.match(html, /Stabilize the weakest lane first/i);
   assert.match(html, /Three lanes/i);
   assert.match(html, /Target Priority/i);
   assert.match(html, /The AI strikes the lane with the weakest blocker first, then converts overflow into face pressure\./i);
