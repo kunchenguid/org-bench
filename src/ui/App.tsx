@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { cards, decks, encounterLadder, keywordGlossary } from '../game-data';
+import {
+  createCardGalleryPreferences,
+  filterCardsByFaction,
+  type CardGalleryFactionFilter,
+} from './card-gallery-preferences';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -41,6 +46,10 @@ const routeContent: Record<Route, { eyebrow: string; title: string; body: string
       'The card file is split evenly across the two factions, with mirrored deck sizes and just enough texture for replayable matchups.',
   },
 };
+
+const RUN_NAMESPACE = 'run:apple-seed-01';
+
+const factionFilters: CardGalleryFactionFilter[] = ['all', 'Ashfall Covenant', 'Verdant Loom'];
 
 function DeckPreview() {
   return (
@@ -98,28 +107,47 @@ function RulesReference() {
   );
 }
 
-function CardGallery() {
+function CardGallery(props: {
+  selectedFaction: CardGalleryFactionFilter;
+  onSelectFaction: (faction: CardGalleryFactionFilter) => void;
+}) {
+  const visibleCards = filterCardsByFaction(cards, props.selectedFaction);
+
   return (
-    <div className="card-grid">
-      {cards.map((card) => (
-        <article className="game-card" key={card.id}>
-          <div className="game-card-topline">
-            <span className="pill">{card.faction}</span>
-            <span className="cost-badge">{card.cost}</span>
-          </div>
-          <h3>{card.name}</h3>
-          <p className="card-type">{card.type}</p>
-          <p>{card.text}</p>
-          <div className="game-card-footer">
-            <span>{card.keywords.join(' - ') || 'No keyword'}</span>
-            {card.attack !== undefined && card.health !== undefined ? (
-              <strong>
-                {card.attack}/{card.health}
-              </strong>
-            ) : null}
-          </div>
-        </article>
-      ))}
+    <div className="stack-blocks">
+      <div className="filter-row" aria-label="Faction filter">
+        {factionFilters.map((faction) => (
+          <button
+            key={faction}
+            type="button"
+            className={props.selectedFaction === faction ? 'pill is-active' : 'pill'}
+            onClick={() => props.onSelectFaction(faction)}
+          >
+            {faction === 'all' ? 'All Factions' : faction}
+          </button>
+        ))}
+      </div>
+      <div className="card-grid">
+        {visibleCards.map((card) => (
+          <article className="game-card" key={card.id}>
+            <div className="game-card-topline">
+              <span className="pill">{card.faction}</span>
+              <span className="cost-badge">{card.cost}</span>
+            </div>
+            <h3>{card.name}</h3>
+            <p className="card-type">{card.type}</p>
+            <p>{card.text}</p>
+            <div className="game-card-footer">
+              <span>{card.keywords.join(' - ') || 'No keyword'}</span>
+              {card.attack !== undefined && card.health !== undefined ? (
+                <strong>
+                  {card.attack}/{card.health}
+                </strong>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -150,7 +178,11 @@ function HeroCard(props: { title: string; subtitle: string; accent: string }) {
   );
 }
 
-function PageSection(props: { route: Route }) {
+function PageSection(props: {
+  route: Route;
+  selectedFaction: CardGalleryFactionFilter;
+  onSelectFaction: (faction: CardGalleryFactionFilter) => void;
+}) {
   const content = routeContent[props.route];
 
   return (
@@ -167,13 +199,22 @@ function PageSection(props: { route: Route }) {
       ) : null}
       {props.route === 'home' || props.route === 'play' ? <DeckPreview /> : null}
       {props.route === 'rules' ? <RulesReference /> : null}
-      {props.route === 'cards' ? <CardGallery /> : null}
+      {props.route === 'cards' ? (
+        <CardGallery
+          selectedFaction={props.selectedFaction}
+          onSelectFaction={props.onSelectFaction}
+        />
+      ) : null}
     </section>
   );
 }
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => getRouteFromHash(window.location.hash));
+  const [selectedFaction, setSelectedFaction] = useState<CardGalleryFactionFilter>(() => {
+    const preferences = createCardGalleryPreferences(window.localStorage, RUN_NAMESPACE);
+    return preferences.getSelectedFaction();
+  });
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRouteFromHash(window.location.hash));
@@ -181,6 +222,11 @@ export function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  useEffect(() => {
+    const preferences = createCardGalleryPreferences(window.localStorage, RUN_NAMESPACE);
+    preferences.setSelectedFaction(selectedFaction);
+  }, [selectedFaction]);
 
   const activeItem = useMemo(
     () => navItems.find((item) => item.route === route) ?? navItems[0],
@@ -231,7 +277,11 @@ export function App() {
           </aside>
         </section>
 
-        <PageSection route={route} />
+        <PageSection
+          route={route}
+          selectedFaction={selectedFaction}
+          onSelectFaction={setSelectedFaction}
+        />
       </main>
     </div>
   );
