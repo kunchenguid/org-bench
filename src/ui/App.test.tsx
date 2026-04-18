@@ -51,4 +51,14 @@ describe('App card gallery route', () => {
     expect(screen.getAllByRole('article')).toHaveLength(2);
     expect(screen.getByText(/When Canopy Warden enters play, restore 2 health to your nexus\./)).toBeTruthy();
   });
+
+  it('reveals a card when its keyboard control receives focus', () => {
+    render(<App />);
+
+    fireEvent.focus(screen.getByRole('button', { name: 'Reveal Cinder Oath rules' }));
+
+    expect(
+      screen.getByText(/Deal 3 damage to a unit\. If that unit leaves play this turn, draw a card\./),
+    ).toBeTruthy();
+  });
 });
