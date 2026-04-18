@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { createGameSession } from './game/engine';
+
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
+
+const navItems: Array<{ href: `#${RouteKey}`; label: string; route: RouteKey }> = [
+  { href: '#/', label: 'Home', route: '/' },
+  { href: '#/play', label: 'Play', route: '/play' },
+  { href: '#/rules', label: 'Rules', route: '/rules' },
+  { href: '#/cards', label: 'Cards', route: '/cards' },
+];
 
 const routes: Record<RouteKey, { title: string; description: string }> = {
   '/': {
@@ -42,6 +51,11 @@ export function App() {
   }, []);
 
   const page = routes[route];
+  const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+
+  useEffect(() => {
+    document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
+  }, [page.title, route]);
 
   return (
     <div className="shell">
@@ -52,36 +66,32 @@ export function App() {
       </header>
 
       <nav aria-label="Primary" className="nav">
-        <a aria-current={route === '/' ? 'page' : undefined} className={route === '/' ? 'is-active' : undefined} href="#/">
-          Home
-        </a>
-        <a
-          aria-current={route === '/play' ? 'page' : undefined}
-          className={route === '/play' ? 'is-active' : undefined}
-          href="#/play"
-        >
-          Play
-        </a>
-        <a
-          aria-current={route === '/rules' ? 'page' : undefined}
-          className={route === '/rules' ? 'is-active' : undefined}
-          href="#/rules"
-        >
-          Rules
-        </a>
-        <a
-          aria-current={route === '/cards' ? 'page' : undefined}
-          className={route === '/cards' ? 'is-active' : undefined}
-          href="#/cards"
-        >
-          Cards
-        </a>
+        {navItems.map((item) => (
+          <a
+            key={item.route}
+            href={item.href}
+            className={route === item.route ? 'is-active' : undefined}
+            aria-current={route === item.route ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))}
       </nav>
 
       <main className="panel">
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+
+        {openingSession ? (
+          <div className="session-summary" aria-label="Opening encounter summary">
+            <p className="section-label">Encounter</p>
+            <h3>{openingSession.encounter.opponentName}</h3>
+            <p>
+              Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
+            </p>
+          </div>
+        ) : null}
       </main>
     </div>
   );
