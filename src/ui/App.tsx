@@ -186,6 +186,13 @@ export function PlayBoard() {
           <span className="status-label">Turn indicator</span>
           <strong>Your turn</strong>
           <span className="status-rule">Round 4 · 3 actions available</span>
+          <div className="turn-sequence" aria-label="Turn sequence">
+            <span>Ready</span>
+            <span>Draw</span>
+            <span className="is-active">Main</span>
+            <span>Combat</span>
+            <span>End</span>
+          </div>
         </aside>
       </div>
 
@@ -242,22 +249,33 @@ export function PlayBoard() {
         <button type="button" className="action-secondary">End turn</button>
       </div>
 
-      <section className="selection-tray" aria-label="Selection tray">
-        <div className="selection-tray-copy">
-          <span className="combatant-label">Selection tray</span>
-          <strong>Cinder Archivist</strong>
+      <div className="board-sidebar">
+        <section className="selection-tray" aria-label="Selection tray">
+          <div className="selection-tray-copy">
+            <span className="combatant-label">Selection tray</span>
+            <strong>Cinder Archivist</strong>
+            <p>
+              A 3-cost spellwright queued from hand. Playing it will pressure the center lane and
+              open the enemy front line for a cleaner attack.
+            </p>
+          </div>
+          <div className="selection-tray-meta">
+            <span>Cost 3</span>
+            <span>Attack 4</span>
+            <span>Health 2</span>
+            <span>Target: Enemy battlefield</span>
+          </div>
+        </section>
+
+        <aside className="intent-panel" aria-label="Enemy intent">
+          <span className="combatant-label">Enemy intent</span>
+          <strong>Projected attack: 7</strong>
           <p>
-            A 3-cost spellwright queued from hand. Playing it will pressure the center lane and open
-            the enemy front line for a cleaner attack.
+            Vey is threatening a wide swing next turn unless you break the center lane or force a
+            bad trade now.
           </p>
-        </div>
-        <div className="selection-tray-meta">
-          <span>Cost 3</span>
-          <span>Attack 4</span>
-          <span>Health 2</span>
-          <span>Target: Enemy battlefield</span>
-        </div>
-      </section>
+        </aside>
+      </div>
     </section>
   );
 }
@@ -309,7 +327,7 @@ export function RulesPanel() {
 
         <div className="rules-faction-cards">
           {showcaseCards.map((card) => (
-            <CardFrame key={card.title} {...card} />
+            <CardFrame key={card.title} {...card} size="compact" />
           ))}
         </div>
       </div>
@@ -331,7 +349,7 @@ export function CardGalleryPanel() {
 
       <div className="card-gallery">
         {showcaseCards.map((card) => (
-          <CardFrame key={card.title} {...card} />
+          <CardFrame key={card.title} {...card} size="compact" />
         ))}
       </div>
     </section>

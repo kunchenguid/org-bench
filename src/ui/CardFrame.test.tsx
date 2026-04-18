@@ -50,4 +50,21 @@ describe('CardFrame', () => {
     expect(markup).toContain('data-motif="verdant"');
     expect(markup).toContain('Rootwhisper Keeper');
   });
+
+  it('supports a compact presentation variant for dense surfaces', () => {
+    const markup = renderToString(
+      h(CardFrame, {
+        faction: 'ember',
+        title: 'Cinder Archivist',
+        cost: 3,
+        kind: 'Spellwright',
+        attack: 4,
+        health: 2,
+        rules: 'When played, deal 1 ember damage to each opposing unit.',
+        size: 'compact',
+      }),
+    );
+
+    expect(markup).toContain('card-frame-compact');
+  });
 });
