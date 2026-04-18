@@ -24,6 +24,7 @@ describe('App', () => {
     expect(html).toContain('Player action');
     expect(html).toContain('Player rig');
     expect(html).toContain('Rogue AI core');
+    expect(html).toContain('Heavy counter queued');
     expect(html).toContain('AI rival reads');
     expect(html).toContain('Play first card');
     expect(html).toContain('Commit attack lane');

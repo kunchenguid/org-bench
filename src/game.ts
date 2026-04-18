@@ -6,15 +6,18 @@ const encounters = [
   {
     name: 'Rogue AI challenger',
     enemyHp: 24,
+    enemyIntent: 'Heavy counter',
   },
   {
     name: 'Apex Mirror',
     enemyHp: 30,
+    enemyIntent: 'Mirror punish',
   },
 ] as const;
 
 export type BattleState = {
   encounterIndex: number;
+  enemyIntent: string;
   status: 'active' | 'won';
   turn: 'player' | 'enemy' | 'complete';
   player: {
@@ -32,6 +35,7 @@ function createEncounterState(encounterIndex: number, playerHp = 30): BattleStat
 
   return {
     encounterIndex,
+    enemyIntent: encounter.enemyIntent,
     status: 'active',
     turn: 'player',
     player: {
@@ -110,6 +114,7 @@ export function resolveEnemyTurn(state: BattleState): BattleState {
       hp: clampHealth(state.player.hp - damage),
       shielded: false,
     },
+    enemyIntent: state.encounterIndex === 0 ? 'Heavy counter' : 'Mirror punish',
     log: [...state.log, `The AI fires back for ${damage} damage.`],
   };
 }
@@ -133,5 +138,22 @@ export function serializeBattleState(state: BattleState): string {
 }
 
 export function deserializeBattleState(serializedState: string): BattleState {
-  return JSON.parse(serializedState) as BattleState;
+  const parsed = JSON.parse(serializedState) as Partial<BattleState>;
+
+  return {
+    ...createEncounterState(parsed.encounterIndex ?? 0, parsed.player?.hp ?? 30),
+    ...parsed,
+    player: {
+      hp: parsed.player?.hp ?? 30,
+      shielded: parsed.player?.shielded ?? false,
+    },
+    enemy: {
+      hp: parsed.enemy?.hp ?? encounters[parsed.encounterIndex ?? 0]?.enemyHp ?? encounters[0].enemyHp,
+    },
+    enemyIntent:
+      parsed.enemyIntent ??
+      encounters[parsed.encounterIndex ?? 0]?.enemyIntent ??
+      encounters[0].enemyIntent,
+    log: parsed.log ?? [],
+  };
 }

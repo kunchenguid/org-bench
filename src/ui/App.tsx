@@ -102,12 +102,16 @@ function getSavedBattleState() {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(getRoute);
-  const [battle, setBattle] = useState(getSavedBattleState);
+  const [battle, setBattle] = useState(createInitialState);
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  useEffect(() => {
+    setBattle(getSavedBattleState());
   }, []);
 
   useEffect(() => {
@@ -209,6 +213,7 @@ export function App() {
             <section class="zone">
               <span class="eyebrow">Rogue AI core</span>
               <h3>{battle.enemy.hp} integrity</h3>
+              <p>{battle.enemyIntent} queued</p>
               <p>{battle.log.at(-1)}</p>
             </section>
           </div>

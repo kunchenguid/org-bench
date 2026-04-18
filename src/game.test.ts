@@ -25,6 +25,7 @@ test('attack advances combat and damages the enemy', () => {
 
   assert.equal(next.turn, 'enemy');
   assert.equal(next.enemy.hp, 18);
+  assert.equal(next.enemyIntent, 'Heavy counter');
   assert.match(next.log.at(-1) ?? '', /strike/i);
 });
 
@@ -62,6 +63,7 @@ test('advanceEncounter promotes the run to the next rogue AI duel', () => {
   assert.equal(next.encounterIndex, 1);
   assert.equal(next.player.hp, 24);
   assert.equal(next.enemy.hp, 30);
+  assert.equal(next.enemyIntent, 'Mirror punish');
   assert.match(next.log.at(-1) ?? '', /apex mirror/i);
 });
 
