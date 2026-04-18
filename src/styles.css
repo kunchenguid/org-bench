@@ -276,6 +276,168 @@ select {
   gap: 16px;
 }
 
+.page-panel h3,
+.encounter-card h4 {
+  margin: 0;
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+}
+
+.page-panel h3 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.home-hero-copy,
+.hero-stage,
+.faction-copy-card,
+.encounter-card,
+.cta-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+}
+
+.home-hero-copy,
+.hero-stage {
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.home-lede {
+  max-width: 58ch;
+  font-size: 1.05rem;
+}
+
+.cta-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cta-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 18px;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.cta-card strong,
+.faction-copy-card strong {
+  font-size: 1rem;
+  color: #fff3dd;
+}
+
+.cta-card span,
+.faction-copy-card p,
+.encounter-card p {
+  color: #c8c3d2;
+}
+
+.cta-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 178, 107, 0.34);
+  background: linear-gradient(180deg, rgba(245, 178, 107, 0.16), rgba(255, 255, 255, 0.05));
+}
+
+.hero-stage {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(245, 178, 107, 0.22), transparent 28%),
+    linear-gradient(180deg, rgba(21, 19, 31, 0.96), rgba(10, 12, 20, 0.94));
+}
+
+.hero-stage::after {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.hero-stage-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+}
+
+.hero-stage-panel span,
+.encounter-card span {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f5b26b;
+}
+
+.hero-stage-panel strong {
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.2rem;
+}
+
+.hero-stage-core {
+  position: relative;
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+}
+
+.hero-stage-ring,
+.hero-stage-spark {
+  position: absolute;
+  border-radius: 999px;
+}
+
+.hero-stage-ring-outer {
+  width: min(100%, 230px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(245, 178, 107, 0.42);
+  box-shadow: 0 0 60px rgba(245, 178, 107, 0.14);
+}
+
+.hero-stage-ring-inner {
+  width: min(100%, 144px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.hero-stage-spark {
+  width: 22px;
+  height: 22px;
+  background: radial-gradient(circle, #fff4dc 0%, #f5b26b 55%, rgba(245, 178, 107, 0) 100%);
+  box-shadow: 0 0 28px rgba(245, 178, 107, 0.45);
+}
+
+.faction-copy-grid,
+.encounter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.faction-copy-card,
+.encounter-card {
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.encounter-panel {
+  background:
+    radial-gradient(circle at top left, rgba(139, 137, 233, 0.12), transparent 26%),
+    rgba(13, 16, 23, 0.82);
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -703,6 +865,13 @@ select {
 
 @media (max-width: 900px) {
   .hero-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero,
+  .cta-row,
+  .faction-copy-grid,
+  .encounter-grid {
     grid-template-columns: 1fr;
   }
 

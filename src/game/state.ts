@@ -172,3 +172,16 @@ export function resolveCombat(
     },
   };
 }
+
+export function endTurn(state: GameState, side: Side): GameState {
+  const nextActivePlayer: Side = side === 'player' ? 'enemy' : 'player';
+
+  return {
+    ...state,
+    activePlayer: nextActivePlayer,
+    [side]: {
+      ...state[side],
+      resources: 0,
+    },
+  };
+}

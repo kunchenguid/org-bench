@@ -4,6 +4,7 @@ import {
   applyChampionDamage,
   createGameState,
   drawCard,
+  endTurn,
   playCard,
   resolveCombat,
   startTurn,
@@ -140,5 +141,21 @@ describe('game state flow', () => {
 
     expect(nextState.enemy.health).toBe(17);
     expect(nextState.player.battlefield.map((card) => card.id)).toEqual(['striker']);
+  });
+
+  test('endTurn clears floating resources and hands priority to the enemy', () => {
+    const baseline = startTurn(
+      createGameState({
+        enemyDeck: [guardian],
+        playerDeck: [scout, striker],
+      }),
+      'player',
+    );
+
+    const nextState = endTurn(baseline, 'player');
+
+    expect(nextState.activePlayer).toBe('enemy');
+    expect(nextState.player.resources).toBe(0);
+    expect(nextState.turn).toBe(1);
   });
 });
