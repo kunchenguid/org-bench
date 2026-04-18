@@ -9,6 +9,7 @@ describe('App scaffold', () => {
       'aria-current',
       'page'
     );
+    expect(document.title).toBe('Shards of the Veil');
 
     expect(
       screen.getByRole('heading', { name: /shards of the veil/i })
@@ -20,6 +21,7 @@ describe('App scaffold', () => {
       'aria-current',
       'page'
     );
+    expect(document.title).toBe('Play - Shards of the Veil');
     expect(screen.getByRole('heading', { name: /play/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('link', { name: /rules/i }));
@@ -27,6 +29,7 @@ describe('App scaffold', () => {
       'aria-current',
       'page'
     );
+    expect(document.title).toBe('Rules - Shards of the Veil');
     expect(screen.getByRole('heading', { name: /rules/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('link', { name: /cards/i }));
@@ -34,6 +37,7 @@ describe('App scaffold', () => {
       'aria-current',
       'page'
     );
+    expect(document.title).toBe('Cards - Shards of the Veil');
     expect(screen.getByRole('heading', { name: /cards/i })).toBeInTheDocument();
   });
 });

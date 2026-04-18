@@ -9,6 +9,13 @@ const routes: Record<string, Route> = {
   '#/cards': 'cards'
 };
 
+const pageTitles: Record<Route, string> = {
+  home: 'Shards of the Veil',
+  play: 'Play - Shards of the Veil',
+  rules: 'Rules - Shards of the Veil',
+  cards: 'Cards - Shards of the Veil'
+};
+
 function getRoute(): Route {
   return routes[window.location.hash] ?? 'home';
 }
@@ -89,6 +96,10 @@ export function App() {
     window.addEventListener('hashchange', syncRoute);
     return () => window.removeEventListener('hashchange', syncRoute);
   }, []);
+
+  useEffect(() => {
+    document.title = pageTitles[route];
+  }, [route]);
 
   return (
     <div class="app-shell">
