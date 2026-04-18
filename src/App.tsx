@@ -5,6 +5,13 @@ import { createGameSession } from './game/engine';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
+const navItems: Array<{ href: `#${RouteKey}`; label: string; route: RouteKey }> = [
+  { href: '#/', label: 'Home', route: '/' },
+  { href: '#/play', label: 'Play', route: '/play' },
+  { href: '#/rules', label: 'Rules', route: '/rules' },
+  { href: '#/cards', label: 'Cards', route: '/cards' },
+];
+
 const routes: Record<RouteKey, { title: string; description: string }> = {
   '/': {
     title: 'Duel TCG',
@@ -34,7 +41,7 @@ function getRouteFromHash(hash: string): RouteKey {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
-  const playSession = createGameSession({ encounterId: 'encounter-1' });
+  const previewSession = route === '/play' || route === '/cards' ? createGameSession({ encounterId: 'encounter-1' }) : null;
 
   useEffect(() => {
     const onHashChange = () => {
@@ -45,11 +52,11 @@ export function App() {
     return () => globalThis.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  useEffect(() => {
-    document.title = route === '/' ? 'Duel TCG' : `${routes[route].title} - Duel TCG`;
-  }, [route]);
-
   const page = routes[route];
+
+  useEffect(() => {
+    document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
+  }, [page.title, route]);
 
   return (
     <div className="shell">
@@ -60,41 +67,32 @@ export function App() {
       </header>
 
       <nav aria-label="Primary" className="nav">
-        <a aria-current={route === '/' ? 'page' : undefined} className={route === '/' ? 'is-active' : undefined} href="#/">
-          Home
-        </a>
-        <a
-          aria-current={route === '/play' ? 'page' : undefined}
-          className={route === '/play' ? 'is-active' : undefined}
-          href="#/play"
-        >
-          Play
-        </a>
-        <a
-          aria-current={route === '/rules' ? 'page' : undefined}
-          className={route === '/rules' ? 'is-active' : undefined}
-          href="#/rules"
-        >
-          Rules
-        </a>
-        <a
-          aria-current={route === '/cards' ? 'page' : undefined}
-          className={route === '/cards' ? 'is-active' : undefined}
-          href="#/cards"
-        >
-          Cards
-        </a>
+        {navItems.map((item) => (
+          <a
+            key={item.route}
+            href={item.href}
+            className={route === item.route ? 'is-active' : undefined}
+            aria-current={route === item.route ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))}
       </nav>
 
       <main className="panel">
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
-        {route === '/play' ? (
+        {route === '/play' && previewSession ? (
           <div className="session-summary">
-            <p>Opponent: {playSession.encounter.opponentName}</p>
-            <p>Opening hand: {playSession.players.player.hand.length} cards</p>
-            <p>Starting mana: {playSession.players.player.resources.current}</p>
+            <p className="section-label">Encounter</p>
+            <h3>{previewSession.encounter.opponentName}</h3>
+            <p>
+              Opening duel state: {previewSession.players.player.health} health, {previewSession.players.player.hand.length} cards in hand, turn {previewSession.turn.number}.
+            </p>
+            <p>Opponent: {previewSession.encounter.opponentName}</p>
+            <p>Opening hand: {previewSession.players.player.hand.length} cards</p>
+            <p>Starting mana: {previewSession.players.player.resources.current}</p>
           </div>
         ) : null}
         {route === '/rules' ? (
@@ -120,6 +118,17 @@ export function App() {
               </ul>
             </section>
           </div>
+        ) : null}
+        {route === '/cards' && previewSession ? (
+          <section className="rules-card cards-preview">
+            <h3>Opening Hand Preview</h3>
+            <p>Player deck: {previewSession.players.player.hand.length} cards in hand, {previewSession.players.player.deck.length} in draw pile.</p>
+            <ul>
+              {previewSession.players.player.hand.map((card) => (
+                <li key={card.id}>{card.name}</li>
+              ))}
+            </ul>
+          </section>
         ) : null}
       </main>
     </div>

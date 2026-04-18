@@ -90,6 +90,12 @@ a {
   transform: translateY(-1px);
 }
 
+.nav a[aria-current='page'] {
+  border-color: rgba(142, 180, 255, 0.82);
+  background: rgba(45, 81, 150, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(206, 221, 255, 0.14);
+}
+
 .panel {
   padding: 28px;
   border: 1px solid rgba(161, 188, 255, 0.18);
@@ -102,6 +108,11 @@ a {
   display: grid;
   gap: 12px;
   margin: 24px 0 0;
+}
+
+.session-summary h3 {
+  margin: 0;
+  font-size: 1.4rem;
 }
 
 .session-summary p {
@@ -152,6 +163,17 @@ a {
 .ladder-card span {
   color: #c7d3e2;
   line-height: 1.5;
+}
+
+.cards-preview {
+  margin-top: 24px;
+}
+
+.cards-preview ul {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding-left: 20px;
 }
 
 @media (max-width: 640px) {

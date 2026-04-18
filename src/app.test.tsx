@@ -19,10 +19,29 @@ describe('App shell', () => {
   });
 
   it('marks the current route in navigation', () => {
+    globalThis.location.hash = '#/rules';
+
+    render(<App />);
+
+    expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('updates the document title for the active route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(document.title).toBe('Cards - Duel TCG');
+  });
+
+  it('shows the opening encounter on the play route', () => {
     globalThis.location.hash = '#/play';
 
     render(<App />);
 
+    expect(screen.getByText('Ashen Vanguard')).toBeInTheDocument();
+    expect(screen.getByText(/20 health/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Play' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
@@ -63,5 +82,15 @@ describe('App shell', () => {
     expect(screen.getByText('Turn Flow')).toBeInTheDocument();
     expect(screen.getByText(/Every round follows the same order/)).toBeInTheDocument();
     expect(screen.getByText('Rookie Table')).toBeInTheDocument();
+  });
+
+  it('shows a deterministic card preview on the cards route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByText('Lantern Squire')).toBeInTheDocument();
+    expect(screen.getByText('Signal Flare')).toBeInTheDocument();
+    expect(screen.getByText(/Player deck: 3 cards in hand, 3 in draw pile/)).toBeInTheDocument();
   });
 });
