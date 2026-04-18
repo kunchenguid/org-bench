@@ -63,4 +63,14 @@ describe('App', () => {
     expect(window.localStorage.getItem('run-amazon-seed-01:duel-of-embers:app')).toBeNull();
     expect(screen.getByText(/no local save yet/i)).toBeInTheDocument();
   });
+
+  test('shows real encounter ladder previews on the play page', () => {
+    window.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: /gate ash skirmish/i })).toBeInTheDocument();
+    expect(screen.getByText(/rook of cinders/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /ember crown/i })).toBeInTheDocument();
+  });
 });
