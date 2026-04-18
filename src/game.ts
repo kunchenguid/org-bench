@@ -183,16 +183,22 @@ function resolveCardPlay(state: GameState, actor: SideKey, cardId: string): Game
   };
 
   if (card.type === 'creature') {
-    return replaceSide(state, actor, {
-      ...updatedActor,
-      battlefield: [...updatedActor.battlefield, materializeCreature(card)],
-    });
+    return addLog(
+      replaceSide(state, actor, {
+        ...updatedActor,
+        battlefield: [...updatedActor.battlefield, materializeCreature(card)],
+      }),
+      `${actor === 'player' ? 'You' : 'Enemy'} played ${card.name}.`,
+    );
   }
 
-  const nextState = replaceSide(state, actor, {
-    ...updatedActor,
-    discard: [...updatedActor.discard, card],
-  });
+  const nextState = addLog(
+    replaceSide(state, actor, {
+      ...updatedActor,
+      discard: [...updatedActor.discard, card],
+    }),
+    `${actor === 'player' ? 'You' : 'Enemy'} played ${card.name}.`,
+  );
   const updatedDefender: SideState = {
     ...defendingSide,
     health: Math.max(0, defendingSide.health - card.damage),
@@ -232,7 +238,6 @@ function runOpponentTurn(state: GameState): GameState {
 
   if (affordableCard) {
     nextState = resolveCardPlay(nextState, 'opponent', affordableCard.id);
-    nextState = addLog(nextState, `Enemy played ${affordableCard.name}.`);
   }
 
   const attackDamage = nextState.opponent.battlefield.reduce((sum, card) => sum + card.attack, 0);
@@ -267,7 +272,17 @@ export function playCard(state: GameState, actor: SideKey, cardId: string): Game
     return state;
   }
 
-  return resolveCardPlay(state, actor, cardId);
+  const card = (actor === 'player' ? state.player.hand : state.opponent.hand).find(
+    (candidate) => candidate.id === cardId,
+  );
+  const nextState = resolveCardPlay(state, actor, cardId);
+
+  if (!card || nextState === state) {
+    return nextState;
+  }
+
+  const actorLabel = actor === 'player' ? 'You' : 'Enemy';
+  return addLog(nextState, `${actorLabel} played ${card.name}.`);
 }
 
 export function endTurn(state: GameState): GameState {

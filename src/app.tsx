@@ -56,6 +56,13 @@ const rulesSteps = [
 
 const starterCardPool = ['Emberblade Knight', 'Ash Striker', 'Ember Bolt', 'Cinder Mage'];
 const starterDecks = ['Solar Vanguard', 'Grave Bloom', 'Ember Ridge Patrol'];
+const encounterLadder = ['Ember Ridge', 'Ashen Falls', 'Cinder Harbor'];
+const encounterStorageKey = `${import.meta.env.BASE_URL}duel-tcg:active-encounter`;
+
+type SavedEncounterPreview = {
+  encounterName: string;
+  turn: number;
+};
 
 function getRouteFromHash(hash: string): Route {
   const normalized = hash.replace(/^#/, '') || '/';
@@ -76,6 +83,32 @@ function renderBattlefieldCard(card: BattlefieldCard) {
       </span>
     </li>
   );
+}
+
+function loadSavedEncounter(): GameState | null {
+  const serialized = window.localStorage.getItem(encounterStorageKey);
+  if (!serialized) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(serialized) as GameState;
+  } catch {
+    window.localStorage.removeItem(encounterStorageKey);
+    return null;
+  }
+}
+
+function getSavedEncounterPreview(): SavedEncounterPreview | null {
+  const savedState = loadSavedEncounter();
+  if (!savedState) {
+    return null;
+  }
+
+  return {
+    encounterName: savedState.encounterName,
+    turn: savedState.turn,
+  };
 }
 
 function RulesPanel() {
@@ -128,6 +161,19 @@ function CardsPanel() {
 
 function PlayPanel() {
   const [state, setState] = useState<GameState | null>(null);
+  const [savedPreview, setSavedPreview] = useState<SavedEncounterPreview | null>(() => getSavedEncounterPreview());
+
+  useEffect(() => {
+    if (!state) {
+      return;
+    }
+
+    window.localStorage.setItem(encounterStorageKey, JSON.stringify(state));
+    setSavedPreview({
+      encounterName: state.encounterName,
+      turn: state.turn,
+    });
+  }, [state]);
 
   if (!state) {
     return (
@@ -138,6 +184,36 @@ function PlayPanel() {
           Start the first encounter to validate the full gameplay loop: opening hand, mana, battlefield,
           discard, and a deterministic AI answer when you pass.
         </p>
+        <section className="zone">
+          <div className="zone-header">
+            <h3>Encounter ladder</h3>
+            <span>Progression path</span>
+          </div>
+          <ol className="log-list ladder-list">
+            {encounterLadder.map((encounter, index) => (
+              <li key={encounter}>
+                Act {index + 1}: {encounter}
+              </li>
+            ))}
+          </ol>
+        </section>
+        <section className="zone">
+          <div className="zone-header">
+            <h3>Resume plan</h3>
+            <span>Browser persistence</span>
+          </div>
+          <p>Resume data is stored under `{encounterStorageKey}` so this run stays isolated from other benchmark paths.</p>
+          {savedPreview ? (
+            <>
+              <p>
+                Saved run: {savedPreview.encounterName} on turn {savedPreview.turn}.
+              </p>
+              <button className="primary-button" onClick={() => setState(loadSavedEncounter())} type="button">
+                Resume encounter
+              </button>
+            </>
+          ) : null}
+        </section>
         <button className="primary-button" onClick={() => setState(createEncounterState())} type="button">
           Start Ember Ridge encounter
         </button>
