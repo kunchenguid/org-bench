@@ -7,17 +7,22 @@ type NavItem = {
   label: string;
 };
 
-type RulesSection = {
-  title: string;
-  body: string;
-  bullets?: string[];
-};
-
 type BoardZoneProps = {
   title: string;
   count: string;
   detail: string;
   tone?: 'neutral' | 'enemy' | 'player';
+};
+
+type RulesSection = {
+  title: string;
+  body: string;
+  bullets: string[];
+};
+
+type RulesHighlight = {
+  label: string;
+  value: string;
 };
 
 const navItems: NavItem[] = [
@@ -27,75 +32,81 @@ const navItems: NavItem[] = [
   { route: 'cards', label: 'Card Gallery' },
 ];
 
+const rulesHighlights: RulesHighlight[] = [
+  { label: 'Win Condition', value: 'Reduce the enemy champion to zero.' },
+  { label: 'Turn Shape', value: 'Ready, draw, spend energy, then attack.' },
+  { label: 'Run Flow', value: 'Clear encounters in sequence and resume locally.' },
+];
+
 const rulesSections: RulesSection[] = [
   {
     title: 'Turn flow',
     body:
-      'Each encounter follows a clean cadence. Start your turn by readying your board, draw back into options, spend your energy, then send creatures into combat before the enemy answers on its turn.',
+      'Each duel follows a clean cadence: ready your board, draw into fresh options, spend your charged energy, then commit attacks before the enemy takes the same steps on its turn.',
     bullets: [
-      'Ready all exhausted cards, then resolve any start-of-turn effects.',
-      'Draw one card and gain your turn energy refill.',
-      'Play creatures and spells in any order while you can afford them.',
-      'Declare attacks, resolve blockers, and finish end-of-turn effects before passing play.',
+      'Ready all exhausted cards and resolve any start-of-turn effects.',
+      'Draw one card and refill your energy for the turn.',
+      'Play creatures and spells in any order while you can still afford them.',
+      'Attack, resolve blockers and damage, then pass the turn once your board is set.',
     ],
   },
   {
     title: 'Resources',
     body:
-      'Energy is the resource that lets a hand become a board. You refresh your energy each turn, so the core decision is whether to commit pressure now or hold enough back to answer the next swing.',
+      'Energy is the game’s resource system. Every card shows its cost, and every turn asks whether you should spend everything for tempo or hold back a cleaner answer for the next exchange.',
     bullets: [
-      'Every card shows its energy cost in the top corner.',
-      'Unspent energy disappears at the end of your turn.',
-      'A cheaper curve lets you establish tempo early, while expensive cards swing a duel if you survive long enough to cast them.',
+      'Your energy refreshes at the start of your turn.',
+      'Unused energy disappears when you end the turn.',
+      'Cheap cards help you curve out early while expensive plays swing the board later.',
     ],
   },
   {
     title: 'Creature cards and spell cards',
     body:
-      'Creatures stay on the battlefield and win combat through repeated pressure. Spells resolve once, deliver their effect, then leave play. Good decks mix durable board presence with precise spell timing.',
+      'Creatures stay on the battlefield and keep pressuring the duel across multiple turns. Spells resolve once, create a burst of impact, then move to the discard pile.',
     bullets: [
-      'Creatures enter your battlefield with attack and health values that matter every turn.',
-      'Spells can deal burst damage, protect a creature, disrupt the enemy, or change the state of combat.',
-      'If a card breaks parity the turn you cast it, it usually belongs in your hand plan for that matchup.',
+      'Creatures use power and health to trade in combat.',
+      'Spells can deal damage, protect allies, or shift combat math in your favor.',
+      'Winning decks blend stable board presence with timely one-shot effects.',
     ],
   },
   {
     title: 'Combat',
     body:
-      'Combat is where the duel actually tilts. Attack with any ready creatures, let the defender assign blockers, then deal damage simultaneously. Surviving creatures remain in play carrying whatever health they have left.',
+      'Combat is where most duels are decided. Ready creatures can attack, defenders can block, and damage is dealt simultaneously so positioning and timing matter every turn.',
     bullets: [
       'Unblocked damage hits the opposing champion directly.',
-      'When a creature takes damage equal to or greater than its health, it is defeated and removed from the field.',
-      'Combat tricks matter because they change trades after attacks are declared, not before.',
+      'Creatures that take damage equal to or greater than their health are defeated.',
+      'A good combat step is often about forcing one favorable trade, not attacking with everything.',
     ],
   },
   {
     title: 'Victory and defeat',
     body:
-      'Your goal is simple: reduce the opposing champion to zero before they do the same to you. Some encounters pressure with speed, some with attrition, but every duel resolves around preserving just enough life to keep your plan online.',
+      'Reduce the opposing champion to zero health before they do the same to you. The campaign is small, so preserving life total and cards for the next hard turn matters more than flashy overkill.',
     bullets: [
       'You win immediately when the enemy champion reaches zero health.',
       'You lose immediately when your champion reaches zero health.',
-      'If your deck runs low, card advantage still matters because fewer answers means worse future turns.',
+      'A thinner deck means fewer future answers, so card advantage still matters.',
     ],
   },
   {
     title: 'Encounter progression',
     body:
-      'The campaign is a short ascent, not an endless ladder. Clear one encounter to unlock the next, with each opponent asking for cleaner sequencing and a sharper read on when to race versus when to defend.',
+      'Auric Reach is a short ascent through escalating encounters. Each opponent asks for a slightly different read on when to race, when to block, and when to conserve resources.',
     bullets: [
-      'Early fights teach the base rhythm of energy, board presence, and blocking.',
-      'Later encounters introduce tighter pressure and demand more disciplined card timing.',
-      'A full run is about surviving the sequence, not farming a single easy duel.',
+      'Early encounters teach the baseline rhythm of energy, creatures, and blocking.',
+      'Later fights pressure you to sequence more tightly and respect enemy swings.',
+      'A full run is about clearing the sequence, not farming a single easy duel.',
     ],
   },
   {
     title: 'Save and resume',
     body:
-      'Runs are designed to survive an interrupted session. The game stores your campaign state locally so you can close the browser and continue from the same point later without replaying finished encounters.',
+      'Runs are designed to survive interruptions. The game stores your campaign state locally so you can close the browser, come back later, and continue from the same in-progress run.',
     bullets: [
-      'Your current encounter progress and cleared fights are saved automatically.',
-      'Returning to the game should restore the run state from local storage on this device.',
+      'Current encounter state and cleared progress are saved automatically.',
+      'Reloading the site should restore the same run on this device.',
       'Starting a fresh run replaces the previous in-progress campaign.',
     ],
   },
@@ -151,38 +162,6 @@ function HeroCard(props: { title: string; subtitle: string; accent: string }) {
       <p>{props.subtitle}</p>
       <h3>{props.title}</h3>
     </article>
-  );
-}
-
-function RulesPanel() {
-  return (
-    <section className="page-panel rules-panel">
-      <div className="rules-intro">
-        <p className="eyebrow">Field Manual</p>
-        <h2>How to play the Auric Reach campaign.</h2>
-        <p>
-          Auric Reach is a single-player duel card game. You build a board, spend energy with
-          intent, and navigate a short sequence of encounters where clean combat math and timing
-          matter more than flashy turns.
-        </p>
-      </div>
-
-      <div className="rules-grid">
-        {rulesSections.map((section) => (
-          <article key={section.title} className="rules-card">
-            <h3>{section.title}</h3>
-            <p>{section.body}</p>
-            {section.bullets ? (
-              <ul>
-                {section.bullets.map((bullet) => (
-                  <li key={bullet}>{bullet}</li>
-                ))}
-              </ul>
-            ) : null}
-          </article>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -243,6 +222,7 @@ export function PlayBoard() {
       <div className="board-grid">
         <div className="board-row">
           <BoardZone title="Enemy hand" count="4 cards" detail="Hidden grip with one revealed reaction window." tone="enemy" />
+          <BoardZone title="Enemy deck" count="14 cards" detail="Remaining draw pile and fatigue pressure for the opposing side." tone="enemy" />
           <BoardZone title="Enemy battlefield" count="3 units" detail="Frontline creatures and supports occupying the attack lane." tone="enemy" />
           <BoardZone title="Enemy discard" count="7 cards" detail="Spent threats and broken relics visible for graveyard effects." tone="enemy" />
           <BoardZone title="Enemy resources" count="6 charged" detail="Crystals available for the current enemy turn." tone="enemy" />
@@ -260,6 +240,7 @@ export function PlayBoard() {
           <BoardZone title="Your resources" count="5 charged" detail="Available mana to commit before ending the turn." tone="player" />
           <BoardZone title="Your battlefield" count="2 units" detail="Your active creatures, equipment, and persistent effects." tone="player" />
           <BoardZone title="Your hand" count="5 cards" detail="Large touch-friendly staging area for playable cards." tone="player" />
+          <BoardZone title="Your deck" count="19 cards" detail="Your draw stack with enough visibility for planning the next cycle." tone="player" />
           <BoardZone title="Your discard pile" count="3 cards" detail="Resolved spells and fallen allies waiting for recursion." tone="player" />
         </div>
       </div>
@@ -273,15 +254,54 @@ export function PlayBoard() {
   );
 }
 
+function RulesPanel() {
+  return (
+    <section className="page-panel rules-panel">
+      <div className="rules-intro">
+        <p className="eyebrow">Field Manual</p>
+        <h2>How to play the Auric Reach campaign.</h2>
+        <p>
+          Auric Reach is a single-player duel card game about efficient energy use, clean combat
+          math, and surviving a short sequence of escalating encounters. Read the cadence once,
+          then the board should make the rest feel natural.
+        </p>
+      </div>
+
+      <div className="rules-highlights" aria-label="Quick reference">
+        {rulesHighlights.map((highlight) => (
+          <article key={highlight.label} className="rules-highlight">
+            <span>{highlight.label}</span>
+            <strong>{highlight.value}</strong>
+          </article>
+        ))}
+      </div>
+
+      <div className="rules-grid">
+        {rulesSections.map((section) => (
+          <article key={section.title} className="rules-card">
+            <h3>{section.title}</h3>
+            <p>{section.body}</p>
+            <ul>
+              {section.bullets.map((bullet) => (
+                <li key={bullet}>{bullet}</li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PageSection(props: { route: Route }) {
   const content = routeContent[props.route];
 
-  if (props.route === 'rules') {
-    return <RulesPanel />;
-  }
-
   if (props.route === 'play') {
     return <PlayBoard />;
+  }
+
+  if (props.route === 'rules') {
+    return <RulesPanel />;
   }
 
   return (

@@ -207,6 +207,33 @@ select {
   max-width: 760px;
 }
 
+.rules-highlights {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.rules-highlight {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(245, 178, 107, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.rules-highlight span {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.73rem;
+  color: #f5b26b;
+}
+
+.rules-highlight strong {
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.15rem;
+}
+
 .rules-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -401,7 +428,7 @@ select {
 }
 
 .board-row {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .board-zone {
@@ -500,6 +527,11 @@ select {
   .combatants,
   .board-row,
   .board-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-highlights,
+  .rules-grid {
     grid-template-columns: 1fr;
   }
 }

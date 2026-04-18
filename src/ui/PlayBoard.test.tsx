@@ -11,10 +11,12 @@ describe('PlayBoard', () => {
     expect(markup).toContain('Your turn');
     expect(markup).toContain('Enemy battlefield');
     expect(markup).toContain('Enemy hand');
+    expect(markup).toContain('Enemy deck');
     expect(markup).toContain('Enemy discard');
     expect(markup).toContain('Enemy resources');
     expect(markup).toContain('Your battlefield');
     expect(markup).toContain('Your hand');
+    expect(markup).toContain('Your deck');
     expect(markup).toContain('Your discard pile');
     expect(markup).toContain('Your resources');
     expect(markup).toContain('Play selected card');
