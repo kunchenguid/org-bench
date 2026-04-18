@@ -74,7 +74,7 @@ describe('App shell', () => {
     expect(document.title).toBe('Cards - Duel TCG');
   });
 
-  it('renders the authored rules content on the rules route', () => {
+  it('renders authored rules sections on the rules route', () => {
     globalThis.location.hash = '#/rules';
 
     render(<App />);
@@ -82,9 +82,12 @@ describe('App shell', () => {
     expect(screen.getByText('Turn Flow')).toBeInTheDocument();
     expect(screen.getByText(/Every round follows the same order/)).toBeInTheDocument();
     expect(screen.getByText('Rookie Table')).toBeInTheDocument();
+    expect(screen.getByText('Keywords')).toBeInTheDocument();
+    expect(screen.getByText('Draw one card at the start of your turn.')).toBeInTheDocument();
+    expect(screen.getByText('Rookie Table')).toBeInTheDocument();
   });
 
-  it('shows a deterministic card preview on the cards route', () => {
+  it('shows the shared catalog on the cards route', () => {
     globalThis.location.hash = '#/cards';
 
     render(<App />);

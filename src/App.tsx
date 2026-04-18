@@ -55,6 +55,7 @@ export function App() {
   }, []);
 
   const page = routes[route];
+  const isRulesRoute = route === '/rules';
 
   useEffect(() => {
     document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
@@ -97,20 +98,28 @@ export function App() {
             <p>Starting mana: {previewSession.players.player.resources.current}</p>
           </div>
         ) : null}
-        {route === '/rules' ? (
+
+        {isRulesRoute ? (
           <div className="rules-layout">
-            <div className="rules-sections">
+            <div className="rules-grid" aria-label="Rules sections">
               {rulesSections.map((section) => (
-                <section className="rules-card" key={section.title}>
+                <section key={section.title} className="rules-card">
+                  <p className="section-label">Rule Section</p>
                   <h3>{section.title}</h3>
                   <p>{section.intro}</p>
+                  <ul className="rules-points">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
                 </section>
               ))}
             </div>
 
-            <section className="rules-card ladder-card">
-              <h3>Ladder Focus</h3>
-              <ul>
+            <section className="session-summary" aria-label="Ladder progression guidance">
+              <p className="section-label">Ladder</p>
+              <h3>Progression Goals</h3>
+              <ul className="ladder-list">
                 {ladderSteps.map((step) => (
                   <li key={step.name}>
                     <strong>{step.name}</strong>
