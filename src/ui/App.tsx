@@ -219,6 +219,17 @@ export function App() {
           <ul>{renderCardList(frontlineCards)}</ul>
         </section>
 
+        {isCardsRoute ? (
+          <section class="panel">
+            <h2>Gallery legend</h2>
+            <ul>
+              <li>Ember - pressure lanes</li>
+              <li>Mist - setup and signals</li>
+              <li>Aerie - finishers and reach</li>
+            </ul>
+          </section>
+        ) : null}
+
         <section class="panel panel-links">
           <a href="./rules.html">Open standalone rules page</a>
         </section>

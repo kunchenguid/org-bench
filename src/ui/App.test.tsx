@@ -72,6 +72,10 @@ describe('App', () => {
     expect(html).toContain('Unit - Opener');
     expect(html).toContain('Signal - Finisher');
     expect(html).toContain('Card gallery');
+    expect(html).toContain('Gallery legend');
+    expect(html).toContain('Ember - pressure lanes');
+    expect(html).toContain('Mist - setup and signals');
+    expect(html).toContain('Aerie - finishers and reach');
 
     Object.assign(globalThis, { window: previousWindow });
   });
