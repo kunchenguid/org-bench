@@ -317,6 +317,27 @@ export function RulesPanel() {
   );
 }
 
+export function CardGalleryPanel() {
+  return (
+    <section className="page-panel card-gallery-panel">
+      <div className="card-gallery-intro">
+        <p className="eyebrow">Vault Archive</p>
+        <h2>Faction cards at a glance.</h2>
+        <p>
+          The gallery is a fast read on what each faction looks like in play: the same card frame,
+          the same stats layout, and two clearly different visual identities.
+        </p>
+      </div>
+
+      <div className="card-gallery">
+        {showcaseCards.map((card) => (
+          <CardFrame key={card.title} {...card} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PageSection(props: { route: Route }) {
   const content = routeContent[props.route];
 
@@ -326,6 +347,10 @@ function PageSection(props: { route: Route }) {
 
   if (props.route === 'rules') {
     return <RulesPanel />;
+  }
+
+  if (props.route === 'cards') {
+    return <CardGalleryPanel />;
   }
 
   return (
