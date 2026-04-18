@@ -59,6 +59,14 @@ describe('App', () => {
     expect(screen.getByText(/veyr emberhand/i)).toBeInTheDocument();
   });
 
+  test('does not claim resumable progress on a first visit to the play page', () => {
+    window.location.hash = '#/play';
+
+    render(<App storageNamespace="run-amazon-seed-01" />);
+
+    expect(screen.getByText(/no local save yet/i)).toBeInTheDocument();
+  });
+
   test('restores and clears saved progress from a namespaced key', () => {
     window.localStorage.setItem(
       'run-amazon-seed-01:duel-of-embers:app',

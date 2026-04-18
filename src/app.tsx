@@ -242,7 +242,6 @@ function useCurrentPage(storageNamespace?: string) {
     }
 
     savePage(namespace, page);
-    setHasSavedProgress(true);
   }, [namespace, page, saveSuppressed]);
 
   const clearSavedProgress = () => {
