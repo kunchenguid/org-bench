@@ -49,7 +49,11 @@ select {
 .hero-banner,
 .page-panel,
 .hero-card,
-.status-card {
+.status-card,
+.turn-indicator,
+.combatant-card,
+.board-zone,
+.battlefield-band {
   backdrop-filter: blur(16px);
 }
 
@@ -258,12 +262,199 @@ select {
   font-size: 1.45rem;
 }
 
+.play-board {
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top, rgba(245, 178, 107, 0.08), transparent 30%),
+    rgba(13, 16, 23, 0.84);
+}
+
+.board-headline,
+.combatants,
+.board-row,
+.board-actions {
+  display: grid;
+  gap: 16px;
+}
+
+.board-headline,
+.combatants {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+}
+
+.board-headline h2 {
+  margin: 0 0 10px;
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+}
+
+.turn-indicator,
+.combatant-card,
+.board-zone,
+.battlefield-band {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.turn-indicator {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(255, 194, 124, 0.14), rgba(255, 255, 255, 0.03));
+}
+
+.turn-indicator strong,
+.combatant-card strong,
+.battlefield-band strong,
+.board-zone strong {
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+}
+
+.turn-indicator strong {
+  font-size: 1.8rem;
+}
+
+.combatant-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.combatant-card-enemy {
+  background: linear-gradient(180deg, rgba(141, 77, 89, 0.26), rgba(255, 255, 255, 0.03));
+}
+
+.combatant-card-player {
+  background: linear-gradient(180deg, rgba(202, 122, 55, 0.26), rgba(255, 255, 255, 0.03));
+}
+
+.combatant-label,
+.board-zone-header span,
+.battlefield-label {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.73rem;
+  color: #f5b26b;
+}
+
+.combatant-card strong {
+  font-size: 1.55rem;
+}
+
+.combatant-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #d5d1da;
+}
+
+.board-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.board-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.board-zone {
+  display: grid;
+  gap: 12px;
+  min-height: 144px;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+}
+
+.board-zone-enemy {
+  background: linear-gradient(180deg, rgba(106, 55, 70, 0.3), rgba(255, 255, 255, 0.03));
+}
+
+.board-zone-player {
+  background: linear-gradient(180deg, rgba(154, 93, 41, 0.28), rgba(255, 255, 255, 0.03));
+}
+
+.board-zone-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.board-zone-header strong {
+  font-size: 1.2rem;
+}
+
+.board-zone p,
+.battlefield-band p {
+  margin: 0;
+  color: #d5d1da;
+}
+
+.battlefield-band {
+  display: grid;
+  gap: 10px;
+  padding: 18px 22px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)),
+    rgba(15, 19, 28, 0.92);
+}
+
+.battlefield-band strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.5rem;
+}
+
+.board-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.board-actions button {
+  min-height: 52px;
+  padding: 14px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff6ea;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.board-actions button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.action-primary {
+  background: linear-gradient(135deg, #f5a55d 0%, #d45145 100%);
+  color: #1f120e;
+  font-weight: 700;
+}
+
+.action-secondary {
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .hero-banner {
     grid-template-columns: 1fr;
   }
 
   .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .board-headline,
+  .combatants,
+  .board-row,
+  .board-actions {
     grid-template-columns: 1fr;
   }
 }
@@ -288,7 +479,8 @@ select {
   }
 
   .hero-banner,
-  .page-panel {
+  .page-panel,
+  .play-board {
     padding: 20px;
   }
 }
