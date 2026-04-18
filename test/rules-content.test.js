@@ -14,6 +14,7 @@ test('rules page teaches setup turn flow card types deck rules and win condition
   assert.match(rulesHtml, /<h2[^>]*>Card Types<\/h2>/i);
   assert.match(rulesHtml, /<h2[^>]*>Deckbuilding Rules<\/h2>/i);
   assert.match(rulesHtml, /<h2[^>]*>Starter Build Example<\/h2>/i);
+  assert.match(rulesHtml, /<h2[^>]*>Before You Attack<\/h2>/i);
   assert.match(rulesHtml, /<h2[^>]*>Win Condition<\/h2>/i);
   assert.match(rulesHtml, /core is your life total/i);
   assert.match(rulesHtml, /discard pile holds spent cards/i);
@@ -27,6 +28,8 @@ test('rules page teaches setup turn flow card types deck rules and win condition
   assert.match(rulesHtml, /signals are one-shot effects/i);
   assert.match(rulesHtml, /12 units and 8 signals/i);
   assert.match(rulesHtml, /low-cost pressure package/i);
+  assert.match(rulesHtml, /count opposing ready blockers/i);
+  assert.match(rulesHtml, /spend your last signal before combat only if it clears the path/i);
   assert.match(rulesHtml, /energy/i);
   assert.match(rulesHtml, /exactly 20 cards/i);
 });
