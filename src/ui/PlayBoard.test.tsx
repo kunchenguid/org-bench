@@ -24,5 +24,7 @@ describe('PlayBoard', () => {
     expect(markup).toContain('Selection tray');
     expect(markup).toContain('Cinder Archivist');
     expect(markup).toContain('Target: Enemy battlefield');
+    expect(markup).toContain('Enemy intent');
+    expect(markup).toContain('Projected attack: 7');
   });
 });

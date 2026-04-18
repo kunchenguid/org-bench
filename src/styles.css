@@ -636,6 +636,12 @@ select {
   font-size: 1.5rem;
 }
 
+.board-sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+  gap: 16px;
+}
+
 .selection-tray {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
@@ -668,6 +674,26 @@ select {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: #f4efe7;
+}
+
+.intent-panel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 18px 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(141, 77, 89, 0.22), rgba(255, 255, 255, 0.03));
+}
+
+.intent-panel strong {
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.45rem;
+}
+
+.intent-panel p {
+  margin: 0;
+  color: #d5d1da;
 }
 
 .board-actions {
@@ -714,6 +740,7 @@ select {
   .combatants,
   .board-row,
   .board-actions,
+  .board-sidebar,
   .selection-tray {
     grid-template-columns: 1fr;
   }
