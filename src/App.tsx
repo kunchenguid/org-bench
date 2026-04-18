@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 
 import { cardCatalog, getFactionSummaries } from './app/card-catalog';
 import { ladderSteps, rulesSections } from './app/rules-content';
+import { encounterLadder } from './game/content';
 import { createGameSession } from './game/engine';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
@@ -86,6 +87,19 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+        {route === '/' ? (
+          <section className="home-ladder-preview">
+            <p className="section-label">Campaign Ladder</p>
+            <ul>
+              {encounterLadder.map((encounter) => (
+                <li key={encounter.id}>
+                  <strong>{encounter.name}</strong>
+                  <span>{encounter.reward}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         {route === '/play' && previewSession ? (
           <div className="session-summary">
             <p className="section-label">Encounter</p>

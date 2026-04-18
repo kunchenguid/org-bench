@@ -145,6 +145,26 @@ a {
   margin: 24px 0 0;
 }
 
+.home-ladder-preview {
+  margin-top: 24px;
+}
+
+.home-ladder-preview ul {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding-left: 20px;
+}
+
+.home-ladder-preview li {
+  display: grid;
+  gap: 4px;
+}
+
+.home-ladder-preview span {
+  color: #c7d3e2;
+}
+
 .session-summary h3 {
   margin: 0;
   font-size: 1.4rem;

@@ -18,6 +18,14 @@ describe('App shell', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Duel TCG' })).toBeInTheDocument();
   });
 
+  it('shows a campaign ladder teaser on the home route', () => {
+    render(<App />);
+
+    expect(screen.getByText('Sparring Partner')).toBeInTheDocument();
+    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
+    expect(screen.getByText(/Unlock the full card gallery/)).toBeInTheDocument();
+  });
+
   it('marks the current route in navigation', () => {
     globalThis.location.hash = '#/rules';
 
