@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { loadSavedGameState, saveGameState } from './game/persistence';
+import { createInitialGameState } from './game/state';
+
 const routes = {
   '/': {
     title: 'Home',
@@ -16,6 +19,10 @@ const routes = {
   '/cards': {
     title: 'Cards',
     content: 'Card gallery coming next round.'
+  },
+  '/legal': {
+    title: 'Legal and Contact',
+    content: 'All rights reserved.'
   }
 } as const;
 
@@ -33,6 +40,7 @@ function getRouteFromHash(hash: string): RoutePath {
 
 export function App() {
   const [route, setRoute] = useState<RoutePath>(() => getRouteFromHash(window.location.hash));
+  const [gameState] = useState(() => loadSavedGameState() ?? createInitialGameState());
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRouteFromHash(window.location.hash));
@@ -40,6 +48,10 @@ export function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  useEffect(() => {
+    saveGameState(gameState);
+  }, [gameState]);
 
   const page = routes[route];
   const onNavigate = (nextRoute: RoutePath) => () => {
@@ -72,8 +84,31 @@ export function App() {
 
       <main className="page-card">
         <h2>{page.title}</h2>
-        <p>{page.content}</p>
+        {route === '/play' ? (
+          <section aria-label="Current match">
+            <p>{`Turn ${gameState.turn} - ${gameState.activePlayer} to act`}</p>
+            <p>{`You: ${gameState.player.health} HP`}</p>
+            <p>{`Opponent: ${gameState.opponent.health} HP`}</p>
+            <p>{`Hand: ${gameState.player.hand.length} cards`}</p>
+          </section>
+        ) : route === '/legal' ? (
+          <section aria-label="Legal and contact">
+            <p>All rights reserved.</p>
+            <p>This benchmark build is provided for browser evaluation inside the oracle-seed-01 run.</p>
+            <p>
+              Contact: <a href="mailto:vera@oracle-seed-01.local">Contact Vera</a>
+            </p>
+          </section>
+        ) : (
+          <p>{page.content}</p>
+        )}
       </main>
+
+      <footer className="footer-bar">
+        <a href="#/legal" onClick={onNavigate('/legal')}>
+          Legal and Contact
+        </a>
+      </footer>
     </div>
   );
 }
