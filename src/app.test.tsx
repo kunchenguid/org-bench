@@ -35,4 +35,14 @@ describe('App shell', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Rules' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
   });
+
+  it('shows the opening encounter summary on the play route', () => {
+    globalThis.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByText(/Opponent: Ashen Vanguard/)).toBeInTheDocument();
+    expect(screen.getByText(/Opening hand: 3 cards/)).toBeInTheDocument();
+    expect(screen.getByText(/Starting mana: 1/)).toBeInTheDocument();
+  });
 });

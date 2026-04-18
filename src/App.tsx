@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 
+import { createGameSession } from './game/engine';
+
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
 const routes: Record<RouteKey, { title: string; description: string }> = {
@@ -31,6 +33,7 @@ function getRouteFromHash(hash: string): RouteKey {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
+  const playSession = createGameSession({ encounterId: 'encounter-1' });
 
   useEffect(() => {
     const onHashChange = () => {
@@ -82,6 +85,13 @@ export function App() {
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+        {route === '/play' ? (
+          <div className="session-summary">
+            <p>Opponent: {playSession.encounter.opponentName}</p>
+            <p>Opening hand: {playSession.players.player.hand.length} cards</p>
+            <p>Starting mana: {playSession.players.player.resources.current}</p>
+          </div>
+        ) : null}
       </main>
     </div>
   );
