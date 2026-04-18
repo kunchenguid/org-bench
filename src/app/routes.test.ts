@@ -7,6 +7,12 @@ describe('routes', () => {
     expect(routes.map((route) => route.id)).toEqual(['home', 'play', 'rules', 'cards']);
   });
 
+  it('matches routes when static hosts add trailing slashes or query fragments', () => {
+    expect(getRouteByHash('#/play/').id).toBe('play');
+    expect(getRouteByHash('#/rules?mode=reference').id).toBe('rules');
+    expect(getRouteByHash('#/cards/?filter=skyforge').id).toBe('cards');
+  });
+
   it('falls back to the home page for unknown hashes', () => {
     expect(getRouteByHash('#/unknown').id).toBe('home');
   });

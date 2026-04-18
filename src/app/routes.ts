@@ -35,6 +35,21 @@ export const routes: RouteDefinition[] = [
 ];
 
 export function getRouteByHash(hash: string): RouteDefinition {
-  const match = routes.find((route) => route.hash === hash);
+  const normalizedHash = normalizeHash(hash);
+  const match = routes.find((route) => route.hash === normalizedHash);
   return match ?? routes[0];
+}
+
+function normalizeHash(hash: string): RouteDefinition['hash'] | string {
+  const [pathOnly] = hash.split('?');
+
+  if (!pathOnly || pathOnly === '#') {
+    return '#/';
+  }
+
+  if (pathOnly !== '#/' && pathOnly.endsWith('/')) {
+    return pathOnly.slice(0, -1);
+  }
+
+  return pathOnly;
 }
