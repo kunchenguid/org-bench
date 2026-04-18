@@ -93,19 +93,84 @@ describe('game engine contract', () => {
           resources: { current: 9, max: 9 },
           deck: [],
           hand: [],
-          discardPile: []
+          discardPile: [],
+          battlefield: { frontline: [], support: [], backline: [] }
         },
         ai: {
           health: 14,
           resources: { current: 9, max: 10 },
           deck: [],
           hand: [],
-          discardPile: []
+          discardPile: [],
+          battlefield: { frontline: [], support: [], backline: [] }
         }
       }
     });
 
     expect(next.turn).toEqual({ activePlayerId: 'ai', number: 13 });
     expect(next.players.ai.resources).toEqual({ current: 10, max: 10 });
+  });
+
+  it('lists legal opening plays and resolves a unit into a lane', async () => {
+    const { createGameSession, listLegalActions, playCard } = await import('./engine');
+
+    const session = createGameSession({ encounterId: 'encounter-1' });
+    const actions = listLegalActions(session);
+
+    expect(actions).toEqual([
+      { cardId: 'p-1', lane: 'frontline', type: 'play_unit' },
+      { cardId: 'p-1', lane: 'support', type: 'play_unit' },
+      { cardId: 'p-1', lane: 'backline', type: 'play_unit' },
+      { cardId: 'p-2', lane: 'frontline', type: 'play_unit' },
+      { cardId: 'p-2', lane: 'support', type: 'play_unit' },
+      { cardId: 'p-2', lane: 'backline', type: 'play_unit' },
+      { cardId: 'p-3', type: 'play_spell' },
+      { type: 'pass' }
+    ]);
+
+    const next = playCard(session, { cardId: 'p-1', lane: 'frontline', type: 'play_unit' });
+
+    expect(next.players.player.resources).toEqual({ current: 0, max: 1 });
+    expect(next.players.player.hand.map((card) => card.id)).toEqual(['p-2', 'p-3']);
+    expect(next.players.player.battlefield.frontline).toEqual([
+      { cost: 1, id: 'p-1', name: 'Lantern Squire', type: 'unit' }
+    ]);
+    expect(next.players.player.battlefield.support).toEqual([]);
+    expect(next.players.player.battlefield.backline).toEqual([]);
+  });
+
+  it('resolves an opening spell into damage and discard', async () => {
+    const { createGameSession, playCard } = await import('./engine');
+
+    const session = createGameSession({ encounterId: 'encounter-1' });
+    const next = playCard(session, { cardId: 'p-3', type: 'play_spell' });
+
+    expect(next.players.ai.health).toBe(18);
+    expect(next.players.player.resources).toEqual({ current: 0, max: 1 });
+    expect(next.players.player.hand.map((card) => card.id)).toEqual(['p-1', 'p-2']);
+    expect(next.players.player.discardPile).toEqual([
+      { cost: 1, id: 'p-3', name: 'Signal Flare', type: 'spell' }
+    ]);
+  });
+
+  it('applies play and pass actions through one legal-turn helper', async () => {
+    const { applyAction, createGameSession, listLegalActions } = await import('./engine');
+
+    const opening = createGameSession({ encounterId: 'encounter-1' });
+    const afterPlay = applyAction(opening, { cardId: 'p-1', lane: 'frontline', type: 'play_unit' });
+    const afterPlayActions = listLegalActions(afterPlay);
+    const afterPass = applyAction(afterPlay, { type: 'pass' });
+
+    expect(afterPlay.players.player.battlefield.frontline).toEqual([
+      { cost: 1, id: 'p-1', name: 'Lantern Squire', type: 'unit' }
+    ]);
+    expect(afterPlayActions).toEqual([
+      { cardId: 'p-2', lane: 'support', type: 'play_unit' },
+      { cardId: 'p-2', lane: 'backline', type: 'play_unit' },
+      { cardId: 'p-3', type: 'play_spell' },
+      { type: 'pass' }
+    ]);
+    expect(afterPass.turn).toEqual({ activePlayerId: 'ai', number: 2 });
+    expect(afterPass.players.ai.resources).toEqual({ current: 1, max: 1 });
   });
 });

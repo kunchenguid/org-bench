@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/preact';
+import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from './App';
 
@@ -17,7 +17,9 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('href', './rules');
     expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute('href', './cards');
     expect(screen.getByRole('heading', { name: 'Play Duel TCG' })).toBeInTheDocument();
-    expect(screen.getByText('Read the battlefield state, choose a line, and understand the full turn at a glance.')).toBeInTheDocument();
+    expect(
+      screen.getByText('See a real session rendered from the engine contract, then take a legal action and watch the turn state update.')
+    ).toBeInTheDocument();
   });
 
   it('gives the home route customer-ready product framing', () => {
@@ -31,27 +33,79 @@ describe('App shell', () => {
     expect(screen.getByText('Learn without opening another tab')).toBeInTheDocument();
   });
 
-  it('shows a publish-ready single-player encounter mock on the play route', () => {
+  it('renders the live opening session and lets the player pass into the ai turn', () => {
     window.history.replaceState({}, '', '/play');
 
     render(<App />);
 
+    expect(screen.getByText('Turn 1 - Player action')).toBeInTheDocument();
+    expect(screen.getByText('Ashen Vanguard')).toBeInTheDocument();
+    expect(screen.getByText('Active player Player')).toBeInTheDocument();
     expect(screen.getByText('Player health')).toBeInTheDocument();
     expect(screen.getByText('Enemy health')).toBeInTheDocument();
-    expect(screen.getByText('Turn 1 - Player action')).toBeInTheDocument();
     expect(screen.getByText('Player nexus 20')).toBeInTheDocument();
     expect(screen.getByText('Enemy nexus 20')).toBeInTheDocument();
     expect(screen.getByText('Energy 1/1')).toBeInTheDocument();
     expect(screen.getByText('Cards in hand 3')).toBeInTheDocument();
+    expect(screen.getByText('Deck 3')).toBeInTheDocument();
+    expect(screen.getByText('Discard 0')).toBeInTheDocument();
     expect(screen.getByText('Enemy energy 0/0')).toBeInTheDocument();
     expect(screen.getByText('Frontline')).toBeInTheDocument();
     expect(screen.getByText('Support lane')).toBeInTheDocument();
     expect(screen.getByText('Backline')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Play Lantern Squire to Frontline' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Play Copper Scout to Support lane' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pass with 1 energy unspent' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Encounter log' })).toBeInTheDocument();
     expect(screen.getByText('Opening session from the engine contract: both players begin at 20 health and the player acts first.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pass with 1 energy unspent' }));
+
+    expect(screen.getByText('Turn 2 - AI action')).toBeInTheDocument();
+    expect(screen.getByText('Active player AI')).toBeInTheDocument();
+    expect(screen.getByText('Energy 1/1')).toBeInTheDocument();
+    expect(screen.getByText('Player energy 1/1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pass turn' })).toBeInTheDocument();
+  });
+
+  it('loads a saved encounter on the play route and lets the customer start over', async () => {
+    const { createGameSession, createGameStorage, playCard } = await import('./game/engine');
+
+    window.localStorage.clear();
+    window.history.replaceState({}, '', '/play');
+
+    const gameStorage = createGameStorage(window.localStorage, 'amazon-seed-01');
+    const firstRender = render(<App />);
+
+    expect(screen.getByText('No saved encounter yet')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save encounter' }));
+
+    expect(screen.getByText('Saved current encounter')).toBeInTheDocument();
+
+    const resumedSession = playCard(createGameSession({ encounterId: 'encounter-1' }), {
+      cardId: 'p-1',
+      lane: 'frontline',
+      type: 'play_unit'
+    });
+
+    gameStorage.save(resumedSession);
+    firstRender.unmount();
+    cleanup();
+
+    render(<App />);
+
+    expect(screen.getByText('Energy 0/1')).toBeInTheDocument();
+    expect(screen.getByText('Cards in hand 2')).toBeInTheDocument();
+    expect(screen.getByText('Allied: Lantern Squire')).toBeInTheDocument();
+    expect(screen.getByText('Saved encounter loaded')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
+
+    expect(screen.getByText('Started a fresh encounter')).toBeInTheDocument();
+    expect(screen.getByText('Energy 1/1')).toBeInTheDocument();
+    expect(screen.getByText('Cards in hand 3')).toBeInTheDocument();
+    expect(screen.getAllByText('Allied: Empty')).toHaveLength(3);
+    expect(gameStorage.load()).toBeNull();
   });
 
   it('updates document metadata for the active route', () => {

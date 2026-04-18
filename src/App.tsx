@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { createGameSession, createGameStorage, endTurn, listLegalActions, playCard } from './game/engine';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -110,6 +111,63 @@ const cards: CardDefinition[] = [
   }
 ];
 
+type GameSession = ReturnType<typeof createGameSession>;
+type GameAction = ReturnType<typeof listLegalActions>[number];
+
+const laneLabels = {
+  backline: 'Backline',
+  frontline: 'Frontline',
+  support: 'Support lane'
+} as const;
+
+const encounterId = 'encounter-1';
+const runId = 'amazon-seed-01';
+
+function formatActivePlayer(playerId: GameSession['turn']['activePlayerId']): string {
+  return playerId === 'player' ? 'Player' : 'AI';
+}
+
+function formatActionLabel(session: GameSession, action: GameAction): string {
+  if (action.type === 'pass') {
+    return session.turn.activePlayerId === 'player'
+      ? `Pass with ${session.players.player.resources.current} energy unspent`
+      : 'Pass turn';
+  }
+
+  const activePlayer = session.players[session.turn.activePlayerId];
+  const card = activePlayer.hand.find((entry) => entry.id === action.cardId);
+
+  if (action.type === 'play_spell') {
+    return card ? `Cast ${card.name} for 2 damage` : 'Cast spell for 2 damage';
+  }
+
+  if (!card) {
+    return 'Play unit';
+  }
+
+  return `Play ${card.name} to ${laneLabels[action.lane as keyof typeof laneLabels]}`;
+}
+
+function formatLaneCards(cardsInLane: GameSession['players']['player']['battlefield']['frontline']): string {
+  if (cardsInLane.length === 0) {
+    return 'Empty';
+  }
+
+  return cardsInLane.map((card) => card.name).join(', ');
+}
+
+function buildEncounterLog(session: GameSession): string[] {
+  const activePlayer = session.players[session.turn.activePlayerId];
+  const waitingPlayer = session.players[session.turn.activePlayerId === 'player' ? 'ai' : 'player'];
+
+  return [
+    `Opening session from the engine contract: both players begin at 20 health and the player acts first.`,
+    `${session.encounter.opponentName} is the current opponent for ${session.encounter.id}.`,
+    `${formatActivePlayer(session.turn.activePlayerId)} acts on turn ${session.turn.number} with ${activePlayer.resources.current}/${activePlayer.resources.max} energy while the waiting side sits at ${waitingPlayer.resources.current}/${waitingPlayer.resources.max}.`,
+    `Open lanes: frontline ${formatLaneCards(session.players.player.battlefield.frontline)}, support ${formatLaneCards(session.players.player.battlefield.support)}, backline ${formatLaneCards(session.players.player.battlefield.backline)}.`
+  ];
+}
+
 function getRouteFromPath(pathname: string): RouteKey {
   const normalizedPath = pathname.replace(/\/+$/, '');
   const pathParts = normalizedPath.split('/').filter(Boolean);
@@ -136,12 +194,34 @@ function useRoute(): RouteKey {
   return route;
 }
 
-function ActivePage({ route }: { route: RouteKey }) {
+function ActivePage({
+  route,
+  session,
+  onGameAction,
+  onResetEncounter,
+  onResumeEncounter,
+  onSaveEncounter,
+  resumeReady,
+  saveStatus
+}: {
+  route: RouteKey;
+  session: GameSession;
+  onGameAction: (action: GameAction) => void;
+  onResetEncounter: () => void;
+  onResumeEncounter: () => void;
+  onSaveEncounter: () => void;
+  resumeReady: boolean;
+  saveStatus: string;
+}) {
   const page = pages.find((entry) => entry.key === route) ?? pages[0];
 
   const isRulesPage = route === 'rules';
   const isPlayPage = route === 'play';
   const isCardsPage = route === 'cards';
+  const activePlayer = session.players[session.turn.activePlayerId];
+  const opposingPlayer = session.players[session.turn.activePlayerId === 'player' ? 'ai' : 'player'];
+  const legalActions = listLegalActions(session);
+  const encounterLog = buildEncounterLog(session);
 
   return (
     <section className="panel hero-panel">
@@ -149,7 +229,7 @@ function ActivePage({ route }: { route: RouteKey }) {
       <h1>{page.title}</h1>
       <p className="lede">
         {isPlayPage
-          ? 'Read the battlefield state, choose a line, and understand the full turn at a glance.'
+          ? 'See a real session rendered from the engine contract, then take a legal action and watch the turn state update.'
           : page.description}
       </p>
       {route === 'home' ? (
@@ -179,79 +259,86 @@ function ActivePage({ route }: { route: RouteKey }) {
         </div>
       ) : null}
       {isPlayPage ? (
-          <div className="play-layout">
-            <section className="panel inset-panel battlefield-panel" aria-label="Encounter overview">
-              <div className="battlefield-summary">
-                <p className="section-label">Turn 1 - Player action</p>
-                <p className="battlefield-callout">Start on one energy, commit one of your three opening cards, then pass so the AI takes its first funded turn.</p>
+        <div className="play-layout">
+          <section className="panel inset-panel battlefield-panel" aria-label="Encounter overview">
+            <div className="battlefield-summary">
+              <p className="section-label">Turn {session.turn.number} - {formatActivePlayer(session.turn.activePlayerId)} action</p>
+              <p className="battlefield-callout">{session.encounter.opponentName}</p>
+              <p className="battlefield-callout">Active player {formatActivePlayer(session.turn.activePlayerId)}</p>
+            </div>
+            <div className="panel inset-panel persistence-panel">
+              <div>
+                <p className="section-label">Resume controls</p>
+                <p className="persistence-status">{saveStatus}</p>
               </div>
-              <div className="battlefield-topline">
-                <article className="status-card enemy-status">
-                  <p className="status-label">Enemy health</p>
-                  <p className="status-value">20</p>
-                  <p className="status-note">Enemy nexus 20</p>
-                </article>
-                <article className="status-card player-status">
-                  <p className="status-label">Player health</p>
-                  <p className="status-value">20</p>
-                  <p className="status-note">Player nexus 20</p>
-                </article>
+              <div className="action-row persistence-actions">
+                <button type="button" className="action-button secondary-action" onClick={onSaveEncounter}>
+                  Save encounter
+                </button>
+                {resumeReady ? (
+                  <button type="button" className="action-button secondary-action" onClick={onResumeEncounter}>
+                    Resume saved encounter
+                  </button>
+                ) : null}
+                <button type="button" className="action-button secondary-action" onClick={onResetEncounter}>
+                  Start over
+                </button>
+                {resumeReady ? <p className="persistence-note">Resume from saved state</p> : null}
               </div>
-              <div className="resource-strip" aria-label="Player resources">
-                <span>Energy 1/1</span>
-                <span>Cards in hand 3</span>
-                <span>Deck 3</span>
-                <span>Discard 0</span>
-                <span>Enemy energy 0/0</span>
-              </div>
+            </div>
+            <div className="battlefield-topline">
+              <article className="status-card enemy-status">
+                <p className="status-label">Enemy health</p>
+                <p className="status-value">{session.players.ai.health}</p>
+                <p className="status-note">Enemy nexus {session.players.ai.health}</p>
+              </article>
+              <article className="status-card player-status">
+                <p className="status-label">Player health</p>
+                <p className="status-value">{session.players.player.health}</p>
+                <p className="status-note">Player nexus {session.players.player.health}</p>
+              </article>
+            </div>
+            <div className="resource-strip" aria-label="Player resources">
+              <span>Energy {activePlayer.resources.current}/{activePlayer.resources.max}</span>
+              <span>Cards in hand {activePlayer.hand.length}</span>
+              <span>Deck {activePlayer.deck.length}</span>
+              <span>Discard {activePlayer.discardPile.length}</span>
+              <span>{session.turn.activePlayerId === 'player' ? 'Enemy energy' : 'Player energy'} {opposingPlayer.resources.current}/{opposingPlayer.resources.max}</span>
+            </div>
             <div className="zone-grid">
-              <article className="panel lane-card">
-                <div className="lane-header">
-                  <h2>Frontline</h2>
-                  <span>Pressure lane</span>
-                </div>
-                  <p className="lane-units">Allied: Empty</p>
-                  <p className="lane-units">Enemy: Empty</p>
+              {Object.entries(laneLabels).map(([lane, label]) => (
+                <article key={lane} className="panel lane-card">
+                  <div className="lane-header">
+                    <h2>{label}</h2>
+                    <span>{lane === 'frontline' ? 'Pressure lane' : lane === 'support' ? 'Combo setup' : 'Resource engine'}</span>
+                  </div>
+                  <p className="lane-units">Allied: {formatLaneCards(session.players.player.battlefield[lane as keyof typeof session.players.player.battlefield])}</p>
+                  <p className="lane-units">Enemy: {formatLaneCards(session.players.ai.battlefield[lane as keyof typeof session.players.ai.battlefield])}</p>
                 </article>
-              <article className="panel lane-card">
-                <div className="lane-header">
-                  <h2>Support lane</h2>
-                  <span>Combo setup</span>
-                </div>
-                  <p className="lane-units">Allied: Empty</p>
-                  <p className="lane-units">Enemy: Empty</p>
-                </article>
-              <article className="panel lane-card">
-                <div className="lane-header">
-                  <h2>Backline</h2>
-                  <span>Resource engine</span>
-                </div>
-                  <p className="lane-units">Allied: Empty</p>
-                  <p className="lane-units">Enemy: Empty</p>
-                </article>
-              </div>
-              <div className="action-row" aria-label="Available actions">
-                <button type="button" className="action-button primary-action">
-                  Play Lantern Squire to Frontline
+              ))}
+            </div>
+            <div className="action-row" aria-label="Available actions">
+              {legalActions.map((action, index) => (
+                <button
+                  key={`${action.type}-${index}`}
+                  type="button"
+                  className={index === 0 ? 'action-button primary-action' : 'action-button secondary-action'}
+                  onClick={() => onGameAction(action)}
+                >
+                  {formatActionLabel(session, action)}
                 </button>
-                <button type="button" className="action-button secondary-action">
-                  Play Copper Scout to Support lane
-                </button>
-                <button type="button" className="action-button secondary-action">
-                  Pass with 1 energy unspent
-                </button>
-              </div>
-            </section>
-            <aside className="panel inset-panel log-panel">
-              <h2>Encounter log</h2>
-              <ul className="log-list">
-                <li>Opening session from the engine contract: both players begin at 20 health and the player acts first.</li>
-                <li>Turn 1: You draw three cards before combat begins and choose your opening lane.</li>
-                <li>Turn 1: The AI begins with zero energy, so your first deployment sets the pace.</li>
-                <li>Turn 2 preview: Passing now hands the turn over and refreshes the AI to 1/1 energy.</li>
-              </ul>
-            </aside>
-          </div>
+              ))}
+            </div>
+          </section>
+          <aside className="panel inset-panel log-panel">
+            <h2>Encounter log</h2>
+            <ul className="log-list">
+              {encounterLog.map((entry) => (
+                <li key={entry}>{entry}</li>
+              ))}
+            </ul>
+          </aside>
+        </div>
       ) : null}
       {isRulesPage ? (
         <div className="feature-grid rules-grid">
@@ -339,6 +426,49 @@ function ActivePage({ route }: { route: RouteKey }) {
 
 export function App() {
   const route = useRoute();
+  const [storage] = useState(() => createGameStorage(window.localStorage, runId));
+  const [session, setSession] = useState<GameSession>(() => storage.load() ?? createGameSession({ encounterId }));
+  const [resumeReady, setResumeReady] = useState<boolean>(() => storage.load() !== null);
+  const [saveStatus, setSaveStatus] = useState<string>(() =>
+    storage.load() ? 'Saved encounter loaded' : 'No saved encounter yet'
+  );
+
+  const handleGameAction = (action: GameAction) => {
+    setSession((currentSession) => {
+      if (action.type === 'pass') {
+        return endTurn(currentSession);
+      }
+
+      return playCard(currentSession, action);
+    });
+    setResumeReady(storage.load() !== null);
+    setSaveStatus(storage.load() ? 'Saved encounter loaded' : 'No saved encounter yet');
+  };
+
+  const handleSaveEncounter = () => {
+    storage.save(session);
+    setResumeReady(true);
+    setSaveStatus('Saved current encounter');
+  };
+
+  const handleResumeEncounter = () => {
+    const savedSession = storage.load();
+
+    if (!savedSession) {
+      return;
+    }
+
+    setSession(savedSession);
+    setResumeReady(true);
+    setSaveStatus('Resumed saved encounter');
+  };
+
+  const handleResetEncounter = () => {
+    storage.clear();
+    setSession(createGameSession({ encounterId }));
+    setResumeReady(false);
+    setSaveStatus('Started a fresh encounter');
+  };
 
   useEffect(() => {
     const page = pages.find((entry) => entry.key === route) ?? pages[0];
@@ -371,7 +501,16 @@ export function App() {
         </nav>
       </header>
       <main>
-        <ActivePage route={route} />
+        <ActivePage
+          route={route}
+          session={session}
+          onGameAction={handleGameAction}
+          onResetEncounter={handleResetEncounter}
+          onResumeEncounter={handleResumeEncounter}
+          onSaveEncounter={handleSaveEncounter}
+          resumeReady={resumeReady}
+          saveStatus={saveStatus}
+        />
       </main>
     </div>
   );
