@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'vitest';
 
-import { applyChampionDamage, createGameState, drawCard, playCard, startTurn } from './state';
+import {
+  applyChampionDamage,
+  createGameState,
+  drawCard,
+  playCard,
+  resolveCombat,
+  startTurn,
+} from './state';
 
 const scout = { attack: 2, cost: 1, health: 1, id: 'scout', name: 'Scout' };
 const guardian = { attack: 1, cost: 2, health: 3, id: 'guardian', name: 'Guardian' };
@@ -91,5 +98,47 @@ describe('game state flow', () => {
 
     expect(nextState.player.health).toBe(0);
     expect(nextState.winner).toBe('enemy');
+  });
+
+  test('resolveCombat removes defeated attacker and blocker to their discard piles', () => {
+    const baseline = {
+      ...createGameState({
+        enemyDeck: [],
+        playerDeck: [],
+      }),
+      enemy: {
+        ...createGameState({ enemyDeck: [], playerDeck: [] }).enemy,
+        battlefield: [striker],
+      },
+      player: {
+        ...createGameState({ enemyDeck: [], playerDeck: [] }).player,
+        battlefield: [striker],
+      },
+    };
+
+    const nextState = resolveCombat(baseline, 'striker', 'striker');
+
+    expect(nextState.player.battlefield).toEqual([]);
+    expect(nextState.enemy.battlefield).toEqual([]);
+    expect(nextState.player.discard.map((card) => card.id)).toEqual(['striker']);
+    expect(nextState.enemy.discard.map((card) => card.id)).toEqual(['striker']);
+  });
+
+  test('resolveCombat deals unblocked attacker damage to the enemy champion', () => {
+    const baseline = {
+      ...createGameState({
+        enemyDeck: [],
+        playerDeck: [],
+      }),
+      player: {
+        ...createGameState({ enemyDeck: [], playerDeck: [] }).player,
+        battlefield: [striker],
+      },
+    };
+
+    const nextState = resolveCombat(baseline, 'striker');
+
+    expect(nextState.enemy.health).toBe(17);
+    expect(nextState.player.battlefield.map((card) => card.id)).toEqual(['striker']);
   });
 });

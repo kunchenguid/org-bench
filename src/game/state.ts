@@ -130,3 +130,45 @@ export function applyChampionDamage(state: GameState, side: Side, damage: number
     winner,
   };
 }
+
+export function resolveCombat(
+  state: GameState,
+  attackerCardId: string,
+  blockerCardId?: string,
+): GameState {
+  const attacker = state.player.battlefield.find((card) => card.id === attackerCardId);
+
+  if (!attacker) {
+    return state;
+  }
+
+  if (!blockerCardId) {
+    return applyChampionDamage(state, 'enemy', attacker.attack);
+  }
+
+  const blocker = state.enemy.battlefield.find((card) => card.id === blockerCardId);
+  if (!blocker) {
+    return state;
+  }
+
+  const attackerSurvives = attacker.health > blocker.attack;
+  const blockerSurvives = blocker.health > attacker.attack;
+
+  return {
+    ...state,
+    enemy: {
+      ...state.enemy,
+      battlefield: blockerSurvives
+        ? state.enemy.battlefield
+        : state.enemy.battlefield.filter((card) => card.id !== blockerCardId),
+      discard: blockerSurvives ? state.enemy.discard : [...state.enemy.discard, blocker],
+    },
+    player: {
+      ...state.player,
+      battlefield: attackerSurvives
+        ? state.player.battlefield
+        : state.player.battlefield.filter((card) => card.id !== attackerCardId),
+      discard: attackerSurvives ? state.player.discard : [...state.player.discard, attacker],
+    },
+  };
+}
