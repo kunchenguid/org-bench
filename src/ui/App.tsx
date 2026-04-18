@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
 const rulesHighlights: RulesHighlight[] = [
   { label: 'Win Condition', value: 'Reduce the enemy champion to zero.' },
   { label: 'Turn Shape', value: 'Ready, draw, spend energy, then attack.' },
+  { label: 'Board Read', value: 'Track hand, deck, battlefield, discard, and resources.' },
   { label: 'Run Flow', value: 'Clear encounters in sequence and resume locally.' },
 ];
 
@@ -263,7 +264,8 @@ function RulesPanel() {
         <p>
           Auric Reach is a single-player duel card game about efficient energy use, clean combat
           math, and surviving a short sequence of escalating encounters. Read the cadence once,
-          then the board should make the rest feel natural.
+          then use the labeled hand, deck, battlefield, discard, and resource zones to keep your
+          bearings during a live duel.
         </p>
       </div>
 
