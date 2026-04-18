@@ -135,6 +135,14 @@ export function App() {
                 <p className="section-label">Combat lane</p>
                 <h3>{playPageLayout.zones.find((zone) => zone.id === 'shared-battlefield')?.value}</h3>
                 <p>{playPageLayout.encounterSummary}</p>
+                <ul className="ladder-list" aria-label="Hero summaries">
+                  {playPageLayout.heroes.map((hero) => (
+                    <li key={hero.id}>
+                      <strong>{hero.name}</strong>
+                      <span>{hero.detail}</span>
+                    </li>
+                  ))}
+                </ul>
                 <ul className="ladder-list">
                   {playPageLayout.turnControls.map((control) => (
                     <li key={control.label}>

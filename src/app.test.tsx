@@ -57,6 +57,16 @@ describe('App shell', () => {
     expect(screen.getByText('Attack and pass')).toBeInTheDocument();
   });
 
+  it('renders hero summaries from the deterministic play layout on the play route', () => {
+    globalThis.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByText('Enemy AI')).toBeInTheDocument();
+    expect(screen.getByText('Player')).toBeInTheDocument();
+    expect(screen.getByText(/cards spent, \d+ cards left in deck/i)).toBeInTheDocument();
+  });
+
   it('keeps the intended route when the hash includes a trailing slash or query string', () => {
     globalThis.location.hash = '#/rules/?ref=nav';
 
