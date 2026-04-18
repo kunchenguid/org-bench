@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { cards, decks, encounterLadder, keywordGlossary } from '../game-data';
+import {
+  createCardGalleryPreferences,
+  filterCardsByFaction,
+  type CardGalleryFactionFilter,
+} from './card-gallery-preferences';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 
@@ -127,6 +133,111 @@ const routeContent: Record<Route, { eyebrow: string; title: string; body: string
       'This route will display the full card library as visual cards, with faction identity, art, stats, and readable rules text.',
   },
 };
+
+const RUN_NAMESPACE = 'run:apple-seed-01';
+
+const factionFilters: CardGalleryFactionFilter[] = ['all', 'Ashfall Covenant', 'Verdant Loom'];
+
+function DeckPreview() {
+  return (
+    <div className="info-grid">
+      {decks.map((deck) => {
+        const size = deck.list.reduce((total, entry) => total + entry.count, 0);
+
+        return (
+          <article className="info-card" key={deck.id}>
+            <p className="eyebrow">{deck.faction}</p>
+            <h3>{deck.name}</h3>
+            <p>{deck.style}</p>
+            <span className="pill">{size} cards</span>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function RulesReference() {
+  return (
+    <div className="stack-blocks">
+      <section className="info-grid">
+        {keywordGlossary.map((entry) => (
+          <article className="info-card" key={entry.keyword}>
+            <p className="eyebrow">Keyword</p>
+            <h3>{entry.keyword}</h3>
+            <p>{entry.reminder}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="stack-blocks">
+        {encounterLadder.map((step) => (
+          <article className="ladder-step" key={step.step}>
+            <div>
+              <p className="eyebrow">Step {step.step}</p>
+              <h3>{step.title}</h3>
+              <p>{step.purpose}</p>
+            </div>
+            <div className="variant-list">
+              {step.variants.map((variant) => (
+                <article className="variant-card" key={variant.id}>
+                  <strong>{variant.name}</strong>
+                  <p>{variant.twist}</p>
+                  <span className="pill">{variant.reward}</span>
+                </article>
+              ))}
+            </div>
+          </article>
+        ))}
+      </section>
+    </div>
+  );
+}
+
+function CardGallery(props: {
+  selectedFaction: CardGalleryFactionFilter;
+  onSelectFaction: (faction: CardGalleryFactionFilter) => void;
+}) {
+  const visibleCards = filterCardsByFaction(cards, props.selectedFaction);
+
+  return (
+    <div className="stack-blocks">
+      <div className="filter-row" aria-label="Faction filter">
+        {factionFilters.map((faction) => (
+          <button
+            key={faction}
+            type="button"
+            className={props.selectedFaction === faction ? 'pill is-active' : 'pill'}
+            onClick={() => props.onSelectFaction(faction)}
+          >
+            {faction === 'all' ? 'All Factions' : faction}
+          </button>
+        ))}
+      </div>
+      <div className="card-grid">
+        {visibleCards.map((card) => (
+          <article className="game-card" key={card.id}>
+            <div className="game-card-topline">
+              <span className="pill">{card.faction}</span>
+              <span className="cost-badge">{card.cost}</span>
+            </div>
+            <h3>{card.name}</h3>
+            <p className="card-type">{card.type}</p>
+            <p>{card.text}</p>
+            <div className="game-card-footer">
+              <span>{card.keywords.join(' - ') || 'No keyword'}</span>
+              {card.attack !== undefined && card.health !== undefined ? (
+                <strong>
+                  {card.attack}/{card.health}
+                </strong>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function getRouteFromHash(hash: string): Route {
   const key = hash.replace(/^#\/?/, '');
@@ -411,7 +522,11 @@ export function HomePage() {
   );
 }
 
-function PageSection(props: { route: Route }) {
+function PageSection(props: {
+  route: Route;
+  selectedFaction: CardGalleryFactionFilter;
+  onSelectFaction: (faction: CardGalleryFactionFilter) => void;
+}) {
   const content = routeContent[props.route];
 
   if (props.route === 'play') {
@@ -428,12 +543,22 @@ function PageSection(props: { route: Route }) {
       <h2>{content.title}</h2>
       <p>{content.body}</p>
       {props.route === 'home' ? <HomePage /> : null}
+      {props.route === 'cards' ? (
+        <CardGallery
+          selectedFaction={props.selectedFaction}
+          onSelectFaction={props.onSelectFaction}
+        />
+      ) : null}
     </section>
   );
 }
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => getRouteFromHash(window.location.hash));
+  const [selectedFaction, setSelectedFaction] = useState<CardGalleryFactionFilter>(() => {
+    const preferences = createCardGalleryPreferences(window.localStorage, RUN_NAMESPACE);
+    return preferences.getSelectedFaction();
+  });
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRouteFromHash(window.location.hash));
@@ -441,6 +566,11 @@ export function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  useEffect(() => {
+    const preferences = createCardGalleryPreferences(window.localStorage, RUN_NAMESPACE);
+    preferences.setSelectedFaction(selectedFaction);
+  }, [selectedFaction]);
 
   const activeItem = useMemo(
     () => navItems.find((item) => item.route === route) ?? navItems[0],
@@ -490,7 +620,11 @@ export function App() {
           </aside>
         </section>
 
-        <PageSection route={route} />
+        <PageSection
+          route={route}
+          selectedFaction={selectedFaction}
+          onSelectFaction={setSelectedFaction}
+        />
       </main>
     </div>
   );
