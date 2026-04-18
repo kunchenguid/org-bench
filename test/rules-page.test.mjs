@@ -8,6 +8,8 @@ test('rules page documents core play loop and deck rules', () => {
   assert.match(html, /<title>.*Rules.*<\/title>/i);
   assert.match(html, /Setup/i);
   assert.match(html, /Turn Sequence/i);
+  assert.match(html, /Combat Resolution/i);
+  assert.match(html, /Momentum windows let defenders blunt an attack or punish an overcommit\./i);
   assert.match(html, /Deckbuilding Rules/i);
   assert.match(html, /Win Condition/i);
 });
