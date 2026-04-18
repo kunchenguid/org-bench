@@ -94,6 +94,45 @@ nav a,
   grid-column: 1 / -1;
 }
 
+.battle-status,
+.battle-board {
+  grid-column: 1 / -1;
+}
+
+.battle-status {
+  background: linear-gradient(135deg, rgba(17, 38, 69, 0.92), rgba(10, 18, 31, 0.82));
+}
+
+.battle-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.zone-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.card-tile {
+  padding: 16px;
+  border: 1px solid rgba(122, 197, 255, 0.24);
+  border-radius: 16px;
+  background: rgba(14, 28, 48, 0.85);
+}
+
+.card-tile h3,
+.card-tile p {
+  margin: 0;
+}
+
+.card-tile p + p,
+.card-tile .eyebrow + h3,
+.card-tile h3 + p {
+  margin-top: 8px;
+}
+
 .panel ul {
   margin: 14px 0 0;
   padding-left: 18px;

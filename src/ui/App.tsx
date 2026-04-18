@@ -86,6 +86,7 @@ export function App() {
 
   const copy = routeCopy[route];
   const isCardsRoute = route === 'cards';
+  const isPlayRoute = route === 'play';
 
   return (
     <div class="app-shell">
@@ -110,12 +111,56 @@ export function App() {
           <p>{copy.body}</p>
         </section>
 
+        {isPlayRoute ? (
+          <>
+            <section class="panel battle-status">
+              <h2>Turn 1 - Your move</h2>
+              <p>Rogue AI pressure: left lane overloaded</p>
+              <p>Commit Glasswall Sentry left, then swing Static Broker into the open right lane.</p>
+            </section>
+
+            <section class="panel battle-board">
+              <div>
+                <h2>Enemy board</h2>
+                <div class="zone-grid">
+                  <article class="card-tile">
+                    <p class="eyebrow">Left lane</p>
+                    <h3>Scrap Harrier</h3>
+                    <p>2 attack pressure unit forcing the early shield question.</p>
+                  </article>
+                  <article class="card-tile">
+                    <p class="eyebrow">Right lane</p>
+                    <h3>Signal Snare</h3>
+                    <p>Banked punish effect if you overcommit before scouting the weak side.</p>
+                  </article>
+                </div>
+              </div>
+
+              <div>
+                <h2>Player board</h2>
+                <div class="zone-grid">
+                  <article class="card-tile">
+                    <p class="eyebrow">Left lane</p>
+                    <h3>Glasswall Sentry</h3>
+                    <p>Defender that catches the overloaded lane and buys your pivot turn.</p>
+                  </article>
+                  <article class="card-tile">
+                    <p class="eyebrow">Right lane</p>
+                    <h3>Static Broker</h3>
+                    <p>Tempo opener ready to convert the safe lane into first damage.</p>
+                  </article>
+                </div>
+              </div>
+            </section>
+          </>
+        ) : null}
+
         <section class="panel">
           <h2>{isCardsRoute ? 'Starter card archive' : 'Division B tactical board'}</h2>
           <p>
             {isCardsRoute
               ? 'Each starter card calls out its exact battlefield job so players can map the preconstructed deck before their first turn.'
-              : 'DivB turns the shell into a readable board where new players can see the sequence before they commit.'}
+              : 'Division A playtest scaffold retained the shell. DivB turns it into a readable board where new players can see the sequence before they commit.'}
           </p>
           <ul>
             {encounterSteps.map((step) => (
@@ -151,7 +196,7 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>{isCardsRoute ? 'Frontline cards' : 'Frontline cards'}</h2>
+          <h2>Frontline cards</h2>
           <ul>
             {frontlineCards.map((card) => (
               <li key={card.name}>

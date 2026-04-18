@@ -4,14 +4,36 @@ import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
+  it('renders visible board zones and encounter feedback on the play route', () => {
+    const previousWindow = globalThis.window;
+    Object.assign(globalThis, {
+      window: {
+        location: { hash: '#/play' },
+        addEventListener() {},
+        removeEventListener() {},
+      },
+    });
+
+    const html = renderToString(h(App, {}));
+
+    expect(html).toContain('Player board');
+    expect(html).toContain('Enemy board');
+    expect(html).toContain('Static Broker');
+    expect(html).toContain('Rogue AI pressure: left lane overloaded');
+    expect(html).toContain('Turn 1 - Your move');
+
+    Object.assign(globalThis, { window: previousWindow });
+  });
+
   it('renders the divB play page with battlefield readability and card presentation', () => {
     const html = renderToString(h(App, {}));
 
     expect(html).toContain('Signal Clash');
+    expect(html).toContain('Division A playtest');
     expect(html).toContain('Division B tactical board');
     expect(html).toContain('Pilot brief');
-    expect(html).toContain('Combat readout');
     expect(html).toContain('Frontline cards');
+    expect(html).toContain('Combat readout');
     expect(html).toContain('Preconstructed deck');
     expect(html).toContain('Encounter ladder');
     expect(html).toContain('AI rival reads');
