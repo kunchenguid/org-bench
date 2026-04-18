@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/preact';
 import { App } from './App';
 
 describe('App shell', () => {
+  beforeEach(() => {
+    globalThis.location.hash = '#/';
+  });
+
   it('shows navigation for all required pages', () => {
     render(<App />);
 
@@ -11,5 +15,15 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('href', '#/rules');
     expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute('href', '#/cards');
     expect(screen.getByRole('heading', { level: 1, name: 'Duel TCG' })).toBeInTheDocument();
+  });
+
+  it('marks the current route in navigation', () => {
+    globalThis.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Play' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
   });
 });
