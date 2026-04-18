@@ -25,6 +25,8 @@ test('play page presents Division A combat loop priorities', () => {
   assert.match(html, /Apex Mirror inherits a live shield/i);
   assert.match(html, /Abort Trigger/i);
   assert.match(html, /If the shield refreshes, bank defense instead/i);
+  assert.match(html, /Finisher Signal/i);
+  assert.match(html, /Close only after the counter window resolves/i);
   assert.match(html, /Play First Card/i);
   assert.match(html, /Commit Attack Lane/i);
   assert.match(html, /End Turn Clean/i);
