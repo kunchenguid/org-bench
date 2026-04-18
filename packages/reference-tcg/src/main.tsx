@@ -564,6 +564,18 @@ function RulesPage() {
 }
 
 function GalleryPage(props: { cards: Card[] }) {
+  const getFactionLabel = (card: Card) => {
+    if (card.id.startsWith("mist-")) {
+      return "Mist faction";
+    }
+
+    if (card.id.startsWith("aerie-")) {
+      return "Aerie faction";
+    }
+
+    return "Ember faction";
+  };
+
   return (
     <section class="panel">
       <h2>Card Gallery</h2>
@@ -575,6 +587,7 @@ function GalleryPage(props: { cards: Card[] }) {
         {props.cards.map((card) => (
           <article class="gallery-card" key={card.id}>
             <CardChip card={card} />
+            <p>{getFactionLabel(card)}</p>
             {card.type === "creature" ? (
               <p>Creature that sticks on board and attacks every turn.</p>
             ) : (

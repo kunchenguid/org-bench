@@ -828,13 +828,10 @@ function renderGallery(): string {
       <h1>Card Gallery</h1>
       <ul>
         ${uniqueCards
-          .map((card) => {
-            if (card.summary.startsWith("Creature")) {
-              return `<li>${escapeHtml(card.name)} - ${escapeHtml(card.summary)}</li>`;
-            }
-
-            return `<li>${escapeHtml(card.name)} - ${escapeHtml(card.summary)}</li>`;
-          })
+          .map(
+            (card) =>
+              `<li>${escapeHtml(card.name)} - ${escapeHtml(card.summary)} - ${escapeHtml(card.faction)}</li>`,
+          )
           .join("")}
       </ul>
     </section>`;
@@ -948,26 +945,34 @@ function renderAppShellMarkup(app: ReferenceAppState): string {
 function listGalleryCards(): Array<{
   name: string;
   summary: string;
+  faction: string;
 }> {
-  const starterDeck = [
-    ...createStarterDeck(),
-    ...REFERENCE_ENCOUNTERS.flatMap((encounter) => encounter.enemyDeck),
+  const cardPools = [
+    { faction: "Ember faction", cards: createStarterDeck() },
+    { faction: "Mist faction", cards: createMistDeck() },
+    { faction: "Aerie faction", cards: createAerieDeck() },
   ];
   const uniqueCards = Array.from(
-    new Map(starterDeck.map((card) => [card.name, card])).values(),
+    new Map(
+      cardPools.flatMap(({ faction, cards }) =>
+        cards.map((card) => [card.name, { card, faction }] as const),
+      ),
+    ).values(),
   );
 
-  return uniqueCards.map((card) => {
+  return uniqueCards.map(({ card, faction }) => {
     if (card.type === "creature") {
       return {
         name: card.name,
         summary: `Creature ${card.attack}/${card.health}`,
+        faction,
       };
     }
 
     return {
       name: card.name,
       summary: `Spell deals ${card.damage}`,
+      faction,
     };
   });
 }
@@ -1106,7 +1111,7 @@ function renderRules() {
 
 function renderGallery() {
   return '<section aria-label="gallery"><h1>Card Gallery</h1><ul>' + galleryCards
-    .map((card) => '<li>' + escapeHtml(card.name) + ' - ' + escapeHtml(card.summary) + '</li>')
+    .map((card) => '<li>' + escapeHtml(card.name) + ' - ' + escapeHtml(card.summary) + ' - ' + escapeHtml(card.faction) + '</li>')
     .join("") + '</ul></section>';
 }
 

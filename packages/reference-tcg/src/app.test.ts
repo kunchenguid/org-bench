@@ -199,6 +199,15 @@ test("card gallery references the full ladder card pool", () => {
   assert.match(html, /Aerie Skirmisher/);
 });
 
+test("card gallery labels each card with its ladder faction", () => {
+  const app = navigateToPage(createReferenceApp(), "gallery");
+  const html = renderAppHtml(app);
+
+  assert.match(html, /Ember faction/i);
+  assert.match(html, /Mist faction/i);
+  assert.match(html, /Aerie faction/i);
+});
+
 test("endEncounterTurn advances the active encounter through a full visible turn", () => {
   const app = startEncounter(createReferenceApp(), 0);
 
