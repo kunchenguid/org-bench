@@ -2,6 +2,12 @@ import { useEffect, useState } from 'preact/hooks';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
+type CardProfile = {
+  name: string;
+  role: string;
+  text: string;
+};
+
 const routeMap: Record<string, RouteKey> = {
   '#/': 'home',
   '#/play': 'play',
@@ -26,17 +32,20 @@ const rivalReads = [
   },
 ];
 
-const frontlineCards = [
+const frontlineCards: CardProfile[] = [
   {
     name: 'Static Broker',
+    role: 'Unit - Opener',
     text: 'Preconstructed deck opener that converts early energy into a safe first lane.',
   },
   {
     name: 'Glasswall Sentry',
+    role: 'Unit - Defender',
     text: 'Defender body that buys a full turn against the Rogue AI burst line.',
   },
   {
     name: 'Backline Surge',
+    role: 'Signal - Finisher',
     text: 'Signal finisher that flips stored shield charge into a clean lethal push.',
   },
 ];
@@ -59,8 +68,8 @@ const routeCopy: Record<RouteKey, { eyebrow: string; title: string; body: string
   },
   cards: {
     eyebrow: 'Card archive',
-    title: 'Gallery placeholder',
-    body: 'The final card wall will live here with faction frames, art treatments, and full rules text.',
+    title: 'Starter card archive',
+    body: 'Use the opening roster to learn each lane role fast: opener, defender, and finisher.',
   },
 };
 
@@ -70,6 +79,14 @@ function getRoute(): RouteKey {
   }
 
   return routeMap[window.location.hash] ?? 'home';
+}
+
+function renderCardList(cards: CardProfile[]) {
+  return cards.map((card) => (
+    <li key={card.name}>
+      <strong>{card.name}</strong>: {card.role}. {card.text}
+    </li>
+  ));
 }
 
 export function App() {
@@ -82,6 +99,8 @@ export function App() {
   }, []);
 
   const copy = routeCopy[route];
+  const isPlayRoute = route === 'play';
+  const isCardsRoute = route === 'cards';
 
   return (
     <div class="app-shell">
@@ -106,9 +125,57 @@ export function App() {
           <p>{copy.body}</p>
         </section>
 
+        {isPlayRoute ? (
+          <>
+            <section class="panel battle-status">
+              <h2>Turn 1 - Your move</h2>
+              <p>Rogue AI pressure: left lane overloaded</p>
+              <p>Commit Glasswall Sentry left, then swing Static Broker into the open right lane.</p>
+            </section>
+
+            <section class="panel battle-board">
+              <div>
+                <h2>Enemy board</h2>
+                <div class="zone-grid">
+                  <article class="card-tile">
+                    <p class="eyebrow">Left lane</p>
+                    <h3>Scrap Harrier</h3>
+                    <p>2 attack pressure unit forcing the early shield question.</p>
+                  </article>
+                  <article class="card-tile">
+                    <p class="eyebrow">Right lane</p>
+                    <h3>Signal Snare</h3>
+                    <p>Banked punish effect if you overcommit before scouting the weak side.</p>
+                  </article>
+                </div>
+              </div>
+
+              <div>
+                <h2>Player board</h2>
+                <div class="zone-grid">
+                  <article class="card-tile">
+                    <p class="eyebrow">Left lane</p>
+                    <h3>Glasswall Sentry</h3>
+                    <p>Defender that catches the overloaded lane and buys your pivot turn.</p>
+                  </article>
+                  <article class="card-tile">
+                    <p class="eyebrow">Right lane</p>
+                    <h3>Static Broker</h3>
+                    <p>Tempo opener ready to convert the safe lane into first damage.</p>
+                  </article>
+                </div>
+              </div>
+            </section>
+          </>
+        ) : null}
+
         <section class="panel">
-          <h2>Division B tactical board</h2>
-          <p>Division A playtest scaffold retained the shell. DivB turns it into a readable board where new players can see the sequence before they commit.</p>
+          <h2>{isCardsRoute ? 'Starter card archive' : 'Division B tactical board'}</h2>
+          <p>
+            {isCardsRoute
+              ? 'Each starter card calls out its exact battlefield job so players can map the preconstructed deck before their first turn.'
+              : 'Division A playtest scaffold retained the shell. DivB turns it into a readable board where new players can see the sequence before they commit.'}
+          </p>
           <ul>
             {encounterSteps.map((step) => (
               <li key={step}>{step}</li>
@@ -117,32 +184,32 @@ export function App() {
         </section>
 
         <section class="panel">
-          <h2>Pilot brief</h2>
-          <p>Preconstructed deck: Midrange Voltage. Encounter ladder starts with the Rogue AI and teaches one clean attack pattern before adding harder reads.</p>
-          <p>Plan your first cycle around a single defended lane, then pivot once the AI spends its banked response.</p>
+          <h2>{isCardsRoute ? 'Deck roles' : 'Pilot brief'}</h2>
+          <p>
+            {isCardsRoute
+              ? 'Preconstructed deck mapping keeps the first skim simple: opener for tempo, defender for stabilization, finisher for the close.'
+              : 'Preconstructed deck: Midrange Voltage. Encounter ladder starts with the Rogue AI and teaches one clean attack pattern before adding harder reads.'}
+          </p>
+          <p>
+            {isCardsRoute
+              ? 'Read the card archive left to right and you get the whole first-game plan without opening the standalone rules page.'
+              : 'Plan your first cycle around a single defended lane, then pivot once the AI spends its banked response.'}
+          </p>
         </section>
 
         <section class="panel">
-          <h2>Combat readout</h2>
-          <p>AI rival reads - Rogue AI</p>
-          <ul>
-            {rivalReads.map((read) => (
-              <li key={read.label}>
-                <strong>{read.label}</strong>: {read.detail}
-              </li>
-            ))}
-          </ul>
+          <h2>{isCardsRoute ? 'Card gallery' : 'Combat readout'}</h2>
+          <p>{isCardsRoute ? 'Reference text' : 'AI rival reads - Rogue AI'}</p>
+          <ul>{isCardsRoute ? renderCardList(frontlineCards) : rivalReads.map((read) => (
+            <li key={read.label}>
+              <strong>{read.label}</strong>: {read.detail}
+            </li>
+          ))}</ul>
         </section>
 
         <section class="panel">
           <h2>Frontline cards</h2>
-          <ul>
-            {frontlineCards.map((card) => (
-              <li key={card.name}>
-                <strong>{card.name}</strong>: {card.text}
-              </li>
-            ))}
-          </ul>
+          <ul>{renderCardList(frontlineCards)}</ul>
         </section>
 
         <section class="panel panel-links">
