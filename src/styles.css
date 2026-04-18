@@ -85,6 +85,11 @@ p {
   color: #ddd8ec;
 }
 
+h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
 .nav-list {
   list-style: none;
   display: flex;
@@ -109,6 +114,19 @@ p {
   border-color: rgba(247, 200, 127, 0.7);
   background: rgba(247, 200, 127, 0.16);
   color: #fff4dd;
+}
+
+.content-sections {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.content-section {
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 @media (max-width: 700px) {

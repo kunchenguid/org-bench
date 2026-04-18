@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'preact/hooks';
 
+type PageSection = {
+  heading: string;
+  body: string;
+};
+
+type PageContent = {
+  eyebrow: string;
+  title: string;
+  body?: string;
+  sections?: PageSection[];
+};
+
 const routes = [
   { hash: '#/', label: 'Home' },
   { hash: '#/play', label: 'Play' },
@@ -9,29 +21,39 @@ const routes = [
 
 const siteTitle = 'Duel of Ash and Aether';
 
-const pageContent: Record<string, { eyebrow: string; title: string; body: string[] }> = {
+const pageContent: Record<string, PageContent> = {
   '#/': {
     eyebrow: 'Static site scaffold',
     title: siteTitle,
-    body: ['A polished single-player duel TCG is taking shape here. The scaffold now includes navigation, route placeholders, and nested-path-safe builds so gameplay work can land on top.']
+    body: 'A polished single-player duel TCG is taking shape here. The scaffold now includes navigation, route placeholders, and nested-path-safe builds so gameplay work can land on top.'
   },
   '#/play': {
     eyebrow: 'Play',
     title: 'Encounter Table',
-    body: ['This page will host the full browser duel board, encounter ladder, and persistence-driven resume flow.']
+    body: 'This page will host the full browser duel board, encounter ladder, and persistence-driven resume flow.'
   },
   '#/rules': {
     eyebrow: 'How to Play',
     title: 'Rules Primer',
-    body: [
-      'Reach 10 renown before your rival does, or leave them with no cards left to draw at the start of their turn.',
-      'Each turn has four beats: ready, draw, main, and clash. Ready refreshes your exhausted cards, draw refills your hand, main lets you deploy allies and relics, and clash sends your front line into combat.'
+    sections: [
+      {
+        heading: 'Win condition',
+        body: 'Reach 10 renown before your rival does, or leave them with no cards left to draw at the start of their turn.'
+      },
+      {
+        heading: 'Turn flow',
+        body: 'Each turn has four beats: ready, draw, main, and clash. Ready refreshes your exhausted cards, draw refills your hand, main lets you deploy allies and relics, and clash sends your front line into combat.'
+      },
+      {
+        heading: 'Resource rhythm',
+        body: 'You gain 1 ember at the start of every turn and keep unused ember for later, so choosing between tempo now and a larger swing next turn is the core tension.'
+      }
     ]
   },
   '#/cards': {
     eyebrow: 'Card Gallery',
     title: 'Field Archive',
-    body: ['This gallery placeholder will be replaced by the illustrated card reference used across the site and in play.']
+    body: 'This gallery placeholder will be replaced by the illustrated card reference used across the site and in play.'
   }
 };
 
@@ -83,9 +105,17 @@ export function App() {
       <main class="hero-panel">
         <p class="eyebrow">{currentPage.eyebrow}</p>
         <h2>{currentPage.title}</h2>
-        {currentPage.body.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
+        {currentPage.body ? <p>{currentPage.body}</p> : null}
+        {currentPage.sections ? (
+          <div class="content-sections">
+            {currentPage.sections.map((section) => (
+              <section key={section.heading} class="content-section">
+                <h3>{section.heading}</h3>
+                <p>{section.body}</p>
+              </section>
+            ))}
+          </div>
+        ) : null}
       </main>
     </div>
   );
