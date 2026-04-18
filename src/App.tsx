@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 
 import { getCardsByFaction, getFactionSummaries } from './app/card-catalog';
+import { createPlayPageLayout } from './app/play-page';
 import { ladderSteps, rulesSections } from './app/rules-content';
 import { createGameSession, getPersistenceKey } from './game/engine';
 
@@ -99,6 +100,7 @@ export function App() {
 
   const page = routes[route];
   const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const playPageLayout = route === '/play' ? createPlayPageLayout() : null;
   const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
   const isRulesRoute = route === '/rules';
   const resumeRoute = route === '/' ? savedRoute : null;
@@ -208,12 +210,29 @@ export function App() {
         ) : null}
 
         {openingSession ? (
-          <div className="session-summary" aria-label="Opening encounter summary">
-            <p className="section-label">Encounter</p>
-            <h3>{openingSession.encounter.opponentName}</h3>
-            <p>
-              Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
-            </p>
+          <div className="rules-layout">
+            <div className="session-summary" aria-label="Opening encounter summary">
+              <p className="section-label">Encounter</p>
+              <h3>{openingSession.encounter.opponentName}</h3>
+              <p>
+                Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
+              </p>
+            </div>
+
+            {playPageLayout ? (
+              <section className="session-summary" aria-label="Deterministic play surface summary">
+                <p className="section-label">Combat lane</p>
+                <h3>{playPageLayout.zones.find((zone) => zone.id === 'shared-battlefield')?.value}</h3>
+                <p>{playPageLayout.encounterSummary}</p>
+                <ul className="ladder-list">
+                  {playPageLayout.turnControls.map((control) => (
+                    <li key={control.label}>
+                      <strong>{control.label}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
           </div>
         ) : null}
 
