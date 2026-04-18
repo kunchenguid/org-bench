@@ -254,6 +254,10 @@ function useCurrentPage(storageNamespace?: string) {
   };
 }
 
+function navigateTo(page: PageId) {
+  window.location.hash = canonicalHash(page);
+}
+
 function FactionStrip() {
   return (
     <section className="panel stack" aria-labelledby="factions-heading">
@@ -314,6 +318,22 @@ function HomePage() {
   return (
     <>
       <FactionStrip />
+      <section className="panel stack">
+        <p className="eyebrow">Start here</p>
+        <h2>Open the first duel immediately</h2>
+        <p className="section-copy">
+          If the premise is clear, the next best action should be obvious too. Jump straight into the
+          opening encounter without scanning the navigation first.
+        </p>
+        <div className="cta-row">
+          <a className="nav-link primary-link" href="#/play" onClick={() => navigateTo('play')}>
+            Start The First Duel
+          </a>
+          <a className="nav-link" href="#/rules" onClick={() => navigateTo('rules')}>
+            Read The Rules First
+          </a>
+        </div>
+      </section>
       <section className="panel-grid" aria-label="Home teaching surfaces">
         <article className="panel stack">
           <p className="eyebrow">Encounter intros</p>
