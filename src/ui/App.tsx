@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { createInitialState } from '../game.ts';
 
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
@@ -91,6 +92,7 @@ function renderCardList(cards: CardProfile[]) {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(getRoute);
+  const battle = createInitialState();
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute());
@@ -130,6 +132,11 @@ export function App() {
             <section class="panel battle-status">
               <h2>Turn 1 - Your move</h2>
               <p>Rogue AI pressure: left lane overloaded</p>
+              <p>Player HP {battle.player.hp}</p>
+              <p>Enemy HP {battle.enemy.hp}</p>
+              <p>Shield Charge {battle.player.shielded ? 0 : 1}</p>
+              <p>{battle.log[0]}</p>
+              <p>Next punish: Signal Snare if you overcommit right now.</p>
               <p>Commit Glasswall Sentry left, then swing Static Broker into the open right lane.</p>
             </section>
 
