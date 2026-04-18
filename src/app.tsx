@@ -35,8 +35,6 @@ type SavedAppState = {
   currentPage: PageId;
 };
 
-type CardFilter = 'all' | FactionId;
-
 const pages: PageDefinition[] = [
   {
     id: 'home',
@@ -294,9 +292,7 @@ function CardFrame({ card }: { card: CardDefinition }) {
   );
 }
 
-function CardGallery({ activeFilter, onFilterChange }: { activeFilter: CardFilter; onFilterChange: (filter: CardFilter) => void }) {
-  const visibleCards = activeFilter === 'all' ? cards : cards.filter((card) => card.faction === activeFilter);
-
+function CardGallery() {
   return (
     <section className="panel stack" aria-labelledby="cards-heading">
       <p className="eyebrow">Same frames as play</p>
@@ -305,24 +301,8 @@ function CardGallery({ activeFilter, onFilterChange }: { activeFilter: CardFilte
         These cards teach the cost line, card type, art treatment, and rules box we will reuse on
         the duel board.
       </p>
-      <div className="filter-row" role="group" aria-label="Faction filters">
-        <button aria-pressed={activeFilter === 'all'} className="nav-link filter-button" onClick={() => onFilterChange('all')} type="button">
-          All Factions
-        </button>
-        {factions.map((faction) => (
-          <button
-            aria-pressed={activeFilter === faction.id}
-            className="nav-link filter-button"
-            key={faction.id}
-            onClick={() => onFilterChange(faction.id)}
-            type="button"
-          >
-            {faction.name}
-          </button>
-        ))}
-      </div>
       <div className="card-grid">
-        {visibleCards.map((card) => (
+        {cards.map((card) => (
           <CardFrame card={card} key={card.name} />
         ))}
       </div>
@@ -360,7 +340,7 @@ function HomePage() {
           </p>
         </article>
       </section>
-      <CardGallery activeFilter="all" onFilterChange={() => {}} />
+      <CardGallery />
     </>
   );
 }
@@ -420,12 +400,10 @@ function RulesPage() {
 }
 
 function CardsPage() {
-  const [activeFilter, setActiveFilter] = useState<CardFilter>('all');
-
   return (
     <>
       <FactionStrip />
-      <CardGallery activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+      <CardGallery />
     </>
   );
 }
