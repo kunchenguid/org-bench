@@ -328,6 +328,16 @@ h1 {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.ai-plan {
+  margin: 18px 0 0;
+  padding-left: 20px;
+  color: #efe6ff;
+}
+
+.ai-plan li + li {
+  margin-top: 8px;
+}
+
 .board-shell {
   display: grid;
   gap: 20px;
