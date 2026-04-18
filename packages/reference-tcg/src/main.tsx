@@ -141,6 +141,43 @@ function App() {
   );
 }
 
+function turnsToDefeat(damagePerTurn: number, hp: number): number | null {
+  if (damagePerTurn <= 0) {
+    return null;
+  }
+
+  return Math.ceil(hp / damagePerTurn);
+}
+
+function RaceOutlook(props: { encounter: EncounterState }) {
+  const playerAttack = props.encounter.player.battlefield.reduce(
+    (total, card) => total + card.attack,
+    0,
+  );
+  const enemyAttack = props.encounter.enemy.battlefield.reduce(
+    (total, card) => total + card.attack,
+    0,
+  );
+  const playerTurnsToWin = turnsToDefeat(playerAttack, props.encounter.enemy.hp);
+  const enemyTurnsToWin = turnsToDefeat(enemyAttack, props.encounter.player.hp);
+
+  return (
+    <section class="turn-guide" aria-label="Race outlook">
+      <strong>Race Outlook</strong>
+      <p>
+        {playerTurnsToWin === null
+          ? "You do not present a lethal clock yet."
+          : `You present a ${playerAttack}-damage swing each turn. Enemy defeat in ${playerTurnsToWin} player turns if the board sticks.`}
+      </p>
+      <p>
+        {enemyTurnsToWin === null
+          ? "Enemy has no return lethal clock yet."
+          : `Enemy threatens to end the race in ${enemyTurnsToWin} turns if you give the board back.`}
+      </p>
+    </section>
+  );
+}
+
 function HomePage(props: {
   app: ReferenceAppState;
   dispatch: (action: ReferenceAppAction) => void;
@@ -298,6 +335,8 @@ function PlayPage(props: {
           Sky Duel.
         </p>
       </section>
+
+      <RaceOutlook encounter={encounter} />
 
       <ResultBanner status={encounter.status} />
 

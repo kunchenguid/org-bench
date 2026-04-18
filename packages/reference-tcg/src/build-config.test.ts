@@ -86,3 +86,11 @@ test("reference-tcg play page includes a visible in-duel turn guide", async () =
   assert.match(mainEntry, /There are no blockers/);
   assert.match(mainEntry, /saved for reloads/);
 });
+
+test("reference-tcg play page includes a visible race outlook summary", async () => {
+  const mainEntry = await readFile(join(packageRoot, "src/main.tsx"), "utf8");
+
+  assert.match(mainEntry, /Race Outlook/);
+  assert.match(mainEntry, /Enemy defeat in/);
+  assert.match(mainEntry, /return lethal clock/);
+});

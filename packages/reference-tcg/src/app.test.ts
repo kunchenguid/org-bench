@@ -98,6 +98,21 @@ test("playEncounterCard updates duel state and rendered controls for a played ha
   assert.match(html, /Player board attacks for 2/);
 });
 
+test("play page surfaces a race outlook after you commit board pressure", () => {
+  const app = startEncounter(createReferenceApp(), 0);
+  const cardId = app.encounter?.player.hand[0]?.id;
+
+  assert.ok(cardId);
+
+  const next = playEncounterCard(app, cardId);
+  const html = renderAppHtml(next);
+
+  assert.match(html, /Race Outlook/);
+  assert.match(html, /You present a 2-damage swing each turn\./);
+  assert.match(html, /Enemy defeat in 8 player turns if the board sticks\./);
+  assert.match(html, /Enemy has no return lethal clock yet\./);
+});
+
 test("navigateToPage changes which primary page is rendered", () => {
   const app = navigateToPage(createReferenceApp(), "rules");
 

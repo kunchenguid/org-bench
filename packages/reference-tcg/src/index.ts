@@ -180,6 +180,35 @@ function creatureAttackTotal(creatures: CreatureCard[]): number {
   return creatures.reduce((sum, creature) => sum + creature.attack, 0);
 }
 
+function turnsToDefeat(damagePerTurn: number, hp: number): number | null {
+  if (damagePerTurn <= 0) {
+    return null;
+  }
+
+  return Math.ceil(hp / damagePerTurn);
+}
+
+function describeRaceOutlook(encounter: EncounterState): {
+  playerClock: string;
+  enemyClock: string;
+} {
+  const playerAttack = creatureAttackTotal(encounter.player.battlefield);
+  const enemyAttack = creatureAttackTotal(encounter.enemy.battlefield);
+  const playerTurnsToWin = turnsToDefeat(playerAttack, encounter.enemy.hp);
+  const enemyTurnsToWin = turnsToDefeat(enemyAttack, encounter.player.hp);
+
+  return {
+    playerClock:
+      playerTurnsToWin === null
+        ? "You do not present a lethal clock yet."
+        : `You present a ${playerAttack}-damage swing each turn. Enemy defeat in ${playerTurnsToWin} player turns if the board sticks.`,
+    enemyClock:
+      enemyTurnsToWin === null
+        ? "Enemy has no return lethal clock yet."
+        : `Enemy threatens to end the race in ${enemyTurnsToWin} turns if you give the board back.`,
+  };
+}
+
 function startPlayerTurn(encounter: EncounterState): EncounterState {
   const nextResources = Math.min(10, encounter.turn);
   const player = drawOne({
@@ -812,6 +841,7 @@ function renderPlay(app: ReferenceAppState): string {
     .slice(-5)
     .map((entry) => `<li>${escapeHtml(entry)}</li>`)
     .join("");
+  const raceOutlook = describeRaceOutlook(app.encounter);
   const nextEncounter = app.encounters[app.activeEncounterIndex + 1] ?? null;
   const resultMarkup =
     app.encounter.status === "victory"
@@ -840,6 +870,9 @@ function renderPlay(app: ReferenceAppState): string {
       <p>Enemy resources: ${app.encounter.enemy.resources.current}/${app.encounter.enemy.resources.max}</p>
       <p>Player board attacks for ${playerAttack}</p>
       <p>Enemy board attacks for ${enemyAttack}</p>
+      <h2>Race Outlook</h2>
+      <p>${escapeHtml(raceOutlook.playerClock)}</p>
+      <p>${escapeHtml(raceOutlook.enemyClock)}</p>
       <h2>Hand</h2>
       <ul>${handCards}</ul>
       <h2>Battlefield</h2>
@@ -932,6 +965,34 @@ function renderSavedEncounterSummary(app) {
   return '<div class="resume-summary"><p><button type="button" data-action="resume-encounter">Resume Encounter ' + (app.activeEncounterIndex + 1) + '</button></p><p>Saved state - Turn ' + app.encounter.turn + ', Hand ' + app.encounter.player.hand.length + ', Battlefield ' + app.encounter.player.battlefield.length + '</p></div>';
 }
 
+function creatureAttackTotal(creatures) {
+  return creatures.reduce((sum, creature) => sum + creature.attack, 0);
+}
+
+function turnsToDefeat(damagePerTurn, hp) {
+  if (damagePerTurn <= 0) {
+    return null;
+  }
+
+  return Math.ceil(hp / damagePerTurn);
+}
+
+function describeRaceOutlook(encounter) {
+  const playerAttack = creatureAttackTotal(encounter.player.battlefield);
+  const enemyAttack = creatureAttackTotal(encounter.enemy.battlefield);
+  const playerTurnsToWin = turnsToDefeat(playerAttack, encounter.enemy.hp);
+  const enemyTurnsToWin = turnsToDefeat(enemyAttack, encounter.player.hp);
+
+  return {
+    playerClock: playerTurnsToWin === null
+      ? 'You do not present a lethal clock yet.'
+      : 'You present a ' + playerAttack + '-damage swing each turn. Enemy defeat in ' + playerTurnsToWin + ' player turns if the board sticks.',
+    enemyClock: enemyTurnsToWin === null
+      ? 'Enemy has no return lethal clock yet.'
+      : 'Enemy threatens to end the race in ' + enemyTurnsToWin + ' turns if you give the board back.',
+  };
+}
+
 function isEncounterUnlocked(encounters, encounterIndex) {
   return encounterIndex === 0 || encounters[encounterIndex - 1]?.completed === true;
 }
@@ -1000,10 +1061,13 @@ function renderPlay(app) {
   const battlefieldCards = app.encounter.player.battlefield
     .map((card) => '<li>' + escapeHtml(card.name) + '</li>')
     .join("");
+  const playerAttack = creatureAttackTotal(app.encounter.player.battlefield);
+  const enemyAttack = creatureAttackTotal(app.encounter.enemy.battlefield);
   const logEntries = app.encounter.log
     .slice(-5)
     .map((entry) => '<li>' + escapeHtml(entry) + '</li>')
     .join("");
+  const raceOutlook = describeRaceOutlook(app.encounter);
   const resultMarkup =
     app.encounter.status === "victory"
       ? '<p><strong>Victory</strong> - You won the encounter.</p>'
@@ -1011,7 +1075,7 @@ function renderPlay(app) {
         ? '<p><strong>Defeat</strong> - The rival deck prevailed.</p>'
         : "";
 
-  return '<section aria-label="play"><h1>' + escapeHtml(encounterInfo.title) + '</h1>' + resultMarkup + '<p>Player HP: ' + app.encounter.player.hp + '</p><p>Enemy HP: ' + app.encounter.enemy.hp + '</p><p>Turn: ' + app.encounter.turn + '</p><p>Resources: ' + app.encounter.player.resources.current + '/' + app.encounter.player.resources.max + '</p><p>Enemy resources: ' + app.encounter.enemy.resources.current + '/' + app.encounter.enemy.resources.max + '</p><h2>Hand</h2><ul>' + handCards + '</ul><h2>Battlefield</h2><ul>' + battlefieldCards + '</ul><h2>Battle Log</h2><ul>' + logEntries + '</ul><button type="button" data-action="end-turn">End Turn</button></section>';
+  return '<section aria-label="play"><h1>' + escapeHtml(encounterInfo.title) + '</h1>' + resultMarkup + '<p>Player HP: ' + app.encounter.player.hp + '</p><p>Enemy HP: ' + app.encounter.enemy.hp + '</p><p>Turn: ' + app.encounter.turn + '</p><p>Resources: ' + app.encounter.player.resources.current + '/' + app.encounter.player.resources.max + '</p><p>Enemy resources: ' + app.encounter.enemy.resources.current + '/' + app.encounter.enemy.resources.max + '</p><p>Player board attacks for ' + playerAttack + '</p><p>Enemy board attacks for ' + enemyAttack + '</p><h2>Race Outlook</h2><p>' + escapeHtml(raceOutlook.playerClock) + '</p><p>' + escapeHtml(raceOutlook.enemyClock) + '</p><h2>Hand</h2><ul>' + handCards + '</ul><h2>Battlefield</h2><ul>' + battlefieldCards + '</ul><h2>Battle Log</h2><ul>' + logEntries + '</ul><button type="button" data-action="end-turn">End Turn</button></section>';
 }
 
 function renderPage(app) {
