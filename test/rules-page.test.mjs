@@ -12,7 +12,12 @@ test('rules page documents core play loop and deck rules', () => {
   assert.match(html, /Momentum windows let defenders blunt an attack or punish an overcommit\./i);
   assert.match(html, /AI Opponent Flow/i);
   assert.match(html, /On its turn, the AI resolves exactly one command card: advance, fortify, or strike\./i);
+  assert.match(html, /Encounter Flow/i);
+  assert.match(html, /Every third round, the encounter escalates and the AI gains a bonus command before attacks\./i);
   assert.match(html, /Deckbuilding Rules/i);
+  assert.match(html, /Sideboard Rules/i);
+  assert.match(html, /best-of-three/i);
+  assert.match(html, /up to six cards/i);
   assert.match(html, /Starter Card Roster/i);
   assert.match(html, /Frontline Archivist/i);
   assert.match(html, /Patch Bay Saboteur/i);
