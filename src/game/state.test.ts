@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { createGameState, drawCard, playCard, startTurn } from './state';
+import { applyChampionDamage, createGameState, drawCard, playCard, startTurn } from './state';
 
 const scout = { attack: 2, cost: 1, health: 1, id: 'scout', name: 'Scout' };
 const guardian = { attack: 1, cost: 2, health: 3, id: 'guardian', name: 'Guardian' };
@@ -65,5 +65,31 @@ describe('game state flow', () => {
     expect(nextState.player.resources).toBe(0);
     expect(nextState.player.hand).toEqual([]);
     expect(nextState.player.battlefield.map((card) => card.id)).toEqual(['scout']);
+  });
+
+  test('applyChampionDamage declares a winner when lethal damage lands on the enemy champion', () => {
+    const baseline = createGameState({
+      enemyDeck: [guardian],
+      playerDeck: [scout, striker],
+      startingHealth: 3,
+    });
+
+    const nextState = applyChampionDamage(baseline, 'enemy', 3);
+
+    expect(nextState.enemy.health).toBe(0);
+    expect(nextState.winner).toBe('player');
+  });
+
+  test('applyChampionDamage declares a winner when lethal damage lands on the player champion', () => {
+    const baseline = createGameState({
+      enemyDeck: [guardian],
+      playerDeck: [scout, striker],
+      startingHealth: 2,
+    });
+
+    const nextState = applyChampionDamage(baseline, 'player', 2);
+
+    expect(nextState.player.health).toBe(0);
+    expect(nextState.winner).toBe('enemy');
   });
 });

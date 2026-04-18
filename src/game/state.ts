@@ -114,3 +114,19 @@ export function playCard(state: GameState, side: Side, cardId: string): GameStat
     },
   };
 }
+
+export function applyChampionDamage(state: GameState, side: Side, damage: number): GameState {
+  const currentPlayer = state[side];
+  const nextHealth = Math.max(0, currentPlayer.health - damage);
+  const winner =
+    nextHealth === 0 ? (side === 'player' ? 'enemy' : 'player') : state.winner;
+
+  return {
+    ...state,
+    [side]: {
+      ...currentPlayer,
+      health: nextHealth,
+    },
+    winner,
+  };
+}
