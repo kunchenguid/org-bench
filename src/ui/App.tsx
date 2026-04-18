@@ -357,7 +357,6 @@ export function PlayBoard() {
   );
 }
 
-<<<<<<< HEAD
 export function RulesPanel() {
   return (
     <section className="page-panel rules-panel">
@@ -416,7 +415,6 @@ function PageSection(props: {
         </div>
       ) : null}
       {props.route === 'home' ? <DeckPreview /> : null}
-      {props.route === 'rules' ? <RulesReference /> : null}
       {props.route === 'cards' ? (
         <CardGallery
           selectedFaction={props.selectedFaction}
