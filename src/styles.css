@@ -633,13 +633,17 @@ h1 {
     padding: 16px;
   }
 
+  .hero-home,
   .feedback-grid,
   .board-status-grid,
   .lane-grid,
   .resource-row,
-  .hero-home,
   .preview-grid,
   .encounter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .factions-grid {
     grid-template-columns: 1fr;
   }
 

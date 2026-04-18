@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 
+import { clearEncounterSnapshot, loadEncounterSnapshot, type EncounterSnapshot } from './persistence';
+
 type RouteKey = 'home' | 'play' | 'rules' | 'cards';
 
 const routes: Record<RouteKey, { label: string; title: string; body: string }> = {
@@ -98,6 +100,8 @@ const feedbackPatterns = [
   }
 ] as const;
 
+const runId = 'facebook-seed-01';
+
 function getRouteFromHash(hash: string): RouteKey {
   const value = hash.replace(/^#\/?/, '');
   return value in routes ? (value as RouteKey) : 'home';
@@ -109,6 +113,9 @@ function getHashForRoute(route: RouteKey) {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(window.location.hash));
+  const [savedEncounter, setSavedEncounter] = useState<EncounterSnapshot | null>(() =>
+    loadEncounterSnapshot(window.localStorage, runId)
+  );
 
   useLayoutEffect(() => {
     const normalizedHash = getHashForRoute(route);
@@ -120,17 +127,20 @@ export function App() {
 
   useEffect(() => {
     const onHashChange = () => {
-      const nextRoute = getRouteFromHash(window.location.hash);
-
-      setRoute(nextRoute);
+      setRoute(getRouteFromHash(window.location.hash));
     };
 
     window.addEventListener('hashchange', onHashChange);
-
     onHashChange();
 
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  useEffect(() => {
+    if (route === 'play') {
+      setSavedEncounter(loadEncounterSnapshot(window.localStorage, runId));
+    }
+  }, [route]);
 
   const page = routes[route];
   const isHome = route === 'home';
@@ -138,6 +148,11 @@ export function App() {
   useLayoutEffect(() => {
     document.title = `${page.title} | Duel of Ash and Aether`;
   }, [page.title]);
+
+  const startNewRun = () => {
+    clearEncounterSnapshot(window.localStorage, runId);
+    setSavedEncounter(null);
+  };
 
   return (
     <div className="app-shell">
@@ -160,37 +175,39 @@ export function App() {
       </header>
 
       <main className="layout">
+        <section className={isHome ? 'hero-panel hero-home' : 'hero-panel'}>
+          <div className="hero-copy">
+            <p className="eyebrow">Static TCG Campaign</p>
+            <h1>{page.title}</h1>
+            {isHome ? <p className="hero-lede">Choose a side in a shattered sky war.</p> : null}
+            <p>{page.body}</p>
+            <div className="hero-actions">
+              <a className={isHome ? 'button primary strong' : 'button primary'} href="#/play">
+                {isHome ? 'Enter the Gauntlet' : 'Start Duel'}
+              </a>
+              <a className="button secondary" href={isHome ? '#/cards' : '#/rules'}>
+                {isHome ? 'Study Both Factions' : 'Learn Rules'}
+              </a>
+            </div>
+          </div>
+
+          {isHome ? (
+            <aside className="hero-aside" aria-label="Run snapshot">
+              <div className="hero-badge">Live preview</div>
+              <ul className="hero-stats">
+                {homeStats.map((stat) => (
+                  <li key={stat.value}>
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          ) : null}
+        </section>
+
         {isHome ? (
           <>
-            <section className="hero-panel hero-home">
-              <div className="hero-copy">
-                <p className="eyebrow">Static TCG Campaign</p>
-                <h1>{page.title}</h1>
-                <p className="hero-lede">Choose a side in a shattered sky war.</p>
-                <p>{page.body}</p>
-                <div className="hero-actions">
-                  <a className="button primary strong" href="#/play">
-                    Enter the Gauntlet
-                  </a>
-                  <a className="button secondary" href="#/cards">
-                    Study Both Factions
-                  </a>
-                </div>
-              </div>
-
-              <aside className="hero-aside" aria-label="Run snapshot">
-                <div className="hero-badge">Live preview</div>
-                <ul className="hero-stats">
-                  {homeStats.map((stat) => (
-                    <li key={stat.value}>
-                      <strong>{stat.value}</strong>
-                      <span>{stat.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </aside>
-            </section>
-
             <section className="section-block" aria-labelledby="faction-previews-title">
               <div className="section-heading">
                 <p className="eyebrow">Faction previews</p>
@@ -229,61 +246,119 @@ export function App() {
                 ))}
               </div>
             </section>
+          </>
+        ) : null}
 
-            <section className="preview-grid" aria-label="Scaffold Preview">
-              <article className="preview-card ember">
-                <h2>Ember Guild</h2>
-                <p>A fast pressure faction built around sparks, burn, and battlefield momentum.</p>
-              </article>
-              <article className="preview-card aether">
-                <h2>Aether Covenant</h2>
-                <p>A tempo faction that manipulates energy, shields, and tactical positioning.</p>
-              </article>
-              <article className="preview-card ladder">
-                <h2>Encounter Ladder</h2>
-                <p>Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.</p>
-              </article>
+        <section className="preview-grid" aria-label="Scaffold Preview">
+          <article className="preview-card ember">
+            <h2>Ember Guild</h2>
+            <p>A fast pressure faction built around sparks, burn, and battlefield momentum.</p>
+          </article>
+          <article className="preview-card aether">
+            <h2>Aether Covenant</h2>
+            <p>A tempo faction that manipulates energy, shields, and tactical positioning.</p>
+          </article>
+          <article className="preview-card ladder">
+            <h2>Encounter Ladder</h2>
+            <p>Round 1 scaffold leaves room for a three-fight gauntlet with persistent progress.</p>
+          </article>
+        </section>
+
+        {route === 'play' ? (
+          <>
+            <section className="play-status" aria-live="polite">
+              {savedEncounter ? (
+                <>
+                  <p>
+                    Saved encounter: {savedEncounter.encounterName} - {savedEncounter.playerFaction} vs{' '}
+                    {savedEncounter.rivalFaction}
+                  </p>
+                  <div className="hero-actions">
+                    <button className="button primary" type="button">
+                      Resume Encounter
+                    </button>
+                    <button className="button secondary" type="button" onClick={startNewRun}>
+                      Start New Run
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p>No active encounter saved for this run.</p>
+              )}
             </section>
 
-            <section className="feedback-kit" aria-labelledby="feedback-kit-title">
-              <div className="section-copy">
-                <p className="eyebrow">Visual Feedback Primitives</p>
-                <h2 id="feedback-kit-title">Combat Feedback Kit</h2>
-                <p>
-                  Reusable motion and overlay patterns for card play, attacks, damage hits, turn swaps,
-                  and match resolution.
-                </p>
+            <section className="board-shell" aria-labelledby="board-shell-title">
+              <div className="board-shell-header">
+                <div>
+                  <p className="eyebrow">Encounter Snapshot</p>
+                  <h2 id="board-shell-title">Live Duel Board</h2>
+                </div>
+                <p className="board-turn">Turn 4 - Ember Guild attack</p>
               </div>
 
-              <div className="feedback-grid">
-                {feedbackPatterns.map((pattern) => (
-                  <article key={pattern.name} className={`feedback-card tone-${pattern.tone}`}>
-                    <div className={`feedback-demo ${pattern.className}`} aria-hidden="true">
-                      <span className="feedback-chip">Demo</span>
-                    </div>
-                    <h3>{pattern.name}</h3>
-                    <p>{pattern.body}</p>
-                    <code>{pattern.className}</code>
-                  </article>
-                ))}
+              <div className="board-status-grid">
+                <article className="status-card enemy-status">
+                  <h3>Enemy Health</h3>
+                  <p>16 / 20</p>
+                </article>
+                <article className="status-card player-status">
+                  <h3>Player Health</h3>
+                  <p>18 / 20</p>
+                </article>
+                <article className="status-card hand-status">
+                  <h3>Hand Dock</h3>
+                  <p>4 cards ready to deploy</p>
+                </article>
+              </div>
+
+              <div className="lane-grid">
+                <section className="lane-card front-lane">
+                  <h3>Front Lane</h3>
+                  <p>Pressure units clash here first.</p>
+                </section>
+                <section className="lane-card back-lane">
+                  <h3>Back Lane</h3>
+                  <p>Support units and relics stay protected here.</p>
+                </section>
+              </div>
+
+              <div className="resource-row" aria-label="Deck and discard piles">
+                <article className="resource-card">
+                  <h3>Deck</h3>
+                  <p>18 cards</p>
+                </article>
+                <article className="resource-card">
+                  <h3>Discard</h3>
+                  <p>5 cards</p>
+                </article>
               </div>
             </section>
           </>
-        ) : (
-          <section className="hero-panel">
-            <p className="eyebrow">Static TCG Campaign</p>
-            <h1>{page.title}</h1>
-            <p>{page.body}</p>
-            <div className="hero-actions">
-              <a className="button primary" href="#/play">
-                Start Duel
-              </a>
-              <a className="button secondary" href="#/rules">
-                Learn Rules
-              </a>
-            </div>
-          </section>
-        )}
+        ) : null}
+
+        <section className="feedback-kit" aria-labelledby="feedback-kit-title">
+          <div className="section-copy">
+            <p className="eyebrow">Visual Feedback Primitives</p>
+            <h2 id="feedback-kit-title">Combat Feedback Kit</h2>
+            <p>
+              Reusable motion and overlay patterns for card play, attacks, damage hits, turn swaps,
+              and match resolution.
+            </p>
+          </div>
+
+          <div className="feedback-grid">
+            {feedbackPatterns.map((pattern) => (
+              <article key={pattern.name} className={`feedback-card tone-${pattern.tone}`}>
+                <div className={`feedback-demo ${pattern.className}`} aria-hidden="true">
+                  <span className="feedback-chip">Demo</span>
+                </div>
+                <h3>{pattern.name}</h3>
+                <p>{pattern.body}</p>
+                <code>{pattern.className}</code>
+              </article>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   );
