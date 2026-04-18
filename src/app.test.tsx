@@ -6,7 +6,7 @@ import { getPersistenceKey } from './game/engine';
 describe('App shell', () => {
   beforeEach(() => {
     globalThis.localStorage.clear();
-    globalThis.location.hash = '';
+    globalThis.location.hash = '#/';
   });
 
   it('shows navigation for all required pages', () => {
@@ -26,8 +26,59 @@ describe('App shell', () => {
 
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
+  });
 
-    globalThis.location.hash = '';
+  it('updates the document title for the active route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(document.title).toBe('Cards - Duel TCG');
+  });
+
+  it('shows the opening encounter on the play route', () => {
+    globalThis.location.hash = '#/play';
+
+    render(<App />);
+
+    expect(screen.getByText('Ashen Vanguard')).toBeInTheDocument();
+    expect(screen.getByText(/20 health/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Play' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
+  });
+
+  it('keeps the intended route when the hash includes a trailing slash or query string', () => {
+    globalThis.location.hash = '#/rules/?ref=nav';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Rules' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('renders the shared card catalog on the cards route', () => {
+    globalThis.location.hash = '#/cards';
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Skyforge' })).toBeInTheDocument();
+    expect(screen.getByText('disciplined tempo and formation combat')).toBeInTheDocument();
+    expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Wildroot' })).toBeInTheDocument();
+    expect(screen.getByText('growth, healing, and oversized bodies')).toBeInTheDocument();
+    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
+  });
+
+  it('renders authored rules sections on the rules route', () => {
+    globalThis.location.hash = '#/rules';
+
+    render(<App />);
+
+    expect(screen.getByText('Turn Flow')).toBeInTheDocument();
+    expect(screen.getByText('Keywords')).toBeInTheDocument();
+    expect(screen.getByText('Rookie Table')).toBeInTheDocument();
+    expect(screen.getByText('Draw one card at the start of your turn.')).toBeInTheDocument();
   });
 
   it('persists the last non-home route for future resume', () => {

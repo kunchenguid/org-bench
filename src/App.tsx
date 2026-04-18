@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'preact/hooks';
 
-import { getPersistenceKey } from './game/engine';
+import { getCardsByFaction, getFactionSummaries } from './app/card-catalog';
+import { ladderSteps, rulesSections } from './app/rules-content';
+import { createGameSession, getPersistenceKey } from './game/engine';
 
 type RouteKey = '/' | '/play' | '/rules' | '/cards';
 
 const lastRouteStorageKey = 'duel-tcg:last-route';
 const runId = 'apple-seed-01';
+
+const navItems: Array<{ href: `#${RouteKey}`; label: string; route: RouteKey }> = [
+  { href: '#/', label: 'Home', route: '/' },
+  { href: '#/play', label: 'Play', route: '/play' },
+  { href: '#/rules', label: 'Rules', route: '/rules' },
+  { href: '#/cards', label: 'Cards', route: '/cards' },
+];
 
 const routes: Record<RouteKey, { title: string; description: string }> = {
   '/': {
@@ -27,9 +36,9 @@ const routes: Record<RouteKey, { title: string; description: string }> = {
 };
 
 function getRouteFromHash(hash: string): RouteKey {
-  const rawPath = hash.replace(/^#/, '') || '/';
-  if (rawPath === '/play' || rawPath === '/rules' || rawPath === '/cards') {
-    return rawPath;
+  const normalizedPath = (hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/+$/, '') || '/';
+  if (normalizedPath === '/play' || normalizedPath === '/rules' || normalizedPath === '/cards') {
+    return normalizedPath;
   }
   return '/';
 }
@@ -89,8 +98,15 @@ export function App() {
   }, [route]);
 
   const page = routes[route];
+  const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
+  const isRulesRoute = route === '/rules';
   const resumeRoute = route === '/' ? savedRoute : null;
   const resumeTitle = resumeRoute ? routes[resumeRoute].title : null;
+
+  useEffect(() => {
+    document.title = route === '/' ? 'Duel TCG' : `${page.title} - Duel TCG`;
+  }, [page.title, route]);
 
   return (
     <div className="shell">
@@ -101,16 +117,23 @@ export function App() {
       </header>
 
       <nav aria-label="Primary" className="nav">
-        <a aria-current={route === '/' ? 'page' : undefined} href="#/">Home</a>
-        <a aria-current={route === '/play' ? 'page' : undefined} href="#/play">Play</a>
-        <a aria-current={route === '/rules' ? 'page' : undefined} href="#/rules">Rules</a>
-        <a aria-current={route === '/cards' ? 'page' : undefined} href="#/cards">Cards</a>
+        {navItems.map((item) => (
+          <a
+            key={item.route}
+            href={item.href}
+            className={route === item.route ? 'is-active' : undefined}
+            aria-current={route === item.route ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))}
       </nav>
 
       <main className="panel">
         <p className="section-label">{route === '/' ? 'Overview' : 'Scaffold Route'}</p>
         <h2>{page.title}</h2>
         <p>{page.description}</p>
+
         {route === '/' && savedDuelEncounterId ? (
           <div className="saved-duel-actions">
             <p className="save-indicator">Saved duel available - {savedDuelEncounterId}</p>
@@ -133,6 +156,7 @@ export function App() {
             </button>
           </div>
         ) : null}
+
         {resumeRoute && resumeTitle ? (
           <div className="resume-actions">
             <a className="resume-link" href={`#${resumeRoute}`}>
@@ -148,6 +172,71 @@ export function App() {
             >
               Clear saved route
             </button>
+          </div>
+        ) : null}
+
+        {isRulesRoute ? (
+          <div className="rules-layout">
+            <div className="rules-grid" aria-label="Rules sections">
+              {rulesSections.map((section) => (
+                <section key={section.title} className="rules-card">
+                  <p className="section-label">Rule Section</p>
+                  <h3>{section.title}</h3>
+                  <p>{section.intro}</p>
+                  <ul className="rules-points">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+
+            <section className="session-summary" aria-label="Ladder progression guidance">
+              <p className="section-label">Ladder</p>
+              <h3>Progression Goals</h3>
+              <ul className="ladder-list">
+                {ladderSteps.map((step) => (
+                  <li key={step.name}>
+                    <strong>{step.name}</strong>
+                    <span>{step.goal}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        ) : null}
+
+        {openingSession ? (
+          <div className="session-summary" aria-label="Opening encounter summary">
+            <p className="section-label">Encounter</p>
+            <h3>{openingSession.encounter.opponentName}</h3>
+            <p>
+              Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
+            </p>
+          </div>
+        ) : null}
+
+        {route === '/cards' ? (
+          <div className="catalog-grid" aria-label="Card catalog by faction">
+            {factionSummaries.map((summary) => (
+              <section className="catalog-panel" key={summary.faction}>
+                <p className="section-label">Faction</p>
+                <h3>{summary.faction}</h3>
+                <p>{summary.blurb}</p>
+                <p className="catalog-meta">
+                  {summary.creatureCount} creatures - {summary.spellCount} spells
+                </p>
+                <ul className="catalog-list">
+                  {getCardsByFaction(summary.faction).map((card) => (
+                    <li key={card.name}>
+                      <span>{card.name}</span>
+                      <span>{card.cost}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
           </div>
         ) : null}
       </main>
