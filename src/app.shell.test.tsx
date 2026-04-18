@@ -39,4 +39,23 @@ describe('App shell routing', () => {
 
     expect(document.title).toBe('Card Gallery | Duel of Ash and Aether');
   });
+
+  it('renders a polished home page with faction and encounter previews', () => {
+    window.location.hash = '#/home';
+
+    render(<App />);
+
+    expect(screen.getByText(/choose a side in a shattered sky war/i)).toBeInTheDocument();
+    expect(screen.getByText(/3-step gauntlet/i)).toBeInTheDocument();
+    expect(screen.getByText(/12 signature cards/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /enter the gauntlet/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /study both factions/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /faction previews/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /emberfire vanguard/i, level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /aether covenant/i, level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /encounter path/i })).toBeInTheDocument();
+    expect(screen.getByText(/gate of cinders/i)).toBeInTheDocument();
+    expect(screen.getByText(/glassgarden crossing/i)).toBeInTheDocument();
+    expect(screen.getByText(/the zenith prism/i)).toBeInTheDocument();
+  });
 });
