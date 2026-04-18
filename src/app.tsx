@@ -449,7 +449,12 @@ export function App() {
 
       <nav aria-label="Primary" className="nav">
         {routes.map((item) => (
-          <a className={item.key === route.key ? 'nav-link active' : 'nav-link'} href={item.href} key={item.key}>
+          <a
+            aria-current={item.key === route.key ? 'page' : undefined}
+            className={item.key === route.key ? 'nav-link active' : 'nav-link'}
+            href={item.href}
+            key={item.key}
+          >
             {item.title}
           </a>
         ))}

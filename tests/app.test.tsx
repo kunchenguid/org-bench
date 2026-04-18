@@ -9,6 +9,7 @@ describe('App shell', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /how to play/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /rules/i })).toHaveClass('active');
+    expect(screen.getByRole('link', { name: /rules/i })).toHaveAttribute('aria-current', 'page');
   });
 
   test('falls back to home for an unknown hash', () => {
@@ -71,6 +72,7 @@ describe('App shell', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { level: 2, name: /card gallery/i })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /cards/i })).toHaveClass('active');
+      expect(screen.getByRole('link', { name: /cards/i })).toHaveAttribute('aria-current', 'page');
       expect(screen.getByText(/emberblade knight/i)).toBeInTheDocument();
     });
   });
