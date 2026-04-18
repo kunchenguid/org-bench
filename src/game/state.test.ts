@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { createGameState, drawCard, startTurn } from './state';
+import { createGameState, drawCard, playCard, startTurn } from './state';
 
 const scout = { attack: 2, cost: 1, health: 1, id: 'scout', name: 'Scout' };
 const guardian = { attack: 1, cost: 2, health: 3, id: 'guardian', name: 'Guardian' };
@@ -49,5 +49,21 @@ describe('game state flow', () => {
     expect(nextState.player.resources).toBe(1);
     expect(nextState.player.hand.map((card) => card.id)).toEqual(['scout']);
     expect(nextState.player.deck.map((card) => card.id)).toEqual(['striker']);
+  });
+
+  test('playCard spends resources and moves a chosen hand card onto the battlefield', () => {
+    const baseline = startTurn(
+      createGameState({
+        enemyDeck: [guardian],
+        playerDeck: [scout, striker],
+      }),
+      'player',
+    );
+
+    const nextState = playCard(baseline, 'player', 'scout');
+
+    expect(nextState.player.resources).toBe(0);
+    expect(nextState.player.hand).toEqual([]);
+    expect(nextState.player.battlefield.map((card) => card.id)).toEqual(['scout']);
   });
 });

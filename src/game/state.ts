@@ -9,6 +9,7 @@ export type CardDefinition = {
 export type Side = 'enemy' | 'player';
 
 export type PlayerState = {
+  battlefield: CardDefinition[];
   deck: CardDefinition[];
   discard: CardDefinition[];
   hand: CardDefinition[];
@@ -33,6 +34,7 @@ type CreateGameStateInput = {
 
 function createPlayerState(deck: CardDefinition[], health: number): PlayerState {
   return {
+    battlefield: [],
     deck: [...deck],
     discard: [],
     hand: [],
@@ -87,4 +89,28 @@ export function startTurn(state: GameState, side: Side): GameState {
   };
 
   return drawCard(refreshedState, side);
+}
+
+export function playCard(state: GameState, side: Side, cardId: string): GameState {
+  const currentPlayer = state[side];
+  const cardIndex = currentPlayer.hand.findIndex((card) => card.id === cardId);
+
+  if (cardIndex === -1) {
+    return state;
+  }
+
+  const cardToPlay = currentPlayer.hand[cardIndex];
+  if (currentPlayer.resources < cardToPlay.cost) {
+    return state;
+  }
+
+  return {
+    ...state,
+    [side]: {
+      ...currentPlayer,
+      battlefield: [...currentPlayer.battlefield, cardToPlay],
+      hand: currentPlayer.hand.filter((card) => card.id !== cardId),
+      resources: currentPlayer.resources - cardToPlay.cost,
+    },
+  };
 }

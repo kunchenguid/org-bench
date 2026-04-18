@@ -9,6 +9,13 @@ type NavItem = {
   label: string;
 };
 
+type BoardZoneProps = {
+  title: string;
+  count: string;
+  detail: string;
+  tone?: 'neutral' | 'enemy' | 'player';
+};
+
 const navItems: NavItem[] = [
   { route: 'home', label: 'Home' },
   { route: 'play', label: 'Play' },
@@ -25,9 +32,9 @@ const routeContent: Record<Route, { eyebrow: string; title: string; body: string
   },
   play: {
     eyebrow: 'Play Surface',
-    title: 'Encounter board placeholder',
+    title: 'Live duel board',
     body:
-      'This route will host the full match UI: battlefield, hands, decks, health, resources, encounters, AI flow, and persistence.',
+      'A polished board shell for reading state at a glance, staging card plays, and handing turn control back and forth.',
   },
   rules: {
     eyebrow: 'Field Manual',
@@ -69,8 +76,99 @@ function HeroCard(props: { title: string; subtitle: string; accent: string }) {
   );
 }
 
+function BoardZone(props: BoardZoneProps) {
+  const toneClass = props.tone ? ` board-zone-${props.tone}` : '';
+
+  return (
+    <article className={`board-zone${toneClass}`}>
+      <div className="board-zone-header">
+        <span>{props.title}</span>
+        <strong>{props.count}</strong>
+      </div>
+      <p>{props.detail}</p>
+    </article>
+  );
+}
+
+export function PlayBoard() {
+  return (
+    <section className="play-board" aria-label="Play board">
+      <div className="board-headline">
+        <div>
+          <p className="eyebrow">Play Surface</p>
+          <h2>Live duel board</h2>
+          <p>
+            A presentational combat table with readable zones, turn state, and primary actions ready
+            for rules wiring.
+          </p>
+        </div>
+        <aside className="turn-indicator" aria-label="Turn state">
+          <span className="status-label">Turn indicator</span>
+          <strong>Your turn</strong>
+          <span className="status-rule">Round 4 · 3 actions available</span>
+        </aside>
+      </div>
+
+      <div className="combatants" aria-label="Combatant status">
+        <article className="combatant-card combatant-card-enemy">
+          <span className="combatant-label">Enemy champion</span>
+          <strong>Warden Vey</strong>
+          <div className="combatant-stats">
+            <span>Health 18</span>
+            <span>Resources 6</span>
+            <span>Deck 14</span>
+          </div>
+        </article>
+        <article className="combatant-card combatant-card-player">
+          <span className="combatant-label">Player champion</span>
+          <strong>Ashcaller Ren</strong>
+          <div className="combatant-stats">
+            <span>Health 22</span>
+            <span>Resources 5</span>
+            <span>Deck 19</span>
+          </div>
+        </article>
+      </div>
+
+      <div className="board-grid">
+        <div className="board-row">
+          <BoardZone title="Enemy hand" count="4 cards" detail="Hidden grip with one revealed reaction window." tone="enemy" />
+          <BoardZone title="Enemy battlefield" count="3 units" detail="Frontline creatures and supports occupying the attack lane." tone="enemy" />
+          <BoardZone title="Enemy discard" count="7 cards" detail="Spent threats and broken relics visible for graveyard effects." tone="enemy" />
+          <BoardZone title="Enemy resources" count="6 charged" detail="Crystals available for the current enemy turn." tone="enemy" />
+        </div>
+
+        <div className="battlefield-band" aria-label="Battlefield focus">
+          <div>
+            <span className="battlefield-label">Battlefield</span>
+            <strong>Center lane contested</strong>
+          </div>
+          <p>Two opposing frontlines face off here. Hover and targeting logic can attach to this rail next.</p>
+        </div>
+
+        <div className="board-row">
+          <BoardZone title="Your resources" count="5 charged" detail="Available mana to commit before ending the turn." tone="player" />
+          <BoardZone title="Your battlefield" count="2 units" detail="Your active creatures, equipment, and persistent effects." tone="player" />
+          <BoardZone title="Your hand" count="5 cards" detail="Large touch-friendly staging area for playable cards." tone="player" />
+          <BoardZone title="Your discard pile" count="3 cards" detail="Resolved spells and fallen allies waiting for recursion." tone="player" />
+        </div>
+      </div>
+
+      <div className="board-actions" aria-label="Primary actions">
+        <button type="button" className="action-primary">Play selected card</button>
+        <button type="button" className="action-secondary">Attack with battlefield</button>
+        <button type="button" className="action-secondary">End turn</button>
+      </div>
+    </section>
+  );
+}
+
 function PageSection(props: { route: Route }) {
   const content = routeContent[props.route];
+
+  if (props.route === 'play') {
+    return <PlayBoard />;
+  }
 
   return (
     <section className="page-panel">
