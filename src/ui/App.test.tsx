@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/preact';
+import { h } from 'preact';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { App } from './App';
 
@@ -7,10 +8,12 @@ describe('App card gallery route', () => {
 
   beforeEach(() => {
     window.location.hash = '#/cards';
+    window.localStorage.clear();
   });
 
   afterEach(() => {
     window.location.hash = originalHash;
+    window.localStorage.clear();
     document.body.innerHTML = '';
   });
 
@@ -31,5 +34,21 @@ describe('App card gallery route', () => {
     expect(
       screen.getByText(/When Emberstrike Apprentice attacks alone, it gains \+2 power this turn\./),
     ).toBeTruthy();
+  });
+
+  it('restores the last selected faction and card from persisted gallery state', () => {
+    const firstRender = render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verdant Loom' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal Canopy Warden rules' }));
+
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(screen.getByText(/When Canopy Warden enters play, restore 2 health to your nexus\./)).toBeTruthy();
+
+    firstRender.unmount();
+    render(<App />);
+
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(screen.getByText(/When Canopy Warden enters play, restore 2 health to your nexus\./)).toBeTruthy();
   });
 });

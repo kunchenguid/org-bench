@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { createNamespacedStorage } from '../game/persistence';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
 type Faction = 'Ashfall Covenant' | 'Verdant Loom' | 'Gloam Syndicate';
@@ -13,6 +14,11 @@ type Card = {
   guard?: number;
   rules: string;
   accent: 'ember' | 'verdant' | 'gloam';
+};
+
+type GalleryState = {
+  activeCardId: string;
+  activeFaction: Faction | 'All factions';
 };
 
 type NavItem = {
@@ -97,6 +103,8 @@ const factionFilters: Array<Faction | 'All factions'> = [
   'Gloam Syndicate',
 ];
 
+const galleryStorage = createNamespacedStorage(window.localStorage, 'run:apple-seed-01');
+
 const routeContent: Record<Route, { eyebrow: string; title: string; body: string }> = {
   home: {
     eyebrow: 'Auric Reach // Prologue',
@@ -151,23 +159,55 @@ function HeroCard(props: { title: string; subtitle: string; accent: string }) {
 }
 
 function CardGallery() {
-  const [activeFaction, setActiveFaction] = useState<Faction | 'All factions'>('All factions');
+  const [galleryState, setGalleryState] = useState<GalleryState>(() => {
+    const persistedState = galleryStorage.get<GalleryState>('gallery-state');
+
+    if (persistedState) {
+      return persistedState;
+    }
+
+    return {
+      activeCardId: cardLibrary[0]?.id ?? '',
+      activeFaction: 'All factions',
+    };
+  });
   const visibleCards = useMemo(
     () =>
-      activeFaction === 'All factions'
+      galleryState.activeFaction === 'All factions'
         ? cardLibrary
-        : cardLibrary.filter((card) => card.faction === activeFaction),
-    [activeFaction],
+        : cardLibrary.filter((card) => card.faction === galleryState.activeFaction),
+    [galleryState.activeFaction],
   );
-  const [activeCardId, setActiveCardId] = useState(cardLibrary[0]?.id ?? '');
 
   useEffect(() => {
-    if (!visibleCards.some((card) => card.id === activeCardId) && visibleCards[0]) {
-      setActiveCardId(visibleCards[0].id);
+    if (!visibleCards.some((card) => card.id === galleryState.activeCardId) && visibleCards[0]) {
+      setGalleryState((currentState) => ({
+        ...currentState,
+        activeCardId: visibleCards[0].id,
+      }));
     }
-  }, [activeCardId, visibleCards]);
+  }, [galleryState.activeCardId, visibleCards]);
 
-  const activeCard = visibleCards.find((card) => card.id === activeCardId) ?? visibleCards[0];
+  useEffect(() => {
+    galleryStorage.set('gallery-state', galleryState);
+  }, [galleryState]);
+
+  const activeCard =
+    visibleCards.find((card) => card.id === galleryState.activeCardId) ?? visibleCards[0];
+
+  const selectFaction = (activeFaction: Faction | 'All factions') => {
+    setGalleryState((currentState) => ({
+      ...currentState,
+      activeFaction,
+    }));
+  };
+
+  const selectCard = (activeCardId: string) => {
+    setGalleryState((currentState) => ({
+      ...currentState,
+      activeCardId,
+    }));
+  };
 
   return (
     <div className="card-gallery">
@@ -176,8 +216,8 @@ function CardGallery() {
           <button
             key={faction}
             type="button"
-            className={faction === activeFaction ? 'is-active' : ''}
-            onClick={() => setActiveFaction(faction)}
+            className={faction === galleryState.activeFaction ? 'is-active' : ''}
+            onClick={() => selectFaction(faction)}
           >
             {faction}
           </button>
@@ -193,7 +233,7 @@ function CardGallery() {
               <article
                 key={card.id}
                 className={`gallery-card gallery-card-${card.accent}${isActive ? ' is-active' : ''}`}
-                onMouseEnter={() => setActiveCardId(card.id)}
+                onMouseEnter={() => selectCard(card.id)}
               >
                 <div className="gallery-card-frame">
                   <div className="gallery-card-head">
@@ -228,7 +268,7 @@ function CardGallery() {
                   className="gallery-card-reveal"
                   aria-pressed={isActive}
                   aria-label={`Reveal ${card.name} rules`}
-                  onClick={() => setActiveCardId(card.id)}
+                  onClick={() => selectCard(card.id)}
                 >
                   {isActive ? 'Rules showing' : 'Reveal rules'}
                 </button>
