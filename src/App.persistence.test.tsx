@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/preact';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { App } from './App';
+import { advanceTurn, createDuelState } from './game/state';
 
 describe('Play persistence entry', () => {
   beforeEach(() => {
@@ -10,6 +11,14 @@ describe('Play persistence entry', () => {
   });
 
   it('shows resume and new run actions when a saved encounter exists', () => {
+    const duelState = advanceTurn(
+      createDuelState({
+        playerDeck: ['p1', 'p2', 'p3', 'p4'],
+        opponentDeck: ['o1', 'o2', 'o3', 'o4'],
+        openingHandSize: 2
+      })
+    );
+
     window.localStorage.setItem(
       'duel-of-ash-and-aether:facebook-seed-01:encounter',
       JSON.stringify({
@@ -19,6 +28,7 @@ describe('Play persistence entry', () => {
         playerFaction: 'Ember Guild',
         rivalFaction: 'Aether Covenant',
         step: 'mid-duel',
+        duelState,
         updatedAt: '2026-04-18T12:00:00.000Z'
       })
     );
@@ -27,11 +37,21 @@ describe('Play persistence entry', () => {
     render(<App />);
 
     expect(screen.getByText(/saved encounter: ember watch/i)).toBeInTheDocument();
+    expect(screen.getByText(/turn 1 - opponent turn/i)).toBeInTheDocument();
+    expect(screen.getByText(/player health 20 - opponent health 20/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /resume encounter/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /start new run/i })).toBeInTheDocument();
   });
 
   it('clears the saved encounter when starting a new run', () => {
+    const duelState = advanceTurn(
+      createDuelState({
+        playerDeck: ['p1', 'p2', 'p3', 'p4'],
+        opponentDeck: ['o1', 'o2', 'o3', 'o4'],
+        openingHandSize: 2
+      })
+    );
+
     window.localStorage.setItem(
       'duel-of-ash-and-aether:facebook-seed-01:encounter',
       JSON.stringify({
@@ -41,6 +61,7 @@ describe('Play persistence entry', () => {
         playerFaction: 'Ember Guild',
         rivalFaction: 'Aether Covenant',
         step: 'mid-duel',
+        duelState,
         updatedAt: '2026-04-18T12:00:00.000Z'
       })
     );
