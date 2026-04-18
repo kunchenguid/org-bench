@@ -21,6 +21,8 @@ test('play page presents Division A combat loop priorities', () => {
   assert.match(html, /2 actions banked/i);
   assert.match(html, /Combat Priority/i);
   assert.match(html, /Probe -> Pivot -> Close/i);
+  assert.match(html, /Encounter Stakes/i);
+  assert.match(html, /Apex Mirror inherits a live shield/i);
   assert.match(html, /Play First Card/i);
   assert.match(html, /Commit Attack Lane/i);
   assert.match(html, /End Turn Clean/i);
