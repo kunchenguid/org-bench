@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
-import { cardCatalog, getFactionSummaries } from './app/card-catalog';
+import { getCardsByFaction, getFactionSummaries } from './app/card-catalog';
 import { ladderSteps, rulesSections } from './app/rules-content';
 import { encounterLadder } from './game/content';
 import { createGameSession } from './game/engine';
@@ -43,8 +43,6 @@ function getRouteFromHash(hash: string): RouteKey {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => getRouteFromHash(globalThis.location?.hash ?? ''));
-  const previewSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
-  const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
 
   useEffect(() => {
     const onHashChange = () => {
@@ -56,6 +54,8 @@ export function App() {
   }, []);
 
   const page = routes[route];
+  const openingSession = route === '/play' ? createGameSession({ encounterId: 'encounter-1' }) : null;
+  const factionSummaries = route === '/cards' ? getFactionSummaries() : [];
   const isRulesRoute = route === '/rules';
 
   useEffect(() => {
@@ -100,18 +100,6 @@ export function App() {
             </ul>
           </section>
         ) : null}
-        {route === '/play' && previewSession ? (
-          <div className="session-summary">
-            <p className="section-label">Encounter</p>
-            <h3>{previewSession.encounter.opponentName}</h3>
-            <p>
-              Opening duel state: {previewSession.players.player.health} health, {previewSession.players.player.hand.length} cards in hand, turn {previewSession.turn.number}.
-            </p>
-            <p>Opponent: {previewSession.encounter.opponentName}</p>
-            <p>Opening hand: {previewSession.players.player.hand.length} cards</p>
-            <p>Starting mana: {previewSession.players.player.resources.current}</p>
-          </div>
-        ) : null}
 
         {isRulesRoute ? (
           <div className="rules-layout">
@@ -144,21 +132,33 @@ export function App() {
             </section>
           </div>
         ) : null}
+        {openingSession ? (
+          <div className="session-summary" aria-label="Opening encounter summary">
+            <p className="section-label">Encounter</p>
+            <h3>{openingSession.encounter.opponentName}</h3>
+            <p>
+              Opening duel state: {openingSession.players.player.health} health, {openingSession.players.player.hand.length} cards in hand, turn {openingSession.turn.number}.
+            </p>
+          </div>
+        ) : null}
+
         {route === '/cards' ? (
-          <div className="cards-grid">
+          <div className="catalog-grid" aria-label="Card catalog by faction">
             {factionSummaries.map((summary) => (
-              <section className="rules-card cards-preview" key={summary.faction}>
+              <section className="catalog-panel" key={summary.faction}>
+                <p className="section-label">Faction</p>
                 <h3>{summary.faction}</h3>
                 <p>{summary.blurb}</p>
-                <p>
-                  {summary.creatureCount} creatures, {summary.spellCount} spells
+                <p className="catalog-meta">
+                  {summary.creatureCount} creatures - {summary.spellCount} spells
                 </p>
-                <ul>
-                  {cardCatalog
-                    .filter((card) => card.faction === summary.faction)
-                    .map((card) => (
-                      <li key={card.name}>{card.name}</li>
-                    ))}
+                <ul className="catalog-list">
+                  {getCardsByFaction(summary.faction).map((card) => (
+                    <li key={card.name}>
+                      <span>{card.name}</span>
+                      <span>{card.cost}</span>
+                    </li>
+                  ))}
                 </ul>
               </section>
             ))}

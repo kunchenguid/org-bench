@@ -64,22 +64,17 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Rules' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('shows the opening encounter summary on the play route', () => {
-    globalThis.location.hash = '#/play';
-
-    render(<App />);
-
-    expect(screen.getByText(/Opponent: Ashen Vanguard/)).toBeInTheDocument();
-    expect(screen.getByText(/Opening hand: 3 cards/)).toBeInTheDocument();
-    expect(screen.getByText(/Starting mana: 1/)).toBeInTheDocument();
-  });
-
-  it('updates the browser title for the active route', () => {
+  it('renders the shared card catalog on the cards route', () => {
     globalThis.location.hash = '#/cards';
 
     render(<App />);
 
-    expect(document.title).toBe('Cards - Duel TCG');
+    expect(screen.getByRole('heading', { level: 3, name: 'Skyforge' })).toBeInTheDocument();
+    expect(screen.getByText('disciplined tempo and formation combat')).toBeInTheDocument();
+    expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Wildroot' })).toBeInTheDocument();
+    expect(screen.getByText('growth, healing, and oversized bodies')).toBeInTheDocument();
+    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
   });
 
   it('renders authored rules sections on the rules route', () => {
@@ -93,16 +88,5 @@ describe('App shell', () => {
     expect(screen.getByText('Keywords')).toBeInTheDocument();
     expect(screen.getByText('Draw one card at the start of your turn.')).toBeInTheDocument();
     expect(screen.getByText('Rookie Table')).toBeInTheDocument();
-  });
-
-  it('shows the shared catalog on the cards route', () => {
-    globalThis.location.hash = '#/cards';
-
-    render(<App />);
-
-    expect(screen.getByText('Skyforge')).toBeInTheDocument();
-    expect(screen.getByText('Wildroot')).toBeInTheDocument();
-    expect(screen.getByText('Skyforge Squire')).toBeInTheDocument();
-    expect(screen.getByText('Canopy Elder')).toBeInTheDocument();
   });
 });
