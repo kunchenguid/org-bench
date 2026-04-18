@@ -1,0 +1,13 @@
+{
+  "name": "@org-bench/judge",
+  "version": "0.0.0",
+  "private": true,
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@org-bench/schemas": "0.0.0"
+  },
+  "scripts": {
+    "test": "tsx --test src/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
