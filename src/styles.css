@@ -129,6 +129,16 @@ a {
   font-size: 1.4rem;
 }
 
+.rules-points {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  color: #c7d3e2;
+}
+
+.rules-points li + li {
+  margin-top: 8px;
+}
+
 .session-summary {
   margin-top: 24px;
   padding-top: 20px;

@@ -93,6 +93,11 @@ export function App() {
                   <p className="section-label">Rule Section</p>
                   <h3>{section.title}</h3>
                   <p>{section.intro}</p>
+                  <ul className="rules-points">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
                 </section>
               ))}
             </div>
