@@ -81,6 +81,7 @@ select {
 .page-panel h2,
 .hero-banner h1,
 .hero-card h3,
+.rules-factions h3,
 .card-cost span,
 .card-copy h3,
 .stat-badge strong {
@@ -242,21 +243,43 @@ select {
   margin-top: 8px;
 }
 
-.hero-grid,
-.card-gallery,
-.board-showcase {
+.rules-factions {
   display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.rules-factions-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.rules-factions-copy h3 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.rules-factions-copy ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #c7c2cf;
+}
+
+.rules-factions-copy li + li {
+  margin-top: 8px;
+}
+
+.rules-faction-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
 .hero-grid {
+  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.card-gallery,
-.board-showcase {
-  grid-template-columns: repeat(2, minmax(0, 320px));
-  justify-content: start;
+  gap: 16px;
 }
 
 .hero-card {
@@ -402,7 +425,7 @@ select {
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.18), transparent 36%),
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--card-accent) 55%, transparent), transparent 36%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
 }
 
@@ -496,7 +519,8 @@ select {
 .turn-indicator,
 .combatant-card,
 .board-zone,
-.battlefield-band {
+.battlefield-band,
+.selection-tray {
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -560,10 +584,6 @@ select {
   gap: 18px;
 }
 
-.board-showcase {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .board-row {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -616,6 +636,40 @@ select {
   font-size: 1.5rem;
 }
 
+.selection-tray {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.selection-tray strong {
+  display: block;
+  margin-top: 6px;
+  font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  font-size: 1.5rem;
+}
+
+.selection-tray p {
+  margin: 10px 0 0;
+  color: #d5d1da;
+}
+
+.selection-tray-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-content: start;
+}
+
+.selection-tray-meta span {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f4efe7;
+}
+
 .board-actions {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -656,19 +710,20 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .card-gallery,
-  .board-showcase {
-    grid-template-columns: 1fr;
-  }
-
   .board-headline,
   .combatants,
   .board-row,
-  .board-actions {
+  .board-actions,
+  .selection-tray {
     grid-template-columns: 1fr;
   }
 
   .rules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-factions,
+  .rules-faction-cards {
     grid-template-columns: 1fr;
   }
 }

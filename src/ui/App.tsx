@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { CardFrame } from './CardFrame';
+import { CardFrame, cardFactionThemes } from './CardFrame';
 import { showcaseCards } from './cardCatalog';
 
 type Route = 'home' | 'play' | 'rules' | 'cards';
@@ -227,12 +227,6 @@ export function PlayBoard() {
           <p>Two opposing frontlines face off here. Hover and targeting logic can attach to this rail next.</p>
         </div>
 
-        <div className="board-showcase" aria-label="Playable card previews">
-          {showcaseCards.map((card) => (
-            <CardFrame key={card.title} {...card} />
-          ))}
-        </div>
-
         <div className="board-row">
           <BoardZone title="Your resources" count="5 charged" detail="Available mana to commit before ending the turn." tone="player" />
           <BoardZone title="Your battlefield" count="2 units" detail="Your active creatures, equipment, and persistent effects." tone="player" />
@@ -247,6 +241,23 @@ export function PlayBoard() {
         <button type="button" className="action-secondary">Attack with battlefield</button>
         <button type="button" className="action-secondary">End turn</button>
       </div>
+
+      <section className="selection-tray" aria-label="Selection tray">
+        <div className="selection-tray-copy">
+          <span className="combatant-label">Selection tray</span>
+          <strong>Cinder Archivist</strong>
+          <p>
+            A 3-cost spellwright queued from hand. Playing it will pressure the center lane and open
+            the enemy front line for a cleaner attack.
+          </p>
+        </div>
+        <div className="selection-tray-meta">
+          <span>Cost 3</span>
+          <span>Attack 4</span>
+          <span>Health 2</span>
+          <span>Target: Enemy battlefield</span>
+        </div>
+      </section>
     </section>
   );
 }
@@ -277,6 +288,31 @@ export function RulesPanel() {
           </article>
         ))}
       </div>
+
+      <div className="rules-factions">
+        <div className="rules-factions-copy">
+          <p className="eyebrow">Faction primer</p>
+          <h3>Learn the two core identities before your first duel.</h3>
+          <p>
+            The card frame language stays constant, but the two factions ask for different combat
+            instincts. One pushes tempo and direct damage, the other stabilizes and outlasts.
+          </p>
+          <ul>
+            {showcaseCards.map((card) => (
+              <li key={card.title}>
+                <strong>{cardFactionThemes[card.faction].label}</strong>: {card.title} shows the
+                faction&apos;s baseline rhythm.
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rules-faction-cards">
+          {showcaseCards.map((card) => (
+            <CardFrame key={card.title} {...card} />
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -302,14 +338,6 @@ function PageSection(props: { route: Route }) {
           <HeroCard title="Ashfall Covenant" subtitle="Aggressive ember faction" accent="ember" />
           <HeroCard title="Verdant Loom" subtitle="Growth and resilience" accent="verdant" />
           <HeroCard title="Three duel ascent" subtitle="A compact encounter ladder" accent="dusk" />
-        </div>
-      ) : null}
-
-      {props.route === 'cards' ? (
-        <div className="card-gallery">
-          {showcaseCards.map((card) => (
-            <CardFrame key={card.title} {...card} />
-          ))}
         </div>
       ) : null}
     </section>
