@@ -1,0 +1,37 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test Runner</title>
+  <style>
+    body { font-family: system-ui; padding: 20px; background: #1a1a2e; color: white; }
+    .pass { color: #4ade80; }
+    .fail { color: #f87171; }
+    .suite { margin: 20px 0; }
+    .test { margin: 10px 0 10px 20px; }
+  </style>
+</head>
+<body>
+  <div id="results"></div>
+  <script>
+    let tests = [];
+    function test(name, fn) { tests.push({name, fn}); }
+    function assertEquals(a, e, m='') { if(a!==e)throw new Error(m+': expected '+e+', got '+a); }
+    function assertTrue(c, m='') { if(!c)throw new Error(m+': expected truthy'); }
+    function assertExists(v, m='') { if(v==null)throw new Error(m+': expected value'); }
+    document.body.innerHTML+='<div id="game"><canvas id="hud-canvas"></canvas><canvas id="damage-canvas"></canvas><div id="turn-banner"><span id="turn-display"></span><span id="timer-display"></span></div><div class="hero-portrait player"></div><div class="hero-portrait opponent"></div><button id="end-turn-btn"></button></div>';
+  </script>
+  <script src="game.test.js"></script>
+  <script>
+    let p=0,f=0,r=document.getElementById('results');
+    tests.forEach(({name,fn})=>{
+      try{fn();p++;r.innerHTML+='<div class="test pass">✓ '+name+'</div>'}
+      catch(e){f++;r.innerHTML+='<div class="test fail">✗ '+name+': '+e.message+'</div>'}
+    });
+    r.innerHTML='<div class="suite"><h2>Test Results</h2><div class="pass">Passed: '+p+'</div>'+(f>0?'<div class="fail">Failed: '+f+'</div>':'')+'<hr>'+r.innerHTML+'</div>';
+  </script>
+</body>
+</html> 
+

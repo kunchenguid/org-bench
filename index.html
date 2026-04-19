@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Duel TCG</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; position: absolute; top: 0; left: 0; }
+        #hud-canvas { z-index: 10; pointer-events: none; }
+        #damage-canvas { z-index: 20; pointer-events: none; }
+        .hero-portrait { position: absolute; width: 100px; height: 100px; background: #333; border-radius: 50%; }
+        .hero-portrait.player { bottom: 20px; left: 20px; }
+        .hero-portrait.opponent { top: 20px; left: 20px; }
+        #turn-banner { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 8px; z-index: 30; }
+        #turn-display { font-size: 16px; color: white; text-align: center; }
+        #timer-display { font-size: 24px; color: #ff0; text-align: center; }
+        #end-turn-btn { position: absolute; bottom: 20px; right: 20px; padding: 15px 30px; background: #4a4; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; z-index: 30; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <canvas id="hud-canvas"></canvas>
+    <canvas id="damage-canvas"></canvas>
+    <div class="hero-portrait player"></div>
+    <div class="hero-portrait opponent"></div>
+    <div id="turn-banner">
+        <div id="turn-display"></div>
+        <div id="timer-display"></div>
+    </div>
+    <button id="end-turn-btn">End Turn</button>
+    <script>
+(function() {
+'use strict';
+
+const canvas = document.getElementById('gameCanvas');
+const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+
+if (!gl) {
+    alert('WebGL not supported');
+    throw new Error('WebGL not supported');
+}
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const vsSource = `
+    attribute vec2 a_position;
+    attribute vec2 a_texCoord;
+    uniform vec2 u_resolution;
+    varying vec2 v_texCoord;
+    void main() {
+        vec2 clipSpace = (a_position / u_resolution) * 2.0 - 1.0;
+        gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+        v_texCoord = a_texCoord;
+    }
+`;
+
+const fsSource = `
+    precision mediump float;
+    uniform sampler2D u_image;
+    uniform vec4 u_color;
+    varying vec2 v_texCoord;
+    void main() {
+        vec4 texColor = texture2D(u_image, v_texCoord);
+        gl_FragColor = texColor * u_color;
+    }
+`;
+
+function createShader(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+    }
+    return shader;
+}
+
+function createProgram(gl, vsSource, fsSource) {
+    const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(program));
+        return null;
+    }
+    return program;
+}
+
+const program = createProgram(gl, vsSource, fsSource);
+const positionLoc = gl.getAttribLocation(program, 'a_position');
+const texCoordLoc = gl.getAttribLocation(program, 'a_texCoord');
+const resolutionLoc = gl.getUniformLocation(program, 'u_resolution');
+const colorLoc = gl.getUniformLocation(program, 'u_color');
+
+const positionBuffer = gl.createBuffer();
+const texCoordBuffer = gl.createBuffer();
+
+function setTexture(image) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return texture;
+}
+
+function drawRect(x, y, width, height, color = [1,1,1,1]) {
+    const positions = new Float32Array([
+        x, y,
+        x + width, y,
+        x, y + height,
+        x + width, y + height,
+        x, y + height,
+        x + width, y,
+    ]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+    
+    gl.disableVertexAttribArray(texCoordLoc);
+    gl.useProgram(program);
+    gl.uniform2f(resolutionLoc, canvas.width, canvas.height);
+    gl.uniform4fv(colorLoc, color);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+let lastTime = 0;
+let frameCount = 0;
+let fpsTime = 0;
+
+function render(time) {
+    const deltaTime = time - lastTime;
+    lastTime = time;
+    
+    frameCount++;
+    fpsTime += deltaTime;
+    if (fpsTime >= 1000) {
+        fpsTime = 0;
+        frameCount = 0;
+    }
+    
+    gl.clearColor(0.1, 0.1, 0.18, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    const ambientOffset = Math.sin(time * 0.001) * 5;
+    drawRect(50 + ambientOffset, canvas.height - 350, 200, 300, [0.2, 0.3, 0.5, 0.8]);
+    drawRect(canvas.width - 250 - ambientOffset, 50, 200, 300, [0.5, 0.2, 0.3, 0.8]);
+    
+    const breathScale = 1 + Math.sin(time * 0.002) * 0.02;
+    drawRect(canvas.width/2 - 150 * breathScale, 80, 300 * breathScale, 150, [0.3, 0.3, 0.4, 0.6]);
+    
+    drawRect(canvas.width - 180, canvas.height - 80, 160, 60, [0.2, 0.6, 0.3, 0.9]);
+    
+    requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+
+})();
+    </script>
+</body>
+</html>
