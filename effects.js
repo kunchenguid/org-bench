@@ -3,28 +3,28 @@ const effects = {
     taunt: {
       name: 'Taunt',
       description: 'Must be attacked before other minions',
-      apply: (gameState, player, minion) => {
+      apply: function(gameState, player, minion) {
         minion.hasTaunt = true;
       }
     },
     charge: {
       name: 'Charge',
       description: 'Can attack immediately',
-      apply: (gameState, player, minion) => {
+      apply: function(gameState, player, minion) {
         minion.canAttack = true;
       }
     },
     divineShield: {
       name: 'Divine Shield',
       description: 'Blocks the first damage taken',
-      apply: (gameState, player, minion) => {
+      apply: function(gameState, player, minion) {
         minion.hasDivineShield = true;
       }
     },
     deathrattle: {
       name: 'Deathrattle',
       description: 'Triggers an effect when this minion dies',
-      apply: (gameState, player, minion) => {
+      apply: function(gameState, player, minion) {
         minion.hasDeathrattle = true;
       }
     }
@@ -33,10 +33,10 @@ const effects = {
   synergies: {
     onPlay: {
       lightPaladin: {
-        trigger: (gameState, player, card) => {
+        trigger: function(gameState, player, card) {
           if (card.id === 'light_paladin') {
-            const allyMinions = gameState[player].board.filter(m => m.faction === 'light');
-            allyMinions.forEach(m => {
+            const allyMinions = gameState[player].board.filter(function(m) { return m.faction === 'light'; });
+            allyMinions.forEach(function(m) {
               m.hasDivineShield = true;
             });
             gameState.lastEffect = { type: 'onPlay', description: 'Light Paladin grants Divine Shield to all allies' };
@@ -44,7 +44,7 @@ const effects = {
         }
       },
       shadowNecromancer: {
-        trigger: (gameState, player, card) => {
+        trigger: function(gameState, player, card) {
           if (card.id === 'shadow_necromancer') {
             const enemyPlayer = player === 'player' ? 'opponent' : 'player';
             const enemyGraveyard = gameState[enemyPlayer].graveyard || [];
@@ -59,7 +59,7 @@ const effects = {
         }
       },
       solarGuardian: {
-        trigger: (gameState, player, card) => {
+        trigger: function(gameState, player, card) {
           if (card.id === 'solar_guardian') {
             gameState[player].hp = Math.min(gameState[player].hp + 3, 30);
             gameState.lastEffect = { type: 'onPlay', description: 'Solar Guardian heals hero for 3' };
@@ -69,7 +69,7 @@ const effects = {
     },
     onDeath: {
       lightPriest: {
-        trigger: (gameState, player, minion) => {
+        trigger: function(gameState, player, minion) {
           if (minion.id === 'light_priest') {
             gameState[player].hp = Math.min(gameState[player].hp + 2, 30);
             gameState.lastEffect = { type: 'onDeath', description: 'Light Priest heals hero for 2' };
@@ -77,7 +77,7 @@ const effects = {
         }
       },
       voidWalker: {
-        trigger: (gameState, player, minion) => {
+        trigger: function(gameState, player, minion) {
           if (minion.id === 'void_walker') {
             const enemyPlayer = player === 'player' ? 'opponent' : 'player';
             gameState[enemyPlayer].currentMana = Math.max(0, gameState[enemyPlayer].currentMana - 1);
@@ -86,10 +86,10 @@ const effects = {
         }
       },
       shadowWisp: {
-        trigger: (gameState, player, minion) => {
+        trigger: function(gameState, player, minion) {
           if (minion.id === 'shadow_wisp') {
-            const allyMinions = gameState[player].board.filter(m => m.id !== minion.id);
-            allyMinions.forEach(m => {
+            const allyMinions = gameState[player].board.filter(function(m) { return m.id !== minion.id; });
+            allyMinions.forEach(function(m) {
               m.attack += 1;
             });
             gameState.lastEffect = { type: 'onDeath', description: 'Shadow Wisp buffs allies' };
@@ -99,10 +99,9 @@ const effects = {
     }
   },
 
-  applyEffect: function(gameState, player, cardOrMinion, isMinion = false) {
+  applyEffect: function(gameState, player, cardOrMinion, isMinion) {
     const effectKey = cardOrMinion.effect;
     if (!effectKey || !this.keywords[effectKey]) return;
-
     const keyword = this.keywords[effectKey];
     keyword.apply(gameState, player, cardOrMinion);
   },
@@ -123,12 +122,12 @@ const effects = {
 
   mustAttackTaunt: function(gameState, attackerPlayer) {
     const defenderPlayer = attackerPlayer === 'player' ? 'opponent' : 'player';
-    const tauntMinions = gameState[defenderPlayer].board.filter(m => m.hasTaunt);
+    const tauntMinions = gameState[defenderPlayer].board.filter(function(m) { return m.hasTaunt; });
     return tauntMinions.length > 0;
   },
 
   getTauntTargets: function(gameState, defenderPlayer) {
-    return gameState[defenderPlayer].board.filter(m => m.hasTaunt);
+    return gameState[defenderPlayer].board.filter(function(m) { return m.hasTaunt; });
   },
 
   applyDivineShield: function(minion, damage) {
@@ -143,3 +142,7 @@ const effects = {
     return minion.canAttack;
   }
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = effects;
+}
