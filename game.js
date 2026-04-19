@@ -180,11 +180,36 @@ const HAND_Y = canvas.height - 200;
 const ENEMY_HAND_Y = 50;
 const BOARD_Y = canvas.height / 2;
 
-let handCards = [];
-let boardCards = [];
-let deckCount = 20;
+const gameState = {
+  player: {
+    board: [],
+    hand: [],
+    deck: [],
+    hp: 30,
+    maxHp: 30,
+    currentMana: 0,
+    manaCap: 0,
+    graveyard: [],
+    faction: 'light'
+  },
+  opponent: {
+    board: [],
+    hand: [],
+    deck: [],
+    hp: 30,
+    maxHp: 30,
+    currentMana: 0,
+    manaCap: 0,
+    graveyard: [],
+    faction: 'shadow'
+  },
+  lastEffect: null
+};
+
+let currentPlayer = 'player';
 
 function drawHand() {
+  const handCards = gameState[currentPlayer].hand;
   const handWidth = handCards.length * (CARD_WIDTH + 10) - 10;
   const startX = (canvas.width - handWidth) / 2;
   for (let i = 0; i < handCards.length; i++) {
@@ -198,6 +223,7 @@ function drawHand() {
 }
 
 function drawBoard() {
+  const boardCards = gameState[currentPlayer].board;
   const boardWidth = boardCards.length * (CARD_WIDTH + 15) - 15;
   const startX = (canvas.width - boardWidth) / 2;
   for (let i = 0; i < boardCards.length; i++) {
@@ -211,7 +237,7 @@ function drawBoard() {
 }
 
 function drawDeck() {
-  if (deckCount > 0) {
+  if (gameState[currentPlayer].deck.length > 0) {
     const deckTexture = textureCache['assets/factions/solaris-frame.png'];
     if (deckTexture) {
       addToBatch(deckTexture, 50, BOARD_Y - CARD_HEIGHT / 2, CARD_WIDTH, CARD_HEIGHT);
@@ -236,6 +262,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 function updateHoverEffects() {
+  const handCards = gameState[currentPlayer].hand;
   const handWidth = handCards.length * (CARD_WIDTH + 10) - 10;
   const startX = (canvas.width - handWidth) / 2;
   for (let i = 0; i < handCards.length; i++) {
@@ -253,6 +280,7 @@ function updateHoverEffects() {
 }
 
 canvas.addEventListener('mousedown', (e) => {
+  const handCards = gameState[currentPlayer].hand;
   const handWidth = handCards.length * (CARD_WIDTH + 10) - 10;
   const startX = (canvas.width - handWidth) / 2;
   for (let i = handCards.length - 1; i >= 0; i--) {
@@ -274,14 +302,37 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mouseup', (e) => {
   if (draggingCard) {
     if (mouseY < HAND_Y - 50 && mouseY > BOARD_Y - CARD_HEIGHT) {
-      const newCard = {
-        id: draggingCard.id,
-        x: 0,
+      const card = draggingCard;
+      
+      if (card.cost > gameState[currentPlayer].currentMana) {
+        draggingCard = null;
+        return;
+      }
+      
+      gameState[currentPlayer].currentMana -= card.cost;
+      
+      const newMinion = {
+        id: card.id,
+        name: card.name,
+        cost: card.cost,
+        attack: card.attack,
+        hp: card.hp,
+        maxHp: card.hp,
+        effect: card.effect,
+        faction: card.faction,
+        canAttack: false,
+        hasTaunt: false,
+        hasDivineShield: false,
+        hasDeathrattle: false,
         yOffset: 0,
         rotation: 0
       };
-      boardCards.push(newCard);
-      handCards.splice(draggingCard.index, 1);
+      
+      effects.applyEffect(gameState, currentPlayer, newMinion, true);
+      effects.triggerOnPlay(gameState, currentPlayer, card);
+      
+      gameState[currentPlayer].board.push(newMinion);
+      gameState[currentPlayer].hand.splice(draggingCard.index, 1);
     }
     draggingCard = null;
   }
@@ -304,12 +355,70 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 }
 
+function drawEnemyBoard() {
+  const enemyPlayer = currentPlayer === 'player' ? 'opponent' : 'player';
+  const boardCards = gameState[enemyPlayer].board;
+  const boardWidth = boardCards.length * (CARD_WIDTH + 15) - 15;
+  const startX = (canvas.width - boardWidth) / 2;
+  for (let i = 0; i < boardCards.length; i++) {
+    const x = startX + i * (CARD_WIDTH + 15);
+    const card = boardCards[i];
+    const texture = textureCache[`assets/cards/card-${card.id}.png`];
+    if (texture) {
+      addToBatch(texture, x, ENEMY_HAND_Y, CARD_WIDTH, CARD_HEIGHT);
+    }
+  }
+}
+
+function drawSelectedMinion() {
+  if (selectedMinion) {
+    const board = gameState[selectedMinion.player].board;
+    const minion = board[selectedMinion.minionIndex];
+    const boardWidth = board.length * (CARD_WIDTH + 15) - 15;
+    const startX = (canvas.width - boardWidth) / 2;
+    const x = startX + selectedMinion.minionIndex * (CARD_WIDTH + 15);
+    const y = BOARD_Y - CARD_HEIGHT / 2;
+    const texture = textureCache['assets/factions/solaris-sigil.png'];
+    if (texture) {
+      addToBatch(texture, x - 10, y - 10, CARD_WIDTH + 20, CARD_HEIGHT + 20);
+    }
+  }
+}
+
+function drawMinionStats() {
+  const board = gameState[currentPlayer].board;
+  const boardWidth = board.length * (CARD_WIDTH + 15) - 15;
+  const startX = (canvas.width - boardWidth) / 2;
+  for (let i = 0; i < board.length; i++) {
+    const minion = board[i];
+    const x = startX + i * (CARD_WIDTH + 15);
+    const y = BOARD_Y - CARD_HEIGHT / 2;
+    
+    if (minion.hasTaunt) {
+      const tauntTexture = textureCache['assets/factions/solaris-frame.png'];
+      if (tauntTexture) {
+        addToBatch(tauntTexture, x, y, 20, 20);
+      }
+    }
+    
+    if (minion.hasDivineShield) {
+      const shieldTexture = textureCache['assets/factions/lunara-frame.png'];
+      if (shieldTexture) {
+        addToBatch(shieldTexture, x + CARD_WIDTH - 20, y, 20, 20);
+      }
+    }
+  }
+}
+
 function render(dt) {
   gl.clearColor(0.05, 0.05, 0.1, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
   drawBackground();
   drawDeck();
+  drawEnemyBoard();
   drawBoard();
+  drawMinionStats();
+  drawSelectedMinion();
   drawHand();
   if (draggingCard) {
     const texture = textureCache[`assets/cards/card-${draggingCard.id}.png`];
@@ -320,8 +429,170 @@ function render(dt) {
   flushBatch();
 }
 
-for (let i = 1; i <= 5; i++) {
-  handCards.push({ id: i, hoverOffset: 0, hoverRotation: 0 });
+function initGame() {
+  gameState.player.manaCap = 1;
+  gameState.player.currentMana = 1;
+  gameState.opponent.manaCap = 1;
+  gameState.opponent.currentMana = 1;
+  
+  const starterCards = [
+    { id: 1, name: 'Light Priest', cost: 2, attack: 1, hp: 3, effect: 'deathrattle', faction: 'light', hoverOffset: 0, hoverRotation: 0 },
+    { id: 2, name: 'Light Paladin', cost: 4, attack: 3, hp: 5, effect: 'taunt', faction: 'light', hoverOffset: 0, hoverRotation: 0 },
+    { id: 3, name: 'Solar Guardian', cost: 5, attack: 4, hp: 6, effect: 'divineShield', faction: 'light', hoverOffset: 0, hoverRotation: 0 },
+    { id: 4, name: 'Shadow Wisp', cost: 1, attack: 1, hp: 1, effect: 'deathrattle', faction: 'shadow', hoverOffset: 0, hoverRotation: 0 },
+    { id: 5, name: 'Void Walker', cost: 3, attack: 2, hp: 4, effect: 'taunt', faction: 'shadow', hoverOffset: 0, hoverRotation: 0 }
+  ];
+  
+  gameState.player.hand = [...starterCards];
+  gameState.player.deck = Array.from({ length: 15 }, (_, i) => ({
+    id: (i % 5) + 1,
+    name: ['Light Priest', 'Light Paladin', 'Solar Guardian', 'Shadow Wisp', 'Void Walker'][i % 5],
+    cost: [2, 4, 5, 1, 3][i % 5],
+    attack: [1, 3, 4, 1, 2][i % 5],
+    hp: [3, 5, 6, 1, 4][i % 5],
+    effect: ['deathrattle', 'taunt', 'divineShield', 'deathrattle', 'taunt'][i % 5],
+    faction: ['light', 'light', 'light', 'shadow', 'shadow'][i % 5],
+    hoverOffset: 0,
+    hoverRotation: 0
+  }));
+  
+  gameState.opponent.hand = Array.from({ length: 4 }, (_, i) => ({
+    id: (i % 5) + 1,
+    name: ['Light Priest', 'Light Paladin', 'Solar Guardian', 'Shadow Wisp', 'Void Walker'][i % 5],
+    cost: [2, 4, 5, 1, 3][i % 5],
+    attack: [1, 3, 4, 1, 2][i % 5],
+    hp: [3, 5, 6, 1, 4][i % 5],
+    effect: ['deathrattle', 'taunt', 'divineShield', 'deathrattle', 'taunt'][i % 5],
+    faction: ['light', 'light', 'light', 'shadow', 'shadow'][i % 5],
+    hoverOffset: 0,
+    hoverRotation: 0
+  }));
+  gameState.opponent.deck = Array.from({ length: 16 }, (_, i) => ({
+    id: (i % 5) + 1,
+    name: ['Light Priest', 'Light Paladin', 'Solar Guardian', 'Shadow Wisp', 'Void Walker'][i % 5],
+    cost: [2, 4, 5, 1, 3][i % 5],
+    attack: [1, 3, 4, 1, 2][i % 5],
+    hp: [3, 5, 6, 1, 4][i % 5],
+    effect: ['deathrattle', 'taunt', 'divineShield', 'deathrattle', 'taunt'][i % 5],
+    faction: ['light', 'light', 'light', 'shadow', 'shadow'][i % 5],
+    hoverOffset: 0,
+    hoverRotation: 0
+  }));
 }
+
+initGame();
+
+let selectedMinion = null;
+let targetMinion = null;
+
+function handleMinionClick(player, minionIndex) {
+  const board = gameState[player].board;
+  const minion = board[minionIndex];
+  
+  if (player === currentPlayer && effects.canMinionAttack(minion)) {
+    selectedMinion = { player, minionIndex };
+  } else if (selectedMinion) {
+    const targetPlayer = player === 'player' ? 'opponent' : 'player';
+    if (player === targetPlayer) {
+      if (canAttackTarget(selectedMinion, minion)) {
+        executeAttack(selectedMinion, { player, minionIndex });
+      }
+    }
+  }
+}
+
+function canAttackTarget(attacker, target) {
+  const attackerPlayer = attacker.player;
+  const defenderPlayer = target.player;
+  
+  if (effects.mustAttackTaunt(gameState, attackerPlayer)) {
+    const tauntTargets = effects.getTauntTargets(gameState, defenderPlayer);
+    return tauntTargets.includes(target);
+  }
+  return true;
+}
+
+function executeAttack(attacker, target) {
+  const attackerBoard = gameState[attacker.player].board;
+  const targetBoard = gameState[target.player].board;
+  
+  const attackerMinion = attackerBoard[attacker.minionIndex];
+  const targetMinion = targetBoard[target.minionIndex];
+  
+  let attackerDamage = effects.applyDivineShield(targetMinion, attackerMinion.attack);
+  let targetDamage = effects.applyDivineShield(attackerMinion, targetMinion.attack);
+  
+  attackerMinion.canAttack = false;
+  
+  if (attackerDamage > 0) {
+    targetMinion.hp -= attackerDamage;
+  }
+  
+  if (targetDamage > 0) {
+    attackerMinion.hp -= targetDamage;
+  }
+  
+  processDeaths(attacker.player, gameState[attacker.player].board);
+  processDeaths(target.player, gameState[target.player].board);
+  
+  selectedMinion = null;
+  targetMinion = null;
+}
+
+function processDeaths(player, board) {
+  for (let i = board.length - 1; i >= 0; i--) {
+    if (board[i].hp <= 0) {
+      const deadMinion = board[i];
+      effects.triggerOnDeath(gameState, player, deadMinion);
+      gameState[player].graveyard.push(deadMinion);
+      board.splice(i, 1);
+    }
+  }
+}
+
+canvas.addEventListener('click', (e) => {
+  const boardCards = gameState[currentPlayer].board;
+  const boardWidth = boardCards.length * (CARD_WIDTH + 15) - 15;
+  const startX = (canvas.width - boardWidth) / 2;
+  
+  for (let i = 0; i < boardCards.length; i++) {
+    const x = startX + i * (CARD_WIDTH + 15);
+    const y = BOARD_Y - CARD_HEIGHT / 2;
+    if (mouseX >= x && mouseX <= x + CARD_WIDTH && mouseY >= y && mouseY <= y + CARD_HEIGHT) {
+      handleMinionClick(currentPlayer, i);
+      return;
+    }
+  }
+});
+
+function startTurn(player) {
+  gameState[player].manaCap = Math.min(gameState[player].manaCap + 1, 10);
+  gameState[player].currentMana = gameState[player].manaCap;
+  
+  gameState[player].board.forEach(minion => {
+    minion.canAttack = true;
+  });
+  
+  if (gameState[player].hand.length < 10 && gameState[player].deck.length > 0) {
+    gameState[player].hand.push(gameState[player].deck.shift());
+  }
+}
+
+function switchTurn() {
+  currentPlayer = currentPlayer === 'player' ? 'opponent' : 'player';
+  startTurn(currentPlayer);
+}
+
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  selectedMinion = null;
+  targetMinion = null;
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'e') {
+    switchTurn();
+  }
+});
 
 requestAnimationFrame(gameLoop);
