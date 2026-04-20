@@ -1,5 +1,6 @@
 (function () {
   const formulaApi = window.SpreadsheetFormula;
+  const appHelpers = window.SpreadsheetAppHelpers;
   const editingUx = window.SpreadsheetEditingUX;
   const ROWS = 100;
   const COLS = 26;
@@ -664,7 +665,12 @@
       for (let colOffset = 0; colOffset < sourceRows[rowOffset].length; colOffset += 1) {
         const destinationId = formulaApi.columnIndexToName(clamp(destinationStart.columnIndex + colOffset, 0, COLS - 1)) + clamp(destinationStart.row + rowOffset, 1, ROWS);
         const sourceValue = sourceRows[rowOffset][colOffset] || '';
-        state.cells[destinationId] = adjustFormulaForPaste(sourceValue, colOffset, rowOffset);
+        state.cells[destinationId] = appHelpers.shiftFormulaForPaste(
+          sourceValue,
+          { row: anchor.row + rowOffset, col: anchor.columnIndex + colOffset },
+          { row: destinationStart.row + rowOffset, col: destinationStart.columnIndex + colOffset },
+          { maxCol: COLS - 1, maxRow: ROWS }
+        );
       }
     }
     pushHistory(previous, cloneCells(state.cells));
@@ -694,36 +700,23 @@
     return matrix;
   }
 
-  function adjustFormulaForPaste(value, columnDelta, rowDelta) {
-    if (!value || value.charAt(0) !== '=') {
-      return value;
-    }
-    return value.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, function (_, absCol, columnName, absRow, rowNumber) {
-      let nextColumn = formulaApi.columnNameToIndex(columnName);
-      let nextRow = Number(rowNumber);
-      if (!absCol) nextColumn += columnDelta;
-      if (!absRow) nextRow += rowDelta;
-      nextColumn = clamp(nextColumn, 0, COLS - 1);
-      nextRow = clamp(nextRow, 1, ROWS);
-      return (absCol ? '$' : '') + formulaApi.columnIndexToName(nextColumn) + (absRow ? '$' : '') + nextRow;
-    });
-  }
-
   function undo() {
-    const entry = state.undoStack.pop();
-    if (!entry) return;
-    state.redoStack.push({ before: cloneCells(state.cells), after: cloneCells(entry.before) });
-    state.cells = cloneCells(entry.before);
+    const next = appHelpers.applyUndo(state.cells, state.undoStack, state.redoStack);
+    if (next.cells === state.cells) return;
+    state.cells = next.cells;
+    state.undoStack = next.undoStack;
+    state.redoStack = next.redoStack;
     rebuildEngine();
     saveState();
     renderAllCells();
   }
 
   function redo() {
-    const entry = state.redoStack.pop();
-    if (!entry) return;
-    state.undoStack.push({ before: cloneCells(state.cells), after: cloneCells(entry.after) });
-    state.cells = cloneCells(entry.after);
+    const next = appHelpers.applyRedo(state.cells, state.undoStack, state.redoStack);
+    if (next.cells === state.cells) return;
+    state.cells = next.cells;
+    state.undoStack = next.undoStack;
+    state.redoStack = next.redoStack;
     rebuildEngine();
     saveState();
     renderAllCells();
@@ -787,7 +780,7 @@
   }
 
   function cloneCells(cells) {
-    return JSON.parse(JSON.stringify(cells));
+    return appHelpers.cloneCells(cells);
   }
 
   init();
