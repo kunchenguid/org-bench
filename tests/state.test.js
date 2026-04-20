@@ -5,6 +5,7 @@ const {
   createStorageKey,
   createInitialState,
   loadGameState,
+  readStorageNamespace,
   saveGameState,
 } = require('../src/state.js');
 
@@ -65,4 +66,14 @@ test('loadGameState falls back to a fresh state when stored JSON is invalid', ()
     loadGameState({ storage, namespace: 'fb-run-123' }),
     createInitialState(),
   );
+});
+
+test('readStorageNamespace prefers the harness-injected prefix name', () => {
+  globalThis.__FB_RUN_STORAGE_PREFIX__ = 'fb-run-456:';
+
+  try {
+    assert.equal(readStorageNamespace(), 'fb-run-456:');
+  } finally {
+    delete globalThis.__FB_RUN_STORAGE_PREFIX__;
+  }
 });
