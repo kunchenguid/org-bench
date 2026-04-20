@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Facebook Sheets</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">Facebook Sheets</div>
+      <label class="formula-shell" for="formula-input">
+        <span class="formula-label">fx</span>
+        <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+      </label>
+      <div id="position-indicator" class="position-indicator">A1</div>
+    </header>
+    <main class="grid-shell">
+      <div id="grid-container" class="grid-container"></div>
+    </main>
+    <div id="statusbar" class="statusbar">Arrows move, Enter edits, Shift+Arrows expands selection.</div>
+  </div>
+  <script src="formula.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
