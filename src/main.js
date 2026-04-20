@@ -2,19 +2,25 @@
   'use strict';
 
   var runtimeApi = window.GlassReefRenderRuntime;
+  var motionApi = window.AppleDuelMotion;
   var canvas = document.getElementById('game');
   var particles = [];
   var bounds = [];
   var hovered = null;
+  var previousHovered = null;
   var backgroundPromise;
   var backgroundAsset;
+  var banner = null;
+  var lunges = [];
 
   for (var index = 0; index < 36; index += 1) {
     particles.push({
       x: Math.random() * 1600,
       y: Math.random() * 900,
-      radius: 1 + Math.random() * 3,
-      speed: 14 + Math.random() * 20,
+      vx: (Math.random() - 0.5) * 8,
+      vy: -16 - Math.random() * 20,
+      size: 1 + Math.random() * 3,
+      alpha: 0.1 + Math.random() * 0.22,
       phase: Math.random() * Math.PI * 2,
     });
   }
@@ -30,6 +36,13 @@
       }
       updateParticles(frame.deltaTime);
       hovered = locateBounds(frame.pointer);
+      if (hovered && hovered !== previousHovered) {
+        banner = { text: hovered, ttl: 1.1, duration: 1.1 };
+      }
+      if (frame.pointer.justPressed && hovered) {
+        spawnPulse(hovered);
+      }
+      previousHovered = hovered;
       drawFrame(frame.scene, frame.elapsed, frame.pointer);
     },
   });
@@ -37,13 +50,23 @@
   runtime.start();
 
   function updateParticles(deltaTime) {
-    particles.forEach(function (particle) {
-      particle.y -= particle.speed * deltaTime;
+    particles = motionApi.stepParticles(particles, deltaTime, 1600, 940).map(function (particle) {
       particle.x += Math.sin(particle.phase + particle.y * 0.01) * 4 * deltaTime;
-      if (particle.y < -20) {
+      particle.phase += deltaTime * 0.8;
+      if (particle.y > 900) {
         particle.y = 940;
-        particle.x = Math.random() * 1600;
       }
+      return particle;
+    });
+    if (banner) {
+      banner.ttl = Math.max(0, banner.ttl - deltaTime);
+      if (!banner.ttl) {
+        banner = null;
+      }
+    }
+    lunges = lunges.filter(function (lunge) {
+      lunge.elapsed += deltaTime;
+      return lunge.elapsed < lunge.duration;
     });
   }
 
@@ -68,9 +91,9 @@
     }
 
     particles.forEach(function (particle) {
-      ctx.fillStyle = 'rgba(122, 240, 255, 0.25)';
+      ctx.fillStyle = 'rgba(122, 240, 255,' + particle.alpha + ')';
       ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
       ctx.fill();
     });
 
@@ -80,6 +103,7 @@
     drawLane(ctx, 208, 502, 1184, 174, elapsed, '#ffc27a', 'Player board');
     drawCards(ctx, elapsed);
     drawHud(ctx, pointer);
+    drawBanner(ctx);
   }
 
   function drawPanel(ctx, x, y, width, height, accent, title, subtitle) {
@@ -121,13 +145,15 @@
 
     cardRows.forEach(function (row, rowIndex) {
       for (var index = 0; index < 5; index += 1) {
-        var x = 276 + index * 206;
-        var y = row.y + Math.sin(elapsed * 1.4 + index + rowIndex) * 5;
+        var fan = motionApi.fanCardTransform(index, 5, hovered === row.label + index, rowIndex === 1 ? 0.18 : -0.12);
+        var x = 276 + index * 206 + fan.offsetX;
+        var y = row.y + Math.sin(elapsed * 1.4 + index + rowIndex) * 5 + fan.offsetY;
         var isHovered = hovered === row.label + index;
+        var lunge = getLunge(row.label + index);
         ctx.save();
-        ctx.translate(x + 82, y + 108);
-        ctx.rotate((index - 2) * 0.015);
-        ctx.scale(isHovered ? 1.03 : 1, isHovered ? 1.03 : 1);
+        ctx.translate(x + 82 + lunge.x, y + 108 + lunge.y);
+        ctx.rotate((index - 2) * 0.015 + fan.angle);
+        ctx.scale((isHovered ? 1.03 : 1) * fan.scale, (isHovered ? 1.03 : 1) * fan.scale);
         ctx.translate(-(x + 82), -(y + 108));
         ctx.fillStyle = 'rgba(18, 22, 36, 0.96)';
         roundRect(ctx, x, y, 164, 216, 22);
@@ -148,6 +174,7 @@
         ctx.fillText('Scene graph node', x + 20, y + 160);
         ctx.fillText('Texture-backed art', x + 20, y + 182);
         ctx.restore();
+        drawDamageText(ctx, row.label + index, x + 82, y + 38);
         bounds.push({ id: row.label + index, x: x, y: y, width: 164, height: 216 });
       }
     });
@@ -157,6 +184,7 @@
     drawChip(ctx, 242, 748, 118, 42, '#ffd38a', '60 fps');
     drawChip(ctx, 374, 748, 146, 42, '#73e7ff', 'Pointer input');
     drawChip(ctx, 534, 748, 164, 42, '#c9f0a3', 'Texture loading');
+    drawManaRow(ctx, 736, 746);
 
     ctx.fillStyle = 'rgba(6, 16, 26, 0.84)';
     roundRect(ctx, 1040, 742, 352, 110, 22);
@@ -168,6 +196,71 @@
     ctx.fillStyle = 'rgba(255,255,255,0.78)';
     ctx.fillText('Pointer: ' + Math.round(pointer.x) + ', ' + Math.round(pointer.y), 1064, 804);
     ctx.fillText('Hover target: ' + (hovered || 'none'), 1064, 832);
+  }
+
+  function drawManaRow(ctx, x, y) {
+    for (var index = 0; index < 6; index += 1) {
+      var shimmer = motionApi.manaShimmer(performance.now() * 0.00045, index * 0.21);
+      ctx.save();
+      ctx.globalAlpha = 0.35 + shimmer.glow * 0.45;
+      ctx.fillStyle = index % 2 ? '#73e7ff' : '#ffd38a';
+      ctx.beginPath();
+      ctx.moveTo(x + index * 34 + 12, y);
+      ctx.lineTo(x + index * 34 + 24, y + 18);
+      ctx.lineTo(x + index * 34 + 12, y + 36);
+      ctx.lineTo(x + index * 34, y + 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawBanner(ctx) {
+    if (!banner) {
+      return;
+    }
+    var sweep = motionApi.bannerSweep(banner.duration - banner.ttl, banner.duration);
+    ctx.save();
+    ctx.globalAlpha = sweep.alpha;
+    roundRect(ctx, 610, 146, 380, 64, 24);
+    ctx.fillStyle = 'rgba(10, 24, 40, 0.88)';
+    ctx.fill();
+    ctx.strokeStyle = '#ffd38a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.92, sweep.glow) + ')';
+    ctx.fillRect(620 + sweep.x * 120, 154, 76, 48);
+    ctx.fillStyle = '#08111b';
+    ctx.font = '700 22px Georgia';
+    ctx.fillText(banner.text, 710, 186);
+    ctx.restore();
+  }
+
+  function spawnPulse(id) {
+    lunges.push({ id: id, elapsed: 0, duration: 0.32, text: '-2' });
+  }
+
+  function getLunge(id) {
+    var lunge = lunges.find(function (entry) { return entry.id === id; });
+    if (!lunge) {
+      return { x: 0, y: 0 };
+    }
+    return motionApi.attackLungeOffset({ x: 0, y: -48 }, lunge.elapsed / lunge.duration);
+  }
+
+  function drawDamageText(ctx, id, x, y) {
+    var lunge = lunges.find(function (entry) { return entry.id === id; });
+    if (!lunge) {
+      return;
+    }
+    var state = motionApi.damageNumberState({ x: x, y: y, driftX: 10 }, lunge.elapsed, lunge.duration);
+    ctx.save();
+    ctx.globalAlpha = state.alpha;
+    ctx.fillStyle = '#ffd0c4';
+    ctx.font = '700 ' + Math.round(24 * state.scale) + 'px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText(lunge.text, state.x, state.y);
+    ctx.restore();
   }
 
   function drawChip(ctx, x, y, width, height, color, label) {
