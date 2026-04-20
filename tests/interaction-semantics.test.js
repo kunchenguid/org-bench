@@ -6,6 +6,7 @@ const {
   beginEditingState,
   commitEditingState,
   cancelEditingState,
+  getSelectionAxis,
 } = require('../app.js');
 
 test('beginEditingState preserves the current raw value for F2, Enter, double click, and formula edits', () => {
@@ -63,4 +64,9 @@ test('cancelEditingState exits edit mode without mutating committed cell content
   assert.equal(next.cells.D4, 'stable');
   assert.equal(next.draft, 'stable');
   assert.equal(next.selection, 'D4');
+});
+
+test('getSelectionAxis maps the active cell to row and column indexes for header highlighting', () => {
+  assert.deepEqual(getSelectionAxis('A1'), { col: 0, row: 0 });
+  assert.deepEqual(getSelectionAxis('Z100'), { col: 25, row: 99 });
 });

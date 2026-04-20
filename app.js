@@ -156,6 +156,10 @@
     return SpreadsheetState.moveSelection(cellId, offset[0], offset[1], COLS, ROWS);
   }
 
+  function getSelectionAxis(cellId) {
+    return SpreadsheetState.cellIdToPosition(cellId);
+  }
+
   function getStorageNamespace(documentRef, env) {
     const source = env || (typeof window !== 'undefined' ? window : {});
     const candidates = [
@@ -345,6 +349,9 @@
     function render() {
       const evaluated = evaluateAllCells(state.cells);
       const cells = grid.querySelectorAll('[data-cell]');
+      const axis = getSelectionAxis(state.selection);
+      const columnHeaders = grid.querySelectorAll('[data-column-index]');
+      const rowHeaders = grid.querySelectorAll('[data-row-index]');
 
       cells.forEach(function (cell) {
         const cellId = cell.dataset.cell;
@@ -372,6 +379,14 @@
         }
       });
 
+      columnHeaders.forEach(function (header) {
+        header.classList.toggle('active-axis', Number(header.dataset.columnIndex) === axis.col);
+      });
+
+      rowHeaders.forEach(function (header) {
+        header.classList.toggle('active-axis', Number(header.dataset.rowIndex) === axis.row);
+      });
+
       selectedCellLabel.textContent = state.selection;
       formulaInput.value = state.editing ? state.draft : (state.cells[state.selection] || '');
       const activeCell = grid.querySelector('[data-cell="' + state.selection + '"]');
@@ -391,6 +406,7 @@
     for (let col = 0; col < COLS; col += 1) {
       const header = document.createElement('th');
       header.className = 'column-header';
+      header.dataset.columnIndex = String(col);
       header.textContent = SpreadsheetState.positionToCellId(col, 0).replace('1', '');
       headerRow.appendChild(header);
     }
@@ -403,6 +419,7 @@
       const tr = document.createElement('tr');
       const rowHeader = document.createElement('th');
       rowHeader.className = 'row-header';
+      rowHeader.dataset.rowIndex = String(row);
       rowHeader.textContent = String(row + 1);
       tr.appendChild(rowHeader);
 
@@ -433,6 +450,7 @@
     beginEditingState: beginEditingState,
     commitEditingState: commitEditingState,
     cancelEditingState: cancelEditingState,
+    getSelectionAxis: getSelectionAxis,
     mountSpreadsheet: mountSpreadsheet,
     moveSelection: moveSelection,
   };
