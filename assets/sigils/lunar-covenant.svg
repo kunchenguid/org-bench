@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="lunar-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#dce9ff"/>
+      <stop offset="55%" stop-color="#6ea6ff"/>
+      <stop offset="100%" stop-color="#1a2a58"/>
+    </linearGradient>
+    <radialGradient id="lunar-mist" cx="0.48" cy="0.42" r="0.58">
+      <stop offset="0%" stop-color="#eef6ff" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#eef6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="48" fill="#08101f"/>
+  <circle cx="128" cy="128" r="92" fill="url(#lunar-bg)" opacity="0.18"/>
+  <path d="M164 54c-17-8-37-12-59-7-46 10-77 52-69 98 8 44 50 77 95 74 24-2 40-12 57-26-17 36-49 58-92 58-60 0-108-48-108-108S36 35 96 35c29 0 53 9 68 19Z" fill="url(#lunar-bg)" stroke="#e4efff" stroke-width="8"/>
+  <path d="M128 64 140 106 184 106 148 132 162 176 128 148 94 176 108 132 72 106 116 106Z" fill="#eff6ff" opacity="0.9"/>
+  <circle cx="128" cy="128" r="76" fill="url(#lunar-mist)"/>
+</svg>
