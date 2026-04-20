@@ -8,8 +8,8 @@
     return;
   }
 
-  const storageNamespace = window.__BENCHMARK_RUN_NAMESPACE__ || window.__RUN_STORAGE_NAMESPACE__ || document.body.dataset.runNamespace || 'emberfall-duel';
-  const saveKey = logic.createStorageKey(storageNamespace, 'save');
+  const storageNamespace = DuelState.readStorageNamespace();
+  const saveKey = DuelState.createStorageKey(storageNamespace, 'save');
   const uiCanvas = document.createElement('canvas');
   const uiCtx = uiCanvas.getContext('2d');
   const drawCanvas = document.createElement('canvas');
