@@ -8,8 +8,23 @@
     return;
   }
 
-  const storageNamespace = window.__BENCHMARK_RUN_NAMESPACE__ || window.__RUN_STORAGE_NAMESPACE__ || document.body.dataset.runNamespace || 'emberfall-duel';
-  const saveKey = logic.createStorageKey(storageNamespace, 'save');
+  const storageNamespace = DuelState.readStorageNamespace();
+  const saveKey = DuelState.createStorageKey(storageNamespace, 'save');
+  const assetPaths = {
+    board: 'assets/board-bg.svg',
+    heroPlayer: 'assets/hero-player.svg',
+    heroAi: 'assets/hero-ai.svg',
+    frameEmber: 'assets/card-frame-ember.svg',
+    frameVerdant: 'assets/card-frame-verdant.svg',
+    'ember-fox': 'assets/ember-fox.svg',
+    'flare-guard': 'assets/flare-guard.svg',
+    sunlance: 'assets/sunlance.svg',
+    'ash-drake': 'assets/ash-drake.svg',
+    'mist-wisp': 'assets/mist-wisp.svg',
+    'grove-keeper': 'assets/grove-keeper.svg',
+    'sap-burst': 'assets/sap-burst.svg',
+    'thorn-beast': 'assets/thorn-beast.svg',
+  };
   const uiCanvas = document.createElement('canvas');
   const uiCtx = uiCanvas.getContext('2d');
   const drawCanvas = document.createElement('canvas');
@@ -31,6 +46,7 @@
   };
 
   const renderer = createRenderer(gl);
+  const imageCache = Object.create(null);
   const cardArtCache = {};
 
   saveGame();
@@ -43,7 +59,25 @@
     state.hoveredLane = -1;
   });
 
-  requestAnimationFrame(frame);
+  loadAssets().finally(function () {
+    requestAnimationFrame(frame);
+  });
+
+  function loadAssets() {
+    return Promise.all(Object.keys(assetPaths).map(function (key) {
+      return new Promise(function (resolve) {
+        const image = new Image();
+        image.onload = function () {
+          imageCache[key] = image;
+          resolve();
+        };
+        image.onerror = function () {
+          resolve();
+        };
+        image.src = assetPaths[key];
+      });
+    }));
+  }
 
   function loadGame() {
     try {
@@ -264,12 +298,16 @@
   function drawBoardBase() {
     const width = uiCanvas.width;
     const height = uiCanvas.height;
-    const gradient = uiCtx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#10203c');
-    gradient.addColorStop(0.55, '#201633');
-    gradient.addColorStop(1, '#0d0d16');
-    uiCtx.fillStyle = gradient;
-    uiCtx.fillRect(0, 0, width, height);
+    if (imageCache.board) {
+      uiCtx.drawImage(imageCache.board, 0, 0, width, height);
+    } else {
+      const gradient = uiCtx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, '#10203c');
+      gradient.addColorStop(0.55, '#201633');
+      gradient.addColorStop(1, '#0d0d16');
+      uiCtx.fillStyle = gradient;
+      uiCtx.fillRect(0, 0, width, height);
+    }
 
     uiCtx.fillStyle = 'rgba(255,255,255,0.05)';
     for (let index = 0; index < state.particles.length; index += 1) {
@@ -321,8 +359,25 @@
   }
 
   function drawCard(rect, card, isEnemy, playable) {
-    const art = getCardTexture(card);
-    uiCtx.drawImage(art, rect.x, rect.y, rect.w, rect.h);
+    const frame = card.faction === 'ember' ? imageCache.frameEmber : imageCache.frameVerdant;
+    const art = imageCache[card.key];
+    if (frame) {
+      uiCtx.drawImage(frame, rect.x, rect.y, rect.w, rect.h);
+      if (art) {
+        uiCtx.drawImage(art, rect.x + rect.w * 0.08, rect.y + rect.h * 0.12, rect.w * 0.84, rect.h * 0.42);
+      }
+      uiCtx.fillStyle = 'rgba(255,255,255,0.94)';
+      uiCtx.font = 'bold 18px Georgia';
+      uiCtx.textAlign = 'left';
+      uiCtx.fillText(card.name, rect.x + 18, rect.y + 24);
+      uiCtx.font = '16px Georgia';
+      uiCtx.fillText(String(card.cost), rect.x + 20, rect.y + 52);
+      uiCtx.font = '14px Georgia';
+      wrapCardText(card.text, rect.x + 16, rect.y + rect.h - 56, rect.w - 32, 16);
+    } else {
+      const fallback = getCardTexture(card);
+      uiCtx.drawImage(fallback, rect.x, rect.y, rect.w, rect.h);
+    }
     uiCtx.strokeStyle = playable ? '#ffd461' : (card.faction === 'ember' ? '#ff9866' : '#7de6c8');
     uiCtx.lineWidth = playable ? 4 : 2;
     roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
@@ -362,8 +417,8 @@
   function drawHud(layout) {
     const player = state.game.player;
     const enemy = state.game.enemy;
-    panel(28, canvas.height - 152, 236, 116, '#ff9d68', player.hero, player.health, player.mana, player.maxMana, player.deck.length);
-    panel(28, 28, 236, 116, '#7de6c8', enemy.hero, enemy.health, enemy.mana, enemy.maxMana, enemy.deck.length);
+    panel(28, canvas.height - 152, 236, 116, '#ff9d68', player.hero || 'Captain Sol', player.health, player.mana, player.maxMana, player.deck.length, imageCache.heroPlayer);
+    panel(28, 28, 236, 116, '#7de6c8', enemy.hero || 'Oracle Nera', enemy.health, enemy.mana, enemy.maxMana, enemy.deck.length, imageCache.heroAi);
     button(layout.endTurn.x, layout.endTurn.y, layout.endTurn.w, layout.endTurn.h, state.game.turn === 'player' ? '#ffc66d' : '#71849b', state.game.turn === 'player' ? 'End Turn' : 'Enemy Turn');
 
     uiCtx.fillStyle = 'rgba(255,255,255,0.92)';
@@ -399,20 +454,23 @@
     }
   }
 
-  function panel(x, y, w, h, accent, hero, health, mana, maxMana, deck) {
+  function panel(x, y, w, h, accent, hero, health, mana, maxMana, deck, art) {
     uiCtx.fillStyle = 'rgba(5, 10, 20, 0.62)';
     roundRect(uiCtx, x, y, w, h, 20);
     uiCtx.fill();
     uiCtx.fillStyle = accent;
     uiCtx.fillRect(x, y, 10, h);
+    if (art) {
+      uiCtx.drawImage(art, x + 20, y + 14, 72, 72);
+    }
     uiCtx.fillStyle = 'white';
     uiCtx.font = 'bold 24px Arial';
     uiCtx.textAlign = 'left';
-    uiCtx.fillText(hero, x + 24, y + 34);
+    uiCtx.fillText(hero, x + 104, y + 34);
     uiCtx.font = '20px Arial';
-    uiCtx.fillText('Health ' + health, x + 24, y + 66);
-    uiCtx.fillText('Mana ' + mana + '/' + maxMana, x + 24, y + 90);
-    uiCtx.fillText('Deck ' + deck, x + 134, y + 90);
+    uiCtx.fillText('Health ' + health, x + 104, y + 62);
+    uiCtx.fillText('Mana ' + mana + '/' + maxMana, x + 104, y + 88);
+    uiCtx.fillText('Deck ' + deck, x + 104, y + 110);
   }
 
   function button(x, y, w, h, color, label) {
@@ -522,6 +580,25 @@
     }
     if (line) {
       ctx.fillText(line, centerX, y);
+    }
+  }
+
+  function wrapCardText(text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+    for (let index = 0; index < words.length; index += 1) {
+      const trial = line ? line + ' ' + words[index] : words[index];
+      if (uiCtx.measureText(trial).width > maxWidth && line) {
+        uiCtx.fillText(line, x, currentY);
+        line = words[index];
+        currentY += lineHeight;
+      } else {
+        line = trial;
+      }
+    }
+    if (line) {
+      uiCtx.fillText(line, x, currentY);
     }
   }
 
