@@ -2,6 +2,7 @@
   var engine = window.SpreadsheetEngine;
   var storage = window.SpreadsheetStorage;
   var STORAGE_PREFIX = storage.resolveStorageNamespace(window, document);
+  var clipboard = window.SpreadsheetClipboard;
   var STORAGE_KEY = STORAGE_PREFIX + 'grid-state';
   var MAX_HISTORY = 50;
   var sheetEl = document.getElementById('sheet');
@@ -549,7 +550,6 @@
       internalClipboard = { matrix: payload.matrix, origin: payload.origin, cut: true };
       event.clipboardData.setData('text/plain', serializeMatrix(payload.matrix));
       event.preventDefault();
-      clearSelection();
     });
     document.addEventListener('paste', function (event) {
       if (state.editing) {
@@ -567,6 +567,12 @@
       }
       writeMatrix(state.active, matrix, sourceOrigin);
       if (internalClipboard && internalClipboard.cut && sourceOrigin) {
+        clipboard.cellsToClearAfterCut(sourceOrigin, matrix, state.active).forEach(function (coord) {
+          delete state.cells[engine.keyFromCoord(coord.row, coord.col)];
+        });
+        render();
+        syncFormulaBar();
+        persist();
         internalClipboard = null;
       }
     });
