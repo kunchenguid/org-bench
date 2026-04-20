@@ -26,6 +26,17 @@ test('styles make the app fullscreen', () => {
   assert.match(css, /height:\s*100%/i);
 });
 
+test('boot overlay wires in the faction art pack', () => {
+  const html = read('index.html');
+  const css = read('styles.css');
+
+  assert.match(html, /assets\/art\/factions\/solar-league-sigil\.svg/i);
+  assert.match(html, /assets\/art\/factions\/umbral-synod-sigil\.svg/i);
+  assert.match(html, /boot-status__sigil/i);
+  assert.match(css, /boot-status__sigil/i);
+  assert.match(css, /boot-status__eyebrow/i);
+});
+
 test('script requests a webgl context and resizes the canvas', () => {
   const js = read('script.js');
 
