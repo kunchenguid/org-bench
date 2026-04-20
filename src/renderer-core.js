@@ -6,6 +6,36 @@
 
   root.FBDuelRendererCore = factory();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  var VISUAL_ASSETS = {
+    board: 'assets/board/board-celestial-sanctum.svg',
+    frames: {
+      verdant: 'assets/frames/frame-umbral.svg',
+      ironbound: 'assets/frames/frame-solar.svg',
+    },
+    portraits: {
+      verdant: 'assets/portraits/hero-umbral-matron.svg',
+      ironbound: 'assets/portraits/hero-solar-warden.svg',
+    },
+    sigils: {
+      verdant: 'assets/sigils/sigil-umbral.svg',
+      ironbound: 'assets/sigils/sigil-solar.svg',
+    },
+    hud: {
+      health: 'assets/hud/icon-health.svg',
+      mana: 'assets/hud/icon-mana.svg',
+      deck: 'assets/hud/icon-deck.svg',
+      attack: 'assets/hud/icon-attack.svg',
+    },
+    illustrations: {
+      seedlingScout: 'assets/illustrations/illus-mossfang-stalker.svg',
+      thornhideCub: 'assets/illustrations/illus-gloomhart-beast.svg',
+      rootsnare: 'assets/illustrations/illus-thorn-oracle.svg',
+      ashRecruit: 'assets/illustrations/illus-sunforge-knight.svg',
+      shieldmate: 'assets/illustrations/illus-dawn-archivist.svg',
+      emberVolley: 'assets/illustrations/illus-radiant-drake.svg',
+    },
+  };
+
   function computeCanvasSize(cssWidth, cssHeight, devicePixelRatio) {
     var ratio = Math.max(1, devicePixelRatio || 1);
     return {
@@ -18,6 +48,63 @@
 
   function resolveAssetUrl(assetPath, documentUrl) {
     return new URL(assetPath, documentUrl).toString();
+  }
+
+  function buildVisualCatalog(documentUrl) {
+    return {
+      board: resolveAssetUrl(VISUAL_ASSETS.board, documentUrl),
+      factions: {
+        verdant: {
+          frame: resolveAssetUrl(VISUAL_ASSETS.frames.verdant, documentUrl),
+          portrait: resolveAssetUrl(VISUAL_ASSETS.portraits.verdant, documentUrl),
+          sigil: resolveAssetUrl(VISUAL_ASSETS.sigils.verdant, documentUrl),
+        },
+        ironbound: {
+          frame: resolveAssetUrl(VISUAL_ASSETS.frames.ironbound, documentUrl),
+          portrait: resolveAssetUrl(VISUAL_ASSETS.portraits.ironbound, documentUrl),
+          sigil: resolveAssetUrl(VISUAL_ASSETS.sigils.ironbound, documentUrl),
+        },
+      },
+      hud: {
+        health: resolveAssetUrl(VISUAL_ASSETS.hud.health, documentUrl),
+        mana: resolveAssetUrl(VISUAL_ASSETS.hud.mana, documentUrl),
+        deck: resolveAssetUrl(VISUAL_ASSETS.hud.deck, documentUrl),
+        attack: resolveAssetUrl(VISUAL_ASSETS.hud.attack, documentUrl),
+      },
+      illustrations: resolveIllustrations(documentUrl),
+    };
+  }
+
+  function resolveIllustrations(documentUrl) {
+    var illustrations = {};
+    var key;
+    for (key in VISUAL_ASSETS.illustrations) {
+      illustrations[key] = resolveAssetUrl(VISUAL_ASSETS.illustrations[key], documentUrl);
+    }
+    return illustrations;
+  }
+
+  function getFactionVisual(faction, catalog) {
+    return (catalog.factions && catalog.factions[faction]) || catalog.factions.verdant;
+  }
+
+  function getHeroVisual(hero, catalog) {
+    var factionVisual = getFactionVisual(hero && hero.faction, catalog);
+    return {
+      portrait: factionVisual.portrait,
+      frame: factionVisual.frame,
+      sigil: factionVisual.sigil,
+    };
+  }
+
+  function getCardVisual(card, catalog) {
+    var factionVisual = getFactionVisual(card && card.faction, catalog);
+    var artKey = (card && card.artKey) || 'rootsnare';
+    return {
+      frame: factionVisual.frame,
+      sigil: factionVisual.sigil,
+      illustration: catalog.illustrations[artKey] || catalog.illustrations.rootsnare,
+    };
   }
 
   function computeBoardLayout(width, height) {
@@ -179,8 +266,12 @@
   }
 
   return {
+    buildVisualCatalog: buildVisualCatalog,
     computeCanvasSize: computeCanvasSize,
     computeBoardLayout: computeBoardLayout,
+    getCardVisual: getCardVisual,
+    getFactionVisual: getFactionVisual,
+    getHeroVisual: getHeroVisual,
     layoutBoardCards: layoutBoardCards,
     layoutHandCards: layoutHandCards,
     resolveAssetUrl: resolveAssetUrl,
