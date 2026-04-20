@@ -1,5 +1,6 @@
 (function () {
   const logic = window.AppleDuelLogic;
+  const motion = window.AppleDuelMotion;
   const canvas = document.getElementById('game');
   const gl = canvas.getContext('webgl', { alpha: false, antialias: true, premultipliedAlpha: true });
 
@@ -113,8 +114,12 @@
           text: '-' + entry.amount,
           x: designWidth * 0.5 + (Math.random() - 0.5) * 120,
           y: entry.side === 'player' ? 650 : 210,
+          startY: entry.side === 'player' ? 650 : 210,
+          driftX: (Math.random() - 0.5) * 28,
           vy: -30,
           ttl: 1,
+          duration: 1,
+          elapsed: 0,
           color: '#ffb49b',
         });
         cameraShake = 14;
@@ -235,6 +240,7 @@
     cameraShake = Math.max(0, cameraShake - dt * 40);
     particles = particles.filter(function (particle) {
       particle.ttl -= dt;
+      particle.elapsed = (particle.elapsed || 0) + dt;
       particle.y += (particle.vy || -10) * dt;
       return particle.ttl > 0;
     });
@@ -278,9 +284,13 @@
     for (let index = 0; index < 8; index += 1) {
       const filled = index < side.mana;
       const hue = enemy ? palette.umbra : palette.sol;
-      const alpha = filled ? 0.96 : 0.3;
+      const shimmer = motion.manaShimmer(time * 0.45, index * 0.18 + (enemy ? 0.4 : 0));
+      const alpha = filled ? 0.68 + shimmer.glow * 0.28 : 0.3;
       const wobble = Math.sin(time * 2 + index) * 2 * scale;
       drawTexture(getCrystalTexture(hue, filled), x + index * 28 * scale, y + wobble, 22 * scale, 28 * scale, alpha);
+      if (filled) {
+        drawTexture(getGlowTexture(hue), x + (index * 28 - 10) * scale, y + (wobble - 12) * scale, 40 * scale, 48 * scale, shimmer.spark * 0.18);
+      }
     }
     drawText(side.mana + '/' + side.maxMana, x + 245 * scale, y + 14 * scale, 18 * scale, palette.ink, 'left');
   }
@@ -324,13 +334,16 @@
     const baseY = 690;
     hand.forEach(function (card, index) {
       const spread = (index - (hand.length - 1) / 2) * 110;
-      const x = centerX + spread - 60;
-      const y = baseY + Math.abs(spread) * 0.12;
+      const pointerBias = (pointer.x / Math.max(1, canvas.width) - 0.5) * 0.7;
+      const fan = motion.fanCardTransform(index, hand.length, false, pointerBias);
+      const x = centerX + spread - 60 + fan.offsetX;
+      const y = baseY + Math.abs(spread) * 0.12 + fan.offsetY;
       const hover = pointerHits(offsetX + x * scale, offsetY + y * scale, 120 * scale, 160 * scale);
       const playable = currentState.currentPlayer === 'player' && card.cost <= currentState.player.mana && currentState.player.board.length < logic.BOARD_LIMIT;
-      const lift = hover ? 34 : 0;
+      const activeFan = motion.fanCardTransform(index, hand.length, hover, pointerBias);
+      const lift = activeFan.lift;
       const pulse = playable ? 0.12 + 0.12 * (Math.sin(time * 4 + index) + 1) * 0.5 : 0;
-      drawTexture(getCardTexture(card), offsetX + x * scale, offsetY + (y - lift) * scale, 120 * scale, 160 * scale, 1);
+      drawTexture(getCardTexture(card), offsetX + x * scale, offsetY + (y - lift) * scale, 120 * scale, 160 * scale, activeFan.scale);
       if (playable) {
         drawTexture(getGlowTexture('#ffdc85'), offsetX + (x - 8) * scale, offsetY + (y - lift - 8) * scale, 136 * scale, 176 * scale, pulse + 0.15);
       }
@@ -403,7 +416,12 @@
   function drawParticles(offsetX, offsetY, scale) {
     particles.forEach(function (particle) {
       if (particle.type === 'text') {
-        drawText(particle.text, offsetX + particle.x * scale, offsetY + particle.y * scale, 28 * scale, particle.color, 'center');
+        const state = motion.damageNumberState(
+          { x: particle.x, y: particle.startY || particle.y, driftX: particle.driftX || 0 },
+          particle.elapsed || 0,
+          particle.duration || 1
+        );
+        drawText(particle.text, offsetX + state.x * scale, offsetY + state.y * scale, 28 * scale * state.scale, particle.color, 'center');
       } else {
         drawTexture(getGlowTexture(particle.color), offsetX + (particle.x - 42) * scale, offsetY + (particle.y - 42) * scale, 84 * scale, 84 * scale, Math.max(0, particle.ttl));
       }
