@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shard Duel</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <canvas id="game" aria-label="Shard Duel board"></canvas>
+    <section class="hud" aria-live="polite">
+      <div>
+        <p class="label">Encounter</p>
+        <h1>Shard Duel</h1>
+        <p id="status">Loading duel...</p>
+      </div>
+      <div class="panel-row">
+        <div class="panel">
+          <p class="label">Player</p>
+          <p id="player-summary">-</p>
+        </div>
+        <div class="panel">
+          <p class="label">Enemy</p>
+          <p id="enemy-summary">-</p>
+        </div>
+      </div>
+      <div class="panel-row">
+        <button id="end-turn" type="button">End Turn</button>
+        <button id="new-run" type="button">New Run</button>
+      </div>
+      <p class="hint">Round 1 shell: animated board, persistent duel seed, and a lightweight encounter state the team can extend.</p>
+    </section>
+  </main>
+
+  <script src="src/game-core.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>
