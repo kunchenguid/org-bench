@@ -2,12 +2,14 @@
   'use strict';
 
   var runtimeApi = window.GlassReefRenderRuntime;
+  var gameCoreApi = window.AppleDuelGameCore;
   var canvas = document.getElementById('game');
   var particles = [];
   var bounds = [];
   var hovered = null;
   var backgroundPromise;
   var backgroundAsset;
+  var demoState = gameCoreApi ? gameCoreApi.createInitialState({ rng: function () { return 0.25; } }) : null;
 
   for (var index = 0; index < 36; index += 1) {
     particles.push({
@@ -74,12 +76,10 @@
       ctx.fill();
     });
 
-    drawPanel(ctx, 64, 56, 324, 128, '#6eeaff', 'Render Runtime', 'WebGL backbuffer + pointer tracking + file-safe assets');
-    drawPanel(ctx, 1212, 56, 324, 128, '#ffd38a', 'HUD lane', 'HUD, buttons, and battle feed can sit above board layers');
-    drawLane(ctx, 208, 224, 1184, 174, elapsed, '#72ebff', 'Enemy board');
-    drawLane(ctx, 208, 502, 1184, 174, elapsed, '#ffc27a', 'Player board');
+    drawLane(ctx, 208, 224, 1184, 174, elapsed, '#72ebff', demoState ? 'Enemy opening hand' : 'Enemy board');
+    drawLane(ctx, 208, 502, 1184, 174, elapsed, '#ffc27a', demoState ? 'Player opening hand' : 'Player board');
     drawCards(ctx, elapsed);
-    drawHud(ctx, pointer);
+    drawBoardStatus(ctx, pointer);
   }
 
   function drawPanel(ctx, x, y, width, height, accent, title, subtitle) {
@@ -114,13 +114,16 @@
   }
 
   function drawCards(ctx, elapsed) {
+    var enemyCards = demoState ? demoState.enemy.hand.slice(0, 5) : [];
+    var playerCards = demoState ? demoState.player.hand.slice(0, 5) : [];
     var cardRows = [
-      { y: 254, accent: '#74eaff', label: 'Enemy cards' },
-      { y: 532, accent: '#ffc27a', label: 'Player cards' },
+      { y: 254, accent: '#74eaff', label: 'Enemy cards', cards: enemyCards },
+      { y: 532, accent: '#ffc27a', label: 'Player cards', cards: playerCards },
     ];
 
     cardRows.forEach(function (row, rowIndex) {
       for (var index = 0; index < 5; index += 1) {
+        var card = row.cards[index] || null;
         var x = 276 + index * 206;
         var y = row.y + Math.sin(elapsed * 1.4 + index + rowIndex) * 5;
         var isHovered = hovered === row.label + index;
@@ -142,41 +145,34 @@
         ctx.fillRect(x + 24, y + 26, 116, 66);
         ctx.fillStyle = '#f6fbff';
         ctx.font = '700 20px Georgia';
-        ctx.fillText('Card ' + (index + 1), x + 20, y + 130);
+        ctx.fillText(card ? card.name : 'Empty slot', x + 20, y + 130);
         ctx.font = '15px Georgia';
         ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.fillText('Scene graph node', x + 20, y + 160);
-        ctx.fillText('Texture-backed art', x + 20, y + 182);
+        ctx.fillText(card ? ('Cost ' + card.cost + '  ATK ' + card.attack) : 'Scene graph node', x + 20, y + 160);
+        ctx.fillText(card ? card.text.slice(0, 18) : 'Texture-backed art', x + 20, y + 182);
         ctx.restore();
         bounds.push({ id: row.label + index, x: x, y: y, width: 164, height: 216 });
       }
     });
   }
 
-  function drawHud(ctx, pointer) {
-    drawChip(ctx, 242, 748, 118, 42, '#ffd38a', '60 fps');
-    drawChip(ctx, 374, 748, 146, 42, '#73e7ff', 'Pointer input');
-    drawChip(ctx, 534, 748, 164, 42, '#c9f0a3', 'Texture loading');
-
-    ctx.fillStyle = 'rgba(6, 16, 26, 0.84)';
-    roundRect(ctx, 1040, 742, 352, 110, 22);
+  function drawBoardStatus(ctx, pointer) {
+    ctx.fillStyle = 'rgba(6, 16, 26, 0.52)';
+    roundRect(ctx, 238, 732, 1124, 74, 28);
     ctx.fill();
-    ctx.fillStyle = '#f5fbff';
-    ctx.font = '700 22px Georgia';
-    ctx.fillText('Runtime status', 1064, 774);
-    ctx.font = '17px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.fillText('Pointer: ' + Math.round(pointer.x) + ', ' + Math.round(pointer.y), 1064, 804);
-    ctx.fillText('Hover target: ' + (hovered || 'none'), 1064, 832);
-  }
-
-  function drawChip(ctx, x, y, width, height, color, label) {
-    ctx.fillStyle = color;
-    roundRect(ctx, x, y, width, height, 18);
-    ctx.fill();
-    ctx.fillStyle = '#08111b';
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, 238, 732, 1124, 74, 28);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(245,251,255,0.84)';
     ctx.font = '700 18px Georgia';
-    ctx.fillText(label, x + 20, y + 27);
+    ctx.fillText(demoState ? 'Rules core preview surface' : 'Glass Reef runtime surface', 270, 762);
+    ctx.font = '16px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.fillText(demoState ? demoState.tutorial.message : 'Hover a card to lift it. Press to lunge and float damage text through the board lanes.', 270, 790);
+    ctx.textAlign = 'right';
+    ctx.fillText(demoState ? ('Turn ' + demoState.turn + ' • ' + demoState.activeSide + ' • ' + demoState.player.hand.length + ' playable cards in view') : ('Pointer ' + Math.round(pointer.x) + ', ' + Math.round(pointer.y) + '  •  ' + (hovered || 'no target')), 1330, 790);
+    ctx.textAlign = 'left';
   }
 
   function roundRect(ctx, x, y, width, height, radius) {
