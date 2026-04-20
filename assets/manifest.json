@@ -1,0 +1,36 @@
+{
+  "board": {
+    "sanctum": "assets/board/board-celestial-sanctum.svg"
+  },
+  "frames": {
+    "solar": "assets/frames/frame-solar.svg",
+    "umbral": "assets/frames/frame-umbral.svg"
+  },
+  "portraits": {
+    "solarWarden": "assets/portraits/hero-solar-warden.svg",
+    "umbralMatron": "assets/portraits/hero-umbral-matron.svg"
+  },
+  "illustrations": {
+    "sunforgeKnight": "assets/illustrations/illus-sunforge-knight.svg",
+    "dawnArchivist": "assets/illustrations/illus-dawn-archivist.svg",
+    "radiantDrake": "assets/illustrations/illus-radiant-drake.svg",
+    "mossfangStalker": "assets/illustrations/illus-mossfang-stalker.svg",
+    "thornOracle": "assets/illustrations/illus-thorn-oracle.svg",
+    "gloomhartBeast": "assets/illustrations/illus-gloomhart-beast.svg"
+  },
+  "sigils": {
+    "solar": "assets/sigils/sigil-solar.svg",
+    "umbral": "assets/sigils/sigil-umbral.svg"
+  },
+  "hud": {
+    "health": "assets/hud/icon-health.svg",
+    "mana": "assets/hud/icon-mana.svg",
+    "deck": "assets/hud/icon-deck.svg",
+    "attack": "assets/hud/icon-attack.svg"
+  },
+  "effects": {
+    "impactBurst": "assets/effects/effect-impact-burst.svg",
+    "healingHalo": "assets/effects/effect-healing-halo.svg",
+    "shadowSlash": "assets/effects/effect-shadow-slash.svg"
+  }
+}

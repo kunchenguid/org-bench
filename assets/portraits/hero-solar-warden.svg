@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#ffe8a0"/>
+      <stop offset="35%" stop-color="#4e83bb"/>
+      <stop offset="100%" stop-color="#16263a"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="42" fill="url(#bg)"/>
+  <circle cx="256" cy="188" r="72" fill="#efd2b7"/>
+  <path d="M178 182 C194 128 226 92 256 92 C286 92 318 128 334 182 C304 164 286 156 256 156 C226 156 208 164 178 182 Z" fill="#fff2b3"/>
+  <path d="M174 214 C196 196 224 188 256 188 C288 188 316 196 338 214 L344 332 C314 372 287 392 256 392 C225 392 198 372 168 332 Z" fill="#d4b395"/>
+  <path d="M210 228 C220 220 232 216 244 216 C232 232 220 244 208 254 Z" fill="#2e3138"/>
+  <path d="M302 228 C292 220 280 216 268 216 C280 232 292 244 304 254 Z" fill="#2e3138"/>
+  <path d="M236 286 C248 294 264 294 276 286" fill="none" stroke="#8a4f3a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M180 354 L220 280 L256 334 L292 280 L332 354 L332 438 L180 438 Z" fill="#f7f1dc"/>
+  <path d="M142 446 L184 332 L256 382 L328 332 L370 446 Z" fill="#c59b48"/>
+  <path d="M196 140 L226 110 L256 144 L286 110 L316 140 L298 204 L214 204 Z" fill="#f9dc83" opacity="0.9"/>
+</svg>
