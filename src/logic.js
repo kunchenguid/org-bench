@@ -1,328 +1,346 @@
-(function (root, factory) {
-  if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
-    return;
-  }
-  root.DuelLogic = factory();
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const LANE_COUNT = 3;
+(function (global) {
+  'use strict';
 
-  const CARD_LIBRARY = [
-    { key: 'ember-fox', name: 'Ember Fox', type: 'unit', faction: 'ember', cost: 1, attack: 2, health: 1, text: 'Fast early pressure.' },
-    { key: 'flare-guard', name: 'Flare Guard', type: 'unit', faction: 'ember', cost: 2, attack: 2, health: 3, text: 'A sturdy frontline sentinel.' },
-    { key: 'sunlance', name: 'Sunlance', type: 'spell', faction: 'ember', cost: 2, damage: 2, text: 'Deal 2 damage.' },
-    { key: 'ash-drake', name: 'Ash Drake', type: 'unit', faction: 'ember', cost: 4, attack: 4, health: 3, text: 'A high-damage finisher.' },
-    { key: 'mist-wisp', name: 'Mist Wisp', type: 'unit', faction: 'verdant', cost: 1, attack: 1, health: 2, text: 'Buys time and contests lanes.' },
-    { key: 'grove-keeper', name: 'Grove Keeper', type: 'unit', faction: 'verdant', cost: 3, attack: 3, health: 4, text: 'Large body for the cost.' },
-    { key: 'sap-burst', name: 'Sap Burst', type: 'spell', faction: 'verdant', cost: 2, damage: 2, text: 'Deal 2 damage.' },
-    { key: 'thorn-beast', name: 'Thorn Beast', type: 'unit', faction: 'verdant', cost: 4, attack: 4, health: 4, text: 'Overwhelms slow starts.' },
+  var FACTIONS = [
+    {
+      id: 'solforged',
+      name: 'Solforged Armada',
+      theme: 'Sunlit skyfleet that wins with tempo, bursts of flame, and disciplined formations.',
+    },
+    {
+      id: 'gloomwild',
+      name: 'Gloomwild Circle',
+      theme: 'Moonlit marsh coven that grows sticky boards, drains life, and overwhelms late.',
+    },
   ];
 
-  const PLAYER_DECK_KEYS = [
-    'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
-    'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
-    'ember-fox', 'flare-guard', 'sunlance', 'ash-drake',
+  var MECHANICS = [
+    { id: 'ambush', label: 'Ambush', text: 'This unit can attack on the turn it is played.' },
+    { id: 'guard', label: 'Guard', text: 'Sticky frontliner that buys time.' },
+    { id: 'scorch', label: 'Scorch', text: 'Deals direct damage when cast or deployed.' },
+    { id: 'bloom', label: 'Bloom', text: 'Gains extra stats when joining another ally.' },
+    { id: 'drain', label: 'Drain', text: 'Heals its controller when it hits the rival hero.' },
   ];
 
-  const ENEMY_DECK_KEYS = [
-    'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
-    'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
-    'mist-wisp', 'grove-keeper', 'sap-burst', 'thorn-beast',
+  var CARD_LIBRARY = [
+    { id: 'cinder-scout', name: 'Cinder Scout', faction: 'solforged', type: 'unit', attack: 2, health: 1, maxHealth: 1, cost: 1, keywords: ['ambush'], rulesText: 'Ambush.' },
+    { id: 'sunlance-squire', name: 'Sunlance Squire', faction: 'solforged', type: 'unit', attack: 2, health: 2, maxHealth: 2, cost: 2, keywords: [], rulesText: 'Efficient skyknight for the opening turns.' },
+    { id: 'deckgun-marine', name: 'Deckgun Marine', faction: 'solforged', type: 'unit', attack: 3, health: 2, maxHealth: 2, cost: 3, keywords: ['scorch'], scorch: 1, rulesText: 'Scorch 1 on deploy.' },
+    { id: 'aurora-standard', name: 'Aurora Standard', faction: 'solforged', type: 'unit', attack: 2, health: 4, maxHealth: 4, cost: 3, keywords: ['guard'], rulesText: 'Guard.' },
+    { id: 'flare-javelin', name: 'Flare Javelin', faction: 'solforged', type: 'spell', cost: 2, damage: 2, keywords: ['scorch'], rulesText: 'Scorch 2 to the rival hero.' },
+    { id: 'dawn-caravel', name: 'Dawn Caravel', faction: 'solforged', type: 'unit', attack: 4, health: 3, maxHealth: 3, cost: 4, keywords: [], rulesText: 'Heavy midgame pressure.' },
+    { id: 'bog-wisp', name: 'Bog Wisp', faction: 'gloomwild', type: 'unit', attack: 1, health: 2, maxHealth: 2, cost: 1, keywords: ['bloom'], rulesText: 'Bloom: enters as 2/3 if you already control a unit.' },
+    { id: 'reed-stalker', name: 'Reed Stalker', faction: 'gloomwild', type: 'unit', attack: 2, health: 3, maxHealth: 3, cost: 2, keywords: ['guard'], rulesText: 'Guard.' },
+    { id: 'mire-bloom', name: 'Mire Bloom', faction: 'gloomwild', type: 'unit', attack: 3, health: 3, maxHealth: 3, cost: 3, keywords: ['bloom'], rulesText: 'Bloom: enters as 4/4 if you already control a unit.' },
+    { id: 'hollow-leech', name: 'Hollow Leech', faction: 'gloomwild', type: 'unit', attack: 2, health: 4, maxHealth: 4, cost: 3, keywords: ['drain'], rulesText: 'Drain.' },
+    { id: 'night-pollen', name: 'Night Pollen', faction: 'gloomwild', type: 'spell', cost: 2, damage: 1, heal: 1, keywords: ['drain'], rulesText: 'Deal 1 and heal 1.' },
+    { id: 'eclipse-hydra', name: 'Eclipse Hydra', faction: 'gloomwild', type: 'unit', attack: 5, health: 5, maxHealth: 5, cost: 5, keywords: [], rulesText: 'Late-game marsh finisher.' },
   ];
 
-  function hashSeed(seed) {
-    let value = seed >>> 0;
-    return function () {
-      value = (value + 0x6d2b79f5) | 0;
-      let t = Math.imul(value ^ (value >>> 15), 1 | value);
-      t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
+  var CARD_BY_ID = Object.create(null);
+  CARD_LIBRARY.forEach(function (card) {
+    CARD_BY_ID[card.id] = card;
+  });
 
-  function cardFromKey(key, uniqueId) {
-    const base = CARD_LIBRARY.find(function (card) {
-      return card.key === key;
-    });
-    const card = {
-      id: uniqueId,
-      key: base.key,
-      name: base.name,
-      type: base.type,
-      faction: base.faction,
-      cost: base.cost,
-      text: base.text,
-    };
-    if (base.type === 'unit') {
-      card.attack = base.attack;
-      card.health = base.health;
-      card.maxHealth = base.health;
-      card.exhausted = false;
-    } else {
-      card.damage = base.damage;
-    }
-    return card;
-  }
+  var ENCOUNTER_PROFILES = [
+    {
+      id: 'sun-surge-vanguard',
+      name: 'Sun Surge Vanguard',
+      enemyFaction: 'solforged',
+      enemyStyle: 'rush',
+      playerFaction: 'gloomwild',
+      enemyDeck: ['cinder-scout', 'cinder-scout', 'cinder-scout', 'cinder-scout', 'sunlance-squire', 'sunlance-squire', 'deckgun-marine', 'deckgun-marine', 'aurora-standard', 'aurora-standard', 'flare-javelin', 'flare-javelin', 'dawn-caravel', 'dawn-caravel', 'sunlance-squire', 'sunlance-squire', 'deckgun-marine', 'flare-javelin', 'aurora-standard', 'dawn-caravel'],
+      playerDeck: ['bog-wisp', 'bog-wisp', 'bog-wisp', 'reed-stalker', 'reed-stalker', 'mire-bloom', 'mire-bloom', 'hollow-leech', 'hollow-leech', 'night-pollen', 'night-pollen', 'eclipse-hydra', 'bog-wisp', 'reed-stalker', 'mire-bloom', 'hollow-leech', 'night-pollen', 'eclipse-hydra', 'reed-stalker', 'mire-bloom'],
+    },
+    {
+      id: 'marsh-whisper-brood',
+      name: 'Marsh Whisper Brood',
+      enemyFaction: 'gloomwild',
+      enemyStyle: 'swarm-drain',
+      playerFaction: 'solforged',
+      enemyDeck: ['bog-wisp', 'bog-wisp', 'bog-wisp', 'bog-wisp', 'reed-stalker', 'reed-stalker', 'mire-bloom', 'mire-bloom', 'hollow-leech', 'hollow-leech', 'night-pollen', 'night-pollen', 'eclipse-hydra', 'reed-stalker', 'mire-bloom', 'hollow-leech', 'night-pollen', 'bog-wisp', 'mire-bloom', 'eclipse-hydra'],
+      playerDeck: ['cinder-scout', 'cinder-scout', 'sunlance-squire', 'sunlance-squire', 'deckgun-marine', 'deckgun-marine', 'aurora-standard', 'aurora-standard', 'flare-javelin', 'flare-javelin', 'dawn-caravel', 'dawn-caravel', 'cinder-scout', 'sunlance-squire', 'deckgun-marine', 'aurora-standard', 'flare-javelin', 'dawn-caravel', 'sunlance-squire', 'deckgun-marine'],
+    },
+    {
+      id: 'eclipse-siege',
+      name: 'Eclipse Siege',
+      enemyFaction: 'gloomwild',
+      enemyStyle: 'midrange-drain',
+      playerFaction: 'solforged',
+      enemyDeck: ['reed-stalker', 'reed-stalker', 'mire-bloom', 'mire-bloom', 'hollow-leech', 'hollow-leech', 'night-pollen', 'night-pollen', 'eclipse-hydra', 'eclipse-hydra', 'bog-wisp', 'bog-wisp', 'reed-stalker', 'mire-bloom', 'hollow-leech', 'night-pollen', 'eclipse-hydra', 'bog-wisp', 'mire-bloom', 'hollow-leech'],
+      playerDeck: ['cinder-scout', 'cinder-scout', 'cinder-scout', 'sunlance-squire', 'sunlance-squire', 'deckgun-marine', 'deckgun-marine', 'flare-javelin', 'flare-javelin', 'dawn-caravel', 'dawn-caravel', 'aurora-standard', 'aurora-standard', 'cinder-scout', 'sunlance-squire', 'deckgun-marine', 'flare-javelin', 'dawn-caravel', 'aurora-standard', 'deckgun-marine'],
+    },
+  ];
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
   }
 
-  function shuffle(deck, seed) {
-    const random = hashSeed(seed || 1);
-    const next = deck.slice();
-    for (let index = next.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(random() * (index + 1));
-      const current = next[index];
-      next[index] = next[swapIndex];
-      next[swapIndex] = current;
-    }
-    return next;
+  function hydrateCard(cardId) {
+    return clone(CARD_BY_ID[cardId]);
   }
 
-  function buildDeck(keys, seed, side) {
-    return shuffle(keys, seed).map(function (key, index) {
-      return cardFromKey(key, side + '-' + key + '-' + index);
+  function createDeckFromList(list) {
+    return list.map(function (cardId) {
+      return hydrateCard(cardId);
     });
   }
 
   function drawCard(side) {
-    if (!side.deck.length || side.hand.length >= 7) {
-      return null;
+    if (side.deck.length) {
+      side.hand.push(side.deck.shift());
     }
-    const drawn = side.deck.shift();
-    side.hand.push(drawn);
-    return drawn;
   }
 
-  function createSide(name, deck) {
+  function createStorageKey(namespace, key) {
+    return String(namespace) + ':' + key;
+  }
+
+  function getEncounterProfile(seed) {
+    var numericSeed = Number(seed || 0);
+    var index = Math.abs(numericSeed) % ENCOUNTER_PROFILES.length;
+    return ENCOUNTER_PROFILES[index];
+  }
+
+  function createSide(deckList, mana) {
     return {
-      name: name,
-      hero: name === 'player' ? 'Captain Sol' : 'Oracle Nera',
       health: 20,
-      maxMana: name === 'player' ? 1 : 0,
-      mana: name === 'player' ? 1 : 0,
-      deck: deck,
+      mana: mana,
+      maxMana: mana,
       hand: [],
+      deck: createDeckFromList(deckList),
       board: [null, null, null],
     };
   }
 
   function createInitialState(options) {
-    const seed = options && options.seed ? options.seed : Date.now();
-    const player = createSide('player', buildDeck(PLAYER_DECK_KEYS, seed, 'player'));
-    const enemy = createSide('enemy', buildDeck(ENEMY_DECK_KEYS, seed + 1, 'enemy'));
-    for (let count = 0; count < 3; count += 1) {
-      drawCard(player);
-      drawCard(enemy);
-    }
-    const ensuredCardIndex = player.hand.findIndex(function (card) {
-      return card.cost === 1 && card.type === 'unit';
-    });
-    if (ensuredCardIndex > 0) {
-      const first = player.hand[0];
-      player.hand[0] = player.hand[ensuredCardIndex];
-      player.hand[ensuredCardIndex] = first;
-    } else if (ensuredCardIndex === -1) {
-      player.hand[0] = cardFromKey('ember-fox', 'player-ember-fox-opening');
-    }
+    var settings = options || {};
+    var encounter = getEncounterProfile(settings.seed);
+    var player = createSide(encounter.playerDeck, 1);
+    var enemy = createSide(encounter.enemyDeck, 0);
+
+    drawCard(player);
+    drawCard(player);
+    drawCard(player);
+    drawCard(enemy);
+    drawCard(enemy);
+    drawCard(enemy);
+
     return {
-      seed: seed,
       turn: 'player',
-      winner: null,
-      turnCount: 1,
-      log: ['Your turn. Play a glowing card, then press End Turn.'],
       player: player,
       enemy: enemy,
+      winner: null,
+      encounter: {
+        name: encounter.name,
+        enemyDeckName: encounter.name,
+        enemyStyle: encounter.enemyStyle,
+        playerFaction: encounter.playerFaction,
+        enemyFaction: encounter.enemyFaction,
+      },
+      log: ['The duel begins against ' + encounter.name + '.'],
     };
   }
 
-  function createStorageKey(namespace, key) {
-    return String(namespace || 'duel-canvas') + ':' + key;
+  function summonUnit(card, actor) {
+    var unit = {
+      id: card.id,
+      name: card.name,
+      faction: card.faction,
+      type: card.type,
+      attack: card.attack,
+      health: card.health,
+      maxHealth: card.maxHealth,
+      cost: card.cost,
+      keywords: clone(card.keywords || []),
+      exhausted: !(card.keywords || []).includes('ambush'),
+    };
+
+    var occupiedLane = actor.board.some(function (entry) {
+      return !!entry;
+    });
+
+    if ((card.keywords || []).includes('bloom') && occupiedLane) {
+      unit.attack += 1;
+      unit.health += 1;
+      unit.maxHealth += 1;
+    }
+
+    return unit;
   }
 
-  function getOpenLane(side, preferredLane) {
-    if (preferredLane !== undefined && preferredLane !== null && !side.board[preferredLane]) {
-      return preferredLane;
+  function playSpell(next, side, actor, defenderSide, card) {
+    var damage = Number(card.damage || 0);
+    var heal = Number(card.heal || 0);
+    if (damage) {
+      defenderSide.health -= damage;
     }
-    for (let lane = 0; lane < side.board.length; lane += 1) {
-      if (!side.board[lane]) {
-        return lane;
-      }
+    if (heal) {
+      actor.health = Math.min(20, actor.health + heal);
     }
-    return -1;
-  }
-
-  function updateWinner(state) {
-    if (state.player.health <= 0) {
-      state.winner = 'enemy';
-    }
-    if (state.enemy.health <= 0) {
-      state.winner = 'player';
+    next.log.push((side === 'player' ? 'You cast ' : 'Enemy cast ') + card.name + '.');
+    if (defenderSide.health <= 0) {
+      next.winner = side;
     }
   }
 
-  function playCard(state, sideName, handIndex, lane) {
-    const next = clone(state);
-    if (next.winner || next.turn !== sideName) {
+  function playCard(state, side, handIndex, laneIndex) {
+    var next = clone(state);
+    var actor = next[side];
+    var defenderSide = next[side === 'player' ? 'enemy' : 'player'];
+    var card = actor.hand[handIndex];
+    if (!card || actor.mana < card.cost) {
       return next;
     }
-    const side = next[sideName];
-    const opponent = sideName === 'player' ? next.enemy : next.player;
-    const card = side.hand[handIndex];
-    if (!card || card.cost > side.mana) {
-      return next;
-    }
+
     if (card.type === 'unit') {
-      const openLane = getOpenLane(side, lane);
-      if (openLane === -1) {
+      if (laneIndex === null || laneIndex === undefined || actor.board[laneIndex]) {
         return next;
       }
-      const unit = side.hand.splice(handIndex, 1)[0];
-      unit.exhausted = true;
-      side.board[openLane] = unit;
-      side.mana -= unit.cost;
-      next.log.push((sideName === 'player' ? 'You summon ' : 'Enemy summons ') + unit.name + '.');
-      return next;
-    }
-    const spell = side.hand.splice(handIndex, 1)[0];
-    side.mana -= spell.cost;
-    let targetLane = -1;
-    for (let index = 0; index < opponent.board.length; index += 1) {
-      if (opponent.board[index]) {
-        targetLane = index;
-        break;
-      }
-    }
-    if (targetLane !== -1) {
-      opponent.board[targetLane].health -= spell.damage;
-      if (opponent.board[targetLane].health <= 0) {
-        next.log.push(spell.name + ' destroys ' + opponent.board[targetLane].name + '.');
-        opponent.board[targetLane] = null;
+      actor.board[laneIndex] = summonUnit(card, actor);
+      if (card.scorch) {
+        defenderSide.health -= card.scorch;
+        next.log.push(card.name + ' scorched for ' + card.scorch + '.');
       } else {
-        next.log.push(spell.name + ' hits ' + opponent.board[targetLane].name + ' for ' + spell.damage + '.');
+        next.log.push((side === 'player' ? 'You played ' : 'Enemy played ') + card.name + '.');
+      }
+      if (defenderSide.health <= 0) {
+        next.winner = side;
       }
     } else {
-      opponent.health -= spell.damage;
-      next.log.push(spell.name + ' hits the enemy hero for ' + spell.damage + '.');
-      updateWinner(next);
+      playSpell(next, side, actor, defenderSide, card);
     }
+
+    actor.hand.splice(handIndex, 1);
+    actor.mana -= card.cost;
     return next;
   }
 
-  function attackWithLane(state, sideName, lane) {
-    const next = clone(state);
-    const side = next[sideName];
-    const opponent = sideName === 'player' ? next.enemy : next.player;
-    const attacker = side.board[lane];
-    if (!attacker || attacker.exhausted || next.winner) {
+  function attackWithLane(state, side, laneIndex) {
+    var next = clone(state);
+    var attackerSide = next[side];
+    var defenderSide = next[side === 'player' ? 'enemy' : 'player'];
+    var attacker = attackerSide.board[laneIndex];
+    if (!attacker || attacker.exhausted) {
       return next;
     }
-    const blocker = opponent.board[lane];
-    if (blocker) {
-      blocker.health -= attacker.attack;
-      attacker.health -= blocker.attack;
-      next.log.push(attacker.name + ' clashes with ' + blocker.name + '.');
-      if (blocker.health <= 0) {
-        opponent.board[lane] = null;
+
+    var defender = defenderSide.board[laneIndex];
+    attacker.exhausted = true;
+    if (defender) {
+      defender.health -= attacker.attack;
+      attacker.health -= defender.attack;
+      if (defender.health <= 0) {
+        defenderSide.board[laneIndex] = null;
       }
       if (attacker.health <= 0) {
-        side.board[lane] = null;
-      } else {
-        attacker.exhausted = true;
+        attackerSide.board[laneIndex] = null;
       }
+      next.log.push(attacker.name + ' traded with ' + defender.name + '.');
     } else {
-      opponent.health -= attacker.attack;
-      attacker.exhausted = true;
-      next.log.push(attacker.name + ' strikes the opposing hero for ' + attacker.attack + '.');
-      updateWinner(next);
+      defenderSide.health -= attacker.attack;
+      if ((attacker.keywords || []).includes('drain')) {
+        attackerSide.health = Math.min(20, attackerSide.health + attacker.attack);
+      }
+      next.log.push(attacker.name + ' hit face for ' + attacker.attack + '.');
+      if (defenderSide.health <= 0) {
+        next.winner = side;
+      }
     }
     return next;
   }
 
-  function refreshBoard(side) {
-    for (let lane = 0; lane < side.board.length; lane += 1) {
-      if (side.board[lane]) {
-        side.board[lane].exhausted = false;
+  function readyBoard(board) {
+    for (var index = 0; index < board.length; index += 1) {
+      if (board[index]) {
+        board[index].exhausted = false;
       }
     }
   }
 
-  function chooseEnemyPlay(state) {
-    const enemy = state.enemy;
-    let best = null;
-    for (let index = 0; index < enemy.hand.length; index += 1) {
-      const card = enemy.hand[index];
-      if (card.cost > enemy.mana) {
-        continue;
-      }
-      if (card.type === 'unit' && getOpenLane(enemy, null) !== -1) {
-        if (!best || card.cost > best.card.cost) {
-          best = { index: index, lane: getOpenLane(enemy, null), card: card };
-        }
-      }
-      if (card.type === 'spell' && (!best || (best.card.type === 'spell' && card.cost >= best.card.cost))) {
-        best = { index: index, lane: null, card: card };
+  function chooseEnemyPlay(next) {
+    var encounter = next.encounter || {};
+    var enemyHand = next.enemy.hand;
+    var candidates = [];
+    for (var index = 0; index < enemyHand.length; index += 1) {
+      if (enemyHand[index].cost <= next.enemy.mana) {
+        candidates.push({ card: enemyHand[index], index: index });
       }
     }
-    return best;
+    if (!candidates.length) {
+      return -1;
+    }
+    if (encounter.enemyStyle === 'rush') {
+      candidates.sort(function (a, b) {
+        return a.card.cost - b.card.cost || b.card.attack - a.card.attack;
+      });
+    } else if (encounter.enemyStyle === 'swarm-drain') {
+      candidates.sort(function (a, b) {
+        return (b.card.keywords || []).length - (a.card.keywords || []).length || a.card.cost - b.card.cost;
+      });
+    } else {
+      candidates.sort(function (a, b) {
+        return b.card.cost - a.card.cost || b.card.health - a.card.health;
+      });
+    }
+    return candidates[0].index;
   }
 
   function endTurn(state) {
-    const next = clone(state);
-    if (next.winner || next.turn !== 'player') {
-      return next;
-    }
+    var next = clone(state);
     next.turn = 'enemy';
-    next.log.push('Enemy turn. Watch their line of play.');
-    next.enemy.maxMana = Math.min(8, next.enemy.maxMana + 1);
+    next.enemy.maxMana = Math.min(10, next.enemy.maxMana + 1 || 1);
     next.enemy.mana = next.enemy.maxMana;
-    refreshBoard(next.enemy);
     drawCard(next.enemy);
 
-    let play = chooseEnemyPlay(next);
-    while (play) {
-      const updated = playCard(next, 'enemy', play.index, play.lane);
-      next.player = updated.player;
-      next.enemy = updated.enemy;
-      next.log = updated.log;
-      next.winner = updated.winner;
-      if (next.winner) {
-        break;
-      }
-      play = chooseEnemyPlay(next);
-    }
-
-    for (let lane = 0; lane < LANE_COUNT; lane += 1) {
-      const attacker = next.enemy.board[lane];
-      if (attacker && !attacker.exhausted && !next.winner) {
-        const attacked = attackWithLane(next, 'enemy', lane);
-        next.player = attacked.player;
-        next.enemy = attacked.enemy;
-        next.log = attacked.log;
-        next.winner = attacked.winner;
+    for (var lane = 0; lane < next.enemy.board.length; lane += 1) {
+      var unit = next.enemy.board[lane];
+      if (unit && unit.exhausted === false) {
+        next.player.health -= unit.attack;
+        if ((unit.keywords || []).includes('drain')) {
+          next.enemy.health = Math.min(20, next.enemy.health + unit.attack);
+        }
+        if (next.player.health <= 0) {
+          next.winner = 'enemy';
+        }
       }
     }
 
-    if (!next.winner) {
-      next.turn = 'player';
-      next.turnCount += 1;
-      next.player.maxMana = Math.min(8, next.player.maxMana + 1);
-      next.player.mana = next.player.maxMana;
-      refreshBoard(next.player);
-      drawCard(next.player);
-      next.log.push('Your turn. Glowing cards can be played right now.');
+    var playableIndex = chooseEnemyPlay(next);
+    var openLane = next.enemy.board.findIndex(function (unit) {
+      return unit === null;
+    });
+    if (playableIndex !== -1) {
+      var card = next.enemy.hand[playableIndex];
+      if (card.type === 'spell') {
+        next = playCard(next, 'enemy', playableIndex, null);
+      } else if (openLane !== -1) {
+        next = playCard(next, 'enemy', playableIndex, openLane);
+      }
     }
+
+    next.turn = 'player';
+    next.player.maxMana = Math.min(10, next.player.maxMana + 1);
+    next.player.mana = next.player.maxMana;
+    drawCard(next.player);
+    readyBoard(next.player.board);
     return next;
   }
 
-  return {
+  var api = {
+    FACTIONS: FACTIONS,
+    MECHANICS: MECHANICS,
     CARD_LIBRARY: CARD_LIBRARY,
-    LANE_COUNT: LANE_COUNT,
+    ENCOUNTER_PROFILES: ENCOUNTER_PROFILES,
     createInitialState: createInitialState,
     createStorageKey: createStorageKey,
-    attackWithLane: attackWithLane,
     playCard: playCard,
+    attackWithLane: attackWithLane,
     endTurn: endTurn,
   };
-});
+
+  global.DuelLogic = api;
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
