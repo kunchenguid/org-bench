@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div>
+          <p class="eyebrow">Apple Team</p>
+          <h1>Sheet</h1>
+        </div>
+        <div class="toolbar-meta">
+          <span>Enter edits</span>
+          <span>Tab moves right</span>
+          <span>Cmd/Ctrl-Z undo</span>
+        </div>
+      </header>
+
+      <section class="formula-panel">
+        <div class="name-box" id="name-box">A1</div>
+        <label class="formula-label" for="formula-input">fx</label>
+        <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+      </section>
+
+      <main class="grid-shell">
+        <div class="grid-wrap" id="grid-wrap">
+          <table class="sheet-grid" id="sheet-grid"></table>
+          <input id="cell-editor" class="cell-editor hidden" type="text" spellcheck="false" autocomplete="off">
+        </div>
+      </main>
+    </div>
+
+    <script src="spreadsheet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
