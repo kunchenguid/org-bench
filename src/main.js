@@ -1,6 +1,7 @@
 (function () {
   var Game = window.FBDuelGame || window.FBDuelGameState;
   var Renderer = window.FBDuelRendererCore;
+  var shell = document.querySelector('.shell');
   var gameCanvas = document.getElementById('game');
   var playCardButton = document.getElementById('play-card');
   var endTurnButton = document.getElementById('end-turn');
@@ -117,6 +118,8 @@
 
   var storageKey = Game.createStorageKey(resolveNamespace(), 'save');
   var state = Game.hydrateState(window.localStorage.getItem(storageKey));
+  var visualCatalog = Renderer.buildVisualCatalog(document.baseURI || window.location.href);
+  var visualScene = shell ? createVisualScene(shell, visualCatalog) : null;
   var enemyTimer = null;
   var turnBanner = {
     actor: state.currentActor,
@@ -165,6 +168,11 @@
 
     playCardButton.disabled = state.currentActor !== 'player' || Boolean(state.winner) || state.player.hand.length === 0;
     endTurnButton.disabled = state.currentActor !== 'player' || Boolean(state.winner);
+
+    if (visualScene) {
+      updateHeroPanel(visualScene.enemyHero, state.enemy);
+      updateHeroPanel(visualScene.playerHero, state.player);
+    }
   }
 
   function firstPlayableCardId() {
@@ -384,6 +392,180 @@
     return byId;
   }
 
+  function createVisualScene(container, catalog) {
+    var hud = document.querySelector('.hud');
+    var boardSkin = document.createElement('img');
+    boardSkin.className = 'board-skin';
+    boardSkin.alt = '';
+    boardSkin.setAttribute('aria-hidden', 'true');
+    boardSkin.src = catalog.board;
+
+    var layer = document.createElement('section');
+    layer.className = 'visual-layer';
+    layer.setAttribute('aria-hidden', 'true');
+
+    var scene = {
+      layer: layer,
+      turnBanner: document.createElement('div'),
+      enemyHero: createHeroPanel('enemy'),
+      playerHero: createHeroPanel('player'),
+      enemyHand: createCardContainer(),
+      enemyBoard: createCardContainer(),
+      playerBoard: createCardContainer(),
+      playerHand: createCardContainer(),
+    };
+
+    scene.turnBanner.className = 'turn-banner';
+    layer.appendChild(scene.turnBanner);
+    layer.appendChild(scene.enemyHero.root);
+    layer.appendChild(scene.playerHero.root);
+    layer.appendChild(scene.enemyHand);
+    layer.appendChild(scene.enemyBoard);
+    layer.appendChild(scene.playerBoard);
+    layer.appendChild(scene.playerHand);
+    container.insertBefore(boardSkin, hud);
+    container.insertBefore(layer, hud);
+    return scene;
+  }
+
+  function createHeroPanel(side) {
+    var root = document.createElement('article');
+    root.className = 'hero-panel hero-panel--' + side;
+
+    var art = document.createElement('div');
+    art.className = 'hero-panel__art';
+    var portrait = document.createElement('img');
+    portrait.className = 'hero-panel__portrait';
+    portrait.alt = '';
+    var frame = document.createElement('img');
+    frame.className = 'hero-panel__frame';
+    frame.alt = '';
+    var sigil = document.createElement('img');
+    sigil.className = 'hero-panel__sigil';
+    sigil.alt = '';
+    art.appendChild(portrait);
+    art.appendChild(frame);
+    art.appendChild(sigil);
+
+    var name = document.createElement('div');
+    name.className = 'hero-panel__name';
+    var title = document.createElement('div');
+    title.className = 'hero-panel__title';
+    var stats = document.createElement('div');
+    stats.className = 'hero-panel__stats';
+
+    root.appendChild(art);
+    root.appendChild(name);
+    root.appendChild(title);
+    root.appendChild(stats);
+
+    return { root: root, portrait: portrait, frame: frame, sigil: sigil, name: name, title: title, stats: stats };
+  }
+
+  function createCardContainer() {
+    var container = document.createElement('div');
+    container.className = 'card-row';
+    container.style.left = '0';
+    container.style.top = '0';
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.transform = 'none';
+    return container;
+  }
+
+  function updateHeroPanel(panel, actorState) {
+    var visual = Renderer.getHeroVisual(actorState.hero, visualCatalog);
+    panel.portrait.src = visual.portrait;
+    panel.frame.src = visual.frame;
+    panel.sigil.src = visual.sigil;
+    panel.name.textContent = actorState.hero.name;
+    panel.title.textContent = actorState.hero.title + ' - ' + actorState.hero.powerName;
+    panel.stats.innerHTML = '';
+    panel.stats.appendChild(createStatChip(visualCatalog.hud.health, heroHealth(actorState) + ' HP'));
+    panel.stats.appendChild(createStatChip(visualCatalog.hud.mana, actorState.mana + '/' + actorState.maxMana + ' mana'));
+    panel.stats.appendChild(createStatChip(visualCatalog.hud.deck, actorState.deck.length + ' deck'));
+  }
+
+  function createStatChip(iconUrl, label) {
+    var chip = document.createElement('span');
+    chip.className = 'stat-chip';
+    var icon = document.createElement('img');
+    icon.alt = '';
+    icon.src = iconUrl;
+    var text = document.createElement('span');
+    text.textContent = label;
+    chip.appendChild(icon);
+    chip.appendChild(text);
+    return chip;
+  }
+
+  function ensureCardCount(container, count) {
+    while (container.children.length < count) {
+      container.appendChild(createCardNode());
+    }
+    while (container.children.length > count) {
+      container.removeChild(container.lastChild);
+    }
+  }
+
+  function createCardNode() {
+    var node = document.createElement('article');
+    node.className = 'scene-card';
+    node.innerHTML =
+      '<img class="scene-card__art" alt="">' +
+      '<img class="scene-card__frame" alt="">' +
+      '<img class="scene-card__sigil" alt="">' +
+      '<div class="scene-card__cost"></div>' +
+      '<div class="scene-card__name"></div>' +
+      '<div class="scene-card__stats"></div>';
+    return node;
+  }
+
+  function renderVisualCards(container, cards, mode, time) {
+    if (!visualScene) {
+      return;
+    }
+
+    var layout = mode.indexOf('hand') !== -1
+      ? Renderer.layoutHandCards(cards, gameCanvas.width, gameCanvas.height, time, mode.indexOf('enemy') === 0 ? 'enemy' : 'player')
+      : Renderer.layoutBoardCards(cards, gameCanvas.width, gameCanvas.height, time, mode.indexOf('enemy') === 0 ? 'enemy' : 'player');
+
+    ensureCardCount(container, cards.length);
+    for (var index = 0; index < cards.length; index += 1) {
+      var card = cards[index];
+      var visual = Renderer.getCardVisual(card, visualCatalog);
+      var cardNode = container.children[index];
+      var rect = layout[index];
+      cardNode.querySelector('.scene-card__art').src = visual.illustration;
+      cardNode.querySelector('.scene-card__frame').src = visual.frame;
+      cardNode.querySelector('.scene-card__sigil').src = visual.sigil;
+      cardNode.querySelector('.scene-card__cost').textContent = card.cost != null ? card.cost : '-';
+      cardNode.querySelector('.scene-card__name').textContent = card.name || card.templateId || 'Card';
+      cardNode.querySelector('.scene-card__stats').textContent =
+        (card.attack != null ? card.attack : '-') + ' / ' + (card.health != null ? card.health : card.damage != null ? card.damage + ' dmg' : '-');
+      cardNode.style.width = Math.round(rect.width) + 'px';
+      cardNode.style.height = Math.round(rect.height) + 'px';
+      cardNode.style.transform =
+        'translate(' + Math.round(rect.x) + 'px, ' + Math.round(rect.y) + 'px) rotate(' + (rect.rotation || 0) + 'rad)';
+    }
+  }
+
+  function renderVisualScene(time) {
+    if (!visualScene) {
+      return;
+    }
+
+    renderVisualCards(visualScene.enemyHand, state.enemy.hand.slice(0, 3), 'enemy-hand', time);
+    renderVisualCards(visualScene.enemyBoard, state.enemy.board, 'enemy-board', time);
+    renderVisualCards(visualScene.playerBoard, state.player.board, 'player-board', time);
+    renderVisualCards(visualScene.playerHand, state.player.hand.slice(0, 4), 'player-hand', time);
+
+    var banner = Renderer.sampleTurnBanner(time - turnBanner.startedAt, gameCanvas.width, gameCanvas.height, turnBanner.actor);
+    visualScene.turnBanner.textContent = banner.label;
+    visualScene.turnBanner.style.opacity = String(banner.opacity);
+    visualScene.turnBanner.style.transform = 'translate(' + Math.round(banner.x - gameCanvas.width * 0.5) + 'px, 0)';
+  }
+
   playCardButton.addEventListener('click', function () {
     var cardId = firstPlayableCardId();
     if (!cardId) {
@@ -596,6 +778,7 @@
     drawBoardState(time);
     drawEffects(time);
     drawTurnBanner(time);
+    renderVisualScene(time);
     requestAnimationFrame(drawBoard);
   }
 
