@@ -558,19 +558,19 @@
   function drawHud(layout, tutorialState) {
     const player = state.game.player;
     const enemy = state.game.enemy;
-    panel(28, canvas.height - 152, 236, 116, '#ff9d68', player.hero || 'Captain Sol', player.health, player.mana, player.maxMana, player.deck.length, imageCache.heroPlayer);
-    panel(28, 28, 236, 116, '#7de6c8', enemy.hero || 'Oracle Nera', enemy.health, enemy.mana, enemy.maxMana, enemy.deck.length, imageCache.heroAi);
+    const readyAttackers = countReadyAttackers(player.board);
+    drawHeroMeter(28, canvas.height - 160, 268, 126, '#ff9d68', player.hero || 'Captain Sol', player.health, player.mana, player.maxMana, player.deck.length, imageCache.heroPlayer, state.game.turn === 'player', 'South Vanguard');
+    drawHeroMeter(28, 28, 268, 126, '#7de6c8', enemy.hero || 'Oracle Nera', enemy.health, enemy.mana, enemy.maxMana, enemy.deck.length, imageCache.heroAi, state.game.turn !== 'player', state.game.encounter ? state.game.encounter.name : 'Marsh Ambush');
     const endTurnColor = tutorialState.endTurnPulse
       ? 'rgba(255, 208, 109, ' + (0.62 + 0.38 * Math.sin(state.time * 7)) + ')'
       : (state.game.turn === 'player' ? '#ffc66d' : '#71849b');
-    button(layout.endTurn.x, layout.endTurn.y, layout.endTurn.w, layout.endTurn.h, endTurnColor, state.game.turn === 'player' ? 'End Turn' : 'Enemy Turn');
+    drawTurnBadge(layout.endTurn.x - 6, layout.endTurn.y - 14, layout.endTurn.w + 12, layout.endTurn.h + 28, endTurnColor, state.game.turn === 'player' ? 'Your Turn' : 'Enemy Turn', readyAttackers, tutorialState.endTurnPulse);
 
     uiCtx.fillStyle = 'rgba(255,255,255,0.92)';
     uiCtx.font = 'bold 28px Arial';
     uiCtx.textAlign = 'center';
     uiCtx.fillText('Emberfall Duel', canvas.width * 0.5, 44);
-    uiCtx.font = '20px Arial';
-    uiCtx.fillText(tutorialState.prompt || state.message, canvas.width * 0.5, canvas.height - 18);
+    drawPromptBar(canvas.width * 0.5 - 290, canvas.height - 58, 580, 34, tutorialState.prompt || state.message);
 
     for (let index = 0; index < state.fx.sweeps.length; index += 1) {
       const sweep = state.fx.sweeps[index];
@@ -601,12 +601,16 @@
     }
   }
 
-  function panel(x, y, w, h, accent, hero, health, mana, maxMana, deck, art) {
+  function drawHeroMeter(x, y, w, h, accent, hero, health, mana, maxMana, deck, art, active, subtitle) {
     uiCtx.fillStyle = 'rgba(5, 10, 20, 0.62)';
     roundRect(uiCtx, x, y, w, h, 20);
     uiCtx.fill();
     uiCtx.fillStyle = accent;
-    uiCtx.fillRect(x, y, 10, h);
+    uiCtx.fillRect(x, y, 12, h);
+    uiCtx.strokeStyle = active ? 'rgba(255,255,255,0.42)' : 'rgba(255,255,255,0.14)';
+    uiCtx.lineWidth = active ? 3 : 1.5;
+    roundRect(uiCtx, x, y, w, h, 20);
+    uiCtx.stroke();
     if (art) {
       uiCtx.drawImage(art, x + 20, y + 14, 72, 72);
     }
@@ -614,20 +618,103 @@
     uiCtx.font = 'bold 24px Arial';
     uiCtx.textAlign = 'left';
     uiCtx.fillText(hero, x + 104, y + 34);
-    uiCtx.font = '20px Arial';
-    uiCtx.fillText('Health ' + health, x + 104, y + 62);
-    uiCtx.fillText('Mana ' + mana + '/' + maxMana, x + 104, y + 88);
-    uiCtx.fillText('Deck ' + deck, x + 104, y + 110);
+    uiCtx.fillStyle = 'rgba(226,232,240,0.82)';
+    uiCtx.font = '15px Arial';
+    uiCtx.fillText(subtitle, x + 104, y + 54);
+    drawHealthBar(x + 104, y + 66, 128, 16, health / 20, health, accent);
+    drawManaCrystals(x + 104, y + 92, maxMana, mana, accent);
+    drawDeckCounter(x + 214, y + 88, deck, accent);
   }
 
-  function button(x, y, w, h, color, label) {
+  function drawHealthBar(x, y, w, h, ratio, value, accent) {
+    uiCtx.fillStyle = 'rgba(15,23,42,0.88)';
+    roundRect(uiCtx, x, y, w, h, 8);
+    uiCtx.fill();
+    const fillWidth = Math.max(18, Math.floor((w - 4) * Math.max(0, Math.min(1, ratio))));
+    uiCtx.fillStyle = accent;
+    roundRect(uiCtx, x + 2, y + 2, fillWidth, h - 4, 7);
+    uiCtx.fill();
+    uiCtx.fillStyle = '#fff8f1';
+    uiCtx.font = 'bold 13px Arial';
+    uiCtx.textAlign = 'center';
+    uiCtx.fillText('HP ' + value, x + w / 2, y + 12);
+  }
+
+  function drawManaCrystals(x, y, maxMana, mana, accent) {
+    for (let index = 0; index < Math.max(maxMana, 1); index += 1) {
+      const crystalX = x + index * 18;
+      uiCtx.beginPath();
+      uiCtx.moveTo(crystalX, y + 8);
+      uiCtx.lineTo(crystalX + 7, y);
+      uiCtx.lineTo(crystalX + 14, y + 8);
+      uiCtx.lineTo(crystalX + 7, y + 16);
+      uiCtx.closePath();
+      uiCtx.fillStyle = index < mana ? accent : 'rgba(148,163,184,0.32)';
+      uiCtx.fill();
+    }
+    uiCtx.fillStyle = 'rgba(226,232,240,0.88)';
+    uiCtx.font = '13px Arial';
+    uiCtx.textAlign = 'left';
+    uiCtx.fillText('Mana ' + mana + '/' + maxMana, x + Math.max(maxMana, 1) * 18 + 8, y + 12);
+  }
+
+  function drawDeckCounter(x, y, deck, accent) {
+    uiCtx.fillStyle = 'rgba(15,23,42,0.92)';
+    roundRect(uiCtx, x, y, 44, 28, 10);
+    uiCtx.fill();
+    uiCtx.strokeStyle = accent;
+    uiCtx.lineWidth = 2;
+    uiCtx.strokeRect(x + 10, y + 8, 14, 12);
+    uiCtx.strokeRect(x + 13, y + 5, 14, 12);
+    uiCtx.fillStyle = '#fff8f1';
+    uiCtx.font = 'bold 13px Arial';
+    uiCtx.textAlign = 'center';
+    uiCtx.fillText(String(deck), x + 34, y + 18);
+  }
+
+  function drawTurnBadge(x, y, w, h, color, label, readyAttackers, pulsing) {
+    const glow = pulsing ? 16 + 8 * Math.sin(state.time * 7) : 10;
+    uiCtx.save();
+    uiCtx.shadowBlur = glow;
+    uiCtx.shadowColor = color;
     uiCtx.fillStyle = color;
     roundRect(uiCtx, x, y, w, h, 16);
     uiCtx.fill();
+    uiCtx.restore();
     uiCtx.fillStyle = '#111827';
     uiCtx.font = 'bold 24px Arial';
     uiCtx.textAlign = 'center';
-    uiCtx.fillText(label, x + w / 2, y + 42);
+    uiCtx.fillText(label, x + w / 2, y + 30);
+    uiCtx.font = 'bold 20px Arial';
+    uiCtx.fillText(state.game.turn === 'player' ? 'End Turn' : 'Enemy Moving', x + w / 2, y + 56);
+    uiCtx.fillStyle = state.game.turn === 'player' && readyAttackers > 0 ? '#d8fff2' : 'rgba(15,23,42,0.75)';
+    uiCtx.font = 'bold 13px Arial';
+    uiCtx.fillText(state.game.turn === 'player'
+      ? (readyAttackers > 0 ? readyAttackers + ' ally ready to strike' + (readyAttackers === 1 ? '' : 's') : 'Play a card or pass the turn')
+      : 'Watch the enemy response', x + w / 2, y + h - 10);
+  }
+
+  function drawPromptBar(x, y, w, h, text) {
+    uiCtx.fillStyle = 'rgba(5, 10, 20, 0.82)';
+    roundRect(uiCtx, x, y, w, h, 14);
+    uiCtx.fill();
+    uiCtx.strokeStyle = 'rgba(255,255,255,0.14)';
+    uiCtx.lineWidth = 1.5;
+    uiCtx.stroke();
+    uiCtx.fillStyle = '#fff7da';
+    uiCtx.font = 'bold 18px Arial';
+    uiCtx.textAlign = 'center';
+    uiCtx.fillText(text, x + w / 2, y + 22);
+  }
+
+  function countReadyAttackers(board) {
+    let ready = 0;
+    for (let index = 0; index < board.length; index += 1) {
+      if (board[index] && !board[index].exhausted) {
+        ready += 1;
+      }
+    }
+    return ready;
   }
 
   function drawTooltip(layout, tutorialState) {

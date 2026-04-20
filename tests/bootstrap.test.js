@@ -25,3 +25,12 @@ test('the integrated renderer ships authored svg assets and references them from
   assert.match(gameJs, /assets\/hero-player\.svg/);
   assert.match(gameJs, /assets\/hero-ai\.svg/);
 });
+
+test('the canvas renderer includes explicit in-world HUD meters for health, mana, deck, and turn state', () => {
+  const gameJs = fs.readFileSync(path.join(root, 'src', 'game.js'), 'utf8');
+
+  assert.match(gameJs, /drawHeroMeter/);
+  assert.match(gameJs, /drawManaCrystals/);
+  assert.match(gameJs, /drawTurnBadge/);
+  assert.match(gameJs, /drawDeckCounter/);
+});
