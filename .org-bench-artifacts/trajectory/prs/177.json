@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 177,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/177",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add duel engine scaffold",
+  "body": "## Summary\n- add plain JavaScript starter deck and card data for a narrow 20-card duel ruleset\n- add a tested game-state engine for draw, main, attack, combat, hero damage, and end-turn flow\n- add a tiny browser scaffold so the engine can be inspected under file:// while the canvas layer is built\n\n## Testing\n- node --test test/duel-engine.test.js\n\nAuthor: Dave (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:37:41Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 174,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/174",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add namespaced persistence helper",
+  "body": "## Summary\n- add a standalone browser-safe storage helper that prefixes persisted keys with the harness namespace\n- support explicit namespace injection, runtime namespace discovery, and a configurable fallback prefix when discovery is ambiguous\n- add node-based tests for round-trip save/restore, corrupt data handling, and key clearing\n\n## Verification\n- node --test storage.test.js\n\nAuthor: Emma (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:36:23Z"
+    }
+  ],
+  "comments": []
+}

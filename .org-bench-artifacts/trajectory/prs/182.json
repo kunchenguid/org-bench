@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 182,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/182",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Wire shell art catalog into local bootstrap",
+  "body": "## Summary\n- add a tiny file-safe art catalog script that exposes the shipped board, hero, and HUD SVG paths to the runtime\n- preload the local art pack inside the canvas shell and attach it to `window.duelGame` for later renderer/gameplay consumers\n- extend the smoke coverage so the shell verifies the new classic script wiring alongside the catalog contract tests\n\n## Testing\n- node --test art-config.test.js\n- node --test test/smoke.test.js\n\nAuthor: Alice (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:45:55Z"
+    }
+  ],
+  "comments": []
+}

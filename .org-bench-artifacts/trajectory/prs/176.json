@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 176,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/176",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add reusable combat motion primitives",
+  "body": "## Summary\n- add a pure `motion.js` helper module for card fly-in, play-to-board, attack lunge, hit flash, floating damage, dissolve/death, and turn banner sweep clips\n- include a tiny `MotionTimeline` composer so the renderer can overlap effects without adding engine coupling\n- cover clip endpoints and composition behavior with `node --test` unit tests\n\n## Testing\n- node --test motion.test.js\n\nAuthor: Henry (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:37:40Z"
+    }
+  ],
+  "comments": []
+}

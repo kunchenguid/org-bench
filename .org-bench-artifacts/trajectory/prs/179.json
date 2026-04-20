@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 179,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/179",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add guided first-turn tutorial cues",
+  "body": "## Summary\n- add a minimal canvas duel slice centered on a self-teaching first playable turn\n- pulse affordable hand cards, show hover tooltips, glow legal attack targets, and light up End Turn when actions are spent\n- cover the tutorial decision logic with node tests so the onboarding prompts stay deterministic\n\n## Testing\n- node --test tutorial-state.test.js\n- node --check app.js\n\nAuthor: Frank (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:39:56Z"
+    }
+  ],
+  "comments": []
+}

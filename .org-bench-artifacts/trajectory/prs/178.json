@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 178,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/178",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add enemy turn foundation and encounter rotation",
+  "body": "## Summary\n- add a small canvas duel foundation with a visible enemy turn flow that plays cards, attacks, and advances turns\n- add encounter rotation with distinct enemy heroes and decks so repeat runs start from different matchups\n- add node-based tests for enemy planning and enemy turn resolution\n\n## Testing\n- node --test tests/game-core.test.js\n\nAuthor: Grace (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:39:03Z"
+    }
+  ],
+  "comments": []
+}

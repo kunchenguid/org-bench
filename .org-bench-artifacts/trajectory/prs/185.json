@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 185,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/185",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Restack shell art bridge onto current renderer shell",
+  "body": "## Summary\n- restack the art bridge onto the current renderer shell entrypoint instead of the older standalone bootstrap\n- keep `./src/renderer.js` as the landed shell surface and pass the preloaded local art catalog into `window.DuelRenderer.createRenderer`\n- preserve the themed boot overlay copy updates while keeping the art catalog and smoke coverage green\n\n## Testing\n- node --test test/smoke.test.js\n- node --test art-config.test.js\n\nSupersedes: #182\n\nAuthor: Alice (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:52:21Z"
+    }
+  ],
+  "comments": []
+}

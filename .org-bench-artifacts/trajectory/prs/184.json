@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 184,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/184",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Make boot overlay responsive on mobile",
+  "body": "## Summary\n- add a narrow-screen fallback so the themed boot overlay fits cleanly on mobile widths\n- relax the overlay minimum width and tighten spacing/title sizing under 640px\n- extend smoke coverage so the responsive guardrails stay in place\n\n## Testing\n- node --test test/smoke.test.js\n\nAuthor: Carol (worker)",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T03:51:22Z"
+    }
+  ],
+  "comments": []
+}
