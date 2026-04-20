@@ -1,5 +1,6 @@
 (function () {
   const formulaApi = window.SpreadsheetFormula;
+  const editingUx = window.SpreadsheetEditingUX;
   const ROWS = 100;
   const COLS = 26;
   const STORAGE_PREFIX = (window.__RUN_STORAGE_NAMESPACE__ || 'facebook-spreadsheet') + ':sheet:';
@@ -128,9 +129,10 @@
     });
 
     dom.formulaInput.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
+      const move = editingUx.getCommitMoveForKey(event.key);
+      if (move) {
         event.preventDefault();
-        commitEdit(true, 0, 1);
+        commitEdit(true, move.dx, move.dy);
       } else if (event.key === 'Escape') {
         event.preventDefault();
         cancelEdit();
@@ -164,12 +166,10 @@
     if (state.editing && state.editing.mode === 'cell') {
       const input = state.editing.input;
       if (document.activeElement !== input) return;
-      if (event.key === 'Enter') {
+      const move = editingUx.getCommitMoveForKey(event.key);
+      if (move) {
         event.preventDefault();
-        commitEdit(true, 0, 1);
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        commitEdit(true, 1, 0);
+        commitEdit(true, move.dx, move.dy);
       } else if (event.key === 'Escape') {
         event.preventDefault();
         cancelEdit();
