@@ -1,32 +1,27 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Facebook Sheet</title>
-    <link rel="stylesheet" href="./styles.css">
-  </head>
-  <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Facebook</p>
-          <h1>Sheet</h1>
-        </div>
-        <p class="hint">Click a cell to edit. Press Enter to commit, F2 to edit in place.</p>
-      </header>
-
-      <section class="formula-panel">
-        <label class="name-box" for="formula-input">A1</label>
-        <input id="formula-input" class="formula-input" type="text" autocomplete="off" spellcheck="false">
-      </section>
-
-      <main class="sheet-frame">
-        <div id="sheet-root" class="sheet-root" aria-label="Spreadsheet grid"></div>
-      </main>
-    </div>
-
-    <script src="./spreadsheet.js"></script>
-    <script src="./app.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Facebook Sheets</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">Facebook Sheets</div>
+      <label class="formula-shell" for="formula-input">
+        <span class="formula-label">fx</span>
+        <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+      </label>
+      <div id="position-indicator" class="position-indicator">A1</div>
+    </header>
+    <main class="grid-shell">
+      <div id="grid-container" class="grid-container"></div>
+    </main>
+    <div id="statusbar" class="statusbar">Arrows move, Enter edits, Shift+Arrows expands selection.</div>
+  </div>
+  <script src="formula.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>
