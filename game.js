@@ -9,6 +9,8 @@
   }
 
   const namespace = String(
+    window.__RUN_STORAGE_NAMESPACE__ ||
+    window.__BENCHMARK_RUN_STORAGE_NAMESPACE__ ||
     window.__APPLE_RUN_STORAGE_NAMESPACE__ ||
     window.APPLE_RUN_STORAGE_NAMESPACE ||
     window.RUN_STORAGE_NAMESPACE ||

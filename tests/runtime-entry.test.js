@@ -18,3 +18,9 @@ test('runtime code uses currentPlayer instead of the removed currentSide field',
   assert.match(gameJs, /currentPlayer/);
   assert.doesNotMatch(gameJs, /currentSide/);
 });
+
+test('runtime code checks every run-scoped storage namespace global', () => {
+  assert.match(gameJs, /__RUN_STORAGE_NAMESPACE__/);
+  assert.match(gameJs, /__BENCHMARK_RUN_STORAGE_NAMESPACE__/);
+  assert.match(gameJs, /__APPLE_RUN_STORAGE_NAMESPACE__/);
+});
