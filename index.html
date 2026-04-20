@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Duel TCG Scaffold</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #0b1220;
+        color: #f5f7fb;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      pre {
+        padding: 16px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Duel TCG Rules Scaffold</h1>
+      <p>Core state machine, starter decks, and card definitions are ready for canvas integration.</p>
+      <pre id="state"></pre>
+    </main>
+    <script src="src/duel-data.js"></script>
+    <script src="src/duel-engine.js"></script>
+    <script>
+      const game = DuelEngine.createGame();
+      DuelEngine.startTurn(game);
+      document.getElementById('state').textContent = JSON.stringify(game, null, 2);
+    </script>
+  </body>
+</html>
