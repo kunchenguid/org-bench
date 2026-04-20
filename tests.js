@@ -37,6 +37,28 @@ function run() {
 
   const deletedEval = engine.evaluateSheet({ [engine.keyFromCoord(0, 0)]: '=B1+#REF!', [engine.keyFromCoord(0, 1)]: '1' }, { rows: 5, cols: 5 });
   assert.strictEqual(valueOf(deletedEval.evaluateCell(0, 0)), '#REF!', 'error literals should evaluate as spreadsheet errors');
+
+  const lowercase = engine.evaluateSheet({
+    [engine.keyFromCoord(0, 0)]: '2',
+    [engine.keyFromCoord(1, 0)]: '3',
+    [engine.keyFromCoord(2, 0)]: '=sum(a1:A2)',
+    [engine.keyFromCoord(3, 0)]: '=if(a3=5,"ok","no")',
+  }, { rows: 5, cols: 5 });
+  assert.strictEqual(valueOf(lowercase.evaluateCell(2, 0)), 5, 'lowercase functions and refs should evaluate');
+  assert.strictEqual(valueOf(lowercase.evaluateCell(3, 0)), 'ok', 'lowercase formulas should flow through dependent expressions');
+
+  const counted = engine.evaluateSheet({
+    [engine.keyFromCoord(0, 0)]: '2',
+    [engine.keyFromCoord(1, 0)]: 'hello',
+    [engine.keyFromCoord(2, 0)]: '',
+    [engine.keyFromCoord(3, 0)]: '=COUNT(A1:C1)',
+  }, { rows: 5, cols: 5 });
+  assert.strictEqual(valueOf(counted.evaluateCell(3, 0)), 1, 'COUNT should only count numeric values');
+
+  assert.strictEqual(engine.shiftFormula('="A1 stays"&A1', 1, 1), '="A1 stays"&B2', 'copy shifting should not rewrite refs inside strings');
+
+  const rewritten = engine.updateFormulasForStructure({ a: '="A1 stays"&B2' }, 'row', 1, 1);
+  assert.strictEqual(rewritten.a, '="A1 stays"&B3', 'structural rewrites should not rewrite refs inside strings');
 }
 
 run();

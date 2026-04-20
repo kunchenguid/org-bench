@@ -56,7 +56,7 @@
   }
 
   function isCellRefName(name) {
-    return /^\$?[A-Z]+\$?\d+$/.test(name);
+    return /^\$?[A-Z]+\$?\d+$/i.test(name);
   }
 
   function tokenize(input) {
@@ -105,9 +105,9 @@
         i += numberMatch[0].length;
         continue;
       }
-      var identMatch = input.slice(i).match(/^\$?[A-Z]+\$?\d+|^[A-Z_][A-Z0-9_]*/);
+      var identMatch = input.slice(i).match(/^\$?[A-Z]+\$?\d+|^[A-Z_][A-Z0-9_]*/i);
       if (identMatch) {
-        tokens.push({ type: 'ident', value: identMatch[0] });
+        tokens.push({ type: 'ident', value: identMatch[0].toUpperCase() });
         i += identMatch[0].length;
         continue;
       }
@@ -268,6 +268,37 @@
     return (ref.colAbs ? '$' : '') + indexToCol(ref.col) + (ref.rowAbs ? '$' : '') + String(ref.row + 1);
   }
 
+  function rewriteRefsOutsideStrings(raw, replacer) {
+    var result = '';
+    var index = 0;
+    var inString = false;
+    while (index < raw.length) {
+      var char = raw.charAt(index);
+      if (char === '"') {
+        result += char;
+        if (inString && raw.charAt(index + 1) === '"') {
+          result += '"';
+          index += 2;
+          continue;
+        }
+        inString = !inString;
+        index += 1;
+        continue;
+      }
+      if (!inString) {
+        var match = raw.slice(index).match(/^\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/i);
+        if (match) {
+          result += replacer(match[0]);
+          index += match[0].length;
+          continue;
+        }
+      }
+      result += char;
+      index += 1;
+    }
+    return result;
+  }
+
   function shiftRef(ref, rowDelta, colDelta) {
     return {
       row: ref.rowAbs ? ref.row : Math.max(0, ref.row + rowDelta),
@@ -281,7 +312,7 @@
     if (!raw || raw.charAt(0) !== '=') {
       return raw;
     }
-    return raw.replace(/\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/g, function (part) {
+    return rewriteRefsOutsideStrings(raw, function (part) {
       if (part.indexOf(':') >= 0) {
         var halves = part.split(':');
         return refToText(shiftRef(parseCellRef(halves[0]), rowDelta, colDelta)) + ':' + refToText(shiftRef(parseCellRef(halves[1]), rowDelta, colDelta));
@@ -506,7 +537,9 @@
         return values.length ? Math.max.apply(Math, values.map(coerceNumber)) : 0;
       }
       if (name === 'COUNT') {
-        return values.filter(function (value) { return value !== '' && value != null; }).length;
+        return values.filter(function (value) {
+          return typeof value === 'number' || isNumericText(value);
+        }).length;
       }
       if (name === 'IF') {
         return coerceBoolean(args[0]) ? args[1] : args[2];
@@ -558,7 +591,7 @@
   }
 
   function rewriteFormulaRefs(raw, kind, index, delta) {
-    return raw.replace(/\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/g, function (part) {
+    return rewriteRefsOutsideStrings(raw, function (part) {
       if (part.indexOf(':') >= 0) {
         var ends = part.split(':').map(function (segment) {
           return rewriteRefText(segment, kind, index, delta);
