@@ -1,5 +1,6 @@
 (function () {
   const formulaApi = window.SpreadsheetFormula;
+  const clipboardApi = window.SpreadsheetClipboard;
   const ROWS = 100;
   const COLS = 26;
   const STORAGE_PREFIX = (window.__RUN_STORAGE_NAMESPACE__ || 'facebook-spreadsheet') + ':sheet:';
@@ -16,7 +17,7 @@
     engine: formulaApi.createFormulaEngine({}),
     undoStack: [],
     redoStack: [],
-    lastCut: null,
+    clipboard: null,
   };
 
   const dom = {
@@ -404,16 +405,9 @@
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && state.editing) {
       return;
     }
-    const grid = rangeToMatrix(getSelectedRange(), false);
-    const text = grid.map(function (row) { return row.join('\t'); }).join('\n');
-    event.clipboardData.setData('text/plain', text);
+    state.clipboard = clipboardApi.createClipboardPayload(state.cells, state.rangeAnchor, state.rangeEnd, formulaApi, isCut);
+    event.clipboardData.setData('text/plain', state.clipboard.text);
     event.preventDefault();
-    if (isCut) {
-      state.lastCut = Array.from(getSelectedRange());
-      clearSelection();
-    } else {
-      state.lastCut = null;
-    }
   }
 
   function handlePaste(event) {
@@ -425,59 +419,16 @@
     const text = event.clipboardData.getData('text/plain');
     if (!text) return;
     event.preventDefault();
-    const sourceRows = text.split(/\r?\n/).map(function (line) { return line.split('\t'); });
     const previous = cloneCells(state.cells);
-    const targetRange = Array.from(getSelectedRange());
-    const anchor = formulaApi.parseCellId(state.selected);
-    const useMatchingRange = targetRange.length === sourceRows.length * sourceRows[0].length;
-    const destinationStart = useMatchingRange ? formulaApi.parseCellId(state.rangeAnchor) : anchor;
-    for (let rowOffset = 0; rowOffset < sourceRows.length; rowOffset += 1) {
-      for (let colOffset = 0; colOffset < sourceRows[rowOffset].length; colOffset += 1) {
-        const destinationId = formulaApi.columnIndexToName(clamp(destinationStart.columnIndex + colOffset, 0, COLS - 1)) + clamp(destinationStart.row + rowOffset, 1, ROWS);
-        const sourceValue = sourceRows[rowOffset][colOffset] || '';
-        state.cells[destinationId] = adjustFormulaForPaste(sourceValue, colOffset, rowOffset);
-      }
-    }
+    const payload = state.clipboard && state.clipboard.text === text
+      ? state.clipboard
+      : clipboardApi.createTextClipboardPayload(text);
+    state.cells = clipboardApi.applyClipboardPayload(state.cells, payload, state.rangeAnchor, state.selected, formulaApi, COLS, ROWS);
     pushHistory(previous, cloneCells(state.cells));
     rebuildEngine();
     saveState();
     renderAllCells();
-    state.lastCut = null;
-  }
-
-  function rangeToMatrix(rangeSet) {
-    const cells = Array.from(rangeSet);
-    const anchor = formulaApi.parseCellId(state.rangeAnchor);
-    const end = formulaApi.parseCellId(state.rangeEnd);
-    const minColumn = Math.min(anchor.columnIndex, end.columnIndex);
-    const minRow = Math.min(anchor.row, end.row);
-    const maxColumn = Math.max(anchor.columnIndex, end.columnIndex);
-    const maxRow = Math.max(anchor.row, end.row);
-    const matrix = [];
-    for (let row = minRow; row <= maxRow; row += 1) {
-      const outputRow = [];
-      for (let column = minColumn; column <= maxColumn; column += 1) {
-        const cellId = formulaApi.columnIndexToName(column) + row;
-        outputRow.push(getRaw(cellId));
-      }
-      matrix.push(outputRow);
-    }
-    return matrix;
-  }
-
-  function adjustFormulaForPaste(value, columnDelta, rowDelta) {
-    if (!value || value.charAt(0) !== '=') {
-      return value;
-    }
-    return value.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, function (_, absCol, columnName, absRow, rowNumber) {
-      let nextColumn = formulaApi.columnNameToIndex(columnName);
-      let nextRow = Number(rowNumber);
-      if (!absCol) nextColumn += columnDelta;
-      if (!absRow) nextRow += rowDelta;
-      nextColumn = clamp(nextColumn, 0, COLS - 1);
-      nextRow = clamp(nextRow, 1, ROWS);
-      return (absCol ? '$' : '') + formulaApi.columnIndexToName(nextColumn) + (absRow ? '$' : '') + nextRow;
-    });
+    state.clipboard = payload.isCut ? null : payload;
   }
 
   function undo() {
