@@ -86,6 +86,15 @@ function run() {
   }, { rows: 5, cols: 5 });
   assert.strictEqual(valueOf(lazyIf.evaluateCell(0, 0)), 1, 'IF should not evaluate the false branch when condition is true');
   assert.strictEqual(valueOf(lazyIf.evaluateCell(1, 0)), 2, 'IF should not evaluate the true branch when condition is false');
+
+  const lowercase = engine.evaluateSheet({
+    [engine.keyFromCoord(0, 0)]: '2',
+    [engine.keyFromCoord(1, 0)]: '3',
+    [engine.keyFromCoord(0, 1)]: '=sum(a1:a2)',
+    [engine.keyFromCoord(1, 1)]: '=if(b1=5,true,false)',
+  }, { rows: 5, cols: 5 });
+  assert.strictEqual(valueOf(lowercase.evaluateCell(0, 1)), 5, 'lowercase function names and refs should parse');
+  assert.strictEqual(valueOf(lowercase.evaluateCell(1, 1)), true, 'lowercase booleans should parse inside formulas');
 }
 
 run();
