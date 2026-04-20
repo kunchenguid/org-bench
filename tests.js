@@ -1,9 +1,120 @@
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
 const engine = require('./engine.js');
 const storage = require('./storage.js');
 
 function valueOf(result) {
   return result.value;
+}
+
+function createFakeElement(id, documentRef) {
+  return {
+    id: id,
+    value: '',
+    textContent: '',
+    innerHTML: '',
+    listeners: {},
+    style: {},
+    classList: {
+      add: function () {},
+      remove: function () {},
+      contains: function () { return false; },
+    },
+    addEventListener: function (type, handler) {
+      this.listeners[type] = handler;
+    },
+    focus: function () {
+      documentRef.activeElement = this;
+    },
+    blur: function () {
+      if (documentRef.activeElement === this) {
+        documentRef.activeElement = null;
+      }
+    },
+    closest: function () {
+      return null;
+    },
+    dispatch: function (type, event) {
+      var payload = Object.assign({
+        target: this,
+        currentTarget: this,
+        preventDefault: function () {
+          payload.defaultPrevented = true;
+        },
+        defaultPrevented: false,
+      }, event || {});
+      if (this.listeners[type]) {
+        this.listeners[type](payload);
+      }
+      return payload;
+    },
+  };
+}
+
+function createAppHarness() {
+  var documentRef = {
+    activeElement: null,
+    listeners: {},
+    documentElement: { dataset: {} },
+    body: { dataset: {} },
+    querySelector: function () { return null; },
+    querySelectorAll: function () { return []; },
+    addEventListener: function (type, handler) {
+      this.listeners[type] = handler;
+    },
+  };
+  var elements = {
+    sheet: createFakeElement('sheet', documentRef),
+    'formula-input': createFakeElement('formula-input', documentRef),
+    'selection-meta': createFakeElement('selection-meta', documentRef),
+    'context-menu': createFakeElement('context-menu', documentRef),
+  };
+  documentRef.getElementById = function (id) {
+    return elements[id] || null;
+  };
+
+  var storageState = {};
+  var localStorage = {
+    getItem: function (key) {
+      return Object.prototype.hasOwnProperty.call(storageState, key) ? storageState[key] : null;
+    },
+    setItem: function (key, value) {
+      storageState[key] = String(value);
+    },
+  };
+  var windowRef = {
+    SpreadsheetEngine: engine,
+    SpreadsheetStorage: storage,
+    SpreadsheetClipboard: {
+      resolvePasteTarget: function (range, active) { return active; },
+      cellsToClearAfterCut: function () { return []; },
+    },
+    __BENCHMARK_STORAGE_NAMESPACE__: 'test:',
+    addEventListener: function () {},
+    localStorage: localStorage,
+    navigator: { platform: 'MacIntel' },
+    location: { origin: 'file://', pathname: '/tmp/test/index.html', search: '' },
+  };
+
+  var source = fs.readFileSync(path.join(__dirname, 'app.js'), 'utf8');
+  vm.runInNewContext(source, {
+    window: windowRef,
+    document: documentRef,
+    localStorage: localStorage,
+    navigator: windowRef.navigator,
+    console: console,
+    URLSearchParams: URLSearchParams,
+  });
+
+  return {
+    formulaInput: elements['formula-input'],
+    selectionMeta: elements['selection-meta'],
+    getSavedState: function () {
+      return storageState['test:grid-state'] ? JSON.parse(storageState['test:grid-state']) : null;
+    },
+  };
 }
 
 function run() {
@@ -84,8 +195,19 @@ function run() {
     [engine.keyFromCoord(0, 0)]: '=IF(TRUE,1,1/0)',
     [engine.keyFromCoord(1, 0)]: '=IF(FALSE,1/0,2)',
   }, { rows: 5, cols: 5 });
-  assert.strictEqual(valueOf(lazyIf.evaluateCell(0, 0)), 1, 'IF should not evaluate the false branch when condition is true');
-  assert.strictEqual(valueOf(lazyIf.evaluateCell(1, 0)), 2, 'IF should not evaluate the true branch when condition is false');
+  assert.strictEqual(valueOf(lazyIf.evaluateCell(0, 0)), 1, 'IF should not evaluate the false branch when the condition is true');
+  assert.strictEqual(valueOf(lazyIf.evaluateCell(1, 0)), 2, 'IF should not evaluate the true branch when the condition is false');
+
+  const appHarness = createAppHarness();
+  appHarness.formulaInput.focus();
+  appHarness.formulaInput.dispatch('focus');
+  appHarness.formulaInput.value = '=1+1';
+  appHarness.formulaInput.dispatch('input');
+  appHarness.formulaInput.dispatch('keydown', { key: 'Tab' });
+  const savedState = appHarness.getSavedState();
+  assert.ok(savedState, 'formula bar Tab should commit a new saved state');
+  assert.deepStrictEqual(savedState.active, { row: 0, col: 1 }, 'formula bar Tab should commit and move selection right');
+  assert.strictEqual(savedState.cells['0,0'], '=1+1', 'formula bar Tab should commit the draft into the active cell');
 }
 
 run();
