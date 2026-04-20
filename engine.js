@@ -622,6 +622,42 @@
     return refToText(ref);
   }
 
+  function shiftSelectionIndex(value, index, delta, upperBound) {
+    if (delta > 0) {
+      if (value >= index) {
+        value += delta;
+      }
+    } else {
+      if (value === index) {
+        value = Math.max(0, value + delta);
+      } else if (value > index) {
+        value += delta;
+      }
+    }
+
+    return Math.max(0, Math.min(upperBound, value));
+  }
+
+  function adjustSelectionForStructure(selection, kind, index, delta, dimensions) {
+    var maxRow = Math.max(0, dimensions.rows - 1);
+    var maxCol = Math.max(0, dimensions.cols - 1);
+
+    function adjustCoord(coord) {
+      return {
+        row: kind === 'row' ? shiftSelectionIndex(coord.row, index, delta, maxRow) : coord.row,
+        col: kind === 'col' ? shiftSelectionIndex(coord.col, index, delta, maxCol) : coord.col,
+      };
+    }
+
+    return {
+      active: adjustCoord(selection.active),
+      range: {
+        start: adjustCoord(selection.range.start),
+        end: adjustCoord(selection.range.end),
+      },
+    };
+  }
+
   return {
     cloneCells: cloneCells,
     colToIndex: colToIndex,
@@ -629,6 +665,7 @@
     keyFromCoord: keyFromCoord,
     evaluateSheet: evaluateSheet,
     shiftFormula: shiftFormula,
+    adjustSelectionForStructure: adjustSelectionForStructure,
     updateFormulasForStructure: updateFormulasForStructure,
   };
 });

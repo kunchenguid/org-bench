@@ -24,6 +24,26 @@ function run() {
     [],
     'pasting a cut range back onto itself should not clear anything'
   );
+
+  assert.deepStrictEqual(
+    clipboard.resolvePasteTarget(
+      { start: { row: 2, col: 2 }, end: { row: 3, col: 3 } },
+      { row: 3, col: 3 },
+      [['1', '2'], ['3', '4']]
+    ),
+    { row: 2, col: 2 },
+    'matching-size selections should paste into the selection top-left, not the active cell'
+  );
+
+  assert.deepStrictEqual(
+    clipboard.resolvePasteTarget(
+      { start: { row: 2, col: 2 }, end: { row: 4, col: 4 } },
+      { row: 4, col: 4 },
+      [['1', '2'], ['3', '4']]
+    ),
+    { row: 4, col: 4 },
+    'non-matching selections should still paste from the active cell'
+  );
 }
 
 run();
