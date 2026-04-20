@@ -560,7 +560,7 @@
       if (internalClipboard && serializeMatrix(internalClipboard.matrix) === text) {
         sourceOrigin = internalClipboard.origin;
       }
-      writeMatrix(state.active, matrix, sourceOrigin);
+      writeMatrix(clipboard.resolvePasteTarget(state.range, state.active, matrix), matrix, sourceOrigin);
       if (internalClipboard && internalClipboard.cut && sourceOrigin) {
         clipboard.cellsToClearAfterCut(sourceOrigin, matrix, state.active).forEach(function (coord) {
           delete state.cells[engine.keyFromCoord(coord.row, coord.col)];
