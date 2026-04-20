@@ -172,6 +172,11 @@
         formulaInput.value = input.value;
       });
       input.addEventListener('keydown', handleEditKeydown);
+      input.addEventListener('blur', function () {
+        if (state.editing && state.editing.source === 'cell') {
+          commitEdit();
+        }
+      });
     }
   }
 
@@ -217,6 +222,12 @@
     persist();
     if (move) {
       setActive(state.active.row + move.row, state.active.col + move.col, false);
+    }
+  }
+
+  function commitPendingEdit() {
+    if (state.editing) {
+      commitEdit();
     }
   }
 
@@ -391,6 +402,7 @@
     if (!cell) {
       return;
     }
+    commitPendingEdit();
     var row = parseInt(cell.getAttribute('data-row'), 10);
     var col = parseInt(cell.getAttribute('data-col'), 10);
     dragMode = 'select';
@@ -482,6 +494,7 @@
       if (!button) {
         return;
       }
+      commitPendingEdit();
       var kind = button.getAttribute('data-kind');
       var index = parseInt(button.getAttribute('data-index'), 10);
       var action = button.getAttribute('data-action');
@@ -501,6 +514,11 @@
         state.editing = { draft: selectedRaw(), source: 'formula' };
       }
       state.editing.draft = formulaInput.value;
+    });
+    formulaInput.addEventListener('blur', function () {
+      if (state.editing && state.editing.source === 'formula') {
+        commitEdit();
+      }
     });
     formulaInput.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
