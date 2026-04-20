@@ -1,7 +1,43 @@
 (function () {
   var canvas = document.getElementById('game-canvas');
   var status = document.getElementById('boot-status');
+  var artCatalog = window.ArtConfig ? window.ArtConfig.createArtCatalog() : null;
+  var duelGame = window.duelGame || (window.duelGame = {});
   var gl = canvas.getContext('webgl', { alpha: false, antialias: true });
+
+  function preload(path) {
+    if (!path || typeof Image === 'undefined') {
+      return null;
+    }
+
+    var image = new Image();
+    image.decoding = 'async';
+    image.src = path;
+    return image;
+  }
+
+  function buildArtAssets(catalog) {
+    if (!catalog) {
+      return null;
+    }
+
+    return {
+      catalog: catalog,
+      images: {
+        board: preload(catalog.board.path),
+        heroes: {
+          player: preload(catalog.heroes.player),
+          enemy: preload(catalog.heroes.enemy),
+        },
+        hud: {
+          health: preload(catalog.hud.health),
+          mana: preload(catalog.hud.mana),
+        },
+      },
+    };
+  }
+
+  duelGame.art = buildArtAssets(artCatalog);
 
   if (!gl) {
     status.textContent = 'WebGL is unavailable in this browser.';
@@ -34,6 +70,6 @@
 
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
-  status.textContent = 'Canvas shell ready for game systems.';
+  status.textContent = duelGame.art ? 'Canvas shell ready with local art preloaded.' : 'Canvas shell ready for game systems.';
   requestAnimationFrame(render);
 })();
