@@ -56,7 +56,7 @@
   }
 
   function isCellRefName(name) {
-    return /^\$?[A-Z]+\$?\d+$/.test(name);
+    return /^\$?[A-Z]+\$?\d+$/i.test(name);
   }
 
   function tokenize(input) {
@@ -105,7 +105,7 @@
         i += numberMatch[0].length;
         continue;
       }
-      var identMatch = input.slice(i).match(/^\$?[A-Z]+\$?\d+|^[A-Z_][A-Z0-9_]*/);
+      var identMatch = input.slice(i).match(/^\$?[A-Z]+\$?\d+|^[A-Z_][A-Z0-9_]*/i);
       if (identMatch) {
         tokens.push({ type: 'ident', value: identMatch[0] });
         i += identMatch[0].length;
@@ -252,7 +252,7 @@
   }
 
   function parseCellRef(text) {
-    var match = text.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/);
+    var match = text.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/i);
     if (!match) {
       throw { code: '#ERR!' };
     }
@@ -281,7 +281,7 @@
     if (!raw || raw.charAt(0) !== '=') {
       return raw;
     }
-    return raw.replace(/\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/g, function (part) {
+    return raw.replace(/\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/gi, function (part) {
       if (part.indexOf(':') >= 0) {
         var halves = part.split(':');
         return refToText(shiftRef(parseCellRef(halves[0]), rowDelta, colDelta)) + ':' + refToText(shiftRef(parseCellRef(halves[1]), rowDelta, colDelta));
@@ -558,7 +558,7 @@
   }
 
   function rewriteFormulaRefs(raw, kind, index, delta) {
-    return raw.replace(/\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/g, function (part) {
+    return raw.replace(/\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/gi, function (part) {
       if (part.indexOf(':') >= 0) {
         return rewriteRangeText(part, kind, index, delta);
       }
