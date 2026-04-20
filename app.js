@@ -17,7 +17,8 @@
     engine: formulaApi.createFormulaEngine({}),
     undoStack: [],
     redoStack: [],
-    lastCut: null,
+    clipboard: null,
+    headerMenu: null,
   };
 
   const dom = {
@@ -25,11 +26,13 @@
     formulaInput: document.getElementById('formula-input'),
     positionIndicator: document.getElementById('position-indicator'),
     statusbar: document.getElementById('statusbar'),
+    headerMenu: null,
   };
 
   function init() {
     loadState();
     rebuildEngine();
+    createHeaderMenu();
     renderGrid();
     renderAllCells();
     bindGlobalEvents();
@@ -48,7 +51,8 @@
 
     for (let column = 0; column < COLS; column += 1) {
       const th = document.createElement('th');
-      th.textContent = formulaApi.columnIndexToName(column);
+      th.className = 'col-header';
+      th.appendChild(createHeaderContent('column', column, formulaApi.columnIndexToName(column)));
       headRow.appendChild(th);
     }
     thead.appendChild(headRow);
@@ -59,7 +63,7 @@
       const tr = document.createElement('tr');
       const rowHeader = document.createElement('th');
       rowHeader.className = 'row-header';
-      rowHeader.textContent = String(row);
+      rowHeader.appendChild(createHeaderContent('row', row - 1, String(row)));
       tr.appendChild(rowHeader);
 
       for (let column = 0; column < COLS; column += 1) {
@@ -80,6 +84,80 @@
     table.appendChild(tbody);
     dom.grid.innerHTML = '';
     dom.grid.appendChild(table);
+  }
+
+  function createHeaderContent(kind, index, label) {
+    const shell = document.createElement('div');
+    shell.className = 'header-shell';
+
+    const text = document.createElement('span');
+    text.className = 'header-text';
+    text.textContent = label;
+    shell.appendChild(text);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'header-action-toggle';
+    button.setAttribute('aria-label', (kind === 'column' ? 'Column ' : 'Row ') + label + ' actions');
+    button.textContent = '...';
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      openHeaderMenu(kind, index, button);
+    });
+    shell.appendChild(button);
+
+    return shell;
+  }
+
+  function createHeaderMenu() {
+    const menu = document.createElement('div');
+    menu.className = 'header-menu hidden';
+    menu.innerHTML = [
+      '<button type="button" data-action="insert-before"></button>',
+      '<button type="button" data-action="insert-after"></button>',
+      '<button type="button" data-action="delete"></button>',
+    ].join('');
+    menu.addEventListener('click', function (event) {
+      const action = event.target.dataset.action;
+      if (!action || !state.headerMenu) {
+        return;
+      }
+      const menuState = state.headerMenu;
+      closeHeaderMenu();
+      if (action === 'insert-before') {
+        applyStructuralChange(menuState.kind, menuState.index, 'insert');
+      } else if (action === 'insert-after') {
+        applyStructuralChange(menuState.kind, menuState.index + 1, 'insert');
+      } else if (action === 'delete') {
+        applyStructuralChange(menuState.kind, menuState.index, 'delete');
+      }
+    });
+    document.body.appendChild(menu);
+    dom.headerMenu = menu;
+  }
+
+  function openHeaderMenu(kind, index, button) {
+    if (!dom.headerMenu) {
+      return;
+    }
+    const rect = button.getBoundingClientRect();
+    const isColumn = kind === 'column';
+    const buttons = dom.headerMenu.querySelectorAll('button');
+    buttons[0].textContent = isColumn ? 'Insert column left' : 'Insert row above';
+    buttons[1].textContent = isColumn ? 'Insert column right' : 'Insert row below';
+    buttons[2].textContent = isColumn ? 'Delete column' : 'Delete row';
+    dom.headerMenu.style.top = String(window.scrollY + rect.bottom + 6) + 'px';
+    dom.headerMenu.style.left = String(window.scrollX + rect.left - 8) + 'px';
+    dom.headerMenu.classList.remove('hidden');
+    state.headerMenu = { kind: kind, index: index };
+  }
+
+  function closeHeaderMenu() {
+    state.headerMenu = null;
+    if (dom.headerMenu) {
+      dom.headerMenu.classList.add('hidden');
+    }
   }
 
   function attachCellEvents(cellEl) {
@@ -114,6 +192,15 @@
       state.dragging = false;
     });
 
+    document.addEventListener('click', function (event) {
+      if (!dom.headerMenu || dom.headerMenu.classList.contains('hidden')) {
+        return;
+      }
+      if (!dom.headerMenu.contains(event.target)) {
+        closeHeaderMenu();
+      }
+    });
+
     document.addEventListener('keydown', handleKeydown);
 
     dom.formulaInput.addEventListener('focus', function () {
@@ -145,6 +232,11 @@
   }
 
   function handleKeydown(event) {
+    if (event.key === 'Escape' && state.headerMenu) {
+      closeHeaderMenu();
+      return;
+    }
+
     if ((event.metaKey || event.ctrlKey) && !state.editing) {
       const lower = event.key.toLowerCase();
       if (lower === 'z') {
@@ -397,6 +489,143 @@
     rebuildEngine();
     saveState();
     renderAllCells();
+  }
+
+  function applyStructuralChange(kind, index, mode) {
+    if (state.editing) {
+      commitEdit(false);
+    }
+    closeHeaderMenu();
+    const previous = cloneCells(state.cells);
+    state.cells = rewriteCellsForStructure(state.cells, kind, index, mode);
+    shiftSelectionForStructure(kind, index, mode);
+    pushHistory(previous, cloneCells(state.cells));
+    rebuildEngine();
+    renderGrid();
+    renderAllCells();
+    saveState();
+    focusSelectedCell();
+    dom.statusbar.textContent = describeStructuralChange(kind, index, mode);
+  }
+
+  function rewriteCellsForStructure(cells, kind, index, mode) {
+    const next = {};
+    Object.entries(cells).forEach(function (entry) {
+      const cellId = entry[0];
+      const raw = entry[1];
+      const parsed = formulaApi.parseCellId(cellId);
+
+      if (kind === 'column') {
+        if (mode === 'delete' && parsed.columnIndex === index && (typeof raw !== 'string' || raw.charAt(0) !== '=')) {
+          return;
+        }
+        const nextColumn = mode === 'insert'
+          ? (parsed.columnIndex >= index ? parsed.columnIndex + 1 : parsed.columnIndex)
+          : (parsed.columnIndex > index ? parsed.columnIndex - 1 : parsed.columnIndex);
+        if (nextColumn < 0 || nextColumn >= COLS) {
+          return;
+        }
+        next[formulaApi.columnIndexToName(nextColumn) + parsed.row] = rewriteFormulaColumns(raw, index, mode);
+        return;
+      }
+
+      const currentRow = parsed.row - 1;
+      if (mode === 'delete' && currentRow === index && (typeof raw !== 'string' || raw.charAt(0) !== '=')) {
+        return;
+      }
+      const nextRow = mode === 'insert'
+        ? (currentRow >= index ? currentRow + 1 : currentRow)
+        : (currentRow > index ? currentRow - 1 : currentRow);
+      if (nextRow < 0 || nextRow >= ROWS) {
+        return;
+      }
+      next[formulaApi.columnIndexToName(parsed.columnIndex) + String(nextRow + 1)] = rewriteFormulaRows(raw, index, mode);
+    });
+    return next;
+  }
+
+  function rewriteFormulaRows(raw, rowIndex, mode) {
+    if (typeof raw !== 'string' || raw.charAt(0) !== '=') {
+      return raw;
+    }
+    return raw.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, function (match, absCol, colName, absRow, rowText) {
+      if (absRow) {
+        return match;
+      }
+      const currentRow = Number(rowText) - 1;
+      if (mode === 'insert') {
+        const nextRow = currentRow >= rowIndex ? currentRow + 1 : currentRow;
+        return (absCol ? '$' : '') + colName + (absRow ? '$' : '') + String(nextRow + 1);
+      }
+      if (currentRow === rowIndex) {
+        return '#REF!';
+      }
+      const nextRow = currentRow > rowIndex ? currentRow - 1 : currentRow;
+      return (absCol ? '$' : '') + colName + (absRow ? '$' : '') + String(nextRow + 1);
+    });
+  }
+
+  function rewriteFormulaColumns(raw, colIndex, mode) {
+    if (typeof raw !== 'string' || raw.charAt(0) !== '=') {
+      return raw;
+    }
+    return raw.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, function (match, absCol, colName, absRow, rowText) {
+      if (absCol) {
+        return match;
+      }
+      const currentCol = formulaApi.columnNameToIndex(colName);
+      if (mode === 'insert') {
+        const nextCol = currentCol >= colIndex ? currentCol + 1 : currentCol;
+        return (absCol ? '$' : '') + formulaApi.columnIndexToName(nextCol) + (absRow ? '$' : '') + rowText;
+      }
+      if (currentCol === colIndex) {
+        return '#REF!';
+      }
+      const nextCol = currentCol > colIndex ? currentCol - 1 : currentCol;
+      return (absCol ? '$' : '') + formulaApi.columnIndexToName(nextCol) + (absRow ? '$' : '') + rowText;
+    });
+  }
+
+  function shiftSelectionForStructure(kind, index, mode) {
+    state.selected = shiftCellId(state.selected, kind, index, mode);
+    state.rangeAnchor = shiftCellId(state.rangeAnchor, kind, index, mode);
+    state.rangeEnd = shiftCellId(state.rangeEnd, kind, index, mode);
+  }
+
+  function shiftCellId(cellId, kind, index, mode) {
+    const parsed = formulaApi.parseCellId(cellId);
+    let columnIndex = parsed.columnIndex;
+    let rowIndex = parsed.row - 1;
+
+    if (kind === 'column') {
+      if (mode === 'insert' && columnIndex >= index) {
+        columnIndex += 1;
+      } else if (mode === 'delete') {
+        if (columnIndex > index) {
+          columnIndex -= 1;
+        } else if (columnIndex === index) {
+          columnIndex = Math.max(0, columnIndex - 1);
+        }
+      }
+    } else if (mode === 'insert' && rowIndex >= index) {
+      rowIndex += 1;
+    } else if (mode === 'delete') {
+      if (rowIndex > index) {
+        rowIndex -= 1;
+      } else if (rowIndex === index) {
+        rowIndex = Math.max(0, rowIndex - 1);
+      }
+    }
+
+    return formulaApi.columnIndexToName(clamp(columnIndex, 0, COLS - 1)) + String(clamp(rowIndex + 1, 1, ROWS));
+  }
+
+  function describeStructuralChange(kind, index, mode) {
+    if (kind === 'column') {
+      const label = formulaApi.columnIndexToName(clamp(index, 0, COLS - 1));
+      return mode === 'insert' ? 'Inserted column near ' + label + '.' : 'Deleted column ' + label + '.';
+    }
+    return mode === 'insert' ? 'Inserted row near ' + String(index + 1) + '.' : 'Deleted row ' + String(index + 1) + '.';
   }
 
   function handleCopyCut(isCut, event) {

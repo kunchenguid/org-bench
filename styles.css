@@ -129,6 +129,78 @@ body {
   min-width: 56px;
 }
 
+.col-header,
+.row-header {
+  padding: 0;
+}
+
+.header-shell {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 6px 0 10px;
+}
+
+.header-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-action-toggle {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 5px;
+  font: inherit;
+  line-height: 1;
+}
+
+.header-action-toggle:hover,
+.header-action-toggle:focus-visible {
+  background: rgba(45, 109, 246, 0.12);
+  color: var(--text);
+  outline: none;
+}
+
+.header-menu {
+  position: absolute;
+  z-index: 20;
+  display: grid;
+  gap: 4px;
+  min-width: 172px;
+  padding: 6px;
+  border: 1px solid var(--grid-strong);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.header-menu.hidden {
+  display: none;
+}
+
+.header-menu button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.header-menu button:hover,
+.header-menu button:focus-visible {
+  background: var(--selection-soft);
+  outline: none;
+}
+
 .row-header {
   position: sticky;
   left: 0;
