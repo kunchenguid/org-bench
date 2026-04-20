@@ -8,17 +8,26 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="formula-panel">
-        <div class="name-box" id="name-box">A1</div>
-        <label class="formula-label" for="formula-input">fx</label>
-        <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand">Grid</div>
+          <div class="subtitle">Fast local spreadsheet</div>
+        </div>
+        <div class="formula-panel">
+          <label class="name-box-label" for="formula-input">Cell</label>
+          <div class="name-box" id="selected-cell-label">A1</div>
+          <label class="formula-label" for="formula-input">Formula</label>
+          <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+        </div>
       </header>
-      <main class="sheet-shell">
-        <div class="sheet-scroll" id="sheet-scroll">
-          <table class="sheet" id="sheet" aria-label="Spreadsheet"></table>
+      <main class="sheet-frame">
+        <div class="sheet-grid-wrap">
+          <table class="sheet-grid" id="sheet-grid" aria-label="Spreadsheet"></table>
         </div>
       </main>
     </div>
+    <script src="src/formula.js"></script>
+    <script src="src/spreadsheet-state.js"></script>
     <script src="app.js"></script>
   </body>
   </html>
