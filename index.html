@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Grid</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="formula-panel">
+        <div class="name-box" id="name-box">A1</div>
+        <label class="formula-label" for="formula-input">fx</label>
+        <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+      </header>
+      <main class="sheet-shell">
+        <div class="sheet-scroll" id="sheet-scroll">
+          <table class="sheet" id="sheet" aria-label="Spreadsheet"></table>
+        </div>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+  </html>
