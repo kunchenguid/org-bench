@@ -487,7 +487,11 @@
       }
       if (node.type === 'call') {
         if (node.name === 'IF') {
-          return coerceBoolean(evalNode(node.args[0])) ? evalNode(node.args[1]) : evalNode(node.args[2]);
+          var condition = coerceBoolean(evalNode(node.args[0]));
+          if (condition) {
+            return node.args.length > 1 ? evalNode(node.args[1]) : true;
+          }
+          return node.args.length > 2 ? evalNode(node.args[2]) : false;
         }
         return evalFunction(node.name, node.args.map(evalNode));
       }

@@ -83,9 +83,12 @@ function run() {
   const lazyIf = engine.evaluateSheet({
     [engine.keyFromCoord(0, 0)]: '=IF(TRUE,1,1/0)',
     [engine.keyFromCoord(1, 0)]: '=IF(FALSE,1/0,2)',
-  }, { rows: 5, cols: 5 });
+    [engine.keyFromCoord(2, 0)]: '=IF(FALSE,A4,3)',
+    [engine.keyFromCoord(3, 0)]: '=A3',
+  }, { rows: 6, cols: 6 });
   assert.strictEqual(valueOf(lazyIf.evaluateCell(0, 0)), 1, 'IF should not evaluate the false branch when condition is true');
   assert.strictEqual(valueOf(lazyIf.evaluateCell(1, 0)), 2, 'IF should not evaluate the true branch when condition is false');
+  assert.strictEqual(valueOf(lazyIf.evaluateCell(2, 0)), 3, 'IF should not trigger circular refs from the unselected branch');
 }
 
 run();
