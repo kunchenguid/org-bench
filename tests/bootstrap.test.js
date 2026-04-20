@@ -13,3 +13,14 @@ test('index.html provides a canvas-first entrypoint with classic scripts', () =>
   assert.match(html, /<script\s+src="src\/game\.js"><\/script>/i);
   assert.doesNotMatch(html, /type="module"/i);
 });
+
+test('the integrated renderer ships authored svg assets and references them from src/game.js', () => {
+  const gameJs = fs.readFileSync(path.join(root, 'src', 'game.js'), 'utf8');
+
+  assert.equal(fs.existsSync(path.join(root, 'assets', 'board-bg.svg')), true);
+  assert.equal(fs.existsSync(path.join(root, 'assets', 'hero-player.svg')), true);
+  assert.equal(fs.existsSync(path.join(root, 'assets', 'hero-ai.svg')), true);
+  assert.match(gameJs, /assets\/board-bg\.svg/);
+  assert.match(gameJs, /assets\/hero-player\.svg/);
+  assert.match(gameJs, /assets\/hero-ai\.svg/);
+});
