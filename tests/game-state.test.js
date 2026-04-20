@@ -5,6 +5,7 @@ const {
   chooseEncounterVariant,
   createInitialState,
   createStorageKey,
+  describeEncounter,
   hydrateState,
   playCard,
   endTurn,
@@ -62,6 +63,15 @@ test('chooseEncounterVariant is deterministic per run seed and changes tutorial 
   assert.deepEqual(repeatedShieldSeed, shieldSeed);
   assert.notEqual(rushSeed.id, shieldSeed.id);
   assert.notEqual(rushSeed.enemyBoard[0].templateId, shieldSeed.enemyBoard[0].templateId);
+});
+
+test('describeEncounter returns the visible matchup summary for the current duel', () => {
+  const state = createInitialState();
+
+  assert.equal(
+    describeEncounter(state),
+    'The Breach at Glasshouse Gate - Lys, Heartroot Warden vs Commander Varka'
+  );
 });
 
 test('runEnemyTurn plays a legal card, attacks an open lane, and returns control to the player', () => {

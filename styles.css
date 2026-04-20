@@ -48,6 +48,16 @@ body {
   margin-top: 0.45rem;
 }
 
+.hud__pill {
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(152, 215, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(29, 47, 80, 0.5);
+  color: #d7e8ff;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+}
+
 .cue-text {
   color: #c0cee9;
   font-size: 0.95rem;

@@ -405,6 +405,14 @@
     return played + attacks;
   }
 
+  function describeEncounter(state) {
+    const duelState = state || createInitialState();
+    const encounterName = duelState.encounter && duelState.encounter.name ? duelState.encounter.name : 'Duel';
+    const playerName = duelState.player && duelState.player.hero && duelState.player.hero.name ? duelState.player.hero.name : 'Player';
+    const enemyName = duelState.enemy && duelState.enemy.hero && duelState.enemy.hero.name ? duelState.enemy.hero.name : 'Enemy';
+    return encounterName + ' - ' + playerName + ' vs ' + enemyName;
+  }
+
   function createCard(templateId, instanceId) {
     const template = CARD_LIBRARY[templateId];
     return Object.assign({ id: instanceId }, clone(template));
@@ -444,6 +452,7 @@
     chooseEncounterVariant,
     createInitialState,
     createStorageKey,
+    describeEncounter,
     endTurn,
     hydrateState,
     playCard,
