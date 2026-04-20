@@ -560,16 +560,44 @@
   function rewriteFormulaRefs(raw, kind, index, delta) {
     return raw.replace(/\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?/g, function (part) {
       if (part.indexOf(':') >= 0) {
-        var ends = part.split(':').map(function (segment) {
-          return rewriteRefText(segment, kind, index, delta);
-        });
-        if (ends[0] === '#REF!' || ends[1] === '#REF!') {
-          return '#REF!';
-        }
-        return ends[0] + ':' + ends[1];
+        return rewriteRangeText(part, kind, index, delta);
       }
       return rewriteRefText(part, kind, index, delta);
     });
+  }
+
+  function rewriteRangeText(text, kind, index, delta) {
+    var halves = text.split(':');
+    var start = parseCellRef(halves[0]);
+    var end = parseCellRef(halves[1]);
+    var startValue = kind === 'row' ? Math.min(start.row, end.row) : Math.min(start.col, end.col);
+    var endValue = kind === 'row' ? Math.max(start.row, end.row) : Math.max(start.col, end.col);
+
+    if (delta > 0) {
+      if (startValue >= index) {
+        startValue += delta;
+      }
+      if (endValue >= index) {
+        endValue += delta;
+      }
+    } else if (index < startValue) {
+      startValue += delta;
+      endValue += delta;
+    } else if (index <= endValue) {
+      if (startValue === endValue) {
+        return '#REF!';
+      }
+      endValue += delta;
+    }
+
+    if (kind === 'row') {
+      start.row = startValue;
+      end.row = endValue;
+    } else {
+      start.col = startValue;
+      end.col = endValue;
+    }
+    return refToText(start) + ':' + refToText(end);
   }
 
   function rewriteRefText(text, kind, index, delta) {
