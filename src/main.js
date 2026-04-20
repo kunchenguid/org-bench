@@ -5,6 +5,7 @@
   var endTurnButton = document.getElementById('end-turn');
   var resetButton = document.getElementById('reset-game');
   var turnLabel = document.getElementById('turn-label');
+  var matchupLabel = document.getElementById('matchup-label');
   var saveLabel = document.getElementById('save-label');
   var cueTitle = document.getElementById('cue-title');
   var cueBody = document.getElementById('cue-body');
@@ -100,6 +101,7 @@
   }
 
   function syncHud() {
+    matchupLabel.textContent = (Game.describeEncounter && Game.describeEncounter(state)) || state.encounter.name;
     turnLabel.textContent =
       'Turn ' +
       state.turn +
