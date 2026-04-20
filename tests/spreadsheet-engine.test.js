@@ -100,3 +100,95 @@ test('deleting a referenced row produces #REF! for removed cells', () => {
   assert.equal(engine.getRawValue('B1'), '=#REF!');
   assert.equal(engine.getDisplayValue('B1'), '#REF!');
 });
+
+test('undo and redo restore a committed cell edit as one user action', () => {
+  const engine = createSpreadsheetEngine();
+
+  engine.setSelection({ row: 1, col: 1 });
+  engine.commitCell('B2', '42');
+
+  assert.equal(engine.getRawValue('B2'), '42');
+
+  engine.undo();
+  assert.equal(engine.getRawValue('B2'), '');
+  assert.deepEqual(engine.getSelection(), { row: 1, col: 1 });
+
+  engine.redo();
+  assert.equal(engine.getRawValue('B2'), '42');
+  assert.deepEqual(engine.getSelection(), { row: 1, col: 1 });
+});
+
+test('undo and redo restore a clear action', () => {
+  const engine = createSpreadsheetEngine();
+  engine.setCell('A1', '5');
+  engine.setCell('A2', '7');
+
+  engine.clearRange({ startRow: 0, startCol: 0, endRow: 1, endCol: 0 });
+  assert.equal(engine.getRawValue('A1'), '');
+  assert.equal(engine.getRawValue('A2'), '');
+
+  engine.undo();
+  assert.equal(engine.getRawValue('A1'), '5');
+  assert.equal(engine.getRawValue('A2'), '7');
+
+  engine.redo();
+  assert.equal(engine.getRawValue('A1'), '');
+  assert.equal(engine.getRawValue('A2'), '');
+});
+
+test('undo and redo restore a paste action', () => {
+  const engine = createSpreadsheetEngine();
+  engine.setCell('A1', '5');
+  engine.setCell('B1', '=A1');
+
+  engine.copyRange({ startRow: 0, startCol: 1, endRow: 0, endCol: 1 });
+  engine.pasteRange({ row: 1, col: 1 });
+
+  assert.equal(engine.getRawValue('B2'), '=A2');
+
+  engine.undo();
+  assert.equal(engine.getRawValue('B2'), '');
+
+  engine.redo();
+  assert.equal(engine.getRawValue('B2'), '=A2');
+});
+
+test('undo and redo restore a cut action', () => {
+  const engine = createSpreadsheetEngine();
+  engine.setCell('A1', 'keep');
+  engine.setCell('A2', 'move');
+
+  engine.cutRange({ startRow: 1, startCol: 0, endRow: 1, endCol: 0 });
+  assert.equal(engine.getRawValue('A2'), '');
+
+  engine.undo();
+  assert.equal(engine.getRawValue('A2'), 'move');
+
+  engine.redo();
+  assert.equal(engine.getRawValue('A2'), '');
+});
+
+test('inserting a column updates formulas to keep pointing at moved data', () => {
+  const engine = createSpreadsheetEngine();
+  engine.setCell('A1', '10');
+  engine.setCell('B1', '20');
+  engine.setCell('C1', '=SUM(A1:B1)');
+
+  engine.insertColumn(0);
+
+  assert.equal(engine.getRawValue('B1'), '10');
+  assert.equal(engine.getRawValue('C1'), '20');
+  assert.equal(engine.getRawValue('D1'), '=SUM(B1:C1)');
+  assert.equal(engine.getDisplayValue('D1'), '30');
+});
+
+test('deleting a referenced column produces #REF! for removed cells', () => {
+  const engine = createSpreadsheetEngine();
+  engine.setCell('A1', '10');
+  engine.setCell('C2', '=A1');
+
+  engine.deleteColumn(0);
+
+  assert.equal(engine.getRawValue('B2'), '=#REF!');
+  assert.equal(engine.getDisplayValue('B2'), '#REF!');
+});

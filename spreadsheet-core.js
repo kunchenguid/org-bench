@@ -3,6 +3,7 @@
 
   const MAX_COLS = 26;
   const MAX_ROWS = 100;
+  const HISTORY_LIMIT = 50;
   const ERROR = {
     generic: '#ERR!',
     div0: '#DIV/0!',
@@ -52,6 +53,21 @@
       replaceAll(next);
     }
 
+    function applyColumnChange(index, mode) {
+      const next = {};
+      for (const [address, raw] of cells.entries()) {
+        const position = parseAddress(address);
+        if (mode === 'delete' && position.col === index && (typeof raw !== 'string' || raw.charAt(0) !== '=')) {
+          continue;
+        }
+        const nextCol = mode === 'insert'
+          ? (position.col >= index ? position.col + 1 : position.col)
+          : (position.col > index ? position.col - 1 : position.col);
+        next[toAddress(position.row, nextCol)] = rewriteFormulaColumns(raw, index, mode);
+      }
+      replaceAll(next);
+    }
+
     return {
       setCell,
       setCellRaw: setCell,
@@ -71,6 +87,12 @@
       },
       deleteRow(index) {
         applyRowChange(index, 'delete');
+      },
+      insertColumn(index) {
+        applyColumnChange(index, 'insert');
+      },
+      deleteColumn(index) {
+        applyColumnChange(index, 'delete');
       },
       _cells: cells,
     };
@@ -122,10 +144,50 @@
     const sheet = createSheet(initialData);
     let selection = { row: 0, col: 0 };
     let clipboard = null;
+    let undoStack = [];
+    let redoStack = [];
+
+    function captureSnapshot() {
+      return {
+        cells: sheet.toJSON(),
+        selection: { row: selection.row, col: selection.col },
+      };
+    }
+
+    function restoreSnapshot(snapshot) {
+      sheet.replaceAll(snapshot.cells || {});
+      selection = snapshot.selection || { row: 0, col: 0 };
+    }
+
+    function snapshotsEqual(left, right) {
+      return JSON.stringify(left) === JSON.stringify(right);
+    }
+
+    function recordHistory(before, after) {
+      if (snapshotsEqual(before, after)) {
+        return;
+      }
+      undoStack.push(before);
+      if (undoStack.length > HISTORY_LIMIT) {
+        undoStack.shift();
+      }
+      redoStack = [];
+    }
+
+    function runUserAction(action) {
+      const before = captureSnapshot();
+      action();
+      recordHistory(before, captureSnapshot());
+    }
 
     return {
       setCell(address, raw) {
         sheet.setCell(address, raw);
+      },
+      commitCell(address, raw) {
+        runUserAction(function () {
+          sheet.setCell(address, raw);
+        });
       },
       getRawValue(address) {
         return sheet.getCell(address);
@@ -161,32 +223,85 @@
         }
         clipboard = { rows: rows, sourceRow: range.startRow, sourceCol: range.startCol };
       },
+      clearRange(range) {
+        runUserAction(function () {
+          for (let row = range.startRow; row <= range.endRow; row += 1) {
+            for (let col = range.startCol; col <= range.endCol; col += 1) {
+              sheet.clearCell(toAddress(row, col));
+            }
+          }
+        });
+      },
+      cutRange(range) {
+        this.copyRange(range);
+        this.clearRange(range);
+      },
       pasteRange(target) {
         if (!clipboard) {
           return;
         }
-        for (let rowOffset = 0; rowOffset < clipboard.rows.length; rowOffset += 1) {
-          for (let colOffset = 0; colOffset < clipboard.rows[rowOffset].length; colOffset += 1) {
-            const raw = clipboard.rows[rowOffset][colOffset];
-            const sourceCell = { row: clipboard.sourceRow + rowOffset, col: clipboard.sourceCol + colOffset };
-            const targetCell = { row: target.row + rowOffset, col: target.col + colOffset };
-            sheet.setCell(toAddress(targetCell.row, targetCell.col), copyFormula(raw, sourceCell, targetCell));
+        runUserAction(function () {
+          for (let rowOffset = 0; rowOffset < clipboard.rows.length; rowOffset += 1) {
+            for (let colOffset = 0; colOffset < clipboard.rows[rowOffset].length; colOffset += 1) {
+              const raw = clipboard.rows[rowOffset][colOffset];
+              const sourceCell = { row: clipboard.sourceRow + rowOffset, col: clipboard.sourceCol + colOffset };
+              const targetCell = { row: target.row + rowOffset, col: target.col + colOffset };
+              sheet.setCell(toAddress(targetCell.row, targetCell.col), copyFormula(raw, sourceCell, targetCell));
+            }
           }
-        }
+        });
       },
       insertRow(rowIndex) {
-        sheet.insertRow(rowIndex);
-        if (selection.row >= rowIndex) {
-          selection = { row: selection.row + 1, col: selection.col };
-        }
+        runUserAction(function () {
+          sheet.insertRow(rowIndex);
+          if (selection.row >= rowIndex) {
+            selection = { row: selection.row + 1, col: selection.col };
+          }
+        });
       },
       deleteRow(rowIndex) {
-        sheet.deleteRow(rowIndex);
-        if (selection.row > rowIndex) {
-          selection = { row: selection.row - 1, col: selection.col };
-        } else if (selection.row === rowIndex) {
-          selection = { row: Math.max(0, selection.row - 1), col: selection.col };
+        runUserAction(function () {
+          sheet.deleteRow(rowIndex);
+          if (selection.row > rowIndex) {
+            selection = { row: selection.row - 1, col: selection.col };
+          } else if (selection.row === rowIndex) {
+            selection = { row: Math.max(0, selection.row - 1), col: selection.col };
+          }
+        });
+      },
+      insertColumn(colIndex) {
+        runUserAction(function () {
+          sheet.insertColumn(colIndex);
+          if (selection.col >= colIndex) {
+            selection = { row: selection.row, col: selection.col + 1 };
+          }
+        });
+      },
+      deleteColumn(colIndex) {
+        runUserAction(function () {
+          sheet.deleteColumn(colIndex);
+          if (selection.col > colIndex) {
+            selection = { row: selection.row, col: selection.col - 1 };
+          } else if (selection.col === colIndex) {
+            selection = { row: selection.row, col: Math.max(0, selection.col - 1) };
+          }
+        });
+      },
+      undo() {
+        const snapshot = undoStack.pop();
+        if (!snapshot) {
+          return;
         }
+        redoStack.push(captureSnapshot());
+        restoreSnapshot(snapshot);
+      },
+      redo() {
+        const snapshot = redoStack.pop();
+        if (!snapshot) {
+          return;
+        }
+        undoStack.push(captureSnapshot());
+        restoreSnapshot(snapshot);
       },
     };
   }
@@ -227,6 +342,27 @@
       }
       const nextRow = currentRow > rowIndex ? currentRow - 1 : currentRow;
       return (absCol ? '$' : '') + colName + (absRow ? '$' : '') + String(nextRow + 1);
+    });
+  }
+
+  function rewriteFormulaColumns(raw, colIndex, mode) {
+    if (typeof raw !== 'string' || raw.charAt(0) !== '=') {
+      return raw;
+    }
+    return raw.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, function (match, absCol, colName, absRow, rowText) {
+      if (absCol) {
+        return match;
+      }
+      const currentCol = columnNameToIndex(colName);
+      if (mode === 'insert') {
+        const nextCol = currentCol >= colIndex ? currentCol + 1 : currentCol;
+        return (absCol ? '$' : '') + columnIndexToName(nextCol) + (absRow ? '$' : '') + rowText;
+      }
+      if (currentCol === colIndex) {
+        return ERROR.ref;
+      }
+      const nextCol = currentCol > colIndex ? currentCol - 1 : currentCol;
+      return (absCol ? '$' : '') + columnIndexToName(nextCol) + (absRow ? '$' : '') + rowText;
     });
   }
 
