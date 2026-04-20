@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glass Reef Runtime</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #040914;
+      overflow: hidden;
+    }
+
+    body {
+      display: block;
+    }
+
+    #game {
+      display: block;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Glass Reef render runtime canvas"></canvas>
+  <script src="src/render-runtime.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
