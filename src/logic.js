@@ -7,6 +7,27 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const LANE_COUNT = 3;
 
+  const FACTIONS = [
+    {
+      id: 'ember',
+      name: 'Emberfall Vanguard',
+      theme: 'Sunlit sky-knights who pressure early and finish with fire.',
+    },
+    {
+      id: 'verdant',
+      name: 'Verdant Hollow',
+      theme: 'Mire spirits and rooted beasts that stabilize then overpower.',
+    },
+  ];
+
+  const MECHANICS = [
+    { id: 'rush', label: 'Rush', text: 'Fast pressure and direct damage.' },
+    { id: 'guard', label: 'Guard', text: 'Sturdy blockers that anchor lanes.' },
+    { id: 'burn', label: 'Burn', text: 'Spells or effects that chip heroes and units.' },
+    { id: 'growth', label: 'Growth', text: 'Midgame units that outscale early drops.' },
+    { id: 'tempo', label: 'Tempo', text: 'Efficient plays that keep initiative.' },
+  ];
+
   const CARD_LIBRARY = [
     { key: 'ember-fox', name: 'Ember Fox', type: 'unit', faction: 'ember', cost: 1, attack: 2, health: 1, text: 'Fast early pressure.' },
     { key: 'flare-guard', name: 'Flare Guard', type: 'unit', faction: 'ember', cost: 2, attack: 2, health: 3, text: 'A sturdy frontline sentinel.' },
@@ -18,16 +39,58 @@
     { key: 'thorn-beast', name: 'Thorn Beast', type: 'unit', faction: 'verdant', cost: 4, attack: 4, health: 4, text: 'Overwhelms slow starts.' },
   ];
 
-  const PLAYER_DECK_KEYS = [
-    'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
-    'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
-    'ember-fox', 'flare-guard', 'sunlance', 'ash-drake',
-  ];
-
-  const ENEMY_DECK_KEYS = [
-    'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
-    'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
-    'mist-wisp', 'grove-keeper', 'sap-burst', 'thorn-beast',
+  const ENCOUNTER_PROFILES = [
+    {
+      id: 'marsh-ambush',
+      name: 'Marsh Ambush',
+      playerDeckKeys: [
+        'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
+        'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
+        'ember-fox', 'flare-guard', 'sunlance', 'ash-drake',
+      ],
+      enemyDeckKeys: [
+        'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
+        'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
+        'mist-wisp', 'grove-keeper', 'sap-burst', 'thorn-beast',
+      ],
+      playerFaction: 'ember',
+      enemyFaction: 'verdant',
+      enemyStyle: 'midrange-growth',
+    },
+    {
+      id: 'sunflare-raid',
+      name: 'Sunflare Raid',
+      playerDeckKeys: [
+        'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
+        'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
+        'mist-wisp', 'grove-keeper', 'sap-burst', 'thorn-beast',
+      ],
+      enemyDeckKeys: [
+        'ember-fox', 'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake',
+        'ash-drake', 'ember-fox', 'flare-guard', 'sunlance', 'mist-wisp', 'grove-keeper', 'sap-burst', 'thorn-beast',
+        'ember-fox', 'flare-guard', 'sunlance', 'ash-drake',
+      ],
+      playerFaction: 'verdant',
+      enemyFaction: 'ember',
+      enemyStyle: 'rush-burn',
+    },
+    {
+      id: 'rootwall-siege',
+      name: 'Rootwall Siege',
+      playerDeckKeys: [
+        'ember-fox', 'ember-fox', 'flare-guard', 'flare-guard', 'sunlance', 'sunlance', 'ash-drake', 'ash-drake',
+        'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'sap-burst', 'sap-burst', 'thorn-beast', 'thorn-beast',
+        'ember-fox', 'flare-guard', 'sunlance', 'ash-drake',
+      ],
+      enemyDeckKeys: [
+        'mist-wisp', 'mist-wisp', 'mist-wisp', 'grove-keeper', 'grove-keeper', 'thorn-beast', 'thorn-beast', 'sap-burst',
+        'sap-burst', 'mist-wisp', 'grove-keeper', 'thorn-beast', 'flare-guard', 'sunlance', 'ash-drake', 'ember-fox',
+        'mist-wisp', 'grove-keeper', 'sap-burst', 'thorn-beast',
+      ],
+      playerFaction: 'ember',
+      enemyFaction: 'verdant',
+      enemyStyle: 'wall-growth',
+    },
   ];
 
   function hashSeed(seed) {
@@ -86,6 +149,11 @@
     });
   }
 
+  function getEncounterProfile(seed) {
+    const numericSeed = Number(seed || 0);
+    return ENCOUNTER_PROFILES[Math.abs(numericSeed) % ENCOUNTER_PROFILES.length];
+  }
+
   function drawCard(side) {
     if (!side.deck.length || side.hand.length >= 7) {
       return null;
@@ -110,8 +178,9 @@
 
   function createInitialState(options) {
     const seed = options && options.seed ? options.seed : Date.now();
-    const player = createSide('player', buildDeck(PLAYER_DECK_KEYS, seed, 'player'));
-    const enemy = createSide('enemy', buildDeck(ENEMY_DECK_KEYS, seed + 1, 'enemy'));
+    const encounter = getEncounterProfile(seed);
+    const player = createSide('player', buildDeck(encounter.playerDeckKeys, seed, 'player'));
+    const enemy = createSide('enemy', buildDeck(encounter.enemyDeckKeys, seed + 1, 'enemy'));
     for (let count = 0; count < 3; count += 1) {
       drawCard(player);
       drawCard(enemy);
@@ -128,10 +197,17 @@
     }
     return {
       seed: seed,
+      encounter: {
+        id: encounter.id,
+        name: encounter.name,
+        playerFaction: encounter.playerFaction,
+        enemyFaction: encounter.enemyFaction,
+        enemyStyle: encounter.enemyStyle,
+      },
       turn: 'player',
       winner: null,
       turnCount: 1,
-      log: ['Your turn. Play a glowing card, then press End Turn.'],
+      log: ['Your turn. Play a glowing card, then press End Turn. ' + encounter.name + ' changes the enemy deck.'],
       player: player,
       enemy: enemy,
     };
@@ -317,7 +393,10 @@
   }
 
   return {
+    FACTIONS: FACTIONS,
+    MECHANICS: MECHANICS,
     CARD_LIBRARY: CARD_LIBRARY,
+    ENCOUNTER_PROFILES: ENCOUNTER_PROFILES,
     LANE_COUNT: LANE_COUNT,
     createInitialState: createInitialState,
     createStorageKey: createStorageKey,
