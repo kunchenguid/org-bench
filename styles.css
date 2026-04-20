@@ -3,12 +3,14 @@
   --bg: #f3f6fb;
   --panel: rgba(255, 255, 255, 0.92);
   --panel-strong: #ffffff;
+  --header-bg: rgba(243, 247, 253, 0.96);
   --grid-soft: #e7edf6;
   --text: #16304a;
   --muted: #6d8098;
   --accent: #2563eb;
   --accent-soft: rgba(37, 99, 235, 0.16);
-  --error: #c43d3d;
+  --error: #b42318;
+  --error-bg: #fff4f2;
   --shadow: 0 24px 60px rgba(38, 54, 80, 0.14);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -69,8 +71,7 @@ body {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .name-box,
@@ -89,6 +90,20 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+}
+
+.formula-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  min-width: 42px;
+  border-radius: 12px;
+  background: #eef4ff;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: lowercase;
 }
 
 .formula-input:focus,
@@ -123,7 +138,7 @@ body {
 .column-header,
 .row-header {
   position: sticky;
-  background: rgba(243, 247, 253, 0.96);
+  background: var(--header-bg);
   z-index: 2;
   color: var(--muted);
   font-size: 0.78rem;
@@ -140,12 +155,21 @@ body {
 .column-header {
   top: 0;
   min-width: 120px;
+  text-align: center;
 }
 
 .row-header {
   left: 0;
   z-index: 3;
   min-width: 58px;
+  text-align: right;
+  padding-right: 12px;
+}
+
+.column-header.active-axis,
+.row-header.active-axis {
+  background: #edf4ff;
+  color: var(--accent);
 }
 
 th,
@@ -165,6 +189,18 @@ td {
 .cell.active {
   background: linear-gradient(180deg, rgba(37, 99, 235, 0.09), rgba(37, 99, 235, 0.02));
   box-shadow: inset 0 0 0 2px var(--accent);
+  position: relative;
+}
+
+.cell.active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px 0 0 0;
+  background: var(--accent);
 }
 
 .cell-display,
@@ -196,6 +232,7 @@ td {
 .cell.error .cell-display {
   color: var(--error);
   font-weight: 700;
+  background: var(--error-bg);
 }
 
 @media (max-width: 900px) {
