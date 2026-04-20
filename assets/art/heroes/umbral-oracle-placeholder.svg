@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="sky" cx="50%" cy="26%" r="72%">
+      <stop offset="0%" stop-color="#eefcff"/>
+      <stop offset="35%" stop-color="#79e3ff"/>
+      <stop offset="100%" stop-color="#110b29"/>
+    </radialGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#daf7ff"/>
+      <stop offset="100%" stop-color="#3d4baf"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#060712"/>
+  <rect x="44" y="44" width="936" height="936" rx="48" fill="url(#sky)"/>
+  <circle cx="512" cy="274" r="96" fill="#d7d5f5"/>
+  <path d="M300 772c34-183 106-309 212-309s178 126 212 309H300Z" fill="url(#robe)"/>
+  <path d="M446 230c16-70 54-118 66-118 20 0 56 46 72 114-54-17-102-15-138 4Z" fill="#f3fdff"/>
+  <path d="M388 438c41-55 82-83 124-83 47 0 91 28 132 83-45 9-87 13-132 13-43 0-84-4-124-13Z" fill="#18245d" opacity="0.8"/>
+  <circle cx="512" cy="520" r="58" fill="#f0fcff" opacity="0.9"/>
+  <path d="M186 378c118-154 228-230 330-230 103 0 216 78 336 234-78-40-154-60-228-60-83 0-162 19-238 56-76 37-142 37-200 0Z" fill="#8cefff" opacity="0.38"/>
+</svg>
