@@ -9,19 +9,11 @@
   }
 
   const namespace = String(
-    window.__APPLE_RUN_STORAGE_NAMESPACE__ ||
     window.__RUN_STORAGE_NAMESPACE__ ||
     window.__BENCHMARK_RUN_STORAGE_NAMESPACE__ ||
-    window.__BENCHMARK_STORAGE_NAMESPACE__ ||
+    window.__APPLE_RUN_STORAGE_NAMESPACE__ ||
     window.APPLE_RUN_STORAGE_NAMESPACE ||
     window.RUN_STORAGE_NAMESPACE ||
-    window.__APPLE_RUN_NAMESPACE__ ||
-    window.__BENCHMARK_RUN_NAMESPACE__ ||
-    window.__RUN_NAMESPACE__ ||
-    (document.documentElement && document.documentElement.dataset && (
-      document.documentElement.dataset.runStorageNamespace ||
-      document.documentElement.dataset.runNamespace
-    )) ||
     'apple:'
   );
   const storageKey = logic.createStorageKey(namespace);
