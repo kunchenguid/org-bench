@@ -38,12 +38,52 @@ body {
   position: absolute;
   left: 16px;
   bottom: 16px;
-  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  min-width: 320px;
+  padding: 14px 16px;
   border: 1px solid rgba(140, 194, 255, 0.28);
-  border-radius: 999px;
+  border-radius: 22px;
   background: rgba(4, 17, 31, 0.72);
   backdrop-filter: blur(10px);
   letter-spacing: 0.04em;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.boot-status__eyebrow {
+  color: #8edcff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.boot-status__title {
+  color: #f5f8ff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.boot-status__copy {
+  color: #d7e7ff;
+}
+
+.boot-status__factions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.boot-status__sigil {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+}
+
+.boot-status__versus {
+  color: #f3d27b;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .boot-status.is-hidden {
