@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 229,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/229",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add column rewrite regression tests",
+  "body": "## Summary\n- add regression coverage for column insert/delete reference rewrites in the spreadsheet engine\n- lock in the behavior already present on trunk after the paste/redo fixes landed\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T19:56:14Z"
+    }
+  ],
+  "comments": []
+}
