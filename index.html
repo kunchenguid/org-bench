@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ashen Duel</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #05070d;
+      font-family: Georgia, serif;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas" width="1280" height="720" aria-label="Ashen Duel game board"></canvas>
+  <script src="src/state.js"></script>
+  <script src="src/logic.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>
