@@ -3,23 +3,31 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sheet</title>
+    <title>Apple Sheet</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <div class="brand">Sheet</div>
-        <label class="formula-bar" for="formula-input">
-          <span class="formula-chip">fx</span>
-          <input id="formula-input" type="text" autocomplete="off" spellcheck="false">
-        </label>
+      <header class="chrome">
+        <div class="brand-block">
+          <div class="brand-mark">A</div>
+          <div>
+            <h1>Apple Sheet</h1>
+            <p>Ready for quick math, notes, and lightweight modeling.</p>
+          </div>
+        </div>
+        <div class="formula-panel">
+          <label class="name-box-label" for="name-box">Cell</label>
+          <input id="name-box" class="name-box" type="text" readonly>
+          <label class="formula-label" for="formula-bar">Formula</label>
+          <input id="formula-bar" class="formula-bar" type="text" spellcheck="false" autocomplete="off">
+        </div>
       </header>
       <main class="grid-shell">
-        <table class="sheet" id="sheet" aria-label="Spreadsheet grid"></table>
+        <div id="spreadsheet" class="spreadsheet" aria-label="Spreadsheet grid"></div>
       </main>
     </div>
-    <script src="spreadsheet-core.js"></script>
-    <script src="spreadsheet-app.js"></script>
+    <script src="formula-engine.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>

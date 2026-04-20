@@ -1,207 +1,253 @@
 :root {
   color-scheme: light;
-  --bg: #f4f6fb;
+  --bg: #f4f5f7;
   --panel: rgba(255, 255, 255, 0.88);
-  --grid: #d8dfeb;
-  --grid-strong: #bec8d9;
-  --text: #162033;
-  --muted: #66748c;
-  --accent: #0a84ff;
-  --accent-soft: rgba(10, 132, 255, 0.14);
-  --header: #eef2f8;
-  --shadow: 0 24px 60px rgba(18, 31, 53, 0.14);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --panel-border: rgba(18, 24, 38, 0.08);
+  --grid-line: #dfe3ea;
+  --header-bg: #f8fafc;
+  --header-text: #5f6b7a;
+  --text: #111827;
+  --muted: #6b7280;
+  --selection: rgba(43, 120, 255, 0.12);
+  --selection-strong: #2b78ff;
+  --error: #b42318;
+  --shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(10, 132, 255, 0.14), transparent 34%),
-    linear-gradient(180deg, #f7f9fc 0%, var(--bg) 100%);
+  min-height: 100%;
+  font-family: Inter, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  background: radial-gradient(circle at top, #ffffff 0%, #eef2f8 42%, #e8edf5 100%);
   color: var(--text);
 }
 
-.app-shell {
-  min-height: 100vh;
+body {
   padding: 18px;
 }
 
-.topbar {
+.app-shell {
   display: flex;
-  gap: 16px;
-  align-items: center;
-  margin: 0 auto 14px;
-  max-width: 1440px;
+  flex-direction: column;
+  gap: 14px;
+  min-height: calc(100vh - 36px);
 }
 
-.brand {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  padding: 0 8px;
-}
-
-.formula-bar {
+.chrome {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 22px;
   background: var(--panel);
   backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow: var(--shadow);
-  border-radius: 18px;
-  padding: 10px 14px;
 }
 
-.formula-chip {
-  color: var(--accent);
+.brand-block {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #111827, #475569);
+  color: white;
   font-weight: 700;
-  font-size: 14px;
 }
 
-.formula-bar input {
-  width: 100%;
-  border: 0;
-  background: transparent;
+.brand-block h1,
+.brand-block p {
+  margin: 0;
+}
+
+.brand-block h1 {
+  font-size: 1.1rem;
+}
+
+.brand-block p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.formula-panel {
+  display: grid;
+  grid-template-columns: auto 84px auto minmax(240px, 540px);
+  align-items: center;
+  gap: 10px;
+}
+
+.formula-panel label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--header-text);
+}
+
+.name-box,
+.formula-bar {
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0 12px;
+  font-size: 0.95rem;
   color: var(--text);
-  font: inherit;
-  outline: none;
+}
+
+.formula-bar:focus {
+  outline: 2px solid rgba(43, 120, 255, 0.2);
+  border-color: rgba(43, 120, 255, 0.45);
 }
 
 .grid-shell {
-  max-width: 1440px;
-  margin: 0 auto;
-  background: var(--panel);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.88);
-  box-shadow: var(--shadow);
+  min-height: 0;
+  flex: 1;
+  border: 1px solid var(--panel-border);
   border-radius: 22px;
-  overflow: auto;
-  height: calc(100vh - 108px);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
-.sheet {
-  border-collapse: separate;
-  border-spacing: 0;
-  width: max-content;
-  min-width: 100%;
-}
-
-.sheet th,
-.sheet td {
-  border-right: 1px solid var(--grid);
-  border-bottom: 1px solid var(--grid);
-  min-width: 112px;
-  height: 34px;
-  padding: 0 10px;
-  font-size: 14px;
-}
-
-.sheet th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--header);
-  color: var(--muted);
-  text-align: center;
-  font-weight: 600;
-}
-
-.sheet .corner,
-.sheet .row-header {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  min-width: 54px;
-  max-width: 54px;
-  width: 54px;
-  background: var(--header);
-}
-
-.sheet .corner {
-  z-index: 3;
-}
-
-.sheet .row-header {
-  text-align: center;
-}
-
-.sheet td {
-  position: relative;
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--text);
-  cursor: cell;
-  vertical-align: middle;
-}
-
-.sheet td.is-active {
-  box-shadow: inset 0 0 0 2px var(--accent);
-  background: linear-gradient(180deg, rgba(10, 132, 255, 0.08), rgba(10, 132, 255, 0.03));
-}
-
-.sheet td.is-active::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  right: -1px;
-  bottom: -1px;
-  background: var(--accent);
-  border-radius: 999px;
-}
-
-.sheet td.is-editing {
-  padding: 0;
-}
-
-.sheet td input {
+.spreadsheet {
   width: 100%;
   height: 100%;
+  overflow: auto;
+}
+
+.spreadsheet-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.spreadsheet-table th,
+.spreadsheet-table td {
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
+}
+
+.corner-cell,
+.column-header,
+.row-header {
+  position: sticky;
+  background: var(--header-bg);
+  z-index: 2;
+}
+
+.corner-cell {
+  top: 0;
+  left: 0;
+  z-index: 4;
+  min-width: 52px;
+}
+
+.column-header {
+  top: 0;
+  min-width: 124px;
+  height: 36px;
+  color: var(--header-text);
+  font-weight: 600;
+  text-align: center;
+}
+
+.row-header {
+  left: 0;
+  z-index: 3;
+  width: 52px;
+  min-width: 52px;
+  text-align: center;
+  color: var(--header-text);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.cell {
+  position: relative;
+  width: 124px;
+  min-width: 124px;
+  height: 32px;
+  padding: 0;
+  background: white;
+}
+
+.cell-content,
+.cell-editor {
+  width: 100%;
+  height: 100%;
+  padding: 6px 10px;
   border: 0;
-  background: var(--accent-soft);
-  color: var(--text);
+  background: transparent;
+  text-align: left;
   font: inherit;
-  padding: 0 10px;
-  outline: none;
+  color: inherit;
 }
 
-.cell-value.is-number {
+.cell-content {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cell.is-number .cell-content {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
-.cell-value.is-error {
-  color: #c52929;
+.cell.is-selected {
+  background: var(--selection);
+}
+
+.cell.is-active {
+  box-shadow: inset 0 0 0 2px var(--selection-strong);
+  z-index: 1;
+}
+
+.cell.has-error .cell-content {
+  color: var(--error);
   font-weight: 600;
 }
 
-@media (max-width: 720px) {
-  .app-shell {
+.cell-editor {
+  outline: 2px solid var(--selection-strong);
+  outline-offset: -2px;
+  background: white;
+}
+
+@media (max-width: 900px) {
+  body {
     padding: 10px;
   }
 
-  .topbar {
-    gap: 10px;
-    margin-bottom: 10px;
+  .chrome {
+    flex-direction: column;
   }
 
-  .brand {
-    font-size: 22px;
+  .formula-panel {
+    grid-template-columns: auto 1fr;
   }
 
-  .grid-shell {
-    height: calc(100vh - 88px);
-    border-radius: 18px;
+  .formula-label,
+  .name-box-label {
+    grid-column: 1;
   }
 
-  .sheet th,
-  .sheet td {
-    min-width: 92px;
+  .name-box,
+  .formula-bar {
+    grid-column: 2;
   }
 }
