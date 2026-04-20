@@ -1,0 +1,232 @@
+:root {
+  color-scheme: light;
+  --bg: #edf2fa;
+  --panel: rgba(255, 255, 255, 0.84);
+  --panel-strong: #ffffff;
+  --grid: #d6deed;
+  --grid-strong: #b8c4db;
+  --ink: #162033;
+  --muted: #61718c;
+  --accent: #1877f2;
+  --accent-soft: rgba(24, 119, 242, 0.14);
+  --error: #c62828;
+  --shadow: 0 18px 48px rgba(22, 32, 51, 0.12);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(24, 119, 242, 0.14), transparent 24%),
+    linear-gradient(180deg, #f7f9fd 0%, var(--bg) 100%);
+  color: var(--ink);
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid rgba(184, 196, 219, 0.8);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+  backdrop-filter: blur(16px);
+}
+
+.brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.subtitle,
+.grid-note,
+.status-pill {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.formula-bar-wrap {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.name-box,
+.formula-bar,
+.status-pill {
+  background: var(--panel-strong);
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+}
+
+.name-box,
+.status-pill {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.formula-bar {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.formula-sigil {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+#formula-input,
+.cell-editor {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+
+.grid-shell {
+  margin-top: 16px;
+  background: var(--panel);
+  border: 1px solid rgba(184, 196, 219, 0.8);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+  backdrop-filter: blur(16px);
+}
+
+.grid-surface {
+  margin-top: 12px;
+  overflow: auto;
+  max-height: calc(100vh - 150px);
+  border: 1px solid var(--grid);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.sheet-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.corner,
+.column-header,
+.row-header,
+.cell {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+}
+
+.corner,
+.column-header,
+.row-header {
+  position: sticky;
+  z-index: 2;
+  background: #f8faff;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.corner,
+.column-header {
+  top: 0;
+}
+
+.corner,
+.row-header {
+  left: 0;
+}
+
+.corner {
+  z-index: 3;
+  min-width: 56px;
+}
+
+.column-header {
+  min-width: 120px;
+  height: 34px;
+}
+
+.row-header {
+  width: 56px;
+}
+
+.cell {
+  min-width: 120px;
+  max-width: 120px;
+  height: 34px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: cell;
+  background: #fff;
+  position: relative;
+}
+
+.cell.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell.selected {
+  background: linear-gradient(180deg, rgba(24, 119, 242, 0.06), rgba(24, 119, 242, 0.03));
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.cell.error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.cell-editor {
+  position: absolute;
+  inset: 0;
+  padding: 6px 10px;
+  background: #fff;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .formula-bar-wrap {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .status-pill {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
+  .grid-surface {
+    max-height: calc(100vh - 220px);
+  }
+}

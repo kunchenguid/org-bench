@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Facebook Spreadsheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand">Sheet</div>
+        <div class="subtitle">Formula-ready local spreadsheet</div>
+      </div>
+      <div class="formula-bar-wrap">
+        <div id="name-box" class="name-box">A1</div>
+        <label class="formula-bar" for="formula-input">
+          <span class="formula-sigil">fx</span>
+          <input id="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="Formula bar">
+        </label>
+      </div>
+      <div class="status-pill">Status: <span id="status-value">Ready</span></div>
+    </header>
+    <main class="grid-shell">
+      <div class="grid-note">Enter to edit, arrows to move, formulas start with =</div>
+      <div id="grid" class="grid-surface" aria-label="Spreadsheet grid"></div>
+    </main>
+  </div>
+  <script src="spreadsheet-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
