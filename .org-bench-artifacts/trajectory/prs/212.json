@@ -1,0 +1,20 @@
+{
+  "run_id": "amazon",
+  "pr_number": 212,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/212",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add tested duel foundation and canvas shell",
+  "body": "## Summary\n- add a first playable Sky Duel slice with a single HTML entry point, WebGL-backed canvas rendering, and automatic local save/resume\n- add tested duel-state logic for opening hands, card play, player attacks, enemy turns, and serialization so the next rounds can build on stable core rules\n- keep the scope frugal for round one: one encounter, clear in-game prompts, and a board that already responds to play/end-turn inputs\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T14:19:00Z"
+    }
+  ],
+  "comments": []
+}
