@@ -486,6 +486,10 @@
         return left / right;
       }
       if (node.type === 'call') {
+        if (node.name === 'IF') {
+          var condition = evalNode(node.args[0]);
+          return coerceBoolean(condition) ? (node.args.length > 1 ? evalNode(node.args[1]) : true) : (node.args.length > 2 ? evalNode(node.args[2]) : false);
+        }
         return evalFunction(node.name, node.args.map(evalNode));
       }
       throw { code: '#ERR!' };
@@ -507,9 +511,6 @@
       }
       if (name === 'COUNT') {
         return values.filter(function (value) { return value !== '' && value != null; }).length;
-      }
-      if (name === 'IF') {
-        return coerceBoolean(args[0]) ? args[1] : args[2];
       }
       if (name === 'AND') {
         return values.every(coerceBoolean);
