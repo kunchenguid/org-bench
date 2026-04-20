@@ -79,6 +79,13 @@ function run() {
   );
   assert.deepStrictEqual(deletedSelection.active, { row: 3, col: 3 }, 'deleting above the selection should pull the active cell up with the surviving data');
   assert.deepStrictEqual(deletedSelection.range, { start: { row: 1, col: 3 }, end: { row: 3, col: 5 } }, 'deleting above a range should pull the full range up');
+
+  const lazyIf = engine.evaluateSheet({
+    [engine.keyFromCoord(0, 0)]: '=IF(TRUE,1,1/0)',
+    [engine.keyFromCoord(1, 0)]: '=IF(FALSE,1/0,2)',
+  }, { rows: 5, cols: 5 });
+  assert.strictEqual(valueOf(lazyIf.evaluateCell(0, 0)), 1, 'IF should not evaluate the false branch when condition is true');
+  assert.strictEqual(valueOf(lazyIf.evaluateCell(1, 0)), 2, 'IF should not evaluate the true branch when condition is false');
 }
 
 run();
