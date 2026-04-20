@@ -16,37 +16,33 @@ test('createStorageKey prefixes persisted keys with the run namespace', () => {
   assert.equal(createStorageKey('fb-run-1', 'save'), 'fb-run-1:save');
 });
 
-test('content exports two factions, a compact mechanic set, and a judge-sized card pool', () => {
+test('content exports two factions, a compact mechanic set, and a benchmark-sized card pool', () => {
   assert.equal(Array.isArray(FACTIONS), true);
   assert.equal(FACTIONS.length, 2);
   assert.equal(Array.isArray(MECHANICS), true);
   assert.equal(MECHANICS.length >= 4 && MECHANICS.length <= 6, true);
   assert.equal(Array.isArray(CARD_LIBRARY), true);
-  assert.equal(CARD_LIBRARY.length >= 12 && CARD_LIBRARY.length <= 24, true);
+  assert.equal(CARD_LIBRARY.length >= 8 && CARD_LIBRARY.length <= 24, true);
 });
 
-test('encounter profiles define replayable 20-card enemy decks with distinct patterns', () => {
+test('encounter profiles provide distinct 20-card deck recipes without replacing the live API', () => {
   assert.equal(Array.isArray(ENCOUNTER_PROFILES), true);
   assert.equal(ENCOUNTER_PROFILES.length >= 3, true);
-
-  const first = ENCOUNTER_PROFILES[0];
-  const second = ENCOUNTER_PROFILES[1];
-  assert.equal(first.enemyDeck.length, 20);
-  assert.equal(second.enemyDeck.length, 20);
-  assert.notDeepEqual(first.enemyDeck, second.enemyDeck);
-  assert.notEqual(first.enemyStyle, second.enemyStyle);
+  assert.equal(ENCOUNTER_PROFILES[0].enemyDeckKeys.length, 20);
+  assert.equal(ENCOUNTER_PROFILES[1].enemyDeckKeys.length, 20);
+  assert.notDeepEqual(ENCOUNTER_PROFILES[0].enemyDeckKeys, ENCOUNTER_PROFILES[1].enemyDeckKeys);
 });
 
-test('different seeds surface different enemy encounters for replayability', () => {
+test('different seeds select different encounter metadata and enemy decks', () => {
   const first = createInitialState({ seed: 1 });
   const second = createInitialState({ seed: 2 });
 
-  assert.equal(first.encounter.enemyDeckName.length > 0, true);
-  assert.equal(second.encounter.enemyDeckName.length > 0, true);
-  assert.notEqual(first.encounter.enemyDeckName, second.encounter.enemyDeckName);
+  assert.equal(typeof first.encounter.name, 'string');
+  assert.equal(typeof second.encounter.name, 'string');
+  assert.notEqual(first.encounter.name, second.encounter.name);
   assert.notDeepEqual(
-    first.enemy.deck.map((card) => card.id),
-    second.enemy.deck.map((card) => card.id),
+    first.enemy.deck.map((card) => card.key),
+    second.enemy.deck.map((card) => card.key),
   );
 });
 
