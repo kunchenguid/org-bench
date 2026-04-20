@@ -1,11 +1,27 @@
 const assert = require('assert');
 const engine = require('./engine.js');
+const storage = require('./storage.js');
 
 function valueOf(result) {
   return result.value;
 }
 
 function run() {
+  assert.strictEqual(
+    storage.resolveStorageNamespace({ __BENCHMARK_STORAGE_NAMESPACE__: 'run-123:' }, {}),
+    'run-123:',
+    'explicit harness namespace should win'
+  );
+
+  assert.strictEqual(
+    storage.resolveStorageNamespace(
+      { location: { origin: 'file://', pathname: '/tmp/facebook/run/index.html', search: '' } },
+      { querySelector: function () { return null; }, documentElement: { dataset: {} }, body: { dataset: {} } }
+    ),
+    'spreadsheet:file_tmp_facebook_run_index_html:',
+    'fallback namespace should derive from the current page path'
+  );
+
   const cells = {
     [engine.keyFromCoord(0, 0)]: '2',
     [engine.keyFromCoord(1, 0)]: '3',

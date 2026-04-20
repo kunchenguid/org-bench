@@ -1,6 +1,7 @@
 (function () {
   var engine = window.SpreadsheetEngine;
-  var STORAGE_PREFIX = window.__BENCHMARK_STORAGE_NAMESPACE__ || 'spreadsheet:';
+  var storage = window.SpreadsheetStorage;
+  var STORAGE_PREFIX = storage.resolveStorageNamespace(window, document);
   var STORAGE_KEY = STORAGE_PREFIX + 'grid-state';
   var MAX_HISTORY = 50;
   var sheetEl = document.getElementById('sheet');
@@ -50,7 +51,11 @@
   }
 
   function persist() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ rows: state.rows, cols: state.cols, cells: state.cells, active: state.active, range: state.range }));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ rows: state.rows, cols: state.cols, cells: state.cells, active: state.active, range: state.range }));
+    } catch (error) {
+      // Ignore storage write failures so the sheet stays usable in restricted contexts.
+    }
   }
 
   function snapshot() {
