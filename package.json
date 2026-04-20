@@ -1,0 +1,7 @@
+{
+  "name": "glass-reef-render-runtime",
+  "private": true,
+  "scripts": {
+    "test": "node tests/render-runtime.test.js"
+  }
+}
