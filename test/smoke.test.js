@@ -13,6 +13,7 @@ test('index boots a classic script canvas shell', () => {
   const html = read('index.html');
 
   assert.match(html, /<canvas[^>]*id="game-canvas"/i);
+  assert.match(html, /<script[^>]*src="\.\/art-config\.js"[^>]*><\/script>/i);
   assert.match(html, /<script[^>]*src="\.\/script\.js"[^>]*><\/script>/i);
   assert.doesNotMatch(html, /type="module"/i);
   assert.match(html, /<link[^>]*href="\.\/styles\.css"/i);
