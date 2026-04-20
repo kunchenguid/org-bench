@@ -37,6 +37,26 @@ function run() {
 
   const deletedEval = engine.evaluateSheet({ [engine.keyFromCoord(0, 0)]: '=B1+#REF!', [engine.keyFromCoord(0, 1)]: '1' }, { rows: 5, cols: 5 });
   assert.strictEqual(valueOf(deletedEval.evaluateCell(0, 0)), '#REF!', 'error literals should evaluate as spreadsheet errors');
+
+  const insertedSelection = engine.adjustSelectionForStructure(
+    { active: { row: 4, col: 3 }, range: { start: { row: 2, col: 3 }, end: { row: 4, col: 5 } } },
+    'row',
+    1,
+    1,
+    { rows: 8, cols: 8 }
+  );
+  assert.deepStrictEqual(insertedSelection.active, { row: 5, col: 3 }, 'inserting above the selection should keep the active cell on the same data row');
+  assert.deepStrictEqual(insertedSelection.range, { start: { row: 3, col: 3 }, end: { row: 5, col: 5 } }, 'inserting above a range should shift the full range down');
+
+  const deletedSelection = engine.adjustSelectionForStructure(
+    { active: { row: 4, col: 3 }, range: { start: { row: 2, col: 3 }, end: { row: 4, col: 5 } } },
+    'row',
+    1,
+    -1,
+    { rows: 7, cols: 8 }
+  );
+  assert.deepStrictEqual(deletedSelection.active, { row: 3, col: 3 }, 'deleting above the selection should pull the active cell up with the surviving data');
+  assert.deepStrictEqual(deletedSelection.range, { start: { row: 1, col: 3 }, end: { row: 3, col: 5 } }, 'deleting above a range should pull the full range up');
 }
 
 run();

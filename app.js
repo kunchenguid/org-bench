@@ -305,6 +305,15 @@
     } else {
       state.cols += 1;
     }
+    var insertedSelection = engine.adjustSelectionForStructure(
+      { active: state.active, range: state.range },
+      kind,
+      insertAt,
+      1,
+      { rows: state.rows, cols: state.cols }
+    );
+    state.active = insertedSelection.active;
+    state.range = insertedSelection.range;
     render();
     syncFormulaBar();
     persist();
@@ -340,12 +349,18 @@
     state.cells = engine.updateFormulasForStructure(nextCells, kind, index, -1);
     if (kind === 'row') {
       state.rows -= 1;
-      state.active.row = Math.min(state.active.row, state.rows - 1);
     } else {
       state.cols -= 1;
-      state.active.col = Math.min(state.active.col, state.cols - 1);
     }
-    state.range = { start: state.active, end: state.active };
+    var deletedSelection = engine.adjustSelectionForStructure(
+      { active: state.active, range: state.range },
+      kind,
+      index,
+      -1,
+      { rows: state.rows, cols: state.cols }
+    );
+    state.active = deletedSelection.active;
+    state.range = deletedSelection.range;
     render();
     syncFormulaBar();
     persist();
