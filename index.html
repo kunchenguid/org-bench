@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Apple Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <div class="product-name">Apple Sheet</div>
+          <div class="product-hint">Formula bar, multi-cell selection, clipboard, undo, structural edits</div>
+        </div>
+        <div class="selection-chip">
+          <span id="selectionLabel">A1</span>
+        </div>
+      </header>
+
+      <section class="formula-panel">
+        <label class="formula-label" for="formulaInput">fx</label>
+        <input id="formulaInput" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+      </section>
+
+      <main class="grid-shell">
+        <div id="gridScroller" class="grid-scroller">
+          <table id="sheetTable" class="sheet-table"></table>
+          <input id="cellEditor" class="cell-editor" type="text" spellcheck="false" autocomplete="off">
+        </div>
+      </main>
+    </div>
+
+    <div id="headerMenu" class="menu hidden"></div>
+
+    <script src="engine.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
