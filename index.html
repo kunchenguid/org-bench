@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" data-storage-namespace="spreadsheet">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Spreadsheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div class="brand">Spreadsheet</div>
+        <div class="spacer"></div>
+        <div class="hint">Click to select. Type to replace. Enter saves and moves down.</div>
+      </section>
+
+      <section class="formula-bar" aria-label="Formula bar">
+        <input class="name-box" data-name-box value="A1" readonly aria-label="Selected cell">
+        <div class="formula-label">fx</div>
+        <input class="formula-input" data-formula-input spellcheck="false" aria-label="Cell formula">
+      </section>
+
+      <section class="grid-shell" data-grid aria-label="Spreadsheet grid"></section>
+
+      <section class="statusbar">
+        <div data-status>Ready</div>
+        <div>26 columns x 100 rows</div>
+      </section>
+    </main>
+
+    <script src="spreadsheet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
