@@ -206,6 +206,33 @@
         : evaluateNode(node.args[2], getReferenceValue, getRangeValues);
     }
 
+    if (name === 'COUNT') {
+      const countValues = [];
+      node.args.forEach(function (arg) {
+        if (arg.type === 'range') {
+          getRangeValues(arg.start, arg.end).forEach(function (value) {
+            countValues.push(value);
+          });
+          return;
+        }
+
+        if (arg.type === 'reference') {
+          countValues.push(getRangeValues(arg.ref, arg.ref)[0]);
+          return;
+        }
+
+        countValues.push(evaluateNode(arg, getReferenceValue, getRangeValues));
+      });
+
+      for (let index = 0; index < countValues.length; index += 1) {
+        if (countValues[index] && countValues[index].error) {
+          return countValues[index];
+        }
+      }
+
+      return countValues.filter(function (value) { return value !== '' && value != null; }).length;
+    }
+
     const values = [];
     node.args.forEach(function (arg) {
       if (arg.type === 'range') {
@@ -229,8 +256,6 @@
       case 'AVERAGE': return numbers.length ? numbers.reduce(function (sum, value) { return sum + value; }, 0) / numbers.length : 0;
       case 'MIN': return numbers.length ? Math.min.apply(Math, numbers) : 0;
       case 'MAX': return numbers.length ? Math.max.apply(Math, numbers) : 0;
-      case 'COUNT':
-        return values.filter(function (value) { return value !== '' && value != null; }).length;
       default: throw new Error('Unknown function');
     }
   }
