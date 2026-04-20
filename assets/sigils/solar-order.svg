@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="solar-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff1b3"/>
+      <stop offset="55%" stop-color="#f6a43d"/>
+      <stop offset="100%" stop-color="#7f2b14"/>
+    </linearGradient>
+    <radialGradient id="solar-core" cx="0.5" cy="0.45" r="0.5">
+      <stop offset="0%" stop-color="#fffef1"/>
+      <stop offset="100%" stop-color="#ffd16c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="48" fill="#1d0f09"/>
+  <circle cx="128" cy="128" r="88" fill="url(#solar-bg)" opacity="0.22"/>
+  <path d="M128 30 146 78 196 60 178 110 226 128 178 146 196 196 146 178 128 226 110 178 60 196 78 146 30 128 78 110 60 60 110 78Z" fill="url(#solar-bg)" stroke="#ffe7a8" stroke-width="8" stroke-linejoin="round"/>
+  <circle cx="128" cy="128" r="34" fill="#fff7dc"/>
+  <circle cx="128" cy="128" r="54" fill="url(#solar-core)"/>
+  <path d="M128 82 142 118 182 128 142 138 128 174 114 138 74 128 114 118Z" fill="#9b3d1a" opacity="0.58"/>
+</svg>
