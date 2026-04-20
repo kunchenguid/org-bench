@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#081224"/>
+      <stop offset="0.55" stop-color="#11274d"/>
+      <stop offset="1" stop-color="#2f1739"/>
+    </linearGradient>
+    <radialGradient id="ring" cx="50%" cy="50%" r="60%">
+      <stop offset="0" stop-color="#7bd4ff" stop-opacity="0.36"/>
+      <stop offset="0.65" stop-color="#a56bff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <ellipse cx="800" cy="450" rx="620" ry="250" fill="url(#ring)"/>
+  <path d="M0 180C220 120 390 140 610 230S1050 350 1600 140V0H0z" fill="#0c2142" opacity="0.65"/>
+  <path d="M0 715c231-76 438-74 619-17s343 85 564 42 417-130 417-130v290H0z" fill="#1b102b" opacity="0.72"/>
+  <g opacity="0.26" stroke="#8ce6ff" stroke-width="3" fill="none">
+    <circle cx="800" cy="450" r="210"/>
+    <circle cx="800" cy="450" r="250"/>
+    <path d="M580 450h440M800 230v440"/>
+    <path d="M646 296l308 308M646 604l308-308" opacity="0.5"/>
+  </g>
+</svg>

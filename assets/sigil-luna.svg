@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="luna-core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e0f2ff"/>
+      <stop offset="0.5" stop-color="#78a5ff"/>
+      <stop offset="1" stop-color="#2c1466"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="#0c1024"/>
+  <path d="M140 40c34 14 58 48 58 88s-24 74-58 88c18-18 30-49 30-88s-12-70-30-88z" fill="url(#luna-core)"/>
+  <path d="M130 54c-30 13-52 40-58 74 14-12 33-20 54-20 31 0 59 17 74 42-5-41-31-77-70-96z" fill="#b7d3ff" opacity="0.7"/>
+  <path d="M82 152c13 22 37 38 66 44-14-11-24-28-28-48-12 4-25 5-38 4z" fill="#9dbbff" opacity="0.85"/>
+  <circle cx="98" cy="98" r="10" fill="#edf7ff"/>
+  <circle cx="76" cy="126" r="6" fill="#edf7ff" opacity="0.8"/>
+  <circle cx="102" cy="150" r="5" fill="#edf7ff" opacity="0.75"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="sol-core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff3bc"/>
+      <stop offset="0.55" stop-color="#ffb24d"/>
+      <stop offset="1" stop-color="#7f2f0d"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="#1c0d06"/>
+  <circle cx="128" cy="128" r="76" fill="none" stroke="url(#sol-core)" stroke-width="18"/>
+  <path d="M128 46l20 40 44-2-30 32 18 42-41-18-41 18 18-42-30-32 44 2z" fill="url(#sol-core)"/>
+  <circle cx="128" cy="128" r="24" fill="#1c0d06" stroke="#ffd978" stroke-width="8"/>
+</svg>
