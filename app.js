@@ -1,7 +1,8 @@
 (function () {
   var engine = window.SpreadsheetEngine;
   var clipboard = window.SpreadsheetClipboard;
-  var STORAGE_PREFIX = window.__BENCHMARK_STORAGE_NAMESPACE__ || 'spreadsheet:';
+  var storage = window.SpreadsheetStorage;
+  var STORAGE_PREFIX = storage.resolveStoragePrefix(window);
   var STORAGE_KEY = STORAGE_PREFIX + 'grid-state';
   var MAX_HISTORY = 50;
   var sheetEl = document.getElementById('sheet');
