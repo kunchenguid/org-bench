@@ -89,3 +89,19 @@ body {
 .boot-status.is-hidden {
   opacity: 0;
 }
+
+@media (max-width: 640px) {
+  .boot-status {
+    right: 16px;
+    min-width: 0;
+    padding: 12px 14px;
+  }
+
+  .boot-status__title {
+    font-size: 16px;
+  }
+
+  .boot-status__factions {
+    gap: 10px;
+  }
+}

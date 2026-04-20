@@ -51,3 +51,11 @@ test('script updates overlay copy without replacing the themed overlay shell', (
   assert.match(js, /boot-status__copy/i);
   assert.doesNotMatch(js, /status\.textContent\s*=\s*['"]Canvas shell ready/i);
 });
+
+test('boot overlay has a narrow-screen layout fallback', () => {
+  const css = read('styles.css');
+
+  assert.match(css, /@media\s*\(max-width:\s*640px\)/i);
+  assert.match(css, /right:\s*16px/i);
+  assert.match(css, /min-width:\s*0/i);
+});
