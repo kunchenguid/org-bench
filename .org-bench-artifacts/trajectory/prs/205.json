@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 205,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/205",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add initial duel card set spec",
+  "body": "## Summary\n- add a first-pass card set specification document for the duel project\n- capture faction, card, and theme notes without claiming gameplay implementation\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T09:21:55Z"
+    }
+  ],
+  "comments": []
+}

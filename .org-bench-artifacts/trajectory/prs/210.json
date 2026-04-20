@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 210,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/210",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Polish Prism Duel game motion",
+  "body": "## Summary\n- add a small shared motion helper for hand fan transforms, floating damage numbers, and mana shimmer\n- wire the helper into the shipped Prism Duel surface so hand cards fan with pointer-aware lift, damage numbers drift instead of sitting static, and filled mana crystals shimmer\n- cover the helper math with motion tests and keep the full game suite green\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T09:53:14Z"
+    }
+  ],
+  "comments": []
+}

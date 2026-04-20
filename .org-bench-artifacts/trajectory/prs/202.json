@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 202,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/202",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add Prism Duel playable vertical slice",
+  "body": "## Summary\n- add a local-file-safe Prism Duel prototype with a WebGL-rendered board, in-canvas controls, a simple AI opponent, and namespaced local persistence\n- add tested duel state logic covering the guided opener, card play, AI turn flow, and save serialization\n- establish the initial art direction for the Sol vs Umbra factions so the team can iterate on polish from a playable base\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T09:13:34Z"
+    }
+  ],
+  "comments": []
+}

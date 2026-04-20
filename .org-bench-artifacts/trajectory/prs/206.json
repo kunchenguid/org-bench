@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 206,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/206",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add standalone duel rules core",
+  "body": "## Summary\n- add a standalone `src/game-core.js` rules and persistence module for the duel loop\n- cover guided opening state, namespaced save/load, player summon flow, guard targeting, and enemy turn behavior with dedicated tests\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T09:31:31Z"
+    }
+  ],
+  "comments": []
+}
