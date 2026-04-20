@@ -1,5 +1,6 @@
 (function () {
   const logic = window.DuelLogic;
+  const tutorial = window.DuelTutorial;
   const canvas = document.getElementById('game-canvas');
   const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
 
@@ -287,11 +288,12 @@
     uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
     drawBoardBase();
     const layout = getLayout();
-    drawLanes(layout.enemyLanes, state.game.enemy.board, true);
-    drawLanes(layout.playerLanes, state.game.player.board, false);
-    drawHand(layout.playerHand);
-    drawHud(layout);
-    drawTooltip(layout);
+    const tutorialState = tutorial.getTutorialState(state);
+    drawLanes(layout.enemyLanes, state.game.enemy.board, true, tutorialState);
+    drawLanes(layout.playerLanes, state.game.player.board, false, tutorialState);
+    drawHand(layout.playerHand, tutorialState);
+    drawHud(layout, tutorialState);
+    drawTooltip(layout, tutorialState);
     renderer.draw(uiCanvas);
   }
 
@@ -323,10 +325,19 @@
     uiCtx.fillRect(0, height * 0.53, width, height * 0.24);
   }
 
-  function drawLanes(rects, board, isEnemy) {
+  function drawLanes(rects, board, isEnemy, tutorialState) {
     for (let index = 0; index < rects.length; index += 1) {
       const rect = rects[index];
-      uiCtx.strokeStyle = isEnemy ? 'rgba(119, 220, 255, 0.35)' : (state.selectedCard !== -1 && !board[index] ? 'rgba(255, 222, 123, 0.95)' : 'rgba(255, 255, 255, 0.18)');
+      const summonLane = !isEnemy && tutorialState.highlightLaneIndices.indexOf(index) !== -1;
+      const attackLane = !isEnemy && tutorialState.attackLaneIndices.indexOf(index) !== -1;
+      const lanePulse = 0.55 + 0.45 * Math.sin(state.time * 6);
+      uiCtx.strokeStyle = isEnemy
+        ? 'rgba(119, 220, 255, 0.35)'
+        : summonLane
+          ? 'rgba(255, 222, 123, ' + (0.55 + lanePulse * 0.45) + ')'
+          : attackLane
+            ? 'rgba(125, 230, 200, ' + (0.5 + lanePulse * 0.5) + ')'
+            : (state.selectedCard !== -1 && !board[index] ? 'rgba(255, 222, 123, 0.95)' : 'rgba(255, 255, 255, 0.18)');
       uiCtx.lineWidth = state.hoveredLane === index && !isEnemy ? 4 : 2;
       roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
       uiCtx.stroke();
@@ -334,14 +345,22 @@
         uiCtx.fillStyle = 'rgba(255,255,255,0.08)';
         uiCtx.font = 'bold 24px Arial';
         uiCtx.textAlign = 'center';
-        uiCtx.fillText(isEnemy ? 'Enemy lane' : 'Drop here', rect.x + rect.w / 2, rect.y + rect.h / 2);
+        uiCtx.fillText(isEnemy ? 'Enemy lane' : (summonLane ? 'Summon here' : 'Drop here'), rect.x + rect.w / 2, rect.y + rect.h / 2);
       } else {
         drawCard(rect, board[index], isEnemy, false);
+        if (attackLane) {
+          uiCtx.fillStyle = 'rgba(125, 230, 200, 0.18)';
+          roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+          uiCtx.fill();
+          uiCtx.fillStyle = '#d8fff2';
+          uiCtx.font = 'bold 18px Arial';
+          uiCtx.fillText('Ready to attack', rect.x + rect.w / 2, rect.y - 10);
+        }
       }
     }
   }
 
-  function drawHand(rects) {
+  function drawHand(rects, tutorialState) {
     for (let index = 0; index < rects.length; index += 1) {
       const rect = rects[index];
       const hovered = index === state.hoveredCard;
@@ -350,7 +369,9 @@
       const playable = state.game.turn === 'player' && card.cost <= state.game.player.mana;
       drawCard({ x: rect.x, y: rect.y + lift, w: rect.w, h: rect.h }, card, false, playable);
       if (playable) {
-        uiCtx.strokeStyle = hovered ? 'rgba(255, 243, 164, 1)' : 'rgba(255, 206, 86, 0.95)';
+        const tutorialGlow = tutorialState.highlightHandIndices.indexOf(index) !== -1;
+        const glowAlpha = tutorialGlow ? 0.55 + 0.45 * Math.sin(state.time * 7) : 0.95;
+        uiCtx.strokeStyle = hovered ? 'rgba(255, 243, 164, 1)' : 'rgba(255, 206, 86, ' + glowAlpha + ')';
         uiCtx.lineWidth = 4;
         roundRect(uiCtx, rect.x - 2, rect.y + lift - 2, rect.w + 4, rect.h + 4, 20);
         uiCtx.stroke();
@@ -414,19 +435,22 @@
     uiCtx.fillText(String(value), x, y + 6);
   }
 
-  function drawHud(layout) {
+  function drawHud(layout, tutorialState) {
     const player = state.game.player;
     const enemy = state.game.enemy;
     panel(28, canvas.height - 152, 236, 116, '#ff9d68', player.hero || 'Captain Sol', player.health, player.mana, player.maxMana, player.deck.length, imageCache.heroPlayer);
     panel(28, 28, 236, 116, '#7de6c8', enemy.hero || 'Oracle Nera', enemy.health, enemy.mana, enemy.maxMana, enemy.deck.length, imageCache.heroAi);
-    button(layout.endTurn.x, layout.endTurn.y, layout.endTurn.w, layout.endTurn.h, state.game.turn === 'player' ? '#ffc66d' : '#71849b', state.game.turn === 'player' ? 'End Turn' : 'Enemy Turn');
+    const endTurnColor = tutorialState.endTurnPulse
+      ? 'rgba(255, 208, 109, ' + (0.62 + 0.38 * Math.sin(state.time * 7)) + ')'
+      : (state.game.turn === 'player' ? '#ffc66d' : '#71849b');
+    button(layout.endTurn.x, layout.endTurn.y, layout.endTurn.w, layout.endTurn.h, endTurnColor, state.game.turn === 'player' ? 'End Turn' : 'Enemy Turn');
 
     uiCtx.fillStyle = 'rgba(255,255,255,0.92)';
     uiCtx.font = 'bold 28px Arial';
     uiCtx.textAlign = 'center';
     uiCtx.fillText('Emberfall Duel', canvas.width * 0.5, 44);
     uiCtx.font = '20px Arial';
-    uiCtx.fillText(state.message, canvas.width * 0.5, canvas.height - 18);
+    uiCtx.fillText(tutorialState.prompt || state.message, canvas.width * 0.5, canvas.height - 18);
 
     for (let index = 0; index < state.banners.length; index += 1) {
       const banner = state.banners[index];
@@ -483,7 +507,7 @@
     uiCtx.fillText(label, x + w / 2, y + 42);
   }
 
-  function drawTooltip(layout) {
+  function drawTooltip(layout, tutorialState) {
     if (state.hoveredCard === -1) {
       return;
     }
@@ -500,7 +524,7 @@
     uiCtx.fillText(card.name + ' - ' + card.cost + ' mana', x + 16, y + 28);
     uiCtx.font = '18px Arial';
     uiCtx.fillText(card.text, x + 16, y + 56);
-    uiCtx.fillText(card.type === 'unit' ? 'Click, then choose a lane.' : 'Click to cast at the first enemy.', x + 16, y + 82);
+    uiCtx.fillText(tutorialState.highlightHandIndices.indexOf(state.hoveredCard) !== -1 ? tutorialState.prompt : (card.type === 'unit' ? 'Click, then choose a lane.' : 'Click to cast at the first enemy.'), x + 16, y + 82);
   }
 
   function getCardTexture(card) {

@@ -10,6 +10,7 @@ test('index.html provides a canvas-first entrypoint with classic scripts', () =>
 
   assert.match(html, /<canvas[^>]*id="game-canvas"/i);
   assert.match(html, /<script\s+src="src\/state\.js"><\/script>/i);
+  assert.match(html, /<script\s+src="src\/tutorial\.js"><\/script>/i);
   assert.match(html, /<script\s+src="src\/game\.js"><\/script>/i);
   assert.doesNotMatch(html, /type="module"/i);
 });
