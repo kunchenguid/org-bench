@@ -36,3 +36,23 @@ test("deleteRow rewrites deleted references to #REF!", function () {
   assert.equal(sheet.getCell("B1"), "=#REF!");
   assert.equal(core.evaluateCell(sheet, "B1").display, "#REF!");
 });
+
+test("insertColumn shifts cells and keeps formulas pointing at the same data", function () {
+  const sheet = core.createSheet({ A1: "10", B1: "20", C1: "=SUM(A1:B1)" });
+
+  sheet.insertColumn(0);
+
+  assert.equal(sheet.getCell("B1"), "10");
+  assert.equal(sheet.getCell("C1"), "20");
+  assert.equal(sheet.getCell("D1"), "=SUM(B1:C1)");
+  assert.equal(core.evaluateCell(sheet, "D1").display, "30");
+});
+
+test("deleteColumn rewrites deleted references to #REF!", function () {
+  const sheet = core.createSheet({ A1: "10", C2: "=A1" });
+
+  sheet.deleteColumn(0);
+
+  assert.equal(sheet.getCell("B2"), "=#REF!");
+  assert.equal(core.evaluateCell(sheet, "B2").display, "#REF!");
+});
