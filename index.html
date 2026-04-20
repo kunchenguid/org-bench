@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">Sheet</div>
+        <label class="formula-bar" for="formula-input">
+          <span class="formula-chip">fx</span>
+          <input id="formula-input" type="text" autocomplete="off" spellcheck="false">
+        </label>
+      </header>
+      <main class="grid-shell">
+        <table class="sheet" id="sheet" aria-label="Spreadsheet grid"></table>
+      </main>
+    </div>
+    <script src="spreadsheet-core.js"></script>
+    <script src="spreadsheet-app.js"></script>
+  </body>
+</html>
