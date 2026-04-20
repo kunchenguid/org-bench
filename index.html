@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Facebook Spreadsheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="workspace">
+      <header class="toolbar">
+        <div class="brand-block">
+          <div class="brand">Spreadsheet</div>
+          <div class="hint">Enter or F2 edits. Drag selects. Delete clears.</div>
+        </div>
+        <div class="formula-bar-wrap">
+          <div id="name-box" class="name-box">A1</div>
+          <label class="formula-bar">
+            <span class="formula-mark">fx</span>
+            <input id="formula-input" type="text" spellcheck="false" aria-label="Formula bar">
+          </label>
+        </div>
+        <div id="selection-info" class="selection-info">Single cell</div>
+      </header>
+      <main class="sheet-wrap">
+        <div id="app" class="sheet-shell" aria-label="Spreadsheet grid"></div>
+      </main>
+    </div>
+    <script src="src/model.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
