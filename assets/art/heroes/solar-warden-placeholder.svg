@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="sky" cx="50%" cy="28%" r="68%">
+      <stop offset="0%" stop-color="#fff7de"/>
+      <stop offset="45%" stop-color="#f6b64e"/>
+      <stop offset="100%" stop-color="#361406"/>
+    </radialGradient>
+    <linearGradient id="armor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff2bf"/>
+      <stop offset="100%" stop-color="#9f531c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#180904"/>
+  <rect x="44" y="44" width="936" height="936" rx="48" fill="url(#sky)"/>
+  <circle cx="512" cy="260" r="104" fill="#ffdfb6"/>
+  <path d="M372 520c58-54 118-81 180-81s122 27 180 81v236H292V520c25-31 53-57 80-76Z" fill="url(#armor)"/>
+  <path d="M324 770h376c-38 96-104 146-188 146s-150-50-188-146Z" fill="#6e2f11"/>
+  <path d="M408 236c17-72 67-108 104-108 53 0 91 34 113 102-80-26-151-25-217 6Z" fill="#fff1ba"/>
+  <path d="M512 424 564 520 512 616 460 520Z" fill="#fff5d2" opacity="0.96"/>
+  <path d="M220 314c86-154 190-230 312-230 125 0 234 78 328 234-69-48-144-72-225-72-72 0-145 24-219 68-63 36-108 37-196 0Z" fill="#ffcf77" opacity="0.66"/>
+</svg>

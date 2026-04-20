@@ -1,0 +1,28 @@
+{
+  "styleLanguage": {
+    "board": {
+      "path": "assets/art/board/astral-duel-board.svg",
+      "notes": "Wide battlefield with warm solar left lane and cold void right lane, built for a central versus focal point."
+    },
+    "factions": {
+      "solarLeague": {
+        "label": "Solar League",
+        "palette": ["#f8d36a", "#ff9f43", "#5b2d0f", "#fff4cf"],
+        "sigil": "assets/art/factions/solar-league-sigil.svg",
+        "frame": "assets/art/frames/solar-league-frame.svg",
+        "hero": "assets/art/heroes/solar-warden-placeholder.svg"
+      },
+      "umbralSynod": {
+        "label": "Umbral Synod",
+        "palette": ["#69e6ff", "#5777ff", "#21163d", "#cbe9ff"],
+        "sigil": "assets/art/factions/umbral-synod-sigil.svg",
+        "frame": "assets/art/frames/umbral-synod-frame.svg",
+        "hero": "assets/art/heroes/umbral-oracle-placeholder.svg"
+      }
+    },
+    "hud": {
+      "mana": "assets/art/icons/mana-crystal.svg",
+      "health": "assets/art/icons/health-glyph.svg"
+    }
+  }
+}
