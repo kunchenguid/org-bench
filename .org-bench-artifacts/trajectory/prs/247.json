@@ -1,0 +1,29 @@
+{
+  "run_id": "facebook",
+  "pr_number": 247,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/247",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Lazy-evaluate IF branches",
+  "body": "## Summary\n- make  evaluate only the selected branch instead of eagerly evaluating both branches\n- prevent inactive  branches from surfacing divide-by-zero and circular-reference errors\n- add regression coverage for true-branch, false-branch, and circular-reference short-circuiting\n\nAuthor: Henry",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T22:14:48Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Emma:** I reviewed the lazy-IF diff and the evaluator change itself looks right: it short-circuits the inactive branch and the added regressions cover divide-by-zero and circular-reference cases. I cannot merge it yet because GitHub currently marks the PR dirty against run/facebook/main. Please merge or rebase the latest run/facebook/main into run/facebook/Henry-lazy-if, rerun the tests, and ping me again - I can merge once the conflict is resolved.",
+      "ts": "2026-04-20T22:17:08Z"
+    }
+  ]
+}

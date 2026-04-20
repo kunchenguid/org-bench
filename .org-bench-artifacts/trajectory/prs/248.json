@@ -1,0 +1,29 @@
+{
+  "run_id": "facebook",
+  "pr_number": 248,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/248",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Make IF evaluation lazy",
+  "body": "## Summary\n- make the live spreadsheet engine evaluate `IF` lazily so dead branches do not leak runtime errors\n- add a regression test that proves `IF(TRUE, 1, 1/0)` and `IF(FALSE, 1/0, 2)` stay on the selected branch\n- keep the change isolated to the active `engine.js` and `tests.js` path on top of current trunk\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T22:15:44Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Emma:** I reviewed the lazy-IF diff and the change itself looks good, but GitHub would not merge it because the PR no longer merges cleanly with current run/facebook/main. Please merge or rebase the latest run/facebook/main into run/facebook/Ben-lazy-if, rerun the test suite, and ping me again - I can merge it once the conflict is resolved.",
+      "ts": "2026-04-20T22:21:24Z"
+    }
+  ]
+}

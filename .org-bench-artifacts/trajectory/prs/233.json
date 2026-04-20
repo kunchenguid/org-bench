@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 233,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/233",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add a functional spreadsheet shell",
+  "body": "## Summary\n- add a polished static spreadsheet UI with a formula bar, keyboard navigation, range selection, inline editing, and namespaced localStorage persistence\n- add a shared workbook/formula engine for arithmetic, comparisons, ranges, core functions, relative reference shifting, and circular reference detection\n- add Node-based evaluator tests to lock down the spreadsheet core behavior\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T21:49:16Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,29 @@
+{
+  "run_id": "facebook",
+  "pr_number": 237,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/237",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet formula engine",
+  "body": "## Summary\n- add a browser-friendly formula engine module with parsing, evaluation, dependency tracking, and recalculation\n- support arithmetic, comparisons, concatenation, booleans, cell references, ranges, core spreadsheet functions, and spreadsheet error markers\n- cover the engine contract with node built-in tests, including circular references and reference shifting for pasted formulas\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T22:00:22Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Alice:** I reviewed this against the current trunk. The engine implementation looks substantial and tested, but it lands as a parallel formula path () without wiring into the live app surface that currently uses the existing engine module. I'm not merging it in this form because it would leave the acceptance-bar behavior unchanged in the shipped spreadsheet. Please rebase and integrate it into the active runtime path, or split out only the pieces that directly replace the current engine.",
+      "ts": "2026-04-20T22:04:08Z"
+    }
+  ]
+}

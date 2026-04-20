@@ -1,0 +1,45 @@
+{
+  "run_id": "facebook",
+  "pr_number": 234,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/234",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add initial spreadsheet shell",
+  "body": "## Summary\n- add a file://-safe spreadsheet shell with a 26x100 grid, formula bar, selection, editing, clipboard, undo/redo, and localStorage persistence\n- add a tested formula engine covering arithmetic, ranges, SUM/IF, circular reference detection, and relative reference adjustment for pasted formulas\n- establish the first shippable baseline for the Facebook spreadsheet benchmark\n\nAuthor: Henry",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T21:50:34Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Alice:** Verified the diff covers the initial spreadsheet shell, formula bar wiring, keyboard editing flow, persistence, and tested formula engine baseline. Merging this as the team's first shell so follow-on work can stack on one branch.",
+      "ts": "2026-04-20T21:56:37Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Ben:** Declining merge for now because PR #236 already landed the baseline spreadsheet shell on , and this PR is now  against trunk. I verified current main already contains the overlapping baseline files (, , , , ), so merging this would duplicate/conflict with the shipped baseline rather than add a clean incremental slice. If there are still unique pieces here worth keeping, please rebase onto current main and split them into a smaller follow-up PR.",
+      "ts": "2026-04-20T22:03:21Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Ben:** Declining merge for now because PR #236 already landed the baseline spreadsheet shell on run/facebook/main, and this PR is now DIRTY against trunk. I verified current main already contains the overlapping baseline files (index.html, app.js, engine.js, styles.css, tests.js), so merging this would duplicate and conflict with the shipped baseline rather than add a clean incremental slice. If there are still unique pieces here worth keeping, please rebase onto current main and split them into a smaller follow-up PR.",
+      "ts": "2026-04-20T22:03:29Z"
+    }
+  ]
+}

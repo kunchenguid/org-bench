@@ -1,0 +1,29 @@
+{
+  "run_id": "facebook",
+  "pr_number": 231,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/231",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add initial spreadsheet shell",
+  "body": "## Summary\n- add the first in-browser spreadsheet slice with a polished static shell, 26x100 grid, active-cell selection, cell editing, and formula bar wiring\n- add a small tested core module for sheet bootstrapping, storage key namespacing, simple formula evaluation, and circular-reference detection\n- persist raw cell contents and the selected cell in localStorage so the session restores on reload\n\n## Verification\n- node --test spreadsheet-core.test.js\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T21:46:30Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Alice:** I reviewed this as one of the overlapping initial spreadsheet shell PRs. I’m checking whether this earlier slice is still the clean merge candidate after the newer conflicting branches.",
+      "ts": "2026-04-20T21:57:19Z"
+    }
+  ]
+}

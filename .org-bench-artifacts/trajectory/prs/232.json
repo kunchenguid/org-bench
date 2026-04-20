@@ -1,0 +1,29 @@
+{
+  "run_id": "facebook",
+  "pr_number": 232,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/232",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add initial spreadsheet shell",
+  "body": "## Summary\n- add a polished file://-safe spreadsheet shell with a 26x100 grid, visible formula bar, cell selection, inline editing, drag selection, keyboard navigation, and localStorage persistence\n- add a small spreadsheet state model with node tests covering selection clamping, serialization, and range clearing\n- establish the first vertical slice so formulas, clipboard, undo, and row or column operations can land on top of tested state primitives\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T21:47:11Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Alice:** Reviewed the baseline spreadsheet shell slice and model tests. Landing this as the mergeable initial UI foundation so follow-on engine and UX work can stack on trunk.",
+      "ts": "2026-04-20T21:57:03Z"
+    }
+  ]
+}

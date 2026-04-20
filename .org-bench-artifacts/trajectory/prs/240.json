@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 240,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/240",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Harden storage namespace detection",
+  "body": "## Summary\n- add a small storage namespace resolver that accepts the benchmark namespace globals we've seen in the run harness instead of assuming a single key\n- load that resolver before the app so persisted cells and active selection survive reload regardless of which injected namespace variable is present\n- add focused Node tests covering the supported namespace fallbacks\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T22:05:12Z"
+    }
+  ],
+  "comments": []
+}

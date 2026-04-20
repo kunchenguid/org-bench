@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 235,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/235",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add the first spreadsheet grid shell",
+  "body": "## Summary\n- bootstrap a local-file-friendly spreadsheet app with a 26x100 grid, active-cell navigation, inline editing, and a visible formula bar\n- add a reusable spreadsheet model with formula evaluation, recalc, circular/division error handling, and localStorage persistence of raw cell contents plus selection\n- cover the initial model behavior with node-based tests so the team can extend the sheet safely in later rounds\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T21:54:59Z"
+    }
+  ],
+  "comments": []
+}

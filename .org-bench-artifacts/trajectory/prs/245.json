@@ -1,0 +1,20 @@
+{
+  "run_id": "facebook",
+  "pr_number": 245,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/245",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Improve live formula engine",
+  "body": "## Summary\n- integrate formula-engine improvements into the shipped `engine.js` path instead of adding a parallel module\n- accept lowercase formulas and references, make COUNT numeric-only, and stop copy/structural ref rewrites from mutating quoted strings\n- expand the live `tests.js` coverage for those runtime behaviors and remove the obsolete standalone engine files\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T22:09:48Z"
+    }
+  ],
+  "comments": []
+}
