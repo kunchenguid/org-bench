@@ -524,6 +524,9 @@
       if (event.key === 'Enter') {
         event.preventDefault();
         commitEdit({ row: 1, col: 0 });
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        commitEdit({ row: 0, col: 1 });
       } else if (event.key === 'Escape') {
         event.preventDefault();
         cancelEdit();
