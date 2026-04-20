@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grid</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">Grid</div>
+        <div class="formula-wrap">
+          <label class="formula-label" for="formula-input">fx</label>
+          <input id="formula-input" class="formula-input" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="selection-meta" id="selection-meta"></div>
+      </header>
+      <main class="sheet-shell">
+        <div class="sheet-scroller" id="sheet-scroller">
+          <table class="sheet" id="sheet"></table>
+        </div>
+      </main>
+      <div class="context-menu hidden" id="context-menu"></div>
+    </div>
+    <script src="engine.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
