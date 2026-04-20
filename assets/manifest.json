@@ -1,0 +1,34 @@
+{
+  "theme": "Ashen Duel",
+  "board": "assets/board-bg.svg",
+  "frames": {
+    "sol": "assets/card-frame-sol.svg",
+    "luna": "assets/card-frame-luna.svg"
+  },
+  "heroes": {
+    "player": "assets/hero-player.svg",
+    "ai": "assets/hero-ai.svg"
+  },
+  "sigils": {
+    "sol": "assets/sigil-sol.svg",
+    "luna": "assets/sigil-luna.svg"
+  },
+  "naming": {
+    "framePattern": "assets/card-frame-<faction>.svg",
+    "heroPattern": "assets/hero-<side>.svg",
+    "sigilPattern": "assets/sigil-<faction>.svg",
+    "cardIllustrationPattern": "assets/<cardId>.svg"
+  },
+  "cards": [
+    "assets/emberling.svg",
+    "assets/cindermage.svg",
+    "assets/flarefox.svg",
+    "assets/phoenixEgg.svg",
+    "assets/solarDrake.svg",
+    "assets/blazeburst.svg",
+    "assets/ashlance.svg",
+    "assets/bannerMarshal.svg",
+    "assets/cometRider.svg",
+    "assets/sunforged.svg"
+  ]
+}
