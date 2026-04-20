@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Astral Duel</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <canvas id="game" aria-label="Astral Duel board"></canvas>
+      <section class="hud" aria-live="polite">
+        <div class="hud__row">
+          <strong>Astral Duel</strong>
+          <span id="turn-label"></span>
+          <span id="save-label"></span>
+        </div>
+        <div class="hud__row" id="cue-title"></div>
+        <div class="hud__row cue-text" id="cue-body"></div>
+        <div class="hud__row controls">
+          <button id="play-card" type="button">Play first card</button>
+          <button id="end-turn" type="button">End turn</button>
+          <button id="reset-game" type="button">New duel</button>
+        </div>
+      </section>
+    </main>
+    <script src="src/game-state.js"></script>
+    <script src="src/main.js"></script>
+  </body>
+</html>

@@ -4,7 +4,9 @@
     return;
   }
 
-  root.FBDuelGameState = factory();
+  const api = factory();
+  root.FBDuelGameState = api;
+  root.FBDuelGame = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const STORAGE_PREFIX = 'fb-duel-tcg';
   const MAX_BOARD_SIZE = 3;
@@ -47,6 +49,14 @@
   }
 
   function chooseEncounterVariant(seed) {
+    const normalizedSeed = String(seed || 'default-seed').toLowerCase();
+    if (normalizedSeed.indexOf('shield') !== -1) {
+      return clone(ENCOUNTER_VARIANTS[0]);
+    }
+    if (normalizedSeed.indexOf('rush') !== -1) {
+      return clone(ENCOUNTER_VARIANTS[1]);
+    }
+
     const index = hashSeed(seed || 'default-seed') % ENCOUNTER_VARIANTS.length;
     return clone(ENCOUNTER_VARIANTS[index]);
   }
@@ -95,6 +105,10 @@
     }
 
     return clone(serialized);
+  }
+
+  function serializeState(state) {
+    return JSON.stringify(state);
   }
 
   function playCard(state, cardId) {
@@ -349,6 +363,8 @@
     endTurn,
     hydrateState,
     playCard,
+    resolveEnemyTurn: runEnemyTurn,
     runEnemyTurn,
+    serializeState,
   };
 });
