@@ -1,0 +1,7 @@
+{
+  "name": "apple-duel-canvas-game",
+  "private": true,
+  "scripts": {
+    "test": "node tests/game-state.test.js && node tests/storage.test.js"
+  }
+}
