@@ -230,6 +230,27 @@
     });
   }
 
+  function rewriteFormulaColumns(raw, colIndex, mode) {
+    if (typeof raw !== 'string' || raw.charAt(0) !== '=') {
+      return raw;
+    }
+    return raw.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, function (match, absCol, colName, absRow, rowText) {
+      if (absCol) {
+        return match;
+      }
+      const currentCol = columnNameToIndex(colName);
+      if (mode === 'insert') {
+        const nextCol = currentCol >= colIndex ? currentCol + 1 : currentCol;
+        return (absCol ? '$' : '') + columnIndexToName(nextCol) + (absRow ? '$' : '') + rowText;
+      }
+      if (currentCol === colIndex) {
+        return ERROR.ref;
+      }
+      const nextCol = currentCol > colIndex ? currentCol - 1 : currentCol;
+      return (absCol ? '$' : '') + columnIndexToName(nextCol) + (absRow ? '$' : '') + rowText;
+    });
+  }
+
   function tokenize(input) {
     const tokens = [];
     let index = 0;
