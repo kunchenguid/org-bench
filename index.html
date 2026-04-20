@@ -10,9 +10,17 @@
     <main class="app-shell">
       <canvas id="game-canvas" aria-label="Duel TCG game board"></canvas>
       <div class="boot-status" id="boot-status" role="status" aria-live="polite">
-        Initializing canvas duel...
+        <div class="boot-status__eyebrow">Astral Duel Protocol</div>
+        <div class="boot-status__title">Solar League vs Umbral Synod</div>
+        <div class="boot-status__copy">Initializing canvas duel...</div>
+        <div class="boot-status__factions" aria-hidden="true">
+          <img class="boot-status__sigil" src="./assets/art/factions/solar-league-sigil.svg" alt="">
+          <span class="boot-status__versus">VS</span>
+          <img class="boot-status__sigil" src="./assets/art/factions/umbral-synod-sigil.svg" alt="">
+        </div>
       </div>
     </main>
+    <script src="./src/renderer.js"></script>
     <script src="./art-config.js"></script>
     <script src="./script.js"></script>
   </body>
