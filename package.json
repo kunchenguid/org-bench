@@ -1,7 +1,7 @@
 {
-  "name": "apple-duel-canvas-game",
+  "name": "apple-duel-core-ai",
   "private": true,
   "scripts": {
-    "test": "node tests/game-state.test.js && node tests/storage.test.js"
+    "test": "node --test tests/*.test.js"
   }
 }

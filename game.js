@@ -1,688 +1,706 @@
-(function initGlassReefDuel() {
+(function () {
+  const logic = window.AppleDuelLogic;
   const canvas = document.getElementById('game');
-  const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: true, premultipliedAlpha: true });
 
   if (!gl) {
-    document.body.textContent = 'WebGL is required to play Glass Reef Duel.';
+    document.body.innerHTML = '<p style="color:white;padding:24px">WebGL is required to play Prism Duel.</p>';
     return;
   }
 
-  const Core = window.GameCore;
-  const sceneCanvas = document.createElement('canvas');
-  const sceneCtx = sceneCanvas.getContext('2d');
-  const DPR_LIMIT = 2;
-  const STORAGE_KEY = `${resolveStorageNamespace()}:glass-reef-duel:state`;
-  const sceneTexture = createSceneTexture(gl);
-  const pipeline = createPipeline(gl);
-  const assets = new Map();
-  const particles = createParticles(40);
-  const hitBubbles = [];
-  const ui = { hover: null, pressed: null, selectedAttacker: null, rects: [] };
-  const baseLayout = { width: 1600, height: 900 };
-  let lastTime = performance.now();
-  let bannerTimer = 1.8;
-  let winnerTimer = 0;
-  let state = loadSavedState() || Core.createInitialState(Date.now() % 100000);
+  const namespace = String(
+    window.__APPLE_RUN_STORAGE_NAMESPACE__ ||
+    window.APPLE_RUN_STORAGE_NAMESPACE ||
+    window.RUN_STORAGE_NAMESPACE ||
+    'apple:'
+  );
+  const storageKey = logic.createStorageKey(namespace);
+  const designWidth = 1600;
+  const designHeight = 900;
+  const palette = {
+    night: '#07131f',
+    mist: '#0f2740',
+    gold: '#ffd36a',
+    coral: '#ff8b78',
+    ink: '#e7eefc',
+    sol: '#f7b85a',
+    umbra: '#7f7bf7',
+    panel: '#13263d',
+  };
 
-  const imagePaths = [
-    'assets/board/glass-reef.svg',
-    'assets/heroes/astra.svg',
-    'assets/heroes/morrow.svg',
-  ];
+  let pointer = { x: 0, y: 0, down: false };
+  let hitRegions = [];
+  let sprites = {};
+  let textCache = new Map();
+  let previousLogLength = 0;
+  let particles = [];
+  let banner = { text: 'Your turn', ttl: 1.2 };
+  let selectedAttacker = null;
+  let cameraShake = 0;
+  let entityMotion = {};
+  let currentState = loadState() || logic.createInitialState(seedFromDate());
+  saveState();
+  pushLogEffects(currentState.log.slice(previousLogLength));
+  previousLogLength = currentState.log.length;
 
-  Object.keys(Core.CARD_LIBRARY).forEach((key) => imagePaths.push(Core.CARD_LIBRARY[key].art));
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-  Promise.all(imagePaths.map(loadImage)).then((loaded) => {
-    loaded.forEach((image, index) => assets.set(imagePaths[index], image));
-    saveState();
-    requestAnimationFrame(frame);
-  });
+  const program = createProgram(
+    'attribute vec2 a_position;attribute vec2 a_texcoord;uniform vec2 u_resolution;varying vec2 v_texcoord;void main(){vec2 zeroToOne=a_position/u_resolution;vec2 zeroToTwo=zeroToOne*2.0;vec2 clipSpace=zeroToTwo-1.0;gl_Position=vec4(clipSpace*vec2(1.0,-1.0),0.0,1.0);v_texcoord=a_texcoord;}',
+    'precision mediump float;uniform sampler2D u_texture;uniform float u_alpha;varying vec2 v_texcoord;void main(){vec4 color=texture2D(u_texture,v_texcoord);gl_FragColor=vec4(color.rgb,color.a*u_alpha);}'
+  );
+  const positionLocation = gl.getAttribLocation(program, 'a_position');
+  const texcoordLocation = gl.getAttribLocation(program, 'a_texcoord');
+  const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+  const alphaLocation = gl.getUniformLocation(program, 'u_alpha');
 
   window.addEventListener('resize', resize);
   canvas.addEventListener('mousemove', onPointerMove);
-  canvas.addEventListener('mousedown', onPointerDown);
-  canvas.addEventListener('mouseup', onPointerUp);
-  canvas.addEventListener('mouseleave', onPointerLeave);
-  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
-  resize();
+  canvas.addEventListener('mousedown', function () { pointer.down = true; });
+  canvas.addEventListener('mouseup', function () { pointer.down = false; handleClick(); });
+  canvas.addEventListener('mouseleave', function () { selectedAttacker = null; });
+  canvas.addEventListener('touchstart', onTouch, { passive: false });
+  canvas.addEventListener('touchmove', onTouch, { passive: false });
+  canvas.addEventListener('touchend', function (event) {
+    event.preventDefault();
+    pointer.down = false;
+    handleClick();
+  }, { passive: false });
 
-  function resolveStorageNamespace() {
-    return window.__RUN_STORAGE_NAMESPACE__
-      || window.__BENCHMARK_RUN_NAMESPACE__
-      || window.__BENCHMARK_STORAGE_NAMESPACE__
-      || window.__APPLE_RUN_STORAGE_NAMESPACE__
-      || 'glass-reef-local';
+  resize();
+  requestAnimationFrame(frame);
+
+  function seedFromDate() {
+    return Math.floor(Date.now() % 100000) + 1;
   }
 
-  function loadSavedState() {
+  function loadState() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? Core.restoreState(raw) : null;
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        return null;
+      }
+      return logic.deserializeState(raw);
     } catch (error) {
       return null;
     }
   }
 
   function saveState() {
-    try {
-      localStorage.setItem(STORAGE_KEY, Core.serializeState(state));
-    } catch (error) {
-      // Ignore storage failures so play continues.
+    localStorage.setItem(storageKey, logic.serializeState(currentState));
+  }
+
+  function replaceState(nextState, nextBanner) {
+    currentState = nextState;
+    if (nextBanner) {
+      banner = { text: nextBanner, ttl: 1.4 };
     }
+    pushLogEffects(currentState.log.slice(previousLogLength));
+    previousLogLength = currentState.log.length;
+    saveState();
   }
 
-  function clearState() {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      // Ignore storage failures so reset still works.
-    }
-  }
-
-  function createSceneTexture(context) {
-    const texture = context.createTexture();
-    context.bindTexture(context.TEXTURE_2D, texture);
-    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
-    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
-    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.LINEAR);
-    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.LINEAR);
-    return texture;
-  }
-
-  function createPipeline(context) {
-    const vertexShader = compileShader(context, context.VERTEX_SHADER, [
-      'attribute vec2 position;',
-      'varying vec2 uv;',
-      'void main() {',
-      '  uv = (position + 1.0) * 0.5;',
-      '  gl_Position = vec4(position, 0.0, 1.0);',
-      '}',
-    ].join('\n'));
-    const fragmentShader = compileShader(context, context.FRAGMENT_SHADER, [
-      'precision mediump float;',
-      'varying vec2 uv;',
-      'uniform sampler2D scene;',
-      'uniform float time;',
-      'void main() {',
-      '  vec2 centered = uv - 0.5;',
-      '  float vignette = 1.0 - dot(centered, centered) * 0.65;',
-      '  vec4 color = texture2D(scene, vec2(uv.x, 1.0 - uv.y));',
-      '  float shimmer = 0.015 * sin(time * 0.75 + uv.y * 10.0);',
-      '  color.rgb += vec3(0.0, 0.06, 0.09) * shimmer;',
-      '  gl_FragColor = vec4(color.rgb * vignette, 1.0);',
-      '}',
-    ].join('\n'));
-    const program = context.createProgram();
-    context.attachShader(program, vertexShader);
-    context.attachShader(program, fragmentShader);
-    context.linkProgram(program);
-
-    const buffer = context.createBuffer();
-    context.bindBuffer(context.ARRAY_BUFFER, buffer);
-    context.bufferData(
-      context.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      context.STATIC_DRAW,
-    );
-
-    return {
-      program,
-      buffer,
-      position: context.getAttribLocation(program, 'position'),
-      scene: context.getUniformLocation(program, 'scene'),
-      time: context.getUniformLocation(program, 'time'),
-    };
-  }
-
-  function compileShader(context, type, source) {
-    const shader = context.createShader(type);
-    context.shaderSource(shader, source);
-    context.compileShader(shader);
-    return shader;
-  }
-
-  function createParticles(count) {
-    const output = [];
-    for (let index = 0; index < count; index += 1) {
-      output.push({
-        x: Math.random() * baseLayout.width,
-        y: Math.random() * baseLayout.height,
-        speed: 18 + Math.random() * 26,
-        radius: 1 + Math.random() * 3,
-        phase: Math.random() * Math.PI * 2,
-      });
-    }
-    return output;
-  }
-
-  function loadImage(path) {
-    return new Promise((resolve) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.src = path;
+  function pushLogEffects(entries) {
+    entries.forEach(function (entry, index) {
+      if (entry.type === 'attack-hero' || entry.type === 'fatigue') {
+        particles.push({
+          type: 'text',
+          text: '-' + entry.amount,
+          x: designWidth * 0.5 + (Math.random() - 0.5) * 120,
+          y: entry.side === 'player' ? 650 : 210,
+          vy: -30,
+          ttl: 1,
+          color: '#ffb49b',
+        });
+        cameraShake = 14;
+      }
+      if (entry.type === 'unit-died') {
+        particles.push({
+          type: 'burst',
+          x: entry.side === 'player' ? 520 + index * 8 : 1080 - index * 8,
+          y: entry.side === 'player' ? 530 : 310,
+          ttl: 0.8,
+          color: entry.side === 'player' ? palette.sol : palette.umbra,
+        });
+      }
+      if (entry.type === 'play-card') {
+        particles.push({
+          type: 'spark',
+          x: entry.side === 'player' ? 530 : 1070,
+          y: entry.side === 'player' ? 520 : 320,
+          ttl: 0.6,
+          color: entry.side === 'player' ? palette.sol : palette.umbra,
+        });
+      }
+      if (entry.type === 'ai-turn-complete') {
+        banner = { text: 'Your turn', ttl: 1.2 };
+      }
     });
   }
 
+  function onPointerMove(event) {
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = (event.clientX - rect.left) * canvas.width / rect.width;
+    pointer.y = (event.clientY - rect.top) * canvas.height / rect.height;
+  }
+
+  function onTouch(event) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    if (!touch) {
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = (touch.clientX - rect.left) * canvas.width / rect.width;
+    pointer.y = (touch.clientY - rect.top) * canvas.height / rect.height;
+    pointer.down = true;
+  }
+
+  function handleClick() {
+    const region = hitRegions.slice().reverse().find(function (entry) {
+      return pointer.x >= entry.x && pointer.x <= entry.x + entry.w && pointer.y >= entry.y && pointer.y <= entry.y + entry.h;
+    });
+    if (!region) {
+      selectedAttacker = null;
+      return;
+    }
+
+    if (region.type === 'new-game') {
+      selectedAttacker = null;
+      previousLogLength = 0;
+      replaceState(logic.createInitialState(seedFromDate()), 'Fresh duel');
+      return;
+    }
+
+    if (currentState.winner) {
+      return;
+    }
+
+    if (region.type === 'end-turn' && currentState.currentPlayer === 'player') {
+      selectedAttacker = null;
+      banner = { text: 'Enemy turn', ttl: 1.0 };
+      window.setTimeout(function () {
+        replaceState(logic.endPlayerTurn(currentState), 'Enemy answered');
+      }, 450);
+      return;
+    }
+
+    if (region.type === 'hand-card' && currentState.currentPlayer === 'player') {
+      const nextState = logic.playCard(currentState, 'player', region.id);
+      if (nextState !== currentState) {
+        replaceState(nextState, 'Card played');
+      }
+      return;
+    }
+
+    if (region.type === 'player-unit' && currentState.currentPlayer === 'player') {
+      if (selectedAttacker === region.id) {
+        selectedAttacker = null;
+      } else {
+        selectedAttacker = region.id;
+      }
+      return;
+    }
+
+    if ((region.type === 'enemy-unit' || region.type === 'enemy-hero') && selectedAttacker && currentState.currentPlayer === 'player') {
+      const target = region.type === 'enemy-hero' ? 'hero' : region.id;
+      const nextState = logic.attackWithUnit(currentState, 'player', selectedAttacker, target);
+      selectedAttacker = null;
+      replaceState(nextState, 'Strike');
+    }
+  }
+
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, DPR_LIMIT);
-    canvas.width = Math.round(window.innerWidth * dpr);
-    canvas.height = Math.round(window.innerHeight * dpr);
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(window.innerWidth * ratio);
+    canvas.height = Math.floor(window.innerHeight * ratio);
     gl.viewport(0, 0, canvas.width, canvas.height);
   }
 
   function frame(now) {
-    const delta = Math.min(0.033, (now - lastTime) / 1000);
-    lastTime = now;
-    bannerTimer = Math.max(0, bannerTimer - delta);
-    winnerTimer += state.winner ? delta : 0;
-
-    updateParticles(delta);
-    updateBubbles(delta);
-    renderScene(now / 1000);
-    blitScene(now / 1000);
+    const time = now / 1000;
+    hitRegions = [];
+    updateParticles(1 / 60);
+    drawScene(time);
     requestAnimationFrame(frame);
   }
 
-  function updateParticles(delta) {
-    particles.forEach((particle) => {
-      particle.y -= particle.speed * delta;
-      particle.x += Math.sin((lastTime / 1000) + particle.phase) * 6 * delta;
-      if (particle.y < -20) {
-        particle.y = baseLayout.height + 20;
-        particle.x = Math.random() * baseLayout.width;
+  function updateParticles(dt) {
+    banner.ttl = Math.max(0, banner.ttl - dt);
+    cameraShake = Math.max(0, cameraShake - dt * 40);
+    particles = particles.filter(function (particle) {
+      particle.ttl -= dt;
+      particle.y += (particle.vy || -10) * dt;
+      return particle.ttl > 0;
+    });
+  }
+
+  function drawScene(time) {
+    const scale = Math.min(canvas.width / designWidth, canvas.height / designHeight);
+    const offsetX = (canvas.width - designWidth * scale) * 0.5;
+    const offsetY = (canvas.height - designHeight * scale) * 0.5;
+    const shakeX = (Math.random() - 0.5) * cameraShake;
+    const shakeY = (Math.random() - 0.5) * cameraShake;
+
+    gl.clearColor(0.01, 0.04, 0.08, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    drawTexture(getBoardTexture(), offsetX + shakeX, offsetY + shakeY, designWidth * scale, designHeight * scale, 1);
+    drawHud(scale, offsetX + shakeX, offsetY + shakeY, time);
+    drawHero('enemy', currentState.enemy, offsetX + 1150 * scale + shakeX, offsetY + 84 * scale + shakeY, 220 * scale, 220 * scale, time);
+    drawHero('player', currentState.player, offsetX + 230 * scale + shakeX, offsetY + 592 * scale + shakeY, 220 * scale, 220 * scale, time);
+    drawBoardSide('enemy', currentState.enemy.board, offsetX, offsetY, scale, time);
+    drawBoardSide('player', currentState.player.board, offsetX, offsetY, scale, time);
+    drawHand(currentState.player.hand, offsetX, offsetY, scale, time);
+    drawDeckCount(currentState.enemy.deck.length, offsetX + 1360 * scale, offsetY + 95 * scale, scale, 'enemy');
+    drawDeckCount(currentState.player.deck.length, offsetX + 62 * scale, offsetY + 684 * scale, scale, 'player');
+    drawButtons(offsetX, offsetY, scale);
+    drawGuide(offsetX, offsetY, scale);
+    drawWinner(offsetX, offsetY, scale);
+    drawParticles(offsetX, offsetY, scale);
+  }
+
+  function drawHud(scale, offsetX, offsetY, time) {
+    drawTexture(getPanelTexture('enemy-hud', 400, 88, '#102138', '#7f7bf7'), offsetX + 600 * scale, offsetY + 26 * scale, 400 * scale, 88 * scale, 0.96);
+    drawTexture(getPanelTexture('player-hud', 400, 88, '#15263f', '#f7b85a'), offsetX + 600 * scale, offsetY + 786 * scale, 400 * scale, 88 * scale, 0.96);
+    drawText('Prism Duel', offsetX + 720 * scale, offsetY + 44 * scale, 30 * scale, palette.ink, 'center');
+    drawText('Turn ' + currentState.turn, offsetX + 800 * scale, offsetY + 74 * scale, 18 * scale, '#d2ddf4', 'center');
+    drawManaBar(currentState.enemy, offsetX + 620 * scale, offsetY + 85 * scale, scale, true, time);
+    drawManaBar(currentState.player, offsetX + 620 * scale, offsetY + 845 * scale, scale, false, time);
+  }
+
+  function drawManaBar(side, x, y, scale, enemy, time) {
+    for (let index = 0; index < 8; index += 1) {
+      const filled = index < side.mana;
+      const hue = enemy ? palette.umbra : palette.sol;
+      const alpha = filled ? 0.96 : 0.3;
+      const wobble = Math.sin(time * 2 + index) * 2 * scale;
+      drawTexture(getCrystalTexture(hue, filled), x + index * 28 * scale, y + wobble, 22 * scale, 28 * scale, alpha);
+    }
+    drawText(side.mana + '/' + side.maxMana, x + 245 * scale, y + 14 * scale, 18 * scale, palette.ink, 'left');
+  }
+
+  function drawHero(sideName, side, x, y, w, h, time) {
+    const pulse = Math.sin(time * 1.6 + (sideName === 'player' ? 0 : 1)) * 4;
+    drawTexture(getHeroTexture(sideName), x, y + pulse, w, h, 1);
+    drawText(sideName === 'player' ? 'Luma Captain' : 'Noctis Warden', x + w * 0.5, y + h + 24, 20, palette.ink, 'center');
+    drawText(side.heroHealth + ' health', x + w * 0.5, y + h + 48, 18, sideName === 'player' ? '#ffd9c7' : '#d8d6ff', 'center');
+    if (sideName === 'enemy') {
+      hitRegions.push({ type: 'enemy-hero', id: 'hero', x: x, y: y, w: w, h: h });
+    }
+  }
+
+  function drawBoardSide(sideName, board, offsetX, offsetY, scale, time) {
+    const startX = sideName === 'player' ? 420 : 840;
+    const y = sideName === 'player' ? 455 : 235;
+    const direction = sideName === 'player' ? 1 : -1;
+
+    board.forEach(function (card, index) {
+      const x = startX + index * 138 * direction;
+      const hover = pointerHits(offsetX + x * scale, offsetY + y * scale, 120 * scale, 160 * scale);
+      const selected = selectedAttacker === card.instanceId;
+      const targetY = y - (hover ? 12 : 0) - (selected ? 14 : 0) + Math.sin(time * 2 + index) * 3;
+      const motion = getMotion(card.instanceId, x, targetY);
+      drawTexture(getCardTexture(card), offsetX + motion.x * scale, offsetY + motion.y * scale, 120 * scale, 160 * scale, 1);
+      drawText(card.attack + '', offsetX + (motion.x + 22) * scale, offsetY + (motion.y + 138) * scale, 24 * scale, '#ffe8d7', 'center');
+      drawText((card.health - (card.damage || 0)) + '', offsetX + (motion.x + 98) * scale, offsetY + (motion.y + 138) * scale, 24 * scale, '#eaf4ff', 'center');
+      if (card.keywords.indexOf('guard') !== -1) {
+        drawText('Guard', offsetX + (motion.x + 60) * scale, offsetY + (motion.y + 22) * scale, 13 * scale, '#cfe5ff', 'center');
+      }
+      if (sideName === 'player' && card.canAttack) {
+        drawTexture(getGlowTexture('#f8c86f'), offsetX + (motion.x - 8) * scale, offsetY + (motion.y - 8) * scale, 136 * scale, 176 * scale, 0.38);
+      }
+      hitRegions.push({ type: sideName === 'player' ? 'player-unit' : 'enemy-unit', id: card.instanceId, x: offsetX + motion.x * scale, y: offsetY + motion.y * scale, w: 120 * scale, h: 160 * scale });
+    });
+  }
+
+  function drawHand(hand, offsetX, offsetY, scale, time) {
+    const centerX = 800;
+    const baseY = 690;
+    hand.forEach(function (card, index) {
+      const spread = (index - (hand.length - 1) / 2) * 110;
+      const x = centerX + spread - 60;
+      const y = baseY + Math.abs(spread) * 0.12;
+      const hover = pointerHits(offsetX + x * scale, offsetY + y * scale, 120 * scale, 160 * scale);
+      const playable = currentState.currentPlayer === 'player' && card.cost <= currentState.player.mana && currentState.player.board.length < logic.BOARD_LIMIT;
+      const lift = hover ? 34 : 0;
+      const pulse = playable ? 0.12 + 0.12 * (Math.sin(time * 4 + index) + 1) * 0.5 : 0;
+      drawTexture(getCardTexture(card), offsetX + x * scale, offsetY + (y - lift) * scale, 120 * scale, 160 * scale, 1);
+      if (playable) {
+        drawTexture(getGlowTexture('#ffdc85'), offsetX + (x - 8) * scale, offsetY + (y - lift - 8) * scale, 136 * scale, 176 * scale, pulse + 0.15);
+      }
+      drawText(card.attack ? String(card.attack) : card.effect.amount + '', offsetX + (x + 22) * scale, offsetY + (y - lift + 138) * scale, 24 * scale, '#ffe8d7', 'center');
+      drawText(card.type === 'unit' ? String(card.health) : card.type.toUpperCase(), offsetX + (x + 95) * scale, offsetY + (y - lift + 138) * scale, 18 * scale, '#e9f0ff', 'center');
+      hitRegions.push({ type: 'hand-card', id: card.instanceId, x: offsetX + x * scale, y: offsetY + (y - lift) * scale, w: 120 * scale, h: 160 * scale });
+    });
+  }
+
+  function drawDeckCount(count, x, y, scale, sideName) {
+    drawTexture(getPanelTexture('deck-' + sideName, 112, 70, '#15263a', sideName === 'player' ? palette.sol : palette.umbra), x, y, 112 * scale, 70 * scale, 0.94);
+    drawText('Deck ' + count, x + 56 * scale, y + 42 * scale, 18 * scale, palette.ink, 'center');
+  }
+
+  function drawButtons(offsetX, offsetY, scale) {
+    const endTurnGlow = currentState.currentPlayer === 'player' && !currentState.winner;
+    const newGameRect = { x: offsetX + 1260 * scale, y: offsetY + 785 * scale, w: 164 * scale, h: 54 * scale };
+    const endTurnRect = { x: offsetX + 1100 * scale, y: offsetY + 785 * scale, w: 136 * scale, h: 54 * scale };
+    drawTexture(getButtonTexture('End Turn', endTurnGlow ? '#ffb86d' : '#536173'), endTurnRect.x, endTurnRect.y, endTurnRect.w, endTurnRect.h, 1);
+    drawTexture(getButtonTexture('New Duel', '#648fe8'), newGameRect.x, newGameRect.y, newGameRect.w, newGameRect.h, 1);
+    hitRegions.push({ type: 'end-turn', id: 'end-turn', x: endTurnRect.x, y: endTurnRect.y, w: endTurnRect.w, h: endTurnRect.h });
+    hitRegions.push({ type: 'new-game', id: 'new-game', x: newGameRect.x, y: newGameRect.y, w: newGameRect.w, h: newGameRect.h });
+  }
+
+  function drawGuide(offsetX, offsetY, scale) {
+    const prompt = currentState.winner ? winnerText() : tutorialText();
+    drawTexture(getPanelTexture('guide', 520, 84, '#11233b', '#7fb5ff'), offsetX + 42 * scale, offsetY + 26 * scale, 520 * scale, 84 * scale, 0.95);
+    drawText(prompt.title, offsetX + 72 * scale, offsetY + 58 * scale, 22 * scale, palette.ink, 'left');
+    drawText(prompt.body, offsetX + 72 * scale, offsetY + 88 * scale, 16 * scale, '#c7d7f2', 'left');
+    if (banner.ttl > 0) {
+      drawTexture(getPanelTexture('banner', 260, 64, '#1a3657', '#ffd36a'), offsetX + 670 * scale, offsetY + 418 * scale, 260 * scale, 64 * scale, Math.min(1, banner.ttl));
+      drawText(banner.text, offsetX + 800 * scale, offsetY + 458 * scale, 24 * scale, palette.ink, 'center');
+    }
+  }
+
+  function tutorialText() {
+    const playerCanPlay = currentState.player.hand.some(function (card) { return card.cost <= currentState.player.mana; });
+    const readyUnit = currentState.player.board.some(function (card) { return card.canAttack; });
+    if (currentState.currentPlayer !== 'player') {
+      return { title: 'Enemy is moving', body: 'Watch their plays, then answer when the board lights back up.' };
+    }
+    if (playerCanPlay) {
+      return { title: 'Play a glowing card', body: 'Cards with a golden aura are affordable this turn. Tap one to summon it.' };
+    }
+    if (readyUnit) {
+      return { title: 'Attack from the front line', body: 'Tap one of your glowing units, then choose an enemy or the enemy hero.' };
+    }
+    return { title: 'Pass when you are ready', body: 'End Turn refills mana and lets the AI take its response.' };
+  }
+
+  function winnerText() {
+    if (currentState.winner === 'player') {
+      return { title: 'Victory', body: 'The prism holds. Start a fresh duel to run it back.' };
+    }
+    if (currentState.winner === 'enemy') {
+      return { title: 'Defeat', body: 'Noctis broke through. Start a fresh duel and pressure earlier.' };
+    }
+    return { title: 'Draw', body: 'Both heroes fell together. Start a new duel to settle it.' };
+  }
+
+  function drawWinner(offsetX, offsetY, scale) {
+    if (!currentState.winner) {
+      return;
+    }
+    drawTexture(getPanelTexture('winner', 540, 150, '#13263e', '#ffd36a'), offsetX + 530 * scale, offsetY + 358 * scale, 540 * scale, 150 * scale, 0.98);
+    drawText(winnerText().title, offsetX + 800 * scale, offsetY + 420 * scale, 38 * scale, palette.ink, 'center');
+    drawText(winnerText().body, offsetX + 800 * scale, offsetY + 458 * scale, 18 * scale, '#ccdcf5', 'center');
+  }
+
+  function drawParticles(offsetX, offsetY, scale) {
+    particles.forEach(function (particle) {
+      if (particle.type === 'text') {
+        drawText(particle.text, offsetX + particle.x * scale, offsetY + particle.y * scale, 28 * scale, particle.color, 'center');
+      } else {
+        drawTexture(getGlowTexture(particle.color), offsetX + (particle.x - 42) * scale, offsetY + (particle.y - 42) * scale, 84 * scale, 84 * scale, Math.max(0, particle.ttl));
       }
     });
   }
 
-  function updateBubbles(delta) {
-    for (let index = hitBubbles.length - 1; index >= 0; index -= 1) {
-      hitBubbles[index].life -= delta;
-      hitBubbles[index].y -= 70 * delta;
-      if (hitBubbles[index].life <= 0) {
-        hitBubbles.splice(index, 1);
-      }
+  function pointerHits(x, y, w, h) {
+    return pointer.x >= x && pointer.x <= x + w && pointer.y >= y && pointer.y <= y + h;
+  }
+
+  function getMotion(id, targetX, targetY) {
+    const current = entityMotion[id] || { x: targetX, y: targetY };
+    current.x += (targetX - current.x) * 0.18;
+    current.y += (targetY - current.y) * 0.18;
+    entityMotion[id] = current;
+    return current;
+  }
+
+  function createProgram(vertexSource, fragmentSource) {
+    const vertexShader = compile(gl.VERTEX_SHADER, vertexSource);
+    const fragmentShader = compile(gl.FRAGMENT_SHADER, fragmentSource);
+    const shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertexShader);
+    gl.attachShader(shaderProgram, fragmentShader);
+    gl.linkProgram(shaderProgram);
+    return shaderProgram;
+  }
+
+  function compile(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
+  }
+
+  function drawTexture(texture, x, y, w, h, alpha) {
+    gl.useProgram(program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 16, 0);
+    gl.enableVertexAttribArray(texcoordLocation);
+    gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 16, 8);
+    gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+    gl.uniform1f(alphaLocation, alpha == null ? 1 : alpha);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    const x1 = x;
+    const y1 = y;
+    const x2 = x + w;
+    const y2 = y + h;
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      x1, y1, 0, 0,
+      x2, y1, 1, 0,
+      x1, y2, 0, 1,
+      x1, y2, 0, 1,
+      x2, y1, 1, 0,
+      x2, y2, 1, 1,
+    ]), gl.STREAM_DRAW);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  function makeTexture(key, width, height, painter) {
+    if (sprites[key]) {
+      return sprites[key];
     }
+    const surface = document.createElement('canvas');
+    surface.width = width;
+    surface.height = height;
+    const ctx = surface.getContext('2d');
+    painter(ctx, width, height);
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, surface);
+    sprites[key] = texture;
+    return texture;
   }
 
-  function blitScene(time) {
-    gl.bindTexture(gl.TEXTURE_2D, sceneTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sceneCanvas);
-    gl.useProgram(pipeline.program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, pipeline.buffer);
-    gl.enableVertexAttribArray(pipeline.position);
-    gl.vertexAttribPointer(pipeline.position, 2, gl.FLOAT, false, 0, 0);
-    gl.uniform1i(pipeline.scene, 0);
-    gl.uniform1f(pipeline.time, time);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }
-
-  function renderScene(time) {
-    sceneCanvas.width = baseLayout.width;
-    sceneCanvas.height = baseLayout.height;
-    ui.rects = [];
-
-    const background = assets.get('assets/board/glass-reef.svg');
-    sceneCtx.clearRect(0, 0, sceneCanvas.width, sceneCanvas.height);
-    if (background) {
-      sceneCtx.drawImage(background, 0, 0, baseLayout.width, baseLayout.height);
-    }
-
-    drawAmbient(time);
-    drawTurnLanes();
-    drawHeroPanel(state.enemy, 1040, 92, 340, 170, assets.get('assets/heroes/morrow.svg'), true, time);
-    drawHeroPanel(state.player, 220, 638, 340, 170, assets.get('assets/heroes/astra.svg'), false, time);
-    drawDeckHud();
-    drawBoard(state.enemy.board, 470, 235, true, time);
-    drawBoard(state.player.board, 470, 495, false, time);
-    drawHand(time);
-    drawHints();
-    drawButtons();
-    drawLog();
-    drawBubbles();
-    drawBanner();
-    drawWinner();
-  }
-
-  function drawAmbient(time) {
-    sceneCtx.save();
-    particles.forEach((particle) => {
-      const alpha = 0.24 + 0.15 * Math.sin(time * 1.8 + particle.phase);
-      sceneCtx.fillStyle = `rgba(123, 235, 255, ${alpha})`;
-      sceneCtx.beginPath();
-      sceneCtx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-      sceneCtx.fill();
-    });
-    sceneCtx.restore();
-  }
-
-  function drawTurnLanes() {
-    sceneCtx.save();
-    sceneCtx.strokeStyle = 'rgba(138, 242, 255, 0.18)';
-    sceneCtx.lineWidth = 6;
-    sceneCtx.strokeRect(440, 210, 720, 160);
-    sceneCtx.strokeRect(440, 470, 720, 160);
-    sceneCtx.restore();
-  }
-
-  function drawHeroPanel(side, x, y, width, height, portrait, isEnemy, time) {
-    const pulse = state.currentSide === (isEnemy ? 'enemy' : 'player') ? 1 : 0.65;
-    sceneCtx.save();
-    sceneCtx.fillStyle = isEnemy ? 'rgba(7, 19, 36, 0.92)' : 'rgba(41, 18, 12, 0.92)';
-    roundRect(sceneCtx, x, y, width, height, 28, true, false);
-    sceneCtx.strokeStyle = isEnemy ? 'rgba(121, 222, 255, 0.6)' : 'rgba(255, 183, 102, 0.65)';
-    sceneCtx.lineWidth = 4;
-    roundRect(sceneCtx, x, y, width, height, 28, false, true);
-    if (portrait) {
-      const bob = Math.sin(time * 1.8 + (isEnemy ? 2 : 0)) * 4;
-      sceneCtx.drawImage(portrait, x + 16, y + 14 + bob, 132, 132);
-    }
-    sceneCtx.fillStyle = '#f2f7ff';
-    sceneCtx.font = '700 30px Georgia';
-    sceneCtx.fillText(side.hero.name, x + 164, y + 48);
-    sceneCtx.fillStyle = 'rgba(255,255,255,0.7)';
-    sceneCtx.font = '600 18px Georgia';
-    sceneCtx.fillText(isEnemy ? 'Moon Tide Regent' : 'Sun Court Duelist', x + 164, y + 74);
-    drawHealthBar(x + 164, y + 102, 150, 20, side.hero.health, side.hero.maxHealth, isEnemy ? '#6de4ff' : '#ffad66');
-    drawManaPips(side, x + 164, y + 132, isEnemy ? '#6de4ff' : '#ffd37a');
-    sceneCtx.fillStyle = `rgba(255,255,255,${0.28 + 0.3 * pulse})`;
-    sceneCtx.font = '600 16px Georgia';
-    sceneCtx.fillText(state.currentSide === (isEnemy ? 'enemy' : 'player') ? 'Active turn' : 'Waiting', x + 164, y + 158);
-    sceneCtx.restore();
-
-    if (isEnemy) {
-      const heroRect = { x: x + 16, y: y + 14, width: 132, height: 132, type: 'enemy-hero' };
-      ui.rects.push(heroRect);
-    }
-  }
-
-  function drawHealthBar(x, y, width, height, value, maxValue, color) {
-    sceneCtx.save();
-    sceneCtx.fillStyle = 'rgba(255,255,255,0.08)';
-    roundRect(sceneCtx, x, y, width, height, 10, true, false);
-    sceneCtx.fillStyle = color;
-    roundRect(sceneCtx, x, y, width * Math.max(0, value) / maxValue, height, 10, true, false);
-    sceneCtx.fillStyle = '#08141f';
-    sceneCtx.font = '700 15px Arial';
-    sceneCtx.fillText(`${value} / ${maxValue}`, x + 50, y + 15);
-    sceneCtx.restore();
-  }
-
-  function drawManaPips(side, x, y, color) {
-    for (let index = 0; index < 10; index += 1) {
-      sceneCtx.save();
-      sceneCtx.translate(x + index * 16, y);
-      sceneCtx.fillStyle = index < side.mana ? color : 'rgba(255,255,255,0.14)';
-      sceneCtx.beginPath();
-      sceneCtx.moveTo(0, 8);
-      sceneCtx.lineTo(7, 0);
-      sceneCtx.lineTo(14, 8);
-      sceneCtx.lineTo(7, 16);
-      sceneCtx.closePath();
-      sceneCtx.fill();
-      sceneCtx.restore();
-    }
-  }
-
-  function drawDeckHud() {
-    sceneCtx.save();
-    sceneCtx.fillStyle = 'rgba(255,255,255,0.82)';
-    sceneCtx.font = '600 18px Georgia';
-    sceneCtx.fillText(`Your deck ${state.player.deck.length}`, 220, 612);
-    sceneCtx.fillText(`Enemy deck ${state.enemy.deck.length}`, 1042, 286);
-    sceneCtx.restore();
-  }
-
-  function drawBoard(board, startX, startY, isEnemy, time) {
-    board.forEach((unit, index) => {
-      const x = startX + index * 138;
-      const y = startY + Math.sin(time * 1.7 + index) * 5;
-      const rect = drawCardUnit(unit, x, y, 120, 148, isEnemy, index, time);
-      ui.rects.push(rect);
-    });
-  }
-
-  function drawCardUnit(unit, x, y, width, height, isEnemy, index, time) {
-    const hovered = isPointInRect(ui.hover, { x, y, width, height });
-    const selected = !isEnemy && ui.selectedAttacker === index;
-    sceneCtx.save();
-    sceneCtx.translate(x + width / 2, y + height / 2);
-    sceneCtx.rotate((hovered ? 0.01 : 0) + Math.sin(time * 1.3 + index) * 0.015);
-    const scale = hovered || selected ? 1.04 : 1;
-    sceneCtx.scale(scale, scale);
-    sceneCtx.translate(-width / 2, -height / 2);
-    sceneCtx.fillStyle = isEnemy ? 'rgba(8, 31, 57, 0.96)' : 'rgba(56, 23, 12, 0.96)';
-    roundRect(sceneCtx, 0, 0, width, height, 18, true, false);
-    sceneCtx.strokeStyle = isEnemy ? 'rgba(110, 228, 255, 0.72)' : 'rgba(255, 176, 92, 0.78)';
-    sceneCtx.lineWidth = selected ? 6 : 3;
-    roundRect(sceneCtx, 0, 0, width, height, 18, false, true);
-
-    const art = assets.get(unit.art);
-    if (art) {
-      sceneCtx.drawImage(art, 10, 10, width - 20, 70);
-    }
-
-    sceneCtx.fillStyle = '#f4fbff';
-    sceneCtx.font = '700 16px Georgia';
-    sceneCtx.fillText(unit.name, 12, 100, width - 20);
-    sceneCtx.fillStyle = 'rgba(255,255,255,0.78)';
-    sceneCtx.font = '14px Georgia';
-    sceneCtx.fillText(unit.sleeping ? 'Summoning sway' : (unit.hasAttacked ? 'Spent' : 'Ready'), 12, 120, width - 20);
-    drawBadge(12, 126, 28, 28, '#ffb066', String(unit.attack));
-    drawBadge(width - 40, 126, 28, 28, '#72e6ff', String(unit.health));
-    sceneCtx.restore();
-
-    return { x, y, width, height, type: isEnemy ? 'enemy-unit' : 'player-unit', index };
-  }
-
-  function drawBadge(x, y, width, height, color, value) {
-    sceneCtx.save();
-    sceneCtx.fillStyle = color;
-    roundRect(sceneCtx, x, y, width, height, 10, true, false);
-    sceneCtx.fillStyle = '#07101a';
-    sceneCtx.font = '700 16px Arial';
-    sceneCtx.fillText(value, x + 10, y + 19);
-    sceneCtx.restore();
-  }
-
-  function drawHand(time) {
-    const hand = state.player.hand;
-    const baseX = 470;
-    hand.forEach((card, index) => {
-      const x = baseX + index * 126;
-      const y = 706 - Math.abs(index - (hand.length - 1) / 2) * 14;
-      const hovered = isPointInRect(ui.hover, { x, y, width: 118, height: 162 });
-      const playable = Core.canPlayCard(state, index);
-
-      sceneCtx.save();
-      sceneCtx.translate(x + 59, y + 81);
-      sceneCtx.rotate((index - (hand.length - 1) / 2) * 0.05 + Math.sin(time * 1.5 + index) * 0.01);
-      sceneCtx.translate(-(x + 59), -(y + 81));
-      if (hovered) {
-        sceneCtx.translate(0, -18);
-      }
-      sceneCtx.fillStyle = playable ? 'rgba(56, 24, 10, 0.98)' : 'rgba(34, 34, 40, 0.95)';
-      roundRect(sceneCtx, x, y, 118, 162, 20, true, false);
-      sceneCtx.strokeStyle = playable ? 'rgba(255, 204, 110, 0.86)' : 'rgba(157, 170, 184, 0.4)';
-      sceneCtx.lineWidth = hovered ? 5 : 3;
-      roundRect(sceneCtx, x, y, 118, 162, 20, false, true);
-
-      const art = assets.get(card.art);
-      if (art) {
-        sceneCtx.drawImage(art, x + 10, y + 10, 98, 76);
-      }
-
-      sceneCtx.fillStyle = '#f5fbff';
-      sceneCtx.font = '700 16px Georgia';
-      sceneCtx.fillText(card.name, x + 10, y + 106, 96);
-      sceneCtx.fillStyle = 'rgba(255,255,255,0.74)';
-      sceneCtx.font = '13px Georgia';
-      sceneCtx.fillText(card.text, x + 10, y + 124, 96);
-      drawBadge(x + 10, y + 130, 24, 24, '#ffd27a', String(card.cost));
-      drawBadge(x + 40, y + 130, 24, 24, '#ffb066', String(card.attack));
-      drawBadge(x + 70, y + 130, 24, 24, '#72e6ff', String(card.health));
-      sceneCtx.restore();
-
-      ui.rects.push({ x, y, width: 118, height: 162, type: 'hand-card', index });
-    });
-  }
-
-  function drawHints() {
-    const hint = getHint();
-    sceneCtx.save();
-    sceneCtx.fillStyle = 'rgba(8, 16, 26, 0.84)';
-    roundRect(sceneCtx, 520, 22, 560, 64, 22, true, false);
-    sceneCtx.strokeStyle = 'rgba(116, 230, 255, 0.38)';
-    sceneCtx.lineWidth = 3;
-    roundRect(sceneCtx, 520, 22, 560, 64, 22, false, true);
-    sceneCtx.fillStyle = '#f7fbff';
-    sceneCtx.font = '700 22px Georgia';
-    sceneCtx.fillText('Glass Reef Duel', 548, 48);
-    sceneCtx.font = '17px Georgia';
-    sceneCtx.fillStyle = 'rgba(255,255,255,0.82)';
-    sceneCtx.fillText(hint, 548, 70, 500);
-    sceneCtx.restore();
-  }
-
-  function drawButtons() {
-    drawButton(1210, 760, 180, 62, 'End Turn', state.currentSide === 'player' && !state.winner, 'end-turn');
-    drawButton(1210, 830, 180, 42, 'New Duel', true, 'new-game');
-  }
-
-  function drawButton(x, y, width, height, label, active, type) {
-    const hovered = isPointInRect(ui.hover, { x, y, width, height });
-    sceneCtx.save();
-    sceneCtx.fillStyle = active ? (hovered ? 'rgba(255, 193, 106, 0.95)' : 'rgba(255, 170, 80, 0.88)') : 'rgba(108, 112, 124, 0.68)';
-    roundRect(sceneCtx, x, y, width, height, 18, true, false);
-    sceneCtx.fillStyle = '#06101b';
-    sceneCtx.font = '700 22px Georgia';
-    sceneCtx.fillText(label, x + 36, y + height / 2 + 8);
-    sceneCtx.restore();
-    ui.rects.push({ x, y, width, height, type });
-  }
-
-  function drawLog() {
-    sceneCtx.save();
-    sceneCtx.fillStyle = 'rgba(6, 14, 24, 0.8)';
-    roundRect(sceneCtx, 1180, 300, 250, 250, 20, true, false);
-    sceneCtx.fillStyle = '#f5fbff';
-    sceneCtx.font = '700 20px Georgia';
-    sceneCtx.fillText('Battle feed', 1202, 332);
-    sceneCtx.font = '16px Georgia';
-    sceneCtx.fillStyle = 'rgba(255,255,255,0.78)';
-    state.log.slice(0, 6).forEach((entry, index) => {
-      sceneCtx.fillText(entry, 1202, 364 + index * 28, 214);
-    });
-    sceneCtx.restore();
-  }
-
-  function drawBubbles() {
-    sceneCtx.save();
-    hitBubbles.forEach((bubble) => {
-      sceneCtx.fillStyle = `rgba(255, 238, 196, ${Math.max(0, bubble.life)})`;
-      sceneCtx.font = '700 32px Georgia';
-      sceneCtx.fillText(bubble.label, bubble.x, bubble.y);
-    });
-    sceneCtx.restore();
-  }
-
-  function drawBanner() {
-    if (bannerTimer <= 0) {
-      return;
-    }
-    sceneCtx.save();
-    sceneCtx.globalAlpha = Math.min(1, bannerTimer);
-    sceneCtx.fillStyle = 'rgba(5, 12, 20, 0.72)';
-    roundRect(sceneCtx, 615, 396, 370, 88, 26, true, false);
-    sceneCtx.fillStyle = '#f8fbff';
-    sceneCtx.font = '700 34px Georgia';
-    sceneCtx.fillText(state.currentSide === 'player' ? 'Your turn' : 'Enemy turn', 700, 448);
-    sceneCtx.restore();
-  }
-
-  function drawWinner() {
-    if (!state.winner) {
-      return;
-    }
-    sceneCtx.save();
-    const alpha = Math.min(0.9, 0.35 + winnerTimer * 0.3);
-    sceneCtx.fillStyle = `rgba(4, 10, 16, ${alpha})`;
-    sceneCtx.fillRect(0, 0, baseLayout.width, baseLayout.height);
-    sceneCtx.fillStyle = '#f8fbff';
-    sceneCtx.font = '700 56px Georgia';
-    sceneCtx.fillText(state.winner === 'player' ? 'Victory at the Glass Reef' : 'Defeat beneath the tide', 360, 420);
-    sceneCtx.font = '26px Georgia';
-    sceneCtx.fillText('Tap New Duel to begin another encounter.', 510, 468);
-    sceneCtx.restore();
-  }
-
-  function getHint() {
-    if (state.winner) {
-      return 'The duel is over. Start a fresh encounter whenever you are ready.';
-    }
-    if (state.currentSide !== 'player') {
-      return 'The Moon Tide is acting. Watch the enemy lane and prepare your next answer.';
-    }
-    if (state.player.board.length === 0 && state.player.hand.some((card, index) => Core.canPlayCard(state, index))) {
-      return 'Your glowing hand cards are playable. Click one to summon it onto the front line.';
-    }
-    if (state.player.board.some((unit) => !unit.sleeping && !unit.hasAttacked)) {
-      return 'Ready allies pulse on the lower lane. Click one, then click an enemy unit or portrait to attack.';
-    }
-    return 'When you have spent your mana and attacks, press End Turn to hand the board to the enemy.';
-  }
-
-  function onPointerMove(event) {
-    ui.hover = eventToScenePoint(event.clientX, event.clientY);
-  }
-
-  function onPointerDown(event) {
-    ui.pressed = eventToScenePoint(event.clientX, event.clientY);
-  }
-
-  function onPointerUp(event) {
-    const point = eventToScenePoint(event.clientX, event.clientY);
-    const pressed = ui.pressed;
-    ui.pressed = null;
-    if (!pressed) {
-      return;
-    }
-    handleClick(point);
-  }
-
-  function onPointerLeave() {
-    ui.hover = null;
-    ui.pressed = null;
-  }
-
-  function onTouchStart(event) {
-    event.preventDefault();
-    const touch = event.changedTouches[0];
-    ui.pressed = eventToScenePoint(touch.clientX, touch.clientY);
-    ui.hover = ui.pressed;
-  }
-
-  function onTouchMove(event) {
-    event.preventDefault();
-    const touch = event.changedTouches[0];
-    ui.hover = eventToScenePoint(touch.clientX, touch.clientY);
-  }
-
-  function onTouchEnd(event) {
-    event.preventDefault();
-    const touch = event.changedTouches[0];
-    handleClick(eventToScenePoint(touch.clientX, touch.clientY));
-    ui.pressed = null;
-  }
-
-  function eventToScenePoint(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((clientX - rect.left) / rect.width) * baseLayout.width,
-      y: ((clientY - rect.top) / rect.height) * baseLayout.height,
-    };
-  }
-
-  function isPointInRect(point, rect) {
-    if (!point || !rect) {
-      return false;
-    }
-    return point.x >= rect.x && point.x <= rect.x + rect.width
-      && point.y >= rect.y && point.y <= rect.y + rect.height;
-  }
-
-  function handleClick(point) {
-    const target = ui.rects.slice().reverse().find((rect) => isPointInRect(point, rect));
-    if (!target) {
-      ui.selectedAttacker = null;
-      return;
-    }
-    if (target.type === 'new-game') {
-      resetGame();
-      return;
-    }
-    if (target.type === 'end-turn' && state.currentSide === 'player' && !state.winner) {
-      ui.selectedAttacker = null;
-      consumeEvents(Core.endPlayerTurn(state));
-      bannerTimer = 1.5;
-      saveState();
-      return;
-    }
-    if (state.currentSide !== 'player' || state.winner) {
-      return;
-    }
-    if (target.type === 'hand-card') {
-      const result = Core.playCard(state, target.index);
-      if (result.ok) {
-        state.log.unshift('A solar sigil flares across your hand.');
-        bannerTimer = 0.35;
-        saveState();
-      }
-      return;
-    }
-    if (target.type === 'player-unit') {
-      const unit = state.player.board[target.index];
-      if (unit && !unit.sleeping && !unit.hasAttacked) {
-        ui.selectedAttacker = target.index;
-      }
-      return;
-    }
-    if (ui.selectedAttacker !== null && target.type === 'enemy-unit') {
-      consumeEvents(Core.attackWithUnit(state, 'player', ui.selectedAttacker, target.index));
-      ui.selectedAttacker = null;
-      saveState();
-      return;
-    }
-    if (ui.selectedAttacker !== null && target.type === 'enemy-hero') {
-      consumeEvents(Core.attackWithUnit(state, 'player', ui.selectedAttacker, 'hero'));
-      ui.selectedAttacker = null;
-      saveState();
-    }
-  }
-
-  function consumeEvents(events) {
-    events.forEach((event) => {
-      if (event.type === 'hero-hit') {
-        hitBubbles.push({
-          x: event.side === 'player' ? 1090 : 330,
-          y: event.side === 'player' ? 180 : 690,
-          label: `-${event.amount}`,
-          life: 1,
-        });
-      }
-      if (event.type === 'unit-clash') {
-        hitBubbles.push({ x: 760, y: 418, label: 'CLASH', life: 0.9 });
-      }
-      if (event.type === 'turn-pass') {
-        bannerTimer = 1.3;
+  function getBoardTexture() {
+    return makeTexture('board', 1600, 900, function (ctx, w, h) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, h);
+      gradient.addColorStop(0, '#0c1f33');
+      gradient.addColorStop(0.55, '#16304f');
+      gradient.addColorStop(1, '#08121d');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, w, h);
+      const nebula = ctx.createRadialGradient(800, 450, 40, 800, 450, 600);
+      nebula.addColorStop(0, 'rgba(130,175,255,0.28)');
+      nebula.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = nebula;
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(225,236,255,0.12)';
+      ctx.lineWidth = 3;
+      roundedRect(ctx, 190, 120, 1220, 660, 38, false, true);
+      roundedRect(ctx, 320, 210, 980, 180, 30, false, true);
+      roundedRect(ctx, 320, 430, 980, 180, 30, false, true);
+      for (let index = 0; index < 80; index += 1) {
+        ctx.fillStyle = index % 2 ? 'rgba(255,213,122,0.08)' : 'rgba(129,126,255,0.08)';
+        ctx.beginPath();
+        ctx.arc(Math.random() * w, Math.random() * h, Math.random() * 3 + 1, 0, Math.PI * 2);
+        ctx.fill();
       }
     });
   }
 
-  function resetGame() {
-    state = Core.createInitialState(Date.now() % 100000);
-    clearState();
-    saveState();
-    hitBubbles.length = 0;
-    ui.selectedAttacker = null;
-    bannerTimer = 1.6;
-    winnerTimer = 0;
+  function getCardTexture(card) {
+    return makeTexture('card-' + card.id, 240, 320, function (ctx, w, h) {
+      const isSol = card.faction === 'sol';
+      const accent = isSol ? palette.sol : palette.umbra;
+      const deep = isSol ? '#533516' : '#241f55';
+      const sky = isSol ? '#ffe4ab' : '#d7d7ff';
+      const frame = ctx.createLinearGradient(0, 0, 0, h);
+      frame.addColorStop(0, accent);
+      frame.addColorStop(1, deep);
+      ctx.fillStyle = frame;
+      roundedRect(ctx, 0, 0, w, h, 26, true);
+      ctx.fillStyle = '#102030';
+      roundedRect(ctx, 12, 12, w - 24, h - 24, 18, true);
+      const art = ctx.createLinearGradient(0, 36, w, 230);
+      art.addColorStop(0, isSol ? '#fff1d2' : '#d8d5ff');
+      art.addColorStop(1, isSol ? '#c56d32' : '#4b4294');
+      ctx.fillStyle = art;
+      roundedRect(ctx, 24, 44, w - 48, 150, 18, true);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      for (let index = 0; index < 6; index += 1) {
+        ctx.beginPath();
+        ctx.arc(40 + index * 30, 70 + (index % 2) * 20, 24 + index * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = sky;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.48, 82);
+      ctx.lineTo(w * 0.66, 168);
+      ctx.lineTo(w * 0.34, 168);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(w * 0.45, 102, 22, 80);
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(w * 0.5, 132, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f5f7ff';
+      ctx.font = 'bold 22px Trebuchet MS';
+      ctx.textAlign = 'left';
+      ctx.fillText(card.name, 24, 230);
+      ctx.font = '15px Trebuchet MS';
+      ctx.fillStyle = '#d9e4ff';
+      ctx.fillText(card.type === 'unit' ? keywordLine(card) : spellLine(card), 24, 258);
+      ctx.fillStyle = accent;
+      roundedRect(ctx, 18, 18, 42, 42, 14, true);
+      ctx.fillStyle = '#091017';
+      ctx.font = 'bold 26px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(card.cost), 39, 48);
+      ctx.textAlign = 'left';
+    });
   }
 
-  function roundRect(context, x, y, width, height, radius, fill, stroke) {
-    context.beginPath();
-    context.moveTo(x + radius, y);
-    context.arcTo(x + width, y, x + width, y + height, radius);
-    context.arcTo(x + width, y + height, x, y + height, radius);
-    context.arcTo(x, y + height, x, y, radius);
-    context.arcTo(x, y, x + width, y, radius);
-    context.closePath();
+  function keywordLine(card) {
+    return card.keywords.length ? card.keywords.join(', ') : 'Frontline unit';
+  }
+
+  function spellLine(card) {
+    if (card.effect.kind === 'damage') {
+      return 'Deal ' + card.effect.amount + ' damage';
+    }
+    if (card.effect.kind === 'drain') {
+      return 'Drain ' + card.effect.amount;
+    }
+    return 'Empower your board';
+  }
+
+  function getHeroTexture(sideName) {
+    return makeTexture('hero-' + sideName, 220, 220, function (ctx, w, h) {
+      const accent = sideName === 'player' ? palette.sol : palette.umbra;
+      const glow = ctx.createRadialGradient(w / 2, h / 2, 12, w / 2, h / 2, w / 2);
+      glow.addColorStop(0, sideName === 'player' ? '#fff1c1' : '#d8d2ff');
+      glow.addColorStop(1, accent);
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, 104, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0b1420';
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, 88, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = sideName === 'player' ? '#ffe4b1' : '#dbd9ff';
+      ctx.beginPath();
+      ctx.arc(w / 2, 85, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(w / 2 - 28, 118, 56, 58);
+      ctx.fillStyle = accent;
+      ctx.fillRect(w / 2 - 50, 130, 100, 18);
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - 58, 176);
+      ctx.lineTo(w / 2 + 58, 176);
+      ctx.lineTo(w / 2, 210);
+      ctx.closePath();
+      ctx.fill();
+    });
+  }
+
+  function getPanelTexture(key, width, height, fill, stroke) {
+    return makeTexture('panel-' + key, width, height, function (ctx, w, h) {
+      ctx.fillStyle = fill;
+      roundedRect(ctx, 0, 0, w, h, 24, true);
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 4;
+      roundedRect(ctx, 2, 2, w - 4, h - 4, 22, false, true);
+    });
+  }
+
+  function getButtonTexture(label, accent) {
+    return makeTexture('button-' + label + accent, 200, 80, function (ctx, w, h) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, h);
+      gradient.addColorStop(0, accent);
+      gradient.addColorStop(1, '#132940');
+      ctx.fillStyle = gradient;
+      roundedRect(ctx, 0, 0, w, h, 24, true);
+      ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+      ctx.lineWidth = 3;
+      roundedRect(ctx, 2, 2, w - 4, h - 4, 22, false, true);
+      ctx.fillStyle = '#08131f';
+      ctx.font = 'bold 26px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, w / 2, 48);
+    });
+  }
+
+  function getGlowTexture(color) {
+    return makeTexture('glow-' + color, 128, 128, function (ctx, w, h) {
+      const glow = ctx.createRadialGradient(w / 2, h / 2, 6, w / 2, h / 2, w / 2);
+      glow.addColorStop(0, color);
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, w, h);
+    });
+  }
+
+  function getCrystalTexture(color, filled) {
+    return makeTexture('crystal-' + color + String(filled), 44, 56, function (ctx, w, h) {
+      ctx.fillStyle = filled ? color : 'rgba(255,255,255,0.15)';
+      ctx.beginPath();
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w - 4, h * 0.34);
+      ctx.lineTo(w * 0.68, h - 2);
+      ctx.lineTo(w * 0.32, h - 2);
+      ctx.lineTo(4, h * 0.34);
+      ctx.closePath();
+      ctx.fill();
+    });
+  }
+
+  function drawText(text, x, y, size, color, align) {
+    const key = [text, Math.round(size), color, align].join('|');
+    if (!textCache.has(key)) {
+      const surface = document.createElement('canvas');
+      const width = Math.max(4, Math.ceil(text.length * size * 0.72 + 30));
+      const height = Math.ceil(size * 1.8 + 20);
+      surface.width = width;
+      surface.height = height;
+      const ctx = surface.getContext('2d');
+      ctx.font = 'bold ' + Math.round(size) + 'px Trebuchet MS';
+      ctx.textAlign = align;
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(3,10,18,0.8)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = color;
+      const drawX = align === 'center' ? width / 2 : 6;
+      ctx.fillText(text, drawX, height / 2);
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, surface);
+      textCache.set(key, { texture: texture, width: width, height: height });
+    }
+    const entry = textCache.get(key);
+    const drawX = align === 'center' ? x - entry.width / 2 : x;
+    drawTexture(entry.texture, drawX, y - entry.height / 2, entry.width, entry.height, 1);
+  }
+
+  function roundedRect(ctx, x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
     if (fill) {
-      context.fill();
+      ctx.fill();
     }
     if (stroke) {
-      context.stroke();
+      ctx.stroke();
     }
   }
-}());
+})();
