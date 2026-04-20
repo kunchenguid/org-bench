@@ -49,11 +49,12 @@ test('bannerSweep and manaShimmer stay normalized for rendering', () => {
 });
 
 test('stepParticles advances particles and wraps them inside bounds', () => {
-  const particles = [{ x: 98, y: 3, vx: 10, vy: -8, size: 2, alpha: 0.5 }];
+  const particles = [{ x: 98, y: 3, vx: 10, vy: -8, size: 2, alpha: 0.5, phase: 1.25 }];
   const next = stepParticles(particles, 0.5, 100, 80);
 
   assert.equal(next.length, 1);
   assert.ok(next[0].x >= 0 && next[0].x <= 100);
   assert.ok(next[0].y >= 0 && next[0].y <= 80);
   assert.notEqual(next[0].x, particles[0].x);
+  assert.equal(next[0].phase, 1.25);
 });

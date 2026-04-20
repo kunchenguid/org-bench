@@ -86,6 +86,7 @@
         vy: particle.vy,
         size: particle.size,
         alpha: particle.alpha,
+        phase: particle.phase,
       };
     });
   }

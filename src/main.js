@@ -97,12 +97,10 @@
       ctx.fill();
     });
 
-    drawPanel(ctx, 64, 56, 324, 128, '#6eeaff', 'Render Runtime', 'WebGL backbuffer + pointer tracking + file-safe assets');
-    drawPanel(ctx, 1212, 56, 324, 128, '#ffd38a', 'HUD lane', 'HUD, buttons, and battle feed can sit above board layers');
     drawLane(ctx, 208, 224, 1184, 174, elapsed, '#72ebff', 'Enemy board');
     drawLane(ctx, 208, 502, 1184, 174, elapsed, '#ffc27a', 'Player board');
     drawCards(ctx, elapsed);
-    drawHud(ctx, pointer);
+    drawBoardStatus(ctx, pointer, elapsed);
     drawBanner(ctx);
   }
 
@@ -123,18 +121,37 @@
   }
 
   function drawLane(ctx, x, y, width, height, elapsed, accent, label) {
-    ctx.fillStyle = 'rgba(7, 18, 30, 0.52)';
+    var groove = ctx.createLinearGradient(x, y, x + width, y + height);
+    groove.addColorStop(0, 'rgba(7, 18, 30, 0.58)');
+    groove.addColorStop(1, 'rgba(11, 26, 42, 0.38)');
+    ctx.fillStyle = groove;
     roundRect(ctx, x, y, width, height, 28);
     ctx.fill();
     ctx.strokeStyle = accent;
     ctx.lineWidth = 4;
     roundRect(ctx, x, y, width, height, 28);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.84)';
-    ctx.font = '700 24px Georgia';
-    ctx.fillText(label, x + 26, y + 38);
-    ctx.fillStyle = 'rgba(255,255,255,0.14)';
-    ctx.fillRect(x + 20, y + height - 26, width - 40, 8 + Math.sin(elapsed * 1.4) * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '700 22px Georgia';
+    ctx.fillText(label, x + 28, y + 38);
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(x + 20, y + height - 28, width - 40, 6 + Math.sin(elapsed * 1.4) * 2);
+    for (var index = 0; index < 6; index += 1) {
+      var shimmer = motionApi.manaShimmer(elapsed * 0.35, index * 0.19 + (y > 400 ? 0.4 : 0));
+      var crystalX = x + width - 220 + index * 28;
+      var crystalY = y + height - 44;
+      ctx.save();
+      ctx.globalAlpha = 0.18 + shimmer.glow * 0.26;
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.moveTo(crystalX + 10, crystalY);
+      ctx.lineTo(crystalX + 20, crystalY + 14);
+      ctx.lineTo(crystalX + 10, crystalY + 28);
+      ctx.lineTo(crystalX, crystalY + 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   function drawCards(ctx, elapsed) {
@@ -180,39 +197,23 @@
     });
   }
 
-  function drawHud(ctx, pointer) {
-    drawChip(ctx, 242, 748, 118, 42, '#ffd38a', '60 fps');
-    drawChip(ctx, 374, 748, 146, 42, '#73e7ff', 'Pointer input');
-    drawChip(ctx, 534, 748, 164, 42, '#c9f0a3', 'Texture loading');
-    drawManaRow(ctx, 736, 746);
-
-    ctx.fillStyle = 'rgba(6, 16, 26, 0.84)';
-    roundRect(ctx, 1040, 742, 352, 110, 22);
+  function drawBoardStatus(ctx, pointer, elapsed) {
+    ctx.fillStyle = 'rgba(6, 16, 26, 0.52)';
+    roundRect(ctx, 238, 732, 1124, 74, 28);
     ctx.fill();
-    ctx.fillStyle = '#f5fbff';
-    ctx.font = '700 22px Georgia';
-    ctx.fillText('Runtime status', 1064, 774);
-    ctx.font = '17px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.fillText('Pointer: ' + Math.round(pointer.x) + ', ' + Math.round(pointer.y), 1064, 804);
-    ctx.fillText('Hover target: ' + (hovered || 'none'), 1064, 832);
-  }
-
-  function drawManaRow(ctx, x, y) {
-    for (var index = 0; index < 6; index += 1) {
-      var shimmer = motionApi.manaShimmer(performance.now() * 0.00045, index * 0.21);
-      ctx.save();
-      ctx.globalAlpha = 0.35 + shimmer.glow * 0.45;
-      ctx.fillStyle = index % 2 ? '#73e7ff' : '#ffd38a';
-      ctx.beginPath();
-      ctx.moveTo(x + index * 34 + 12, y);
-      ctx.lineTo(x + index * 34 + 24, y + 18);
-      ctx.lineTo(x + index * 34 + 12, y + 36);
-      ctx.lineTo(x + index * 34, y + 18);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, 238, 732, 1124, 74, 28);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(245,251,255,0.84)';
+    ctx.font = '700 18px Georgia';
+    ctx.fillText('Glass Reef runtime surface', 270, 762);
+    ctx.font = '16px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.fillText('Hover a card to lift it. Press to lunge and float damage text through the board lanes.', 270, 790);
+    ctx.textAlign = 'right';
+    ctx.fillText('Pointer ' + Math.round(pointer.x) + ', ' + Math.round(pointer.y) + '  •  ' + (hovered || 'no target'), 1330, 790);
+    ctx.textAlign = 'left';
   }
 
   function drawBanner(ctx) {
@@ -261,15 +262,6 @@
     ctx.textAlign = 'center';
     ctx.fillText(lunge.text, state.x, state.y);
     ctx.restore();
-  }
-
-  function drawChip(ctx, x, y, width, height, color, label) {
-    ctx.fillStyle = color;
-    roundRect(ctx, x, y, width, height, 18);
-    ctx.fill();
-    ctx.fillStyle = '#08111b';
-    ctx.font = '700 18px Georgia';
-    ctx.fillText(label, x + 20, y + 27);
   }
 
   function roundRect(ctx, x, y, width, height, radius) {
