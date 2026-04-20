@@ -1,6 +1,18 @@
 (function () {
   var canvas = document.getElementById('game-canvas');
   var status = document.getElementById('boot-status');
+  var statusCopy = status ? status.querySelector('.boot-status__copy') : null;
+
+  function setStatusMessage(message) {
+    if (statusCopy) {
+      statusCopy.textContent = message;
+      return;
+    }
+
+    if (status) {
+      status.textContent = message;
+    }
+  }
 
   if (!canvas || !window.DuelRenderer) {
     return;
@@ -20,8 +32,8 @@
     window.duelGame = window.duelGame || {};
     window.duelGame.requestAnimationFrame = requestAnimationFrame;
     window.duelGame.renderer = renderer;
-    status.textContent = 'Canvas shell ready for game systems.';
+    setStatusMessage('Canvas shell ready for game systems.');
   } catch (error) {
-    status.textContent = error && error.message ? error.message : 'WebGL is unavailable in this browser.';
+    setStatusMessage(error && error.message ? error.message : 'WebGL is unavailable in this browser.');
   }
 })();

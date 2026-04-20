@@ -44,3 +44,10 @@ test('script requests a webgl context and resizes the canvas', () => {
   assert.match(js, /window\.addEventListener\(['"]resize['"]/i);
   assert.match(js, /requestAnimationFrame/i);
 });
+
+test('script updates overlay copy without replacing the themed overlay shell', () => {
+  const js = read('script.js');
+
+  assert.match(js, /boot-status__copy/i);
+  assert.doesNotMatch(js, /status\.textContent\s*=\s*['"]Canvas shell ready/i);
+});
