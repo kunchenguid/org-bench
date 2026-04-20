@@ -23,8 +23,13 @@ test('hydrateState returns a fresh opening state when storage is empty', () => {
 
   assert.equal(state.turn, 1);
   assert.equal(state.currentActor, 'player');
+   assert.equal(state.encounter.name, 'The Breach at Glasshouse Gate');
+   assert.equal(state.player.hero.name, 'Lys, Heartroot Warden');
+   assert.equal(state.enemy.hero.name, 'Commander Varka');
   assert.equal(state.player.hand.length, 3);
   assert.equal(state.enemy.hand.length, 3);
+   assert.equal(state.player.hand[0].faction, 'verdant');
+   assert.match(state.player.hand[0].rulesText, /survived/i);
 });
 
 test('playCard spends mana, moves the card to the board, and records a cue', () => {
