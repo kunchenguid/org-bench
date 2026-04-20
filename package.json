@@ -1,0 +1,7 @@
+{
+  "name": "facebook-duel-tcg",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
