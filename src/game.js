@@ -1,182 +1,583 @@
 (function () {
-  var core = window.ShardDuelCore;
-  var canvas = document.getElementById('game');
-  var statusNode = document.getElementById('status');
-  var playerSummaryNode = document.getElementById('player-summary');
-  var enemySummaryNode = document.getElementById('enemy-summary');
-  var endTurnButton = document.getElementById('end-turn');
-  var newRunButton = document.getElementById('new-run');
-  var gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+  const logic = window.DuelLogic;
+  const canvas = document.getElementById('game-canvas');
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
 
   if (!gl) {
-    statusNode.textContent = 'WebGL is unavailable in this browser.';
+    document.body.textContent = 'WebGL is required to play Emberfall Duel.';
     return;
   }
 
-  var namespace = detectNamespace();
-  var saveKey = core.storageKey(namespace, 'save');
-  var state = restoreState() || core.createInitialState({ seed: Date.now() % 100000 });
-  var program = createProgram(gl, VERTEX_SHADER, FRAGMENT_SHADER);
-  var positionLocation = gl.getAttribLocation(program, 'a_position');
-  var timeLocation = gl.getUniformLocation(program, 'u_time');
-  var resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
-  var buffer = gl.createBuffer();
-  var lastFrame = 0;
+  const storageNamespace = window.__BENCHMARK_RUN_NAMESPACE__ || window.__RUN_STORAGE_NAMESPACE__ || document.body.dataset.runNamespace || 'emberfall-duel';
+  const saveKey = logic.createStorageKey(storageNamespace, 'save');
+  const uiCanvas = document.createElement('canvas');
+  const uiCtx = uiCanvas.getContext('2d');
+  const drawCanvas = document.createElement('canvas');
+  const drawCtx = drawCanvas.getContext('2d');
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-    gl.STATIC_DRAW
-  );
+  const state = {
+    game: loadGame(),
+    hoveredCard: -1,
+    hoveredLane: -1,
+    pointerX: 0,
+    pointerY: 0,
+    selectedCard: -1,
+    lastTime: 0,
+    time: 0,
+    particles: createParticles(48),
+    banners: [],
+    pops: [],
+    message: 'Open on the battlefield. Play a glowing card, then press End Turn.',
+  };
 
-  endTurnButton.addEventListener('click', function () {
-    state.turn += 1;
-    state.currentSide = state.currentSide === 'player' ? 'enemy' : 'player';
-    state.player.mana = Math.min(10, state.turn);
-    state.enemy.mana = Math.min(10, state.turn);
-    persistState();
-    syncHud();
+  const renderer = createRenderer(gl);
+  const cardArtCache = {};
+
+  saveGame();
+  resize();
+  window.addEventListener('resize', resize);
+  canvas.addEventListener('mousemove', onPointerMove);
+  canvas.addEventListener('mousedown', onPointerDown);
+  canvas.addEventListener('mouseleave', function () {
+    state.hoveredCard = -1;
+    state.hoveredLane = -1;
   });
 
-  newRunButton.addEventListener('click', function () {
-    state = core.createInitialState({ seed: Date.now() % 100000 });
-    persistState();
-    syncHud();
-  });
+  requestAnimationFrame(frame);
 
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-  persistState();
-  syncHud();
-  requestAnimationFrame(render);
-
-  function detectNamespace() {
-    return (
-      window.__BENCHMARK_RUN_NAMESPACE__ ||
-      window.BENCHMARK_RUN_NAMESPACE ||
-      new URLSearchParams(window.location.search).get('storageNamespace') ||
-      'duel:'
-    );
-  }
-
-  function restoreState() {
+  function loadGame() {
     try {
-      var raw = window.localStorage.getItem(saveKey);
-      return raw ? JSON.parse(raw) : null;
+      const raw = localStorage.getItem(saveKey);
+      if (raw) {
+        return JSON.parse(raw);
+      }
     } catch (error) {
-      statusNode.textContent = 'Starting fresh duel. Saved data could not be restored.';
-      return null;
+      console.warn('Load failed', error);
     }
+    return logic.createInitialState({ seed: 17 });
   }
 
-  function persistState() {
+  function saveGame() {
     try {
-      window.localStorage.setItem(saveKey, JSON.stringify(state));
+      localStorage.setItem(saveKey, JSON.stringify(state.game));
     } catch (error) {
-      statusNode.textContent = 'Autosave failed in this browser session.';
+      console.warn('Save failed', error);
     }
   }
 
-  function syncHud() {
-    statusNode.textContent =
-      'Turn ' +
-      state.turn +
-      ' - ' +
-      (state.currentSide === 'player' ? 'your move. The duel seed is saved locally.' : 'enemy planning a response.');
-    playerSummaryNode.textContent = summaryFor(state.player);
-    enemySummaryNode.textContent = summaryFor(state.enemy);
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.floor(window.innerWidth * dpr);
+    const height = Math.floor(window.innerHeight * dpr);
+    canvas.width = width;
+    canvas.height = height;
+    uiCanvas.width = width;
+    uiCanvas.height = height;
+    drawCanvas.width = 1024;
+    drawCanvas.height = 1024;
+    gl.viewport(0, 0, width, height);
   }
 
-  function summaryFor(side) {
-    return side.health + ' health, ' + side.mana + ' mana, ' + side.hand.length + ' in hand, ' + side.deck.length + ' in deck';
+  function frame(time) {
+    const delta = Math.min(0.033, (time - state.lastTime) / 1000 || 0.016);
+    state.lastTime = time;
+    state.time += delta;
+    updateAmbient(delta);
+    render();
+    requestAnimationFrame(frame);
   }
 
-  function resizeCanvas() {
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var width = Math.floor(window.innerWidth * dpr);
-    var height = Math.floor(window.innerHeight * dpr);
+  function updateAmbient(delta) {
+    for (let index = 0; index < state.particles.length; index += 1) {
+      const particle = state.particles[index];
+      particle.y -= particle.speed * delta;
+      particle.x += Math.sin(state.time + particle.offset) * delta * 6;
+      if (particle.y < -20) {
+        particle.y = canvas.height + 20;
+        particle.x = Math.random() * canvas.width;
+      }
+    }
+    state.banners = state.banners.filter(function (banner) {
+      banner.life -= delta;
+      return banner.life > 0;
+    });
+    state.pops = state.pops.filter(function (pop) {
+      pop.life -= delta;
+      pop.y -= 28 * delta;
+      return pop.life > 0;
+    });
+  }
 
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
+  function createParticles(count) {
+    const particles = [];
+    for (let index = 0; index < count; index += 1) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        speed: 12 + Math.random() * 24,
+        offset: Math.random() * Math.PI * 2,
+        size: 2 + Math.random() * 3,
+      });
+    }
+    return particles;
+  }
+
+  function onPointerMove(event) {
+    const rect = canvas.getBoundingClientRect();
+    state.pointerX = (event.clientX - rect.left) * (canvas.width / rect.width);
+    state.pointerY = (event.clientY - rect.top) * (canvas.height / rect.height);
+    const layout = getLayout();
+    state.hoveredCard = findHoveredCard(layout.playerHand);
+    state.hoveredLane = findHoveredLane(layout.playerLanes);
+  }
+
+  function onPointerDown() {
+    if (state.game.winner) {
+      state.game = logic.createInitialState({ seed: Date.now() % 100000 });
+      state.selectedCard = -1;
+      state.message = 'Fresh duel. Play onto any empty lane.';
+      saveGame();
+      return;
     }
 
-    gl.viewport(0, 0, canvas.width, canvas.height);
-  }
-
-  function render(now) {
-    var seconds = now * 0.001;
-    lastFrame = seconds;
-
-    gl.useProgram(program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.enableVertexAttribArray(positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.uniform1f(timeLocation, seconds);
-    gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    requestAnimationFrame(render);
-  }
-
-  function createProgram(glContext, vertexSource, fragmentSource) {
-    var vertexShader = compileShader(glContext, glContext.VERTEX_SHADER, vertexSource);
-    var fragmentShader = compileShader(glContext, glContext.FRAGMENT_SHADER, fragmentSource);
-    var shaderProgram = glContext.createProgram();
-    glContext.attachShader(shaderProgram, vertexShader);
-    glContext.attachShader(shaderProgram, fragmentShader);
-    glContext.linkProgram(shaderProgram);
-
-    if (!glContext.getProgramParameter(shaderProgram, glContext.LINK_STATUS)) {
-      throw new Error(glContext.getProgramInfoLog(shaderProgram));
+    const layout = getLayout();
+    const endTurnButton = layout.endTurn;
+    if (hitRect(endTurnButton, state.pointerX, state.pointerY)) {
+      const before = state.game.player.health;
+      state.game = logic.endTurn(state.game);
+      if (state.game.player.health < before) {
+        state.pops.push({ x: canvas.width * 0.5, y: canvas.height * 0.64, text: '-' + (before - state.game.player.health), life: 1 });
+      }
+      state.banners.push({ text: state.game.winner ? (state.game.winner === 'player' ? 'Victory' : 'Defeat') : 'Enemy Turn', life: 1.6 });
+      state.message = state.game.log[state.game.log.length - 1];
+      state.selectedCard = -1;
+      saveGame();
+      return;
     }
 
-    return shaderProgram;
+    if (state.hoveredCard !== -1) {
+      state.selectedCard = state.hoveredCard;
+      const card = state.game.player.hand[state.selectedCard];
+      state.message = card.type === 'unit' ? 'Now click an empty lane to summon ' + card.name + '.' : 'Click the card again to cast ' + card.name + '.';
+      if (card.type === 'spell') {
+        const before = state.game.enemy.health;
+        state.game = logic.playCard(state.game, 'player', state.selectedCard, null);
+        if (state.game.enemy.health < before) {
+          state.pops.push({ x: canvas.width * 0.5, y: canvas.height * 0.22, text: '-' + (before - state.game.enemy.health), life: 1 });
+        }
+        state.message = state.game.log[state.game.log.length - 1];
+        state.selectedCard = -1;
+        saveGame();
+      }
+      return;
+    }
+
+    if (state.selectedCard !== -1 && state.hoveredLane !== -1) {
+      const previous = state.game.player.hand.length;
+      state.game = logic.playCard(state.game, 'player', state.selectedCard, state.hoveredLane);
+      if (state.game.player.hand.length !== previous) {
+        state.banners.push({ text: 'Summon', life: 0.9 });
+        state.message = state.game.log[state.game.log.length - 1];
+        state.selectedCard = -1;
+        saveGame();
+      }
+      return;
+    }
+
+    const laneAttack = findHoveredLane(layout.playerLanes);
+    if (laneAttack !== -1 && state.game.player.board[laneAttack] && !state.game.player.board[laneAttack].exhausted) {
+      const beforeEnemy = state.game.enemy.health;
+      state.game = logic.attackWithLane(state.game, 'player', laneAttack);
+      if (state.game.enemy.health < beforeEnemy) {
+        state.pops.push({ x: canvas.width * 0.5, y: canvas.height * 0.22, text: '-' + (beforeEnemy - state.game.enemy.health), life: 1 });
+      }
+      state.banners.push({ text: 'Attack', life: 0.7 });
+      state.message = state.game.log[state.game.log.length - 1];
+      saveGame();
+    }
   }
 
-  function compileShader(glContext, type, source) {
-    var shader = glContext.createShader(type);
+  function getLayout() {
+    const width = canvas.width;
+    const height = canvas.height;
+    const handCount = state.game.player.hand.length || 1;
+    const handCardWidth = Math.min(150, width / (handCount + 2));
+    const cardHeight = handCardWidth * 1.45;
+    const handY = height - cardHeight - 28;
+    const hand = [];
+    for (let index = 0; index < state.game.player.hand.length; index += 1) {
+      const x = width * 0.5 + (index - (handCount - 1) / 2) * (handCardWidth * 0.78);
+      hand.push({ x: x - handCardWidth / 2, y: handY, w: handCardWidth, h: cardHeight });
+    }
+    const lanes = [];
+    for (let lane = 0; lane < 3; lane += 1) {
+      const x = width * 0.25 + lane * width * 0.25;
+      lanes.push({ x: x - 70, y: height * 0.58, w: 140, h: 182 });
+    }
+    const enemyLanes = [];
+    for (let slot = 0; slot < 3; slot += 1) {
+      const x = width * 0.25 + slot * width * 0.25;
+      enemyLanes.push({ x: x - 70, y: height * 0.21, w: 140, h: 182 });
+    }
+    return {
+      playerHand: hand,
+      playerLanes: lanes,
+      enemyLanes: enemyLanes,
+      endTurn: { x: width - 178, y: height * 0.5 - 34, w: 148, h: 68 },
+    };
+  }
+
+  function findHoveredCard(rects) {
+    for (let index = rects.length - 1; index >= 0; index -= 1) {
+      if (hitRect(rects[index], state.pointerX, state.pointerY)) {
+        return index;
+      }
+    }
+    return -1;
+  }
+
+  function findHoveredLane(rects) {
+    for (let index = 0; index < rects.length; index += 1) {
+      if (hitRect(rects[index], state.pointerX, state.pointerY)) {
+        return index;
+      }
+    }
+    return -1;
+  }
+
+  function hitRect(rect, x, y) {
+    return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+  }
+
+  function render() {
+    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+    drawBoardBase();
+    const layout = getLayout();
+    drawLanes(layout.enemyLanes, state.game.enemy.board, true);
+    drawLanes(layout.playerLanes, state.game.player.board, false);
+    drawHand(layout.playerHand);
+    drawHud(layout);
+    drawTooltip(layout);
+    renderer.draw(uiCanvas);
+  }
+
+  function drawBoardBase() {
+    const width = uiCanvas.width;
+    const height = uiCanvas.height;
+    const gradient = uiCtx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, '#10203c');
+    gradient.addColorStop(0.55, '#201633');
+    gradient.addColorStop(1, '#0d0d16');
+    uiCtx.fillStyle = gradient;
+    uiCtx.fillRect(0, 0, width, height);
+
+    uiCtx.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let index = 0; index < state.particles.length; index += 1) {
+      const particle = state.particles[index];
+      uiCtx.beginPath();
+      uiCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      uiCtx.fill();
+    }
+
+    uiCtx.fillStyle = 'rgba(0,0,0,0.22)';
+    uiCtx.fillRect(0, height * 0.45, width, height * 0.1);
+    uiCtx.fillStyle = 'rgba(255,180,120,0.08)';
+    uiCtx.fillRect(0, height * 0.53, width, height * 0.24);
+  }
+
+  function drawLanes(rects, board, isEnemy) {
+    for (let index = 0; index < rects.length; index += 1) {
+      const rect = rects[index];
+      uiCtx.strokeStyle = isEnemy ? 'rgba(119, 220, 255, 0.35)' : (state.selectedCard !== -1 && !board[index] ? 'rgba(255, 222, 123, 0.95)' : 'rgba(255, 255, 255, 0.18)');
+      uiCtx.lineWidth = state.hoveredLane === index && !isEnemy ? 4 : 2;
+      roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+      uiCtx.stroke();
+      if (!board[index]) {
+        uiCtx.fillStyle = 'rgba(255,255,255,0.08)';
+        uiCtx.font = 'bold 24px Arial';
+        uiCtx.textAlign = 'center';
+        uiCtx.fillText(isEnemy ? 'Enemy lane' : 'Drop here', rect.x + rect.w / 2, rect.y + rect.h / 2);
+      } else {
+        drawCard(rect, board[index], isEnemy, false);
+      }
+    }
+  }
+
+  function drawHand(rects) {
+    for (let index = 0; index < rects.length; index += 1) {
+      const rect = rects[index];
+      const hovered = index === state.hoveredCard;
+      const lift = hovered ? -24 : 0;
+      const card = state.game.player.hand[index];
+      const playable = state.game.turn === 'player' && card.cost <= state.game.player.mana;
+      drawCard({ x: rect.x, y: rect.y + lift, w: rect.w, h: rect.h }, card, false, playable);
+      if (playable) {
+        uiCtx.strokeStyle = hovered ? 'rgba(255, 243, 164, 1)' : 'rgba(255, 206, 86, 0.95)';
+        uiCtx.lineWidth = 4;
+        roundRect(uiCtx, rect.x - 2, rect.y + lift - 2, rect.w + 4, rect.h + 4, 20);
+        uiCtx.stroke();
+      }
+    }
+  }
+
+  function drawCard(rect, card, isEnemy, playable) {
+    const art = getCardTexture(card);
+    uiCtx.drawImage(art, rect.x, rect.y, rect.w, rect.h);
+    uiCtx.strokeStyle = playable ? '#ffd461' : (card.faction === 'ember' ? '#ff9866' : '#7de6c8');
+    uiCtx.lineWidth = playable ? 4 : 2;
+    roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+    uiCtx.stroke();
+    if (card.type === 'unit') {
+      badge(rect.x + 18, rect.y + rect.h - 24, card.attack, '#f46752');
+      badge(rect.x + rect.w - 18, rect.y + rect.h - 24, card.health, '#4ac7a0');
+      if (card.exhausted) {
+        uiCtx.fillStyle = 'rgba(8, 14, 20, 0.52)';
+        roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+        uiCtx.fill();
+      }
+    } else {
+      uiCtx.fillStyle = 'rgba(255, 255, 255, 0.86)';
+      uiCtx.font = 'bold 22px Arial';
+      uiCtx.textAlign = 'center';
+      uiCtx.fillText('Spell', rect.x + rect.w / 2, rect.y + rect.h - 22);
+    }
+    if (isEnemy) {
+      uiCtx.fillStyle = 'rgba(7, 11, 20, 0.32)';
+      roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+      uiCtx.fill();
+    }
+  }
+
+  function badge(x, y, value, color) {
+    uiCtx.fillStyle = color;
+    uiCtx.beginPath();
+    uiCtx.arc(x, y, 16, 0, Math.PI * 2);
+    uiCtx.fill();
+    uiCtx.fillStyle = 'white';
+    uiCtx.font = 'bold 18px Arial';
+    uiCtx.textAlign = 'center';
+    uiCtx.fillText(String(value), x, y + 6);
+  }
+
+  function drawHud(layout) {
+    const player = state.game.player;
+    const enemy = state.game.enemy;
+    panel(28, canvas.height - 152, 236, 116, '#ff9d68', player.hero, player.health, player.mana, player.maxMana, player.deck.length);
+    panel(28, 28, 236, 116, '#7de6c8', enemy.hero, enemy.health, enemy.mana, enemy.maxMana, enemy.deck.length);
+    button(layout.endTurn.x, layout.endTurn.y, layout.endTurn.w, layout.endTurn.h, state.game.turn === 'player' ? '#ffc66d' : '#71849b', state.game.turn === 'player' ? 'End Turn' : 'Enemy Turn');
+
+    uiCtx.fillStyle = 'rgba(255,255,255,0.92)';
+    uiCtx.font = 'bold 28px Arial';
+    uiCtx.textAlign = 'center';
+    uiCtx.fillText('Emberfall Duel', canvas.width * 0.5, 44);
+    uiCtx.font = '20px Arial';
+    uiCtx.fillText(state.message, canvas.width * 0.5, canvas.height - 18);
+
+    for (let index = 0; index < state.banners.length; index += 1) {
+      const banner = state.banners[index];
+      const alpha = Math.min(1, banner.life);
+      uiCtx.fillStyle = 'rgba(255, 236, 186,' + alpha + ')';
+      uiCtx.font = 'bold 46px Arial';
+      uiCtx.fillText(banner.text, canvas.width * 0.5, canvas.height * 0.5 - 90);
+    }
+
+    for (let popIndex = 0; popIndex < state.pops.length; popIndex += 1) {
+      const pop = state.pops[popIndex];
+      uiCtx.fillStyle = 'rgba(255, 120, 120,' + pop.life + ')';
+      uiCtx.font = 'bold 34px Arial';
+      uiCtx.fillText(pop.text, pop.x, pop.y);
+    }
+
+    if (state.game.winner) {
+      uiCtx.fillStyle = 'rgba(5, 8, 20, 0.74)';
+      uiCtx.fillRect(0, 0, canvas.width, canvas.height);
+      uiCtx.fillStyle = '#fff2ca';
+      uiCtx.font = 'bold 64px Arial';
+      uiCtx.fillText(state.game.winner === 'player' ? 'Victory' : 'Defeat', canvas.width * 0.5, canvas.height * 0.46);
+      uiCtx.font = '26px Arial';
+      uiCtx.fillText('Click anywhere to start a new duel.', canvas.width * 0.5, canvas.height * 0.54);
+    }
+  }
+
+  function panel(x, y, w, h, accent, hero, health, mana, maxMana, deck) {
+    uiCtx.fillStyle = 'rgba(5, 10, 20, 0.62)';
+    roundRect(uiCtx, x, y, w, h, 20);
+    uiCtx.fill();
+    uiCtx.fillStyle = accent;
+    uiCtx.fillRect(x, y, 10, h);
+    uiCtx.fillStyle = 'white';
+    uiCtx.font = 'bold 24px Arial';
+    uiCtx.textAlign = 'left';
+    uiCtx.fillText(hero, x + 24, y + 34);
+    uiCtx.font = '20px Arial';
+    uiCtx.fillText('Health ' + health, x + 24, y + 66);
+    uiCtx.fillText('Mana ' + mana + '/' + maxMana, x + 24, y + 90);
+    uiCtx.fillText('Deck ' + deck, x + 134, y + 90);
+  }
+
+  function button(x, y, w, h, color, label) {
+    uiCtx.fillStyle = color;
+    roundRect(uiCtx, x, y, w, h, 16);
+    uiCtx.fill();
+    uiCtx.fillStyle = '#111827';
+    uiCtx.font = 'bold 24px Arial';
+    uiCtx.textAlign = 'center';
+    uiCtx.fillText(label, x + w / 2, y + 42);
+  }
+
+  function drawTooltip(layout) {
+    if (state.hoveredCard === -1) {
+      return;
+    }
+    const card = state.game.player.hand[state.hoveredCard];
+    const rect = layout.playerHand[state.hoveredCard];
+    const x = Math.max(20, Math.min(canvas.width - 290, rect.x));
+    const y = rect.y - 112;
+    uiCtx.fillStyle = 'rgba(5, 10, 20, 0.95)';
+    roundRect(uiCtx, x, y, 280, 96, 14);
+    uiCtx.fill();
+    uiCtx.fillStyle = 'white';
+    uiCtx.textAlign = 'left';
+    uiCtx.font = 'bold 20px Arial';
+    uiCtx.fillText(card.name + ' - ' + card.cost + ' mana', x + 16, y + 28);
+    uiCtx.font = '18px Arial';
+    uiCtx.fillText(card.text, x + 16, y + 56);
+    uiCtx.fillText(card.type === 'unit' ? 'Click, then choose a lane.' : 'Click to cast at the first enemy.', x + 16, y + 82);
+  }
+
+  function getCardTexture(card) {
+    if (!cardArtCache[card.id]) {
+      const art = document.createElement('canvas');
+      art.width = 280;
+      art.height = 400;
+      const ctx = art.getContext('2d');
+      const bg = ctx.createLinearGradient(0, 0, 0, 400);
+      if (card.faction === 'ember') {
+        bg.addColorStop(0, '#552012');
+        bg.addColorStop(1, '#1d0f1f');
+      } else {
+        bg.addColorStop(0, '#183f39');
+        bg.addColorStop(1, '#142133');
+      }
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 280, 400);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(14, 14, 252, 372);
+      const artGradient = ctx.createRadialGradient(140, 160, 10, 140, 160, 130);
+      artGradient.addColorStop(0, card.faction === 'ember' ? '#ffd39a' : '#d7fff1');
+      artGradient.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = artGradient;
+      ctx.beginPath();
+      ctx.arc(140, 154, 116, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = card.faction === 'ember' ? '#ff9059' : '#78dfc6';
+      if (card.key.indexOf('fox') !== -1 || card.key.indexOf('wisp') !== -1) {
+        ctx.beginPath();
+        ctx.moveTo(140, 78); ctx.lineTo(198, 170); ctx.lineTo(140, 238); ctx.lineTo(82, 170); ctx.closePath();
+        ctx.fill();
+      } else if (card.key.indexOf('drake') !== -1 || card.key.indexOf('beast') !== -1) {
+        ctx.beginPath();
+        ctx.moveTo(72, 206); ctx.lineTo(140, 84); ctx.lineTo(208, 206); ctx.lineTo(140, 252); ctx.closePath();
+        ctx.fill();
+        ctx.fillRect(128, 206, 24, 74);
+      } else if (card.type === 'spell') {
+        for (let index = 0; index < 3; index += 1) {
+          ctx.beginPath();
+          ctx.moveTo(112 + index * 12, 80 + index * 12);
+          ctx.lineTo(172 - index * 10, 154 + index * 18);
+          ctx.lineTo(128 + index * 14, 272 - index * 18);
+          ctx.lineTo(162 - index * 8, 174);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else {
+        ctx.fillRect(96, 86, 88, 144);
+      }
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 28px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(card.cost), 40, 42);
+      ctx.font = 'bold 26px Arial';
+      ctx.fillText(card.name, 140, 318);
+      ctx.font = '18px Arial';
+      wrapText(ctx, card.text, 140, 346, 214, 22);
+      cardArtCache[card.id] = art;
+    }
+    return cardArtCache[card.id];
+  }
+
+  function wrapText(ctx, text, centerX, startY, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let y = startY;
+    for (let index = 0; index < words.length; index += 1) {
+      const trial = line ? line + ' ' + words[index] : words[index];
+      if (ctx.measureText(trial).width > maxWidth && line) {
+        ctx.fillText(line, centerX, y);
+        line = words[index];
+        y += lineHeight;
+      } else {
+        line = trial;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, centerX, y);
+    }
+  }
+
+  function roundRect(ctx, x, y, w, h, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
+
+  function createRenderer(glContext) {
+    const vertexShader = compile(glContext, glContext.VERTEX_SHADER, 'attribute vec2 a_position; attribute vec2 a_uv; varying vec2 v_uv; void main(){ v_uv=a_uv; gl_Position=vec4(a_position,0.0,1.0);}');
+    const fragmentShader = compile(glContext, glContext.FRAGMENT_SHADER, 'precision mediump float; varying vec2 v_uv; uniform sampler2D u_tex; void main(){ gl_FragColor = texture2D(u_tex, v_uv);}');
+    const program = glContext.createProgram();
+    glContext.attachShader(program, vertexShader);
+    glContext.attachShader(program, fragmentShader);
+    glContext.linkProgram(program);
+    const buffer = glContext.createBuffer();
+    const texture = glContext.createTexture();
+    glContext.bindTexture(glContext.TEXTURE_2D, texture);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
+    return {
+      draw: function (sourceCanvas) {
+        glContext.clearColor(0, 0, 0, 1);
+        glContext.clear(glContext.COLOR_BUFFER_BIT);
+        glContext.useProgram(program);
+        glContext.bindBuffer(glContext.ARRAY_BUFFER, buffer);
+        glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array([
+          -1, -1, 0, 1,
+           1, -1, 1, 1,
+          -1,  1, 0, 0,
+          -1,  1, 0, 0,
+           1, -1, 1, 1,
+           1,  1, 1, 0,
+        ]), glContext.STATIC_DRAW);
+        glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, sourceCanvas);
+        const position = glContext.getAttribLocation(program, 'a_position');
+        const uv = glContext.getAttribLocation(program, 'a_uv');
+        glContext.enableVertexAttribArray(position);
+        glContext.enableVertexAttribArray(uv);
+        glContext.vertexAttribPointer(position, 2, glContext.FLOAT, false, 16, 0);
+        glContext.vertexAttribPointer(uv, 2, glContext.FLOAT, false, 16, 8);
+        glContext.drawArrays(glContext.TRIANGLES, 0, 6);
+      },
+    };
+  }
+
+  function compile(glContext, type, source) {
+    const shader = glContext.createShader(type);
     glContext.shaderSource(shader, source);
     glContext.compileShader(shader);
-
-    if (!glContext.getShaderParameter(shader, glContext.COMPILE_STATUS)) {
-      throw new Error(glContext.getShaderInfoLog(shader));
-    }
-
     return shader;
   }
-
-  var VERTEX_SHADER = [
-    'attribute vec2 a_position;',
-    'void main() {',
-    '  gl_Position = vec4(a_position, 0.0, 1.0);',
-    '}'
-  ].join('\n');
-
-  var FRAGMENT_SHADER = [
-    'precision mediump float;',
-    'uniform float u_time;',
-    'uniform vec2 u_resolution;',
-    '',
-    'float ring(vec2 uv, vec2 center, float radius, float width) {',
-    '  float distanceToCenter = distance(uv, center);',
-    '  return smoothstep(radius + width, radius, distanceToCenter) * smoothstep(radius - width, radius, distanceToCenter);',
-    '}',
-    '',
-    'void main() {',
-    '  vec2 uv = gl_FragCoord.xy / u_resolution.xy;',
-    '  vec2 centered = uv - 0.5;',
-    '  centered.x *= u_resolution.x / u_resolution.y;',
-    '  float pulse = 0.55 + 0.45 * sin(u_time * 0.8);',
-    '  float boardGlow = 0.15 / max(length(centered) * 1.7, 0.2);',
-    '  float topSigil = ring(uv, vec2(0.5, 0.26), 0.13 + 0.01 * sin(u_time), 0.011);',
-    '  float bottomSigil = ring(uv, vec2(0.5, 0.74), 0.13 + 0.01 * cos(u_time * 1.2), 0.011);',
-    '  vec3 base = mix(vec3(0.02, 0.05, 0.10), vec3(0.03, 0.12, 0.20), uv.y);',
-    '  vec3 lane = vec3(0.15, 0.11, 0.22) * smoothstep(0.42, 0.08, abs(uv.y - 0.5));',
-    '  vec3 highlight = vec3(0.12, 0.25, 0.45) * boardGlow * pulse;',
-    '  vec3 sigils = vec3(0.31, 0.72, 0.98) * topSigil + vec3(0.88, 0.44, 0.96) * bottomSigil;',
-    '  gl_FragColor = vec4(base + lane + highlight + sigils, 1.0);',
-    '}'
-  ].join('\n');
 })();
