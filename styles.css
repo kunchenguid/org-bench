@@ -1,0 +1,84 @@
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #08111f;
+  color: #f1f5ff;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+}
+
+.shell {
+  width: min(1400px, 100vw);
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+#game {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.hud {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.panel {
+  background: rgba(8, 17, 31, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.hint {
+  color: #a9c8ff;
+}
+
+#player-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #4c7dff, #6ba4ff);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.log-panel {
+  max-height: 220px;
+  overflow: auto;
+}
+
+#battle-log {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 960px) {
+  .hud {
+    grid-template-columns: 1fr;
+  }
+}

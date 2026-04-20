@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Duel of the Shifting Tides</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <canvas id="game" width="1280" height="720" aria-label="Duel board"></canvas>
+      <section class="hud" aria-live="polite">
+        <div class="panel">
+          <h1>Duel of the Shifting Tides</h1>
+          <p id="encounter-name"></p>
+          <p id="encounter-hint" class="hint"></p>
+          <p id="turn-status"></p>
+        </div>
+        <div class="panel">
+          <div id="player-actions"></div>
+          <button id="end-turn">End Turn</button>
+          <button id="new-run">New Encounter</button>
+        </div>
+        <div class="panel log-panel">
+          <strong>Battle Log</strong>
+          <ul id="battle-log"></ul>
+        </div>
+      </section>
+    </main>
+    <script src="src/game-core.js"></script>
+    <script src="src/game.js"></script>
+  </body>
+  </html>
