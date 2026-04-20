@@ -1,6 +1,7 @@
 (function () {
   const logic = window.DuelLogic;
   const tutorial = window.DuelTutorial;
+  const animation = window.DuelAnimation;
   const canvas = document.getElementById('game-canvas');
   const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
 
@@ -41,8 +42,7 @@
     lastTime: 0,
     time: 0,
     particles: createParticles(48),
-    banners: [],
-    pops: [],
+    fx: animation.createAnimationState(),
     message: 'Open on the battlefield. Play a glowing card, then press End Turn.',
   };
 
@@ -132,15 +132,7 @@
         particle.x = Math.random() * canvas.width;
       }
     }
-    state.banners = state.banners.filter(function (banner) {
-      banner.life -= delta;
-      return banner.life > 0;
-    });
-    state.pops = state.pops.filter(function (pop) {
-      pop.life -= delta;
-      pop.y -= 28 * delta;
-      return pop.life > 0;
-    });
+    animation.stepAnimationState(state.fx, delta);
   }
 
   function createParticles(count) {
@@ -171,6 +163,7 @@
       state.game = logic.createInitialState({ seed: Date.now() % 100000 });
       state.selectedCard = -1;
       state.message = 'Fresh duel. Play onto any empty lane.';
+      animation.queueSweep(state.fx, { text: 'Fresh Duel', life: 0.9 });
       saveGame();
       return;
     }
@@ -178,12 +171,22 @@
     const layout = getLayout();
     const endTurnButton = layout.endTurn;
     if (hitRect(endTurnButton, state.pointerX, state.pointerY)) {
-      const before = state.game.player.health;
+      const previousGame = state.game;
       state.game = logic.endTurn(state.game);
-      if (state.game.player.health < before) {
-        state.pops.push({ x: canvas.width * 0.5, y: canvas.height * 0.64, text: '-' + (before - state.game.player.health), life: 1 });
+      queueGameDiff(previousGame, state.game, layout, getLayout());
+      if (state.game.player.hand.length > previousGame.player.hand.length) {
+        animation.queueCardMotion(state.fx, {
+          card: state.game.player.hand[state.game.player.hand.length - 1],
+          from: { x: 148, y: canvas.height - 126, w: 36, h: 54 },
+          to: getLayout().playerHand[state.game.player.hand.length - 1],
+          duration: 0.42,
+          lift: 24,
+        });
       }
-      state.banners.push({ text: state.game.winner ? (state.game.winner === 'player' ? 'Victory' : 'Defeat') : 'Enemy Turn', life: 1.6 });
+      animation.queueSweep(state.fx, {
+        text: state.game.winner ? (state.game.winner === 'player' ? 'Victory' : 'Defeat') : 'Enemy Turn',
+        life: 1.2,
+      });
       state.message = state.game.log[state.game.log.length - 1];
       state.selectedCard = -1;
       saveGame();
@@ -193,13 +196,19 @@
     if (state.hoveredCard !== -1) {
       state.selectedCard = state.hoveredCard;
       const card = state.game.player.hand[state.selectedCard];
+      const sourceRect = layout.playerHand[state.selectedCard];
       state.message = card.type === 'unit' ? 'Now click an empty lane to summon ' + card.name + '.' : 'Click the card again to cast ' + card.name + '.';
       if (card.type === 'spell') {
-        const before = state.game.enemy.health;
+        const previousGame = state.game;
         state.game = logic.playCard(state.game, 'player', state.selectedCard, null);
-        if (state.game.enemy.health < before) {
-          state.pops.push({ x: canvas.width * 0.5, y: canvas.height * 0.22, text: '-' + (before - state.game.enemy.health), life: 1 });
-        }
+        animation.queueCardMotion(state.fx, {
+          card: card,
+          from: sourceRect,
+          to: { x: 78, y: 36, w: 160, h: 108 },
+          duration: 0.28,
+          lift: 18,
+        });
+        queueGameDiff(previousGame, state.game, layout, getLayout());
         state.message = state.game.log[state.game.log.length - 1];
         state.selectedCard = -1;
         saveGame();
@@ -208,10 +217,22 @@
     }
 
     if (state.selectedCard !== -1 && state.hoveredLane !== -1) {
+      const previousGame = state.game;
+      const card = previousGame.player.hand[state.selectedCard];
+      const sourceRect = layout.playerHand[state.selectedCard];
+      const targetRect = layout.playerLanes[state.hoveredLane];
       const previous = state.game.player.hand.length;
       state.game = logic.playCard(state.game, 'player', state.selectedCard, state.hoveredLane);
       if (state.game.player.hand.length !== previous) {
-        state.banners.push({ text: 'Summon', life: 0.9 });
+        animation.queueCardMotion(state.fx, {
+          card: card,
+          from: sourceRect,
+          to: targetRect,
+          duration: 0.4,
+          lift: 42,
+        });
+        animation.queueSweep(state.fx, { text: 'Summon', life: 0.5 });
+        queueGameDiff(previousGame, state.game, layout, getLayout());
         state.message = state.game.log[state.game.log.length - 1];
         state.selectedCard = -1;
         saveGame();
@@ -221,14 +242,75 @@
 
     const laneAttack = findHoveredLane(layout.playerLanes);
     if (laneAttack !== -1 && state.game.player.board[laneAttack] && !state.game.player.board[laneAttack].exhausted) {
-      const beforeEnemy = state.game.enemy.health;
+      const previousGame = state.game;
+      const attacker = state.game.player.board[laneAttack];
+      const targetRect = state.game.enemy.board[laneAttack] ? layout.enemyLanes[laneAttack] : { x: 78, y: 36, w: 160, h: 108 };
       state.game = logic.attackWithLane(state.game, 'player', laneAttack);
-      if (state.game.enemy.health < beforeEnemy) {
-        state.pops.push({ x: canvas.width * 0.5, y: canvas.height * 0.22, text: '-' + (beforeEnemy - state.game.enemy.health), life: 1 });
-      }
-      state.banners.push({ text: 'Attack', life: 0.7 });
+      animation.queueCardMotion(state.fx, {
+        card: attacker,
+        from: layout.playerLanes[laneAttack],
+        to: targetRect,
+        duration: 0.26,
+        lift: 26,
+        yoyo: true,
+      });
+      queueGameDiff(previousGame, state.game, layout, getLayout());
       state.message = state.game.log[state.game.log.length - 1];
       saveGame();
+    }
+  }
+
+  function queueGameDiff(previousGame, nextGame, previousLayout, nextLayout) {
+    const playerDelta = previousGame.player.health - nextGame.player.health;
+    const enemyDelta = previousGame.enemy.health - nextGame.enemy.health;
+
+    if (playerDelta > 0) {
+      animation.queueDamageNumber(state.fx, {
+        x: 148,
+        y: canvas.height - 162,
+        text: '-' + playerDelta,
+      });
+      animation.queueFlash(state.fx, {
+        x: 28,
+        y: canvas.height - 152,
+        w: 236,
+        h: 116,
+        color: '255,120,120',
+      });
+    }
+
+    if (enemyDelta > 0) {
+      animation.queueDamageNumber(state.fx, {
+        x: 148,
+        y: 146,
+        text: '-' + enemyDelta,
+      });
+      animation.queueFlash(state.fx, {
+        x: 28,
+        y: 28,
+        w: 236,
+        h: 116,
+        color: '255,214,140',
+      });
+    }
+
+    for (let lane = 0; lane < 3; lane += 1) {
+      if (previousGame.player.board[lane] && !nextGame.player.board[lane]) {
+        animation.queueGhost(state.fx, { card: previousGame.player.board[lane], rect: previousLayout.playerLanes[lane] });
+      }
+      if (previousGame.enemy.board[lane] && !nextGame.enemy.board[lane]) {
+        animation.queueGhost(state.fx, { card: previousGame.enemy.board[lane], rect: previousLayout.enemyLanes[lane] });
+      }
+      if (previousGame.enemy.board[lane] && nextGame.enemy.board[lane]) {
+        animation.queueFlash(state.fx, {
+          x: nextLayout.enemyLanes[lane].x,
+          y: nextLayout.enemyLanes[lane].y,
+          w: nextLayout.enemyLanes[lane].w,
+          h: nextLayout.enemyLanes[lane].h,
+          color: '255,240,180',
+          life: 0.18,
+        });
+      }
     }
   }
 
@@ -294,6 +376,9 @@
     drawHand(layout.playerHand, tutorialState);
     drawHud(layout, tutorialState);
     drawTooltip(layout, tutorialState);
+    drawAnimationGhosts();
+    drawAnimationMotions();
+    drawAnimationFlashes();
     renderer.draw(uiCanvas);
   }
 
@@ -364,10 +449,13 @@
     for (let index = 0; index < rects.length; index += 1) {
       const rect = rects[index];
       const hovered = index === state.hoveredCard;
-      const lift = hovered ? -24 : 0;
+      const centerOffset = index - (rects.length - 1) / 2;
+      const pointerShift = ((state.pointerX / Math.max(canvas.width, 1)) - 0.5) * 0.12;
+      const lift = hovered ? -24 : Math.abs(centerOffset) * -4;
+      const rotation = centerOffset * 0.08 + pointerShift;
       const card = state.game.player.hand[index];
       const playable = state.game.turn === 'player' && card.cost <= state.game.player.mana;
-      drawCard({ x: rect.x, y: rect.y + lift, w: rect.w, h: rect.h }, card, false, playable);
+      drawCard({ x: rect.x, y: rect.y + lift, w: rect.w, h: rect.h }, card, false, playable, { rotation: rotation });
       if (playable) {
         const tutorialGlow = tutorialState.highlightHandIndices.indexOf(index) !== -1;
         const glowAlpha = tutorialGlow ? 0.55 + 0.45 * Math.sin(state.time * 7) : 0.95;
@@ -379,49 +467,81 @@
     }
   }
 
-  function drawCard(rect, card, isEnemy, playable) {
+  function drawAnimationGhosts() {
+    for (let index = 0; index < state.fx.ghosts.length; index += 1) {
+      const ghost = state.fx.ghosts[index];
+      drawCard(ghost.rect, ghost.card, false, false, { alpha: ghost.alpha * 0.75, rotation: 0.03 });
+    }
+  }
+
+  function drawAnimationMotions() {
+    for (let index = 0; index < state.fx.motions.length; index += 1) {
+      const motion = state.fx.motions[index];
+      drawCard(motion.rect, motion.card, false, false, { alpha: motion.alpha, rotation: motion.rotation || 0.02 });
+    }
+  }
+
+  function drawAnimationFlashes() {
+    for (let index = 0; index < state.fx.flashes.length; index += 1) {
+      const flash = state.fx.flashes[index];
+      uiCtx.fillStyle = 'rgba(' + flash.color + ',' + flash.alpha + ')';
+      roundRect(uiCtx, flash.x, flash.y, flash.w, flash.h, 18);
+      uiCtx.fill();
+    }
+  }
+
+  function drawCard(rect, card, isEnemy, playable, options) {
+    const settings = options || {};
     const frame = card.faction === 'ember' ? imageCache.frameEmber : imageCache.frameVerdant;
     const art = imageCache[card.key];
+    const localRect = { x: -rect.w / 2, y: -rect.h / 2, w: rect.w, h: rect.h };
+    uiCtx.save();
+    uiCtx.globalAlpha = settings.alpha === undefined ? 1 : settings.alpha;
+    uiCtx.translate(rect.x + rect.w / 2, rect.y + rect.h / 2);
+    if (settings.rotation) {
+      uiCtx.rotate(settings.rotation);
+    }
     if (frame) {
-      uiCtx.drawImage(frame, rect.x, rect.y, rect.w, rect.h);
+      uiCtx.drawImage(frame, localRect.x, localRect.y, localRect.w, localRect.h);
       if (art) {
-        uiCtx.drawImage(art, rect.x + rect.w * 0.08, rect.y + rect.h * 0.12, rect.w * 0.84, rect.h * 0.42);
+        uiCtx.drawImage(art, localRect.x + localRect.w * 0.08, localRect.y + localRect.h * 0.12, localRect.w * 0.84, localRect.h * 0.42);
       }
       uiCtx.fillStyle = 'rgba(255,255,255,0.94)';
       uiCtx.font = 'bold 18px Georgia';
       uiCtx.textAlign = 'left';
-      uiCtx.fillText(card.name, rect.x + 18, rect.y + 24);
+      uiCtx.fillText(card.name, localRect.x + 18, localRect.y + 24);
       uiCtx.font = '16px Georgia';
-      uiCtx.fillText(String(card.cost), rect.x + 20, rect.y + 52);
+      uiCtx.fillText(String(card.cost), localRect.x + 20, localRect.y + 52);
       uiCtx.font = '14px Georgia';
-      wrapCardText(card.text, rect.x + 16, rect.y + rect.h - 56, rect.w - 32, 16);
+      wrapCardText(card.text, localRect.x + 16, localRect.y + localRect.h - 56, localRect.w - 32, 16);
     } else {
       const fallback = getCardTexture(card);
-      uiCtx.drawImage(fallback, rect.x, rect.y, rect.w, rect.h);
+      uiCtx.drawImage(fallback, localRect.x, localRect.y, localRect.w, localRect.h);
     }
     uiCtx.strokeStyle = playable ? '#ffd461' : (card.faction === 'ember' ? '#ff9866' : '#7de6c8');
     uiCtx.lineWidth = playable ? 4 : 2;
-    roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+    roundRect(uiCtx, localRect.x, localRect.y, localRect.w, localRect.h, 18);
     uiCtx.stroke();
     if (card.type === 'unit') {
-      badge(rect.x + 18, rect.y + rect.h - 24, card.attack, '#f46752');
-      badge(rect.x + rect.w - 18, rect.y + rect.h - 24, card.health, '#4ac7a0');
+      badge(localRect.x + 18, localRect.y + localRect.h - 24, card.attack, '#f46752');
+      badge(localRect.x + localRect.w - 18, localRect.y + localRect.h - 24, card.health, '#4ac7a0');
       if (card.exhausted) {
         uiCtx.fillStyle = 'rgba(8, 14, 20, 0.52)';
-        roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+        roundRect(uiCtx, localRect.x, localRect.y, localRect.w, localRect.h, 18);
         uiCtx.fill();
       }
     } else {
       uiCtx.fillStyle = 'rgba(255, 255, 255, 0.86)';
       uiCtx.font = 'bold 22px Arial';
       uiCtx.textAlign = 'center';
-      uiCtx.fillText('Spell', rect.x + rect.w / 2, rect.y + rect.h - 22);
+      uiCtx.fillText('Spell', 0, localRect.y + localRect.h - 22);
     }
     if (isEnemy) {
       uiCtx.fillStyle = 'rgba(7, 11, 20, 0.32)';
-      roundRect(uiCtx, rect.x, rect.y, rect.w, rect.h, 18);
+      roundRect(uiCtx, localRect.x, localRect.y, localRect.w, localRect.h, 18);
       uiCtx.fill();
     }
+    uiCtx.restore();
   }
 
   function badge(x, y, value, color) {
@@ -452,19 +572,22 @@
     uiCtx.font = '20px Arial';
     uiCtx.fillText(tutorialState.prompt || state.message, canvas.width * 0.5, canvas.height - 18);
 
-    for (let index = 0; index < state.banners.length; index += 1) {
-      const banner = state.banners[index];
-      const alpha = Math.min(1, banner.life);
-      uiCtx.fillStyle = 'rgba(255, 236, 186,' + alpha + ')';
+    for (let index = 0; index < state.fx.sweeps.length; index += 1) {
+      const sweep = state.fx.sweeps[index];
+      uiCtx.fillStyle = 'rgba(255, 236, 186,' + (sweep.alpha * 0.22) + ')';
+      uiCtx.fillRect(0, canvas.height * 0.5 - 120, canvas.width, 64);
+      uiCtx.fillStyle = sweep.color;
       uiCtx.font = 'bold 46px Arial';
-      uiCtx.fillText(banner.text, canvas.width * 0.5, canvas.height * 0.5 - 90);
+      uiCtx.fillText(sweep.text, canvas.width * 0.5, canvas.height * 0.5 - 78);
     }
 
-    for (let popIndex = 0; popIndex < state.pops.length; popIndex += 1) {
-      const pop = state.pops[popIndex];
-      uiCtx.fillStyle = 'rgba(255, 120, 120,' + pop.life + ')';
+    for (let popIndex = 0; popIndex < state.fx.damageNumbers.length; popIndex += 1) {
+      const pop = state.fx.damageNumbers[popIndex];
+      uiCtx.fillStyle = pop.color;
+      uiCtx.globalAlpha = pop.alpha;
       uiCtx.font = 'bold 34px Arial';
       uiCtx.fillText(pop.text, pop.x, pop.y);
+      uiCtx.globalAlpha = 1;
     }
 
     if (state.game.winner) {
