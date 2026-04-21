@@ -6,6 +6,7 @@ const {
   setCell,
   getCellValue,
   getDisplayValue,
+  shiftFormulaReferences,
 } = require('../src/engine.js');
 
 test('evaluates arithmetic formulas using cell references', () => {
@@ -58,4 +59,18 @@ test('preserves literal text for non-numeric input', () => {
 
   assert.equal(getCellValue(sheet, 'D1'), 'hello');
   assert.equal(getDisplayValue(sheet, 'D1'), 'hello');
+});
+
+test('shifts relative references when a formula is pasted', () => {
+  assert.equal(
+    shiftFormulaReferences('=A1+B$2+$C3+$D$4', 2, 1),
+    '=B3+C$2+$C5+$D$4'
+  );
+});
+
+test('shifts both ends of a range when a formula is pasted', () => {
+  assert.equal(
+    shiftFormulaReferences('=SUM(A1:B2)', 1, 2),
+    '=SUM(C2:D3)'
+  );
 });

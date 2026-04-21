@@ -434,6 +434,19 @@
     return address.replace(/\$/g, '').toUpperCase();
   }
 
+  function shiftFormulaReferences(raw, rowOffset, columnOffset) {
+    if (!raw || raw.charAt(0) !== '=') {
+      return raw;
+    }
+
+    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (reference) {
+      const match = reference.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/);
+      const nextColumn = match[1] ? columnToNumber(match[2]) : columnToNumber(match[2]) + columnOffset;
+      const nextRow = match[3] ? Number(match[4]) : Number(match[4]) + rowOffset;
+      return (match[1] ? '$' : '') + numberToColumn(Math.max(1, nextColumn)) + (match[3] ? '$' : '') + String(Math.max(1, nextRow));
+    });
+  }
+
   function parseAddress(address) {
     const normalized = normalizeAddress(address);
     const match = normalized.match(/^([A-Z]+)(\d+)$/);
@@ -488,5 +501,6 @@
     getCellValue: getCellValue,
     getDisplayValue: getDisplayValue,
     normalizeAddress: normalizeAddress,
+    shiftFormulaReferences: shiftFormulaReferences,
   };
 });

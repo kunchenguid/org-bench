@@ -14,6 +14,7 @@
   let activeCell = storedState.activeCell || 'A1';
   let editingCell = null;
   let editOriginalValue = '';
+  let clipboard = null;
 
   buildGrid();
   refreshAllCells();
@@ -67,6 +68,25 @@
       event.preventDefault();
       setRawValue(activeCell, '');
       return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && !event.altKey) {
+      const lowerKey = event.key.toLowerCase();
+      if (lowerKey === 'c') {
+        event.preventDefault();
+        copyActiveCell(false);
+        return;
+      }
+      if (lowerKey === 'x') {
+        event.preventDefault();
+        copyActiveCell(true);
+        return;
+      }
+      if (lowerKey === 'v') {
+        event.preventDefault();
+        pasteIntoActiveCell();
+        return;
+      }
     }
 
     if (event.key.length === 1 && !event.metaKey && !event.ctrlKey) {
@@ -281,11 +301,56 @@
     return grid.querySelector('.cell[data-address="' + address + '"]');
   }
 
+  function copyActiveCell(isCut) {
+    clipboard = {
+      raw: engine.getCellRaw(sheet, activeCell),
+      source: activeCell,
+      cut: isCut,
+    };
+  }
+
+  function pasteIntoActiveCell() {
+    if (!clipboard) {
+      return;
+    }
+
+    const sourcePosition = parseAddress(clipboard.source);
+    const targetPosition = parseAddress(activeCell);
+    let nextRaw = clipboard.raw;
+
+    if (nextRaw && nextRaw.charAt(0) === '=') {
+      nextRaw = engine.shiftFormulaReferences(
+        nextRaw,
+        targetPosition.row - sourcePosition.row,
+        targetPosition.column - sourcePosition.column
+      );
+    }
+
+    setRawValue(activeCell, nextRaw);
+
+    if (clipboard.cut && clipboard.source !== activeCell) {
+      setRawValue(clipboard.source, '', false);
+      clipboard = null;
+    }
+  }
+
+  function parseAddress(address) {
+    const match = address.match(/^([A-Z]+)(\d+)$/);
+    return {
+      column: labelToColumn(match[1]),
+      row: Number(match[2]),
+    };
+  }
+
   function columnToLabel(column) {
     return String.fromCharCode(64 + column);
   }
 
   function labelToColumn(label) {
-    return label.charCodeAt(0) - 64;
+    let total = 0;
+    for (let index = 0; index < label.length; index += 1) {
+      total = total * 26 + (label.charCodeAt(index) - 64);
+    }
+    return total;
   }
 })();
