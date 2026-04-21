@@ -502,7 +502,6 @@
     }
     return SpreadsheetClipboard;
   }
-
   function getDisplayValue(store, cellId, raw) {
     const computed = store.getComputedCell(cellId);
     if (computed && Object.prototype.hasOwnProperty.call(computed, 'display')) {
