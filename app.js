@@ -153,9 +153,50 @@
     mountPoint.replaceChildren(shell);
   }
 
+  function resolveNamespaceApi(options) {
+    if (options && options.namespaceApi) {
+      return options.namespaceApi;
+    }
+
+    if (global.SpreadsheetStorageNamespace && typeof global.SpreadsheetStorageNamespace.createStorageNamespaceApi === 'function') {
+      return global.SpreadsheetStorageNamespace.createStorageNamespaceApi(global);
+    }
+
+    return {
+      getNamespace() {
+        return 'spreadsheet';
+      },
+      makeKey(key) {
+        return 'spreadsheet:' + key;
+      },
+    };
+  }
+
+  function boot(options) {
+    const settings = options || {};
+    const namespaceApi = resolveNamespaceApi(settings);
+    const storageNamespace = namespaceApi.getNamespace();
+    const documentRef = Object.prototype.hasOwnProperty.call(settings, 'document') ? settings.document : global.document;
+
+    if (documentRef) {
+      renderSpreadsheet(documentRef);
+      const mountPoint = documentRef.getElementById('app');
+      if (mountPoint) {
+        mountPoint.dataset.booted = 'true';
+        mountPoint.dataset.storageNamespace = storageNamespace;
+      }
+    }
+
+    return {
+      namespaceApi,
+      storageNamespace,
+    };
+  }
+
   const api = {
     SHEET_COLUMNS,
     SHEET_ROWS,
+    boot,
     buildSurfaceModel,
     getColumnLabel,
     renderSpreadsheet,
@@ -168,6 +209,6 @@
   global.SpreadsheetSurface = api;
 
   if (typeof document !== 'undefined') {
-    renderSpreadsheet(document);
+    boot();
   }
 })(typeof window !== 'undefined' ? window : globalThis);
