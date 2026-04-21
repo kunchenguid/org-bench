@@ -133,3 +133,23 @@ test('planCut returns copied block and matching clear operations', () => {
     { row: 2, col: 3, raw: '' },
   ]);
 });
+
+test('serializeClipboardBlock writes tab and newline separated text', () => {
+  assert.equal(
+    selection.serializeClipboardBlock([
+      ['1', '=A1+1'],
+      ['hello', ''],
+    ]),
+    '1\t=A1+1\nhello\t'
+  );
+});
+
+test('parseClipboardText reads rectangular clipboard text with CRLF line endings', () => {
+  assert.deepEqual(
+    selection.parseClipboardText('1\t2\r\n3\t4'),
+    [
+      ['1', '2'],
+      ['3', '4'],
+    ]
+  );
+});

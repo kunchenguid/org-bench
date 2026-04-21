@@ -165,6 +165,22 @@
     };
   }
 
+  function serializeClipboardBlock(block) {
+    return block.map(function (row) {
+      return row.join('\t');
+    }).join('\n');
+  }
+
+  function parseClipboardText(text) {
+    return String(text || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .map(function (row) {
+        return row.split('\t');
+      });
+  }
+
   return {
     normalizeRange: normalizeRange,
     buildRangeSelection: buildRangeSelection,
@@ -173,5 +189,7 @@
     planClearRange: planClearRange,
     planPaste: planPaste,
     planCut: planCut,
+    serializeClipboardBlock: serializeClipboardBlock,
+    parseClipboardText: parseClipboardText,
   };
 });
