@@ -18,6 +18,11 @@ function createWorkbookStore(options) {
     : function passthroughFormula(raw) {
       return raw;
     };
+  const updateFormulaForStructuralChange = typeof formulaHelpers.updateFormulaForStructuralChange === 'function'
+    ? formulaHelpers.updateFormulaForStructuralChange
+    : function passthroughStructuralFormula(raw) {
+      return raw;
+    };
 
   let state = loadState(storage, storageKey, rows, columns);
   let undoStack = [];
@@ -164,28 +169,28 @@ function createWorkbookStore(options) {
 
   function insertRows(atRow, count) {
     const nextState = cloneState(state);
-    nextState.cells = shiftRows(nextState.cells, atRow, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'insert-row', index: atRow, count }, updateFormulaForStructuralChange);
     nextState.selection = shiftSelectionRows(nextState.selection, atRow, count, rows + count, columns);
     recordAction('insert-rows', { atRow, count }, nextState);
   }
 
   function deleteRows(atRow, count) {
     const nextState = cloneState(state);
-    nextState.cells = removeRows(nextState.cells, atRow, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'delete-row', index: atRow, count }, updateFormulaForStructuralChange);
     nextState.selection = shiftSelectionRows(nextState.selection, atRow + count, -count, rows, columns);
     recordAction('delete-rows', { atRow, count }, nextState);
   }
 
   function insertColumns(atCol, count) {
     const nextState = cloneState(state);
-    nextState.cells = shiftColumns(nextState.cells, atCol, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'insert-column', index: atCol, count }, updateFormulaForStructuralChange);
     nextState.selection = shiftSelectionColumns(nextState.selection, atCol, count, rows, columns + count);
     recordAction('insert-columns', { atCol, count }, nextState);
   }
 
   function deleteColumns(atCol, count) {
     const nextState = cloneState(state);
-    nextState.cells = removeColumns(nextState.cells, atCol, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'delete-column', index: atCol, count }, updateFormulaForStructuralChange);
     nextState.selection = shiftSelectionColumns(nextState.selection, atCol + count, -count, rows, columns);
     recordAction('delete-columns', { atCol, count }, nextState);
   }
@@ -451,62 +456,73 @@ function forEachCellInBounds(bounds, callback) {
   }
 }
 
-function shiftRows(cells, atRow, delta) {
+function applyStructuralChange(cells, change, updateFormulaForStructuralChange) {
   const result = Object.create(null);
   const keys = Object.keys(cells);
-  for (let index = 0; index < keys.length; index += 1) {
-    const cellId = keys[index];
-    const coords = cellIdToCoords(cellId);
-    const nextRow = coords.row >= atRow ? coords.row + delta : coords.row;
-    result[coordsToCellId(nextRow, coords.col)] = { raw: cells[cellId].raw };
-  }
-  return result;
-}
 
-function removeRows(cells, atRow, count) {
-  const result = Object.create(null);
-  const endRow = atRow + count - 1;
-  const keys = Object.keys(cells);
   for (let index = 0; index < keys.length; index += 1) {
     const cellId = keys[index];
     const coords = cellIdToCoords(cellId);
-    if (coords.row >= atRow && coords.row <= endRow) {
+    const nextCoords = shiftCoordsForStructuralChange(coords, change);
+
+    if (!nextCoords) {
       continue;
     }
 
-    const nextRow = coords.row > endRow ? coords.row - count : coords.row;
-    result[coordsToCellId(nextRow, coords.col)] = { raw: cells[cellId].raw };
+    result[coordsToCellId(nextCoords.row, nextCoords.col)] = {
+      raw: rewriteRawForStructuralChange(cells[cellId].raw, change, updateFormulaForStructuralChange),
+    };
   }
+
   return result;
 }
 
-function shiftColumns(cells, atCol, delta) {
-  const result = Object.create(null);
-  const keys = Object.keys(cells);
-  for (let index = 0; index < keys.length; index += 1) {
-    const cellId = keys[index];
-    const coords = cellIdToCoords(cellId);
-    const nextCol = coords.col >= atCol ? coords.col + delta : coords.col;
-    result[coordsToCellId(coords.row, nextCol)] = { raw: cells[cellId].raw };
+function shiftCoordsForStructuralChange(coords, change) {
+  if (change.type === 'insert-row') {
+    return {
+      row: coords.row >= change.index ? coords.row + change.count : coords.row,
+      col: coords.col,
+    };
   }
-  return result;
-}
 
-function removeColumns(cells, atCol, count) {
-  const result = Object.create(null);
-  const endCol = atCol + count - 1;
-  const keys = Object.keys(cells);
-  for (let index = 0; index < keys.length; index += 1) {
-    const cellId = keys[index];
-    const coords = cellIdToCoords(cellId);
-    if (coords.col >= atCol && coords.col <= endCol) {
-      continue;
+  if (change.type === 'delete-row') {
+    if (coords.row >= change.index && coords.row < change.index + change.count) {
+      return null;
     }
 
-    const nextCol = coords.col > endCol ? coords.col - count : coords.col;
-    result[coordsToCellId(coords.row, nextCol)] = { raw: cells[cellId].raw };
+    return {
+      row: coords.row >= change.index + change.count ? coords.row - change.count : coords.row,
+      col: coords.col,
+    };
   }
-  return result;
+
+  if (change.type === 'insert-column') {
+    return {
+      row: coords.row,
+      col: coords.col >= change.index ? coords.col + change.count : coords.col,
+    };
+  }
+
+  if (change.type === 'delete-column') {
+    if (coords.col >= change.index && coords.col < change.index + change.count) {
+      return null;
+    }
+
+    return {
+      row: coords.row,
+      col: coords.col >= change.index + change.count ? coords.col - change.count : coords.col,
+    };
+  }
+
+  return coords;
+}
+
+function rewriteRawForStructuralChange(raw, change, updateFormulaForStructuralChange) {
+  if (typeof raw !== 'string' || raw[0] !== '=') {
+    return raw;
+  }
+
+  return updateFormulaForStructuralChange(raw, change);
 }
 
 function shiftSelectionRows(selection, atRow, delta, maxRows, maxCols) {
