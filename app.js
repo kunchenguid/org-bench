@@ -1,6 +1,7 @@
 (function () {
   const core = window.SpreadsheetCore;
   const storageApi = window.EmmaStorage;
+  const historyApi = window.EmmaHistory;
   const COLS = 26;
   const ROWS = 100;
   const storageNamespace = resolveStorageNamespace();
@@ -10,6 +11,7 @@
   const formulaInput = document.querySelector('#formula-input');
   const nameBox = document.querySelector('#name-box');
   const state = { active: persisted.active || 'A1', editing: null, rangeAnchor: null };
+  let history = historyApi.createHistory(snapshotState());
 
   renderGrid();
   syncFormulaBar();
@@ -75,30 +77,14 @@
   function handleGridKeydown(event) {
     if (state.editing && state.editing !== 'formula') return;
     if (event.target.classList.contains('cell-input')) return;
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
       event.preventDefault();
-      if (event.shiftKey) {
-        if (core.redo(sheet)) {
-          persistState();
-          updateVisibleCells();
-          syncFormulaBar();
-        }
-      } else if (core.undo(sheet)) {
-        persistState();
-        updateVisibleCells();
-        syncFormulaBar();
-      }
-      focusActiveCell();
+      restoreSnapshot(historyApi.undoSnapshot(history));
       return;
     }
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y') {
+    if (((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'z') || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y')) {
       event.preventDefault();
-      if (core.redo(sheet)) {
-        persistState();
-        updateVisibleCells();
-        syncFormulaBar();
-      }
-      focusActiveCell();
+      restoreSnapshot(historyApi.redoSnapshot(history));
       return;
     }
     const movement = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[event.key];
@@ -157,6 +143,7 @@
   }
 
   function commitValue(address, value, move) {
+    history = historyApi.recordSnapshot(history, nextCommitSnapshot(address, value, move));
     core.setCell(sheet, address, value);
     state.editing = null;
     persistState();
@@ -202,8 +189,9 @@
 
   function clearSelectedCells() {
     const addresses = getSelectedAddresses();
-    for (let i = 0; i < addresses.length; i += 1) {
-      core.setCell(sheet, addresses[i], '');
+    history = historyApi.recordSnapshot(history, nextClearSnapshot(addresses));
+    for (let index = 0; index < addresses.length; index += 1) {
+      core.setCell(sheet, addresses[index], '');
     }
     persistState();
     updateVisibleCells();
@@ -272,6 +260,53 @@
 
   function loadState() {
     return storageApi.loadPersistedSheet(localStorage, storageNamespace) || {};
+  }
+
+  function restoreSnapshot(result) {
+    history = result.history;
+    state.active = result.snapshot.active || 'A1';
+    state.rangeAnchor = result.snapshot.rangeAnchor || null;
+    state.editing = null;
+    sheet.cells = Object.assign({}, result.snapshot.cells);
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+    focusActiveCell();
+  }
+
+  function nextCommitSnapshot(address, value, move) {
+    const cells = Object.assign({}, sheet.cells);
+    const nextActive = resolveNextActive(address, move);
+    if (value) cells[address] = String(value);
+    else delete cells[address];
+    return { cells: cells, active: nextActive, rangeAnchor: null };
+  }
+
+  function nextClearSnapshot(addresses) {
+    const cells = Object.assign({}, sheet.cells);
+    for (let index = 0; index < addresses.length; index += 1) {
+      delete cells[addresses[index]];
+    }
+    return {
+      cells: cells,
+      active: state.active,
+      rangeAnchor: state.rangeAnchor ? { col: state.rangeAnchor.col, row: state.rangeAnchor.row } : null,
+    };
+  }
+
+  function resolveNextActive(address, move) {
+    const current = core.splitAddress(address);
+    if (move === 'down') return core.makeAddress(current.col, clamp(current.row + 1, 1, ROWS));
+    if (move === 'right') return core.makeAddress(clamp(current.col + 1, 1, COLS), current.row);
+    return address;
+  }
+
+  function snapshotState() {
+    return {
+      cells: Object.assign({}, sheet.cells),
+      active: state.active,
+      rangeAnchor: state.rangeAnchor ? { col: state.rangeAnchor.col, row: state.rangeAnchor.row } : null,
+    };
   }
 
   function resolveStorageNamespace() {
