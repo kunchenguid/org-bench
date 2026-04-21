@@ -1,3 +1,6 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -111,4 +114,16 @@ test('deleting referenced structure rewrites formulas to #REF! markers', () => {
   model.deleteColumns(1, 1);
 
   assert.equal(model.getCell('A1'), '=#REF!');
+});
+
+test('plain script execution exposes createDocumentModel without CommonJS globals', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'document-model.js'), 'utf8');
+  const context = {
+    window: {},
+  };
+
+  assert.doesNotThrow(() => {
+    vm.runInNewContext(source, context);
+  });
+  assert.equal(typeof context.window.createDocumentModel, 'function');
 });

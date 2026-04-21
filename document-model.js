@@ -535,9 +535,11 @@ function formatReference(reference) {
     String(reference.row);
 }
 
-module.exports = {
-  createDocumentModel: createDocumentModel,
-};
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    createDocumentModel: createDocumentModel,
+  };
+}
 
 if (typeof window !== 'undefined') {
   window.createDocumentModel = createDocumentModel;
