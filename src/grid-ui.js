@@ -2,12 +2,12 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(root.SpreadsheetStore, root.GridSelection);
+    module.exports = factory(root.SpreadsheetStore, root.GridSelection, root.HeaderControls);
     return;
   }
 
-  root.GridUI = factory(root.SpreadsheetStore, root.GridSelection);
-})(typeof globalThis !== 'undefined' ? globalThis : window, function (SpreadsheetStore, GridSelection) {
+  root.GridUI = factory(root.SpreadsheetStore, root.GridSelection, root.HeaderControls);
+})(typeof globalThis !== 'undefined' ? globalThis : window, function (SpreadsheetStore, GridSelection, HeaderControls) {
   const ROW_COUNT = 100;
   const COL_COUNT = 26;
   const KEY_DELTAS = {
@@ -57,6 +57,32 @@
     return store.getRawCell(cellId);
   }
 
+  function createHeader(axis, index, label) {
+    const axisLabel = axis === 'column' ? 'column' : 'row';
+    const header = document.createElement('div');
+    const title = document.createElement('span');
+    const button = document.createElement('button');
+
+    header.className = axis + '-header';
+    header.dataset.headerAxis = axis;
+    header.dataset.headerIndex = String(index);
+    header.tabIndex = 0;
+    header.setAttribute('aria-label', label + ' ' + axisLabel + ' header');
+
+    title.className = 'header-title';
+    title.textContent = label;
+
+    button.className = 'header-affordance';
+    button.type = 'button';
+    button.dataset.headerAffordance = 'true';
+    button.setAttribute('aria-label', 'Open ' + axisLabel + ' actions for ' + label);
+    button.innerHTML = '<span aria-hidden="true">...</span>';
+
+    header.appendChild(title);
+    header.appendChild(button);
+    return header;
+  }
+
   function buildGrid(rootElement, store) {
     const columnHeaders = rootElement.querySelector('[data-column-headers]');
     const rowHeaders = rootElement.querySelector('[data-row-headers]');
@@ -75,18 +101,14 @@
     const cellElements = [];
 
     for (let col = 0; col < COL_COUNT; col += 1) {
-      const header = document.createElement('div');
-      header.className = 'column-header';
+      const header = createHeader('column', col + 1, columnLabel(col));
       header.dataset.column = columnLabel(col);
-      header.textContent = columnLabel(col);
       columnHeaders.appendChild(header);
     }
 
     for (let row = 0; row < ROW_COUNT; row += 1) {
-      const rowHeader = document.createElement('div');
-      rowHeader.className = 'row-header';
+      const rowHeader = createHeader('row', row + 1, String(row + 1));
       rowHeader.dataset.row = String(row + 1);
-      rowHeader.textContent = String(row + 1);
       rowHeaders.appendChild(rowHeader);
 
       const rowCells = [];
@@ -121,6 +143,9 @@
       cellElements,
       nameBox,
       formulaInput,
+      contextMenu: rootElement.querySelector('[data-sheet-context-menu]'),
+      contextLabel: rootElement.querySelector('[data-sheet-context-label]'),
+      contextActions: rootElement.querySelector('[data-sheet-context-actions]'),
     };
   }
 
@@ -167,6 +192,31 @@
     });
   }
 
+  function installHeaderControls(rootElement, view) {
+    if (!HeaderControls || !view.contextMenu || !view.contextActions || !view.contextLabel) {
+      return null;
+    }
+
+    return HeaderControls.attachHeaderControls({
+      root: rootElement.querySelector('.app-shell') || rootElement,
+      menu: view.contextMenu,
+      actionList: view.contextActions,
+      onAction(operation, action) {
+        view.contextLabel.textContent = action.label;
+        root.dispatchEvent(new CustomEvent('sheet:structural-action', {
+          detail: {
+            operation: operation,
+            action: action,
+          },
+        }));
+
+        if (root.sheetShell && typeof root.sheetShell.onStructuralAction === 'function') {
+          root.sheetShell.onStructuralAction(operation, action);
+        }
+      },
+    });
+  }
+
   function mount(rootElement, options) {
     if (!SpreadsheetStore || !GridSelection || !rootElement) {
       return null;
@@ -188,6 +238,7 @@
 
     rootElement.__selectionController = controller;
     installKeyboardNavigation(view.cellGrid, controller);
+    installHeaderControls(rootElement, view);
     store.subscribe(function () {
       renderGrid(view, store);
     });

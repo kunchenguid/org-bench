@@ -37,18 +37,16 @@
         </div>
       </section>
 
-      <div class="sheet-context-menu" hidden aria-hidden="true">
-        <button class="sheet-context-menu__item" type="button">Insert row above</button>
-        <button class="sheet-context-menu__item" type="button">Insert row below</button>
-        <button class="sheet-context-menu__item" type="button">Delete row</button>
+      <div class="sheet-context-menu" data-sheet-context-menu hidden aria-hidden="true">
+        <p class="sheet-context-menu__label" data-sheet-context-label>Row actions</p>
+        <div class="sheet-context-menu__actions" data-sheet-context-actions></div>
         <div class="sheet-context-menu__divider" role="separator"></div>
-        <button class="sheet-context-menu__item" type="button">Insert column left</button>
-        <button class="sheet-context-menu__item" type="button">Insert column right</button>
-        <button class="sheet-context-menu__item sheet-context-menu__item--danger" type="button">Delete column</button>
+        <p class="sheet-context-menu__footnote">Control-click a header or use the more button for row and column actions.</p>
       </div>
     </main>
 
     <script src="src/spreadsheet-store.js"></script>
+    <script src="src/header-controls.js"></script>
     <script src="src/grid-selection.js"></script>
     <script src="src/grid-ui.js"></script>
   </body>
