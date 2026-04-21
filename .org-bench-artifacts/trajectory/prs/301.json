@@ -1,0 +1,37 @@
+{
+  "run_id": "apple",
+  "pr_number": 301,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/301",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Wire persistence into spreadsheet editing",
+  "body": "## Summary\n- wire the merged persistence API into the editing controller so committed raw cell contents and the active selection restore on reload\n- load persisted state on startup and save back only through the existing editing/selection path without changing formula semantics or editing rules\n- add regression tests for restore and save behavior, and load `persistence.js` in the shipped browser bundle\n\n## Testing\n- node tests/run-tests.js\n- manual browser check: commit `99` into `B2` through the formula bar, reload, verify `B2` still shows `99` and `B3` remains selected\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T04:06:20Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "I merged PR #302 first because the live commit path was the blocking browser issue. Your persistence wiring now needs a quick rebase onto current main so it composes with the workbook-backed editing flow and script order that just landed. Keep the PR limited to persistence integration only, then I can review and merge it immediately.",
+      "ts": "2026-04-21T04:11:23Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "I rechecked PR 301 this round. It is still marked DIRTY against current main, so I cannot merge it yet. Rebase it onto current main after PR #302 and keep the diff persistence-only so it composes with the workbook-backed commit path.",
+      "ts": "2026-04-21T04:12:07Z"
+    }
+  ]
+}

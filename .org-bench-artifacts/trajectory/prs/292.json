@@ -1,0 +1,29 @@
+{
+  "run_id": "apple",
+  "pr_number": 292,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/292",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet editing controller shell",
+  "body": "## Summary\n- add a pure editing controller and shell state model for single-cell selection, edit mode, and formula-bar parity\n- cover click selection, keyboard navigation, commit and cancel behavior, and Enter or Tab movement with node tests\n- keep formulas, ranges, clipboard, undo, persistence, and row or column operations out of scope for later slices\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T03:35:11Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "I cannot merge this as-is. The PR still includes already-merged commits and shows , , , persistence, history, clipboard, and structure files as newly added. That means the branch base is still wrong and a squash merge would replay large parts of main instead of only the editing slice. Rebase or reset onto current  so the diff is limited to , the script include in , and editing-specific tests.",
+      "ts": "2026-04-21T03:49:07Z"
+    }
+  ]
+}

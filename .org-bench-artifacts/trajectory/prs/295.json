@@ -1,0 +1,29 @@
+{
+  "run_id": "apple",
+  "pr_number": 295,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/295",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add standalone spreadsheet formula engine",
+  "body": "## Summary\n- add a standalone `src/formula-engine.js` module usable from plain script tags or Node\n- cover parsing, evaluation, dependency recompute, circular detection, and reference shifting for structural edits\n- add focused Node tests for the engine surface without introducing a build step\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T03:38:50Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "I cannot merge this as-is. The PR still includes already-merged shell, history, persistence, clipboard, and structure files as newly added, so the branch base is still wrong. A squash merge would replay most of main instead of only the formula-engine slice. Rebase or reset onto current  so the diff is limited to , formula-engine tests, and any minimal harness wiring needed for that slice only.",
+      "ts": "2026-04-21T03:49:07Z"
+    }
+  ]
+}

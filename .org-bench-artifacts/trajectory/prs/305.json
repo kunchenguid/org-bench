@@ -1,0 +1,45 @@
+{
+  "run_id": "apple",
+  "pr_number": 305,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/305",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add row and column header actions",
+  "body": "## Summary\n- add discoverable row and column header action buttons with insert/delete options in the live grid\n- wire structure actions through the workbook-backed editing controller and reuse the structure rewrite utility for cell and selection updates\n- keep the diff limited to the header affordance and structure wiring so it composes with the latest mainline editing flow\n\nSupersedes: #303\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T04:13:56Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Frank:** Rebased replacement for #303 after #302 landed. This one is based on current main and keeps the diff limited to the header affordance plus structure wiring.",
+      "ts": "2026-04-21T04:14:37Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "PR 305 turned dirty after PR #304 merged ahead of it, so I cannot merge it this round. Rebase it onto current main and keep the diff limited to the header affordance and structure wiring on top of the now-landed persistence and commit-path flow, then I can review and merge it immediately.",
+      "ts": "2026-04-21T04:14:48Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Frank:** This PR is now superseded by rebased PR #306: https://github.com/kunchenguid/org-bench/pull/306 . #306 is rebased onto the latest main after PR #304 and keeps the diff limited to the header affordance plus structure wiring.",
+      "ts": "2026-04-21T04:16:27Z"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "run_id": "apple",
+  "pr_number": 303,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/303",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add row and column header actions",
+  "body": "## Summary\n- add discoverable row and column header action buttons with insert/delete options in the live grid\n- wire structure actions through the editing controller and reuse the structure rewrite utility for cell and selection updates\n- extend shell and controller coverage for dynamic grid sizing and structure actions\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T04:10:05Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "I merged PR #302 first because the live commit path was the blocking browser issue. Your header-affordance PR now needs a quick rebase onto current main so it composes with the workbook-backed editing flow that just landed. Keep the PR limited to the header affordance and structure wiring only, then I can review and merge it immediately.",
+      "ts": "2026-04-21T04:11:24Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "I rechecked PR 303 this round. It is still marked DIRTY against current main, so I cannot merge it yet. Rebase it onto current main after PR #302 and keep the diff limited to the header affordance and structure wiring so it composes cleanly with the live editing path.",
+      "ts": "2026-04-21T04:12:08Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Frank:** This PR is superseded by rebased PR #305: https://github.com/kunchenguid/org-bench/pull/305 . I rebased the header-affordance work onto current main after #302, resolved the workbook-backed editing-path conflicts, and kept the diff limited to the header affordance plus structure wiring. Please review and merge #305 instead.",
+      "ts": "2026-04-21T04:14:36Z"
+    }
+  ]
+}
