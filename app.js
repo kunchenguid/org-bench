@@ -92,6 +92,10 @@
     return state.cells[addressFromCell(cell)] || '';
   }
 
+  function getCellContent(state, row, column) {
+    return readCellValue(state, { row: row, column: column });
+  }
+
   function writeCellValue(state, cell, value) {
     var nextState = cloneState(state);
     var address = addressFromCell(cell);
@@ -116,6 +120,10 @@
     return nextState;
   }
 
+  function beginEdit(state, mode) {
+    return beginCellEdit(state, null, true, mode);
+  }
+
   function applyEditDraft(state, draft) {
     if (!state.editing) {
       return state;
@@ -124,6 +132,14 @@
     var nextState = cloneState(state);
     nextState.editing.draft = draft;
     return nextState;
+  }
+
+  function inputText(state, text) {
+    if (!state.editing) {
+      return beginCellEdit(state, text, false, 'cell');
+    }
+
+    return applyEditDraft(state, text);
   }
 
   function moveActiveCell(state, delta, keepAnchor) {
@@ -144,6 +160,18 @@
     var nextState = cloneState(state);
     nextState.selection = selectCell(nextState.selection, nextFocus, keepAnchor);
     return nextState;
+  }
+
+  function moveSelection(state, direction) {
+    var delta = {
+      up: { row: -1, column: 0 },
+      down: { row: 1, column: 0 },
+      left: { row: 0, column: -1 },
+      right: { row: 0, column: 1 },
+      stay: { row: 0, column: 0 },
+    }[direction] || { row: 0, column: 0 };
+
+    return moveActiveCell(state, delta, false);
   }
 
   function commitActiveEdit(state, direction) {
@@ -172,6 +200,10 @@
     return nextState;
   }
 
+  function commitEdit(state, direction) {
+    return commitActiveEdit(state, direction);
+  }
+
   function cancelActiveEdit(state) {
     if (!state.editing) {
       return state;
@@ -180,6 +212,10 @@
     var nextState = cloneState(state);
     nextState.editing = null;
     return nextState;
+  }
+
+  function cancelEdit(state) {
+    return cancelActiveEdit(state);
   }
 
   function buildGrid(tableElement, rowCount, columnCount) {
@@ -486,11 +522,17 @@
     createInitialSelection: createInitialSelection,
     selectionFromEndpoints: selectionFromEndpoints,
     createInitialState: createInitialState,
+    getCellContent: getCellContent,
     beginCellEdit: beginCellEdit,
+    beginEdit: beginEdit,
     applyEditDraft: applyEditDraft,
+    inputText: inputText,
     commitActiveEdit: commitActiveEdit,
+    commitEdit: commitEdit,
     cancelActiveEdit: cancelActiveEdit,
+    cancelEdit: cancelEdit,
     moveActiveCell: moveActiveCell,
+    moveSelection: moveSelection,
     selectCell: selectCell,
     initSpreadsheetShell: initSpreadsheetShell,
   };
