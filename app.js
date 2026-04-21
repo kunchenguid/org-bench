@@ -49,6 +49,20 @@
     return selectionFromEndpoints({ row: 0, column: 0 }, { row: 0, column: 0 });
   }
 
+  function selectionToRuntimeSelection(selection) {
+    return {
+      row: selection.active.row + 1,
+      col: selection.active.column + 1,
+    };
+  }
+
+  function selectionFromRuntimeSelection(selection, rowCount, columnCount) {
+    var row = selection && Number.isInteger(selection.row) ? selection.row - 1 : 0;
+    var col = selection && Number.isInteger(selection.col) ? selection.col - 1 : 0;
+    var clamped = clampCell({ row: row, column: col }, rowCount, columnCount);
+    return selectionFromEndpoints(clamped, clamped);
+  }
+
   function addressFromCell(cell) {
     return String.fromCharCode(65 + cell.column) + String(cell.row + 1);
   }
@@ -148,20 +162,74 @@
     }
 
     var table = document.getElementById('sheet-grid');
+    var formulaInput = document.getElementById('formula-input');
     if (!table) {
       return;
     }
 
     buildGrid(table, TOTAL_ROWS, TOTAL_COLUMNS);
 
+    var persistence = null;
+    if (globalScope.SpreadsheetPersistence && typeof globalScope.localStorage !== 'undefined') {
+      persistence = globalScope.SpreadsheetPersistence.createPersistence({
+        storage: globalScope.localStorage,
+        namespace: globalScope.__APPLE_RUN_STORAGE_NAMESPACE__ || 'sheet',
+        defaultState: {
+          cells: {},
+          selection: { row: 1, col: 1 },
+        },
+      });
+    }
+
+    var history = globalScope.SpreadsheetHistory
+      ? globalScope.SpreadsheetHistory.createHistory({
+          initialState: persistence ? persistence.load() : undefined,
+        })
+      : null;
+
+    var runtime = globalScope.SpreadsheetRuntime
+      ? globalScope.SpreadsheetRuntime.createRuntime({
+          history: history,
+          persistence: persistence,
+          structure: globalScope.StructuralEdit,
+        })
+      : null;
+
+    if (runtime) {
+      globalScope.SpreadsheetApp = Object.assign(globalScope.SpreadsheetApp || {}, {
+        runtime: runtime,
+      });
+      runtime.start();
+    }
+
     var state = {
-      selection: createInitialSelection(),
+      selection: runtime
+        ? selectionFromRuntimeSelection(runtime.getState().selection, TOTAL_ROWS, TOTAL_COLUMNS)
+        : createInitialSelection(),
       dragAnchor: null,
     };
+
+    function syncFormulaBar() {
+      if (!formulaInput) {
+        return;
+      }
+
+      if (!runtime) {
+        formulaInput.value = '';
+        return;
+      }
+
+      var rawValue = runtime.getState().cells[addressFromCell(state.selection.active)];
+      formulaInput.value = typeof rawValue === 'string' ? rawValue : '';
+    }
 
     function setSelection(nextSelection) {
       state.selection = nextSelection;
       applySelectionState(table, state.selection);
+      if (runtime) {
+        runtime.updateSelection(selectionToRuntimeSelection(state.selection), 'shell:selection');
+      }
+      syncFormulaBar();
     }
 
     setSelection(state.selection);
