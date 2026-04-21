@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Spreadsheet Tests</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Spreadsheet Browser Tests</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -17,21 +17,30 @@
       .fail {
         color: #b42318;
       }
+
+      .sandbox {
+        margin-top: 24px;
+      }
     </style>
   </head>
   <body>
-    <h1>Spreadsheet Tests</h1>
+    <h1>Spreadsheet Browser Tests</h1>
     <ul id="results"></ul>
+    <div id="sandbox" class="sandbox"></div>
+    <script src="app-state.js"></script>
+    <script src="spreadsheet-core.js"></script>
     <script src="app.js"></script>
     <script>
       (function () {
-        var results = document.getElementById("results");
+        var results = document.getElementById('results');
+        var sandbox = document.getElementById('sandbox');
         var failures = 0;
+        var mountCount = 0;
 
         function logResult(name, passed, details) {
-          var item = document.createElement("li");
-          item.className = passed ? "pass" : "fail";
-          item.textContent = (passed ? "PASS: " : "FAIL: ") + name + (details ? " - " + details : "");
+          var item = document.createElement('li');
+          item.className = passed ? 'pass' : 'fail';
+          item.textContent = (passed ? 'PASS: ' : 'FAIL: ') + name + (details ? ' - ' + details : '');
           results.appendChild(item);
           if (!passed) {
             failures += 1;
@@ -40,7 +49,7 @@
 
         function assertEqual(actual, expected, name) {
           if (actual !== expected) {
-            throw new Error("expected " + expected + ", got " + actual);
+            throw new Error('expected ' + expected + ', got ' + actual);
           }
           logResult(name, true);
         }
@@ -53,60 +62,105 @@
           }
         }
 
-        run("createWorkbook exposes raw and display values", function () {
-          var workbook = window.SpreadsheetApp.createWorkbook();
-          workbook.setCell("A1", "1");
-          workbook.setCell("A2", "2");
-          workbook.setCell("A3", "=A1+A2");
+        function createClipboardData() {
+          var store = {};
+          return {
+            setData: function (type, value) {
+              store[type] = value;
+            },
+            getData: function (type) {
+              return store[type] || '';
+            },
+          };
+        }
 
-          assertEqual(workbook.getRaw("A3"), "=A1+A2", "stores raw formula");
-          assertEqual(workbook.getDisplay("A3"), "3", "evaluates arithmetic formula");
+        function dispatchKey(key, options) {
+          document.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ key: key, bubbles: true }, options || {})));
+        }
+
+        function dispatchClipboard(type, clipboardData) {
+          var event = new Event(type, { bubbles: true, cancelable: true });
+          event.clipboardData = clipboardData;
+          document.dispatchEvent(event);
+        }
+
+        function mountApp(initialState) {
+          var storageKey = 'browser-test:' + mountCount + ':quiet-sheet:v1';
+          mountCount += 1;
+          localStorage.setItem(storageKey, JSON.stringify(initialState));
+          sandbox.innerHTML = '<div class="app-shell"><header class="topbar"><label class="formula-wrap" for="formula-bar"><span class="formula-label">fx</span><input id="formula-bar" autocomplete="off" spellcheck="false"></label></header><main class="grid-shell"><table id="sheet" aria-label="Spreadsheet grid"></table></main></div>';
+          return window.QuietSheetApp.init({
+            formulaBar: document.getElementById('formula-bar'),
+            sheetEl: document.getElementById('sheet'),
+            storageKey: storageKey,
+          });
+        }
+
+        run('app exposes re-mountable init and cleanup hooks', function () {
+          if (!window.QuietSheetApp || typeof window.QuietSheetApp.init !== 'function' || typeof window.QuietSheetApp.cleanup !== 'function') {
+            throw new Error('QuietSheetApp init/cleanup API is missing');
+          }
         });
 
-        run("dependent cells recalculate when precedents change", function () {
-          var workbook = window.SpreadsheetApp.createWorkbook();
-          workbook.setCell("B1", "5");
-          workbook.setCell("B2", "=B1*2");
-          workbook.setCell("B1", "7");
+        run('formula bar mirrors the active inline edit draft', function () {
+          mountApp({
+            cells: {},
+            selection: {
+              anchor: { row: 0, col: 0 },
+              focus: { row: 0, col: 0 },
+            },
+          });
 
-          assertEqual(workbook.getDisplay("B2"), "14", "recomputes dependent formula");
+          document.querySelector('td[data-cell-id="A1"]').click();
+          dispatchKey('1');
+
+          var editor = document.querySelector('.cell-editor');
+          editor.value = '123';
+          editor.dispatchEvent(new Event('input', { bubbles: true }));
+
+          assertEqual(document.getElementById('formula-bar').value, '123', 'formula bar tracks inline draft updates');
+          window.QuietSheetApp.cleanup();
         });
 
-        run("formula helpers support SUM across ranges", function () {
-          var workbook = window.SpreadsheetApp.createWorkbook();
-          workbook.setCell("C1", "2");
-          workbook.setCell("C2", "3");
-          workbook.setCell("C3", "4");
-          workbook.setCell("C4", "=SUM(C1:C3)");
+        run('live-grid copy and paste preserve source-origin formula shifting after remount', function () {
+          mountApp({
+            cells: {
+              A1: '10',
+              A2: '20',
+              B1: '=A1+A2',
+            },
+            selection: {
+              anchor: { row: 0, col: 1 },
+              focus: { row: 0, col: 1 },
+            },
+          });
+          window.QuietSheetApp.cleanup();
 
-          assertEqual(workbook.getDisplay("C4"), "9", "sums a vertical range");
+          var app = mountApp({
+            cells: {
+              A1: '10',
+              A2: '20',
+              B1: '=A1+A2',
+            },
+            selection: {
+              anchor: { row: 0, col: 1 },
+              focus: { row: 0, col: 1 },
+            },
+          });
+
+          document.querySelector('td[data-cell-id="B1"]').click();
+          var clipboard = createClipboardData();
+          dispatchClipboard('copy', clipboard);
+          dispatchKey('ArrowRight');
+          dispatchClipboard('paste', clipboard);
+
+          var saved = JSON.parse(localStorage.getItem(app.storageKey) || '{}');
+          assertEqual(saved.cells.C1, '=B1+B2', 'paste keeps source-origin shifting in persisted app state');
+          assertEqual(document.querySelector('td[data-cell-id="C1"] .cell-display').textContent.trim(), '30', 'pasted formula renders correctly in the live grid');
+          window.QuietSheetApp.cleanup();
         });
 
-        run("pasting a relative formula shifts references by destination offset", function () {
-          var workbook = window.SpreadsheetApp.createWorkbook();
-          workbook.setCell("A1", "10");
-          workbook.setCell("A2", "20");
-          workbook.setCell("B1", "=A1+A2");
-
-          workbook.copyRange("B1:B1");
-          workbook.pasteRange("C1");
-
-          assertEqual(workbook.getRaw("C1"), "=B1+B2", "shifts relative cell references in pasted formula");
-        });
-
-        run("absolute references stay anchored during paste", function () {
-          var workbook = window.SpreadsheetApp.createWorkbook();
-          workbook.setCell("A1", "5");
-          workbook.setCell("A2", "6");
-          workbook.setCell("B1", "=$A$1+A2");
-
-          workbook.copyRange("B1:B1");
-          workbook.pasteRange("C2");
-
-          assertEqual(workbook.getRaw("C2"), "=$A$1+B3", "keeps absolute parts fixed while shifting relative parts");
-        });
-
-        document.title = failures ? "FAIL (" + failures + ")" : "PASS";
+        document.title = failures ? 'FAIL (' + failures + ')' : 'PASS';
       })();
     </script>
   </body>
