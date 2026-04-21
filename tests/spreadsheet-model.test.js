@@ -60,6 +60,19 @@ test('copies ranges and shifts relative references on paste', () => {
   assert.equal(sheet.getDisplayValue('C2'), '5');
 });
 
+test('keeps absolute references fixed when formulas are pasted', () => {
+  const sheet = new SpreadsheetModel();
+  sheet.setCellRaw('A1', '10');
+  sheet.setCellRaw('B1', '4');
+  sheet.setCellRaw('B2', '=$A$1+B1');
+
+  sheet.copyRange({ startRow: 1, startCol: 1, endRow: 1, endCol: 1 }, false);
+  sheet.pasteRange({ startRow: 1, startCol: 3, endRow: 1, endCol: 3 });
+
+  assert.equal(sheet.getCellRaw('D2'), '=$A$1+D1');
+  assert.equal(sheet.getDisplayValue('D2'), '10');
+});
+
 test('cut moves a block and clears the source range', () => {
   const sheet = new SpreadsheetModel();
   sheet.setCellRaw('A1', '7');
@@ -103,4 +116,45 @@ test('converts coordinates to spreadsheet refs', () => {
   assert.equal(coordsToRef(0, 0), 'A1');
   assert.equal(coordsToRef(4, 2), 'C5');
   assert.equal(coordsToRef(99, 25), 'Z100');
+});
+
+test('undoes and redoes a range clear as a single action', () => {
+  const sheet = new SpreadsheetModel();
+  sheet.setCellRaw('A1', '1');
+  sheet.setCellRaw('B1', '2');
+
+  sheet.clearRange({ startRow: 0, startCol: 0, endRow: 0, endCol: 1 });
+  assert.equal(sheet.getCellRaw('A1'), '');
+  assert.equal(sheet.getCellRaw('B1'), '');
+
+  assert.equal(sheet.undo(), true);
+  assert.equal(sheet.getCellRaw('A1'), '1');
+  assert.equal(sheet.getCellRaw('B1'), '2');
+
+  assert.equal(sheet.redo(), true);
+  assert.equal(sheet.getCellRaw('A1'), '');
+  assert.equal(sheet.getCellRaw('B1'), '');
+});
+
+test('rewrites dependent formulas when inserting a row', () => {
+  const sheet = new SpreadsheetModel();
+  sheet.setCellRaw('A1', '2');
+  sheet.setCellRaw('A2', '3');
+  sheet.setCellRaw('B2', '=SUM(A1:A2)');
+
+  sheet.insertRow(1);
+
+  assert.equal(sheet.getCellRaw('B3'), '=SUM(A1:A3)');
+  assert.equal(sheet.getDisplayValue('B3'), '5');
+});
+
+test('marks references as invalid when deleting a referenced row', () => {
+  const sheet = new SpreadsheetModel();
+  sheet.setCellRaw('A1', '2');
+  sheet.setCellRaw('B2', '=A1+1');
+
+  sheet.deleteRow(0);
+
+  assert.equal(sheet.getCellRaw('B1'), '=#REF!+1');
+  assert.equal(sheet.getDisplayValue('B1'), '#REF!');
 });
