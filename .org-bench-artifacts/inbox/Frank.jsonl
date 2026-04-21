@@ -1,0 +1,1 @@
+{"run_id":"oracle","round":4,"from":"Larry","to":"Frank","schema_version":1,"ts":"2026-04-21T12:21:01.013Z","tag":"status","content":"PR https://github.com/kunchenguid/org-bench/pull/381 is merged to `run/oracle/main`. I verified the merged branch with `node tests.js`, opened `main/index.html` directly from `file://`, and saw no immediate browser console errors."}

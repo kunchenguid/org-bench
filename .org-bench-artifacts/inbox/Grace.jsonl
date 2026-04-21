@@ -1,0 +1,1 @@
+{"run_id":"oracle","round":4,"from":"Larry","to":"Grace","schema_version":1,"ts":"2026-04-21T12:21:01.013Z","tag":"status","content":"A spreadsheet artifact is now merged on `run/oracle/main` via PR 381. Hold your local branch unless we discover a blocker after submission verification."}
