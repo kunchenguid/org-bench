@@ -1,0 +1,243 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --panel: rgba(255, 255, 255, 0.92);
+  --grid: #d7dde8;
+  --grid-strong: #c4ccda;
+  --header: #eef3fb;
+  --text: #142033;
+  --muted: #5d6a7e;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --accent-strong: rgba(37, 99, 235, 0.22);
+  --error: #b42318;
+  --cell-width: 120px;
+  --row-header-width: 56px;
+  --row-height: 32px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #eef3fb 0%, var(--bg) 35%, #edf2f9 100%);
+  color: var(--text);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.topbar,
+.formula-panel,
+.grid-shell {
+  background: var(--panel);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(20, 32, 51, 0.08);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  padding: 18px 22px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.shortcut-hint {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: right;
+}
+
+.formula-panel {
+  display: grid;
+  grid-template-columns: auto 96px auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.formula-panel label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.name-box,
+.formula-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--grid-strong);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.name-box {
+  text-align: center;
+  font-weight: 600;
+}
+
+.formula-input:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.grid-shell {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: var(--row-header-width) repeat(26, var(--cell-width));
+  width: max-content;
+  min-width: 100%;
+}
+
+.corner,
+.column-header,
+.row-header,
+.cell {
+  position: relative;
+  min-width: 0;
+  height: var(--row-height);
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.corner,
+.column-header,
+.row-header {
+  position: sticky;
+  z-index: 4;
+  background: var(--header);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.corner {
+  left: 0;
+  top: 0;
+  z-index: 7;
+}
+
+.column-header {
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row-header {
+  left: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell {
+  padding: 6px 10px;
+  background: #fff;
+  font-size: 14px;
+  cursor: cell;
+  user-select: none;
+}
+
+.cell.numeric {
+  text-align: right;
+}
+
+.cell.error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.cell.range,
+.row-header.range,
+.column-header.range {
+  background: var(--accent-soft);
+}
+
+.cell.active::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+}
+
+.cell.active.range::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-strong);
+  pointer-events: none;
+}
+
+.cell-editor {
+  position: absolute;
+  inset: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  border: 2px solid var(--accent);
+  border-radius: 0;
+  padding: 4px 8px;
+  font: inherit;
+  z-index: 8;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 12px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .shortcut-hint {
+    text-align: left;
+  }
+
+  .formula-panel {
+    grid-template-columns: auto 88px;
+  }
+
+  .formula-label,
+  .formula-input {
+    grid-column: 1 / -1;
+  }
+}
