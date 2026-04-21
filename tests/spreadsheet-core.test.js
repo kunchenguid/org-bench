@@ -10,6 +10,10 @@ const {
   getSelectionBounds,
   setSelectionFocus,
   clearSelection,
+  selectionToTSV,
+  pasteClipboard,
+  cutSelection,
+  shiftFormulaReferences,
   setCellRaw,
   getCellRaw,
   getCellDisplayValue,
@@ -206,4 +210,55 @@ test('clearing a rectangular selection removes every covered cell', () => {
   assert.equal(getCellRaw(state, 0, 1), '');
   assert.equal(getCellRaw(state, 1, 0), '');
   assert.equal(getCellRaw(state, 1, 1), '');
+});
+
+test('selection TSV serializes a rectangular block row by row', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '1');
+  state = setCellRaw(state, 0, 1, '=A1+1');
+  state = setCellRaw(state, 1, 0, 'x');
+  state = setCellRaw(state, 1, 1, 'y');
+  state = setSelectionFocus(state, 1, 1, true);
+
+  assert.equal(selectionToTSV(state), '1\t=A1+1\nx\ty');
+});
+
+test('relative and absolute formula references shift on paste', () => {
+  assert.equal(
+    shiftFormulaReferences('=A1+$B$1+A$1+$A1', 1, 1),
+    '=B2+$B$1+B$1+$A2'
+  );
+});
+
+test('pasting a TSV block writes cell-by-cell from the top-left destination', () => {
+  let source = createState();
+  source = setCellRaw(source, 0, 0, '1');
+  source = setCellRaw(source, 0, 1, '=A1+1');
+  source = setCellRaw(source, 1, 0, 'x');
+  source = setCellRaw(source, 1, 1, 'y');
+  source = setSelectionFocus(source, 1, 1, true);
+
+  let state = createState();
+  state = pasteClipboard(state, 2, 2, {
+    text: selectionToTSV(source),
+    bounds: getSelectionBounds(source),
+  });
+
+  assert.equal(getCellRaw(state, 2, 2), '1');
+  assert.equal(getCellRaw(state, 2, 3), '=C3+1');
+  assert.equal(getCellRaw(state, 3, 2), 'x');
+  assert.equal(getCellRaw(state, 3, 3), 'y');
+});
+
+test('cut returns TSV and clears the selected source cells', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '1');
+  state = setCellRaw(state, 0, 1, '2');
+  state = setSelectionFocus(state, 0, 1, true);
+
+  const result = cutSelection(state);
+
+  assert.equal(result.text, '1\t2');
+  assert.equal(getCellRaw(result.state, 0, 0), '');
+  assert.equal(getCellRaw(result.state, 0, 1), '');
 });

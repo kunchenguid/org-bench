@@ -4,6 +4,7 @@
   const storageKey = core.getStorageKey(namespace);
   const table = document.getElementById('sheet-table');
   const formulaInput = document.getElementById('formula-input');
+  const clipboardStore = window;
 
   let state = core.deserializeState(window.localStorage.getItem(storageKey));
   let editing = null;
@@ -60,6 +61,75 @@
   function selectionContains(row, col) {
     const bounds = core.getSelectionBounds(state);
     return row >= bounds.startRow && row <= bounds.endRow && col >= bounds.startCol && col <= bounds.endCol;
+  }
+
+  function getSelectionShape() {
+    const bounds = core.getSelectionBounds(state);
+    return {
+      startRow: bounds.startRow,
+      startCol: bounds.startCol,
+      rows: bounds.endRow - bounds.startRow + 1,
+      cols: bounds.endCol - bounds.startCol + 1,
+    };
+  }
+
+  function parseClipboardShape(text) {
+    const rows = String(text || '').split(/\r?\n/);
+    return {
+      rows: rows.length,
+      cols: rows[0] ? rows[0].split('\t').length : 1,
+    };
+  }
+
+  function getPasteTarget(text) {
+    const shape = parseClipboardShape(text);
+    const selection = getSelectionShape();
+
+    if (selection.rows === shape.rows && selection.cols === shape.cols) {
+      return { row: selection.startRow, col: selection.startCol };
+    }
+
+    return { row: state.active.row, col: state.active.col };
+  }
+
+  function storeClipboard(payload) {
+    clipboardStore.__sheetClipboard = payload;
+  }
+
+  async function writeClipboardText(text) {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_error) {
+      // `file://` clipboard permissions vary by browser, so keep the in-memory fallback.
+    }
+  }
+
+  async function readClipboardText() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      return '';
+    }
+
+    try {
+      return await navigator.clipboard.readText();
+    } catch (_error) {
+      return '';
+    }
+  }
+
+  function applyPaste(payload) {
+    if (!payload || !payload.text) {
+      return;
+    }
+
+    const target = getPasteTarget(payload.text);
+    state = core.pasteClipboard(state, target.row, target.col, payload);
+    state = core.setActiveCell(state, target.row, target.col);
+    saveState();
+    render();
   }
 
   function render() {
@@ -159,12 +229,79 @@
     dragging = false;
   });
 
+  document.addEventListener('copy', function (event) {
+    if (editing || document.activeElement === formulaInput) {
+      return;
+    }
+
+    const payload = {
+      text: core.selectionToTSV(state),
+      bounds: core.getSelectionBounds(state),
+      cut: false,
+    };
+    storeClipboard(payload);
+    if (event.clipboardData) {
+      event.clipboardData.setData('text/plain', payload.text);
+      event.preventDefault();
+    }
+    writeClipboardText(payload.text);
+  });
+
+  document.addEventListener('cut', function (event) {
+    if (editing || document.activeElement === formulaInput) {
+      return;
+    }
+
+    const result = core.cutSelection(state);
+    const payload = {
+      text: result.text,
+      bounds: core.getSelectionBounds(state),
+      cut: true,
+    };
+    storeClipboard(payload);
+    if (event.clipboardData) {
+      event.clipboardData.setData('text/plain', payload.text);
+      event.preventDefault();
+    }
+    writeClipboardText(payload.text);
+    state = result.state;
+    saveState();
+    render();
+  });
+
+  document.addEventListener('paste', function (event) {
+    if (editing || document.activeElement === formulaInput) {
+      return;
+    }
+
+    const text = event.clipboardData ? event.clipboardData.getData('text/plain') : '';
+    const payload = clipboardStore.__sheetClipboard && clipboardStore.__sheetClipboard.text === text
+      ? clipboardStore.__sheetClipboard
+      : { text };
+
+    if (!payload.text) {
+      return;
+    }
+
+    event.preventDefault();
+    applyPaste(payload);
+  });
+
   document.addEventListener('keydown', function (event) {
     if (event.target === formulaInput || (editing && event.target.closest('.cell'))) {
       return;
     }
 
     if ((event.metaKey || event.ctrlKey || event.altKey) && event.key !== 'Backspace') {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v') {
+        event.preventDefault();
+        readClipboardText().then(function (text) {
+          const payload = clipboardStore.__sheetClipboard && clipboardStore.__sheetClipboard.text === text
+            ? clipboardStore.__sheetClipboard
+            : { text: text || (clipboardStore.__sheetClipboard && clipboardStore.__sheetClipboard.text) || '' };
+          applyPaste(payload);
+        });
+      }
       return;
     }
 

@@ -66,6 +66,13 @@
     };
   }
 
+  function clampReference(row, col) {
+    return {
+      row: clamp(row, 0, ROW_COUNT - 1),
+      col: clamp(col, 0, COL_COUNT - 1),
+    };
+  }
+
   function moveSelection(state, delta) {
     const nextActive = normalizeSelection({
       row: state.active.row + (delta.row || 0),
@@ -139,6 +146,75 @@
       cells: nextCells,
       active: state.active,
       selection: state.selection,
+    };
+  }
+
+  function selectionToTSV(state) {
+    const bounds = getSelectionBounds(state);
+    const rows = [];
+
+    for (let row = bounds.startRow; row <= bounds.endRow; row += 1) {
+      const values = [];
+      for (let col = bounds.startCol; col <= bounds.endCol; col += 1) {
+        values.push(getCellRaw(state, row, col));
+      }
+      rows.push(values.join('\t'));
+    }
+
+    return rows.join('\n');
+  }
+
+  function shiftFormulaReferences(raw, rowOffset, colOffset) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    return raw.replace(/(\$?)([A-Z])(\$?)(\d+)/g, function (_match, absCol, colLetter, absRow, rowNumber) {
+      let col = colLetter.charCodeAt(0) - 65;
+      let row = Number(rowNumber) - 1;
+
+      if (!absCol) {
+        col += colOffset;
+      }
+      if (!absRow) {
+        row += rowOffset;
+      }
+
+      const next = clampReference(row, col);
+      return (absCol ? '$' : '') + columnLabel(next.col) + (absRow ? '$' : '') + String(next.row + 1);
+    });
+  }
+
+  function pasteClipboard(state, startRow, startCol, clipboard) {
+    const text = typeof clipboard === 'string' ? clipboard : clipboard.text;
+    const bounds = typeof clipboard === 'string' ? null : clipboard.bounds;
+    const rows = String(text).split(/\r?\n/);
+    let nextState = state;
+    const rowOffsetBase = bounds ? startRow - bounds.startRow : 0;
+    const colOffsetBase = bounds ? startCol - bounds.startCol : 0;
+
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+      const values = rows[rowIndex].split('\t');
+      for (let colIndex = 0; colIndex < values.length; colIndex += 1) {
+        const targetRow = startRow + rowIndex;
+        const targetCol = startCol + colIndex;
+        if (targetRow >= ROW_COUNT || targetCol >= COL_COUNT) {
+          continue;
+        }
+
+        const raw = values[colIndex];
+        const shifted = shiftFormulaReferences(raw, rowOffsetBase, colOffsetBase);
+        nextState = setCellRaw(nextState, targetRow, targetCol, shifted);
+      }
+    }
+
+    return nextState;
+  }
+
+  function cutSelection(state) {
+    return {
+      text: selectionToTSV(state),
+      state: clearSelection(state),
     };
   }
 
@@ -756,6 +832,10 @@
     setSelectionFocus,
     getSelectionBounds,
     clearSelection,
+    selectionToTSV,
+    pasteClipboard,
+    cutSelection,
+    shiftFormulaReferences,
     setCellRaw,
     getCellRaw,
     getLiteralValue,
