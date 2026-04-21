@@ -4,7 +4,9 @@ const assert = require('node:assert/strict');
 const {
   clampCell,
   createSelection,
+  describeSelectionCell,
   selectionBounds,
+  resolvePasteTarget,
   selectToCell,
   moveSelection,
   clearSelectedCells,
@@ -46,6 +48,27 @@ test('selectionBounds normalizes reversed rectangular ranges', () => {
     bottom: 8,
     width: 3,
     height: 6,
+  });
+});
+
+test('describeSelectionCell distinguishes active cell from the rest of the highlighted range', () => {
+  const selection = {
+    anchor: { col: 1, row: 1 },
+    focus: { col: 3, row: 2 },
+    active: { col: 3, row: 2 },
+  };
+
+  assert.deepEqual(describeSelectionCell(selection, { col: 2, row: 1 }), {
+    selected: true,
+    active: false,
+  });
+  assert.deepEqual(describeSelectionCell(selection, { col: 3, row: 2 }), {
+    selected: true,
+    active: true,
+  });
+  assert.deepEqual(describeSelectionCell(selection, { col: 4, row: 2 }), {
+    selected: false,
+    active: false,
   });
 });
 
@@ -120,6 +143,48 @@ test('selectionToClipboard serializes a block and preserves empty cells', () => 
       ],
     },
   });
+});
+
+test('resolvePasteTarget uses the selected range top-left when its size matches the clipboard block', () => {
+  const target = resolvePasteTarget(
+    {
+      anchor: { col: 6, row: 10 },
+      focus: { col: 7, row: 11 },
+      active: { col: 7, row: 11 },
+    },
+    {
+      width: 2,
+      height: 2,
+      source: { col: 1, row: 1 },
+      rows: [
+        ['1', '2'],
+        ['3', '4'],
+      ],
+    }
+  );
+
+  assert.deepEqual(target, { col: 6, row: 10 });
+});
+
+test('resolvePasteTarget falls back to the active cell when the selected range size does not match the clipboard block', () => {
+  const target = resolvePasteTarget(
+    {
+      anchor: { col: 6, row: 10 },
+      focus: { col: 8, row: 11 },
+      active: { col: 7, row: 11 },
+    },
+    {
+      width: 2,
+      height: 2,
+      source: { col: 1, row: 1 },
+      rows: [
+        ['1', '2'],
+        ['3', '4'],
+      ],
+    }
+  );
+
+  assert.deepEqual(target, { col: 7, row: 11 });
 });
 
 test('pasteClipboard writes a block at destination and shifts formulas with the provided hook', () => {

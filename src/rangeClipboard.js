@@ -53,6 +53,16 @@
     };
   }
 
+  function describeSelectionCell(selection, cell) {
+    const bounds = selectionBounds(selection);
+    const selected = cell.col >= bounds.left && cell.col <= bounds.right && cell.row >= bounds.top && cell.row <= bounds.bottom;
+
+    return {
+      selected,
+      active: selection.active.col === cell.col && selection.active.row === cell.row,
+    };
+  }
+
   function moveSelection(selection, delta, gridSize, options) {
     const next = clampCell(
       {
@@ -119,6 +129,16 @@
     };
   }
 
+  function resolvePasteTarget(selection, clipboard) {
+    const bounds = selectionBounds(selection);
+
+    if (bounds.width === clipboard.width && bounds.height === clipboard.height) {
+      return { col: bounds.left, row: bounds.top };
+    }
+
+    return cloneCell(selection.active);
+  }
+
   function pasteClipboard(cells, clipboard, destination, options) {
     const nextCells = { ...cells };
     const written = [];
@@ -163,7 +183,9 @@
   return {
     clampCell,
     createSelection,
+    describeSelectionCell,
     selectionBounds,
+    resolvePasteTarget,
     selectToCell,
     moveSelection,
     clearSelectedCells,
