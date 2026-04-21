@@ -6,6 +6,7 @@ const {
   parseCellId,
   formatCellId,
   shiftFormula,
+  shouldSyncFormulaBar,
 } = require('./app.js');
 
 test('parses and formats cell ids', () => {
@@ -85,4 +86,11 @@ test('deleting a referenced row preserves #REF! in formulas and display', () => 
 
   assert.equal(sheet.getRaw('B1'), '=#REF!');
   assert.equal(sheet.getDisplayValue('B1'), '#REF!');
+});
+
+test('formula bar syncs to the new selection after committing from the formula bar', () => {
+  const formulaBar = { id: 'formula-bar' };
+
+  assert.equal(shouldSyncFormulaBar(formulaBar, formulaBar, null), true);
+  assert.equal(shouldSyncFormulaBar(formulaBar, formulaBar, '1'), false);
 });

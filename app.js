@@ -886,6 +886,10 @@
     return rows.map(function (row) { return row.join('\t'); }).join('\n');
   }
 
+  function shouldSyncFormulaBar(activeElement, formulaBar, formulaDraft) {
+    return activeElement !== formulaBar || formulaDraft === null;
+  }
+
   function createSpreadsheetApp(root) {
     var model = new SpreadsheetModel(loadFromStorage() || undefined);
     var table = root.querySelector('[data-grid]');
@@ -945,7 +949,7 @@
         }
       }
       nameBox.value = activeCellId();
-      if (document.activeElement !== formulaBar) {
+      if (shouldSyncFormulaBar(document.activeElement, formulaBar, formulaDraft)) {
         formulaBar.value = model.getRaw(activeCellId());
       }
       positionEditor();
@@ -1357,6 +1361,7 @@
     parseCellId: parseCellId,
     formatCellId: formatCellId,
     shiftFormula: shiftFormula,
+    shouldSyncFormulaBar: shouldSyncFormulaBar,
     initSpreadsheetApp: initSpreadsheetApp,
   };
 
