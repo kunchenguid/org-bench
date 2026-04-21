@@ -293,6 +293,20 @@
     }
   }
 
+  function handleInlineEditorKey(key, value) {
+    const action = core.editorActionForKey(key);
+    if (!action) {
+      return false;
+    }
+    if (action.kind === 'cancel') {
+      isEditing = false;
+      render();
+      return true;
+    }
+    commit(value, action.dCol, action.dRow);
+    return true;
+  }
+
   function startEditing() {
     const cell = grid.querySelector('.cell.active');
     if (!cell) {
@@ -307,16 +321,8 @@
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
     input.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
+      if (handleInlineEditorKey(event.key, input.value)) {
         event.preventDefault();
-        commit(input.value, 0, 1);
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        commit(input.value, 1, 0);
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        isEditing = false;
-        render();
       }
     });
     input.addEventListener('blur', function () {
@@ -401,18 +407,8 @@
     }
     const activeEditor = grid.querySelector('.cell-editor');
     if (activeEditor) {
-      if (event.key === 'Enter') {
+      if (core.editorActionForKey(event.key)) {
         event.preventDefault();
-        const value = core.resolveEditBuffer(core.createEditBuffer(activeEditor.value), true);
-        commit(value, 0, 1);
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        const value = core.resolveEditBuffer(core.createEditBuffer(activeEditor.value), true);
-        commit(value, 1, 0);
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        isEditing = false;
-        render();
       }
       return;
     }
@@ -481,6 +477,17 @@
 
     event.preventDefault();
     pasteClipboard(core.clipboardFromText(text));
+  });
+
+  document.addEventListener('keyup', function (event) {
+    const activeEditor = grid.querySelector('.cell-editor');
+    if (!activeEditor) {
+      return;
+    }
+
+    if (handleInlineEditorKey(event.key, activeEditor.value)) {
+      event.preventDefault();
+    }
   });
 
   render();

@@ -119,6 +119,19 @@
     return shouldCommit ? buffer.draft : buffer.original;
   }
 
+  function editorActionForKey(key) {
+    if (key === 'Enter') {
+      return { kind: 'commit', dCol: 0, dRow: 1 };
+    }
+    if (key === 'Tab') {
+      return { kind: 'commit', dCol: 1, dRow: 0 };
+    }
+    if (key === 'Escape') {
+      return { kind: 'cancel' };
+    }
+    return null;
+  }
+
   function rewriteFormulaReferences(formula, axis, index, delta, isDelete) {
     if (!formula || formula[0] !== '=') {
       return formula;
@@ -558,6 +571,7 @@
     createStore,
     deleteColumn,
     deleteRow,
+    editorActionForKey,
     evaluateCell,
     evaluateSheet,
     insertColumn,

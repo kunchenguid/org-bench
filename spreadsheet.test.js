@@ -9,6 +9,7 @@ const {
   createStore,
   deleteColumn,
   deleteRow,
+  editorActionForKey,
   evaluateCell,
   evaluateSheet,
   createHistorySnapshot,
@@ -306,4 +307,14 @@ test('cancelling an edit buffer restores the original value', () => {
   buffer.draft = '=A1+1';
 
   assert.equal(resolveEditBuffer(buffer, false), '=A1');
+});
+
+test('maps Enter and Tab to editor commit actions', () => {
+  assert.deepEqual(editorActionForKey('Enter'), { kind: 'commit', dCol: 0, dRow: 1 });
+  assert.deepEqual(editorActionForKey('Tab'), { kind: 'commit', dCol: 1, dRow: 0 });
+});
+
+test('maps Escape to editor cancel action', () => {
+  assert.deepEqual(editorActionForKey('Escape'), { kind: 'cancel' });
+  assert.equal(editorActionForKey('A'), null);
 });
