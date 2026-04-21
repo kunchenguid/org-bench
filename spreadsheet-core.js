@@ -23,13 +23,23 @@
       return {
         cells: savedState.cells && typeof savedState.cells === 'object' ? { ...savedState.cells } : {},
         active: normalizeSelection(savedState.active),
+        selection: normalizeSelectionRange(savedState.selection, savedState.active),
       };
     }
 
     return {
       cells: {},
       active: { row: 0, col: 0 },
+      selection: { anchor: { row: 0, col: 0 }, focus: { row: 0, col: 0 } },
     };
+  }
+
+  function normalizeSelectionRange(selection, active) {
+    const normalizedActive = normalizeSelection(active);
+    const anchor = selection && selection.anchor ? normalizeSelection(selection.anchor) : normalizedActive;
+    const focus = selection && selection.focus ? normalizeSelection(selection.focus) : normalizedActive;
+
+    return { anchor, focus };
   }
 
   function normalizeSelection(active) {
@@ -57,19 +67,44 @@
   }
 
   function moveSelection(state, delta) {
+    const nextActive = normalizeSelection({
+      row: state.active.row + (delta.row || 0),
+      col: state.active.col + (delta.col || 0),
+    });
+
     return {
       cells: state.cells,
-      active: normalizeSelection({
-        row: state.active.row + (delta.row || 0),
-        col: state.active.col + (delta.col || 0),
-      }),
+      active: nextActive,
+      selection: { anchor: nextActive, focus: nextActive },
     };
   }
 
   function setActiveCell(state, row, col) {
+    const active = normalizeSelection({ row, col });
     return {
       cells: state.cells,
-      active: normalizeSelection({ row, col }),
+      active,
+      selection: { anchor: active, focus: active },
+    };
+  }
+
+  function setSelectionFocus(state, row, col, keepAnchor) {
+    const focus = normalizeSelection({ row, col });
+    const anchor = keepAnchor ? state.selection.anchor : focus;
+
+    return {
+      cells: state.cells,
+      active: focus,
+      selection: { anchor, focus },
+    };
+  }
+
+  function getSelectionBounds(state) {
+    return {
+      startRow: Math.min(state.selection.anchor.row, state.selection.focus.row),
+      endRow: Math.max(state.selection.anchor.row, state.selection.focus.row),
+      startCol: Math.min(state.selection.anchor.col, state.selection.focus.col),
+      endCol: Math.max(state.selection.anchor.col, state.selection.focus.col),
     };
   }
 
@@ -86,6 +121,24 @@
     return {
       cells: nextCells,
       active: state.active,
+      selection: state.selection,
+    };
+  }
+
+  function clearSelection(state) {
+    const bounds = getSelectionBounds(state);
+    const nextCells = { ...state.cells };
+
+    for (let row = bounds.startRow; row <= bounds.endRow; row += 1) {
+      for (let col = bounds.startCol; col <= bounds.endCol; col += 1) {
+        delete nextCells[cellKey(row, col)];
+      }
+    }
+
+    return {
+      cells: nextCells,
+      active: state.active,
+      selection: state.selection,
     };
   }
 
@@ -659,6 +712,7 @@
     return JSON.stringify({
       cells: state.cells,
       active: state.active,
+      selection: state.selection,
     });
   }
 
@@ -699,6 +753,9 @@
     createState,
     moveSelection,
     setActiveCell,
+    setSelectionFocus,
+    getSelectionBounds,
+    clearSelection,
     setCellRaw,
     getCellRaw,
     getLiteralValue,

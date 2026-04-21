@@ -7,6 +7,9 @@ const {
   columnLabel,
   createState,
   moveSelection,
+  getSelectionBounds,
+  setSelectionFocus,
+  clearSelection,
   setCellRaw,
   getCellRaw,
   getCellDisplayValue,
@@ -162,4 +165,45 @@ test('formula display values support ABS and ROUND', () => {
 
   assert.equal(getCellDisplayValue(state, 0, 0), '3');
   assert.equal(getCellDisplayValue(state, 1, 0), '4');
+});
+
+test('selection bounds normalize inverted anchor and focus coordinates', () => {
+  let state = createState();
+  state = setSelectionFocus(state, 4, 3, true);
+
+  assert.deepEqual(getSelectionBounds(state), {
+    startRow: 0,
+    endRow: 4,
+    startCol: 0,
+    endCol: 3,
+  });
+});
+
+test('selection focus can extend from the active anchor with shift-style movement', () => {
+  let state = createState();
+  state = setSelectionFocus(state, 1, 1, true);
+  state = setSelectionFocus(state, 2, 3, true);
+
+  assert.deepEqual(state.active, { row: 2, col: 3 });
+  assert.deepEqual(getSelectionBounds(state), {
+    startRow: 0,
+    endRow: 2,
+    startCol: 0,
+    endCol: 3,
+  });
+});
+
+test('clearing a rectangular selection removes every covered cell', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '1');
+  state = setCellRaw(state, 0, 1, '2');
+  state = setCellRaw(state, 1, 0, '3');
+  state = setCellRaw(state, 1, 1, '4');
+  state = setSelectionFocus(state, 1, 1, true);
+  state = clearSelection(state);
+
+  assert.equal(getCellRaw(state, 0, 0), '');
+  assert.equal(getCellRaw(state, 0, 1), '');
+  assert.equal(getCellRaw(state, 1, 0), '');
+  assert.equal(getCellRaw(state, 1, 1), '');
 });

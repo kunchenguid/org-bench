@@ -7,6 +7,7 @@
 
   let state = core.deserializeState(window.localStorage.getItem(storageKey));
   let editing = null;
+  let dragging = false;
 
   function saveState() {
     window.localStorage.setItem(storageKey, core.serializeState(state));
@@ -56,6 +57,11 @@
     formulaInput.value = core.getCellRaw(state, state.active.row, state.active.col);
   }
 
+  function selectionContains(row, col) {
+    const bounds = core.getSelectionBounds(state);
+    return row >= bounds.startRow && row <= bounds.endRow && col >= bounds.startCol && col <= bounds.endCol;
+  }
+
   function render() {
     const fragment = document.createDocumentFragment();
     const headerRow = document.createElement('tr');
@@ -83,7 +89,8 @@
         const td = document.createElement('td');
         const isActive = state.active.row === row && state.active.col === col;
         const isEditing = editing && editing.row === row && editing.col === col;
-        td.className = 'cell' + (isActive ? ' active' : '') + (isEditing ? ' editing' : '');
+        const isSelected = selectionContains(row, col);
+        td.className = 'cell' + (isSelected ? ' selected' : '') + (isActive ? ' active' : '') + (isEditing ? ' editing' : '');
         td.dataset.row = String(row);
         td.dataset.col = String(col);
 
@@ -113,8 +120,22 @@
           const button = document.createElement('button');
           button.type = 'button';
           button.textContent = core.getCellDisplayValue(state, row, col);
-          button.addEventListener('click', function () {
+          button.addEventListener('click', function (event) {
+            state = core.setSelectionFocus(state, row, col, event.shiftKey);
+            saveState();
+            render();
+          });
+          button.addEventListener('mousedown', function () {
+            dragging = true;
             state = core.setActiveCell(state, row, col);
+            saveState();
+            render();
+          });
+          button.addEventListener('mouseenter', function () {
+            if (!dragging) {
+              return;
+            }
+            state = core.setSelectionFocus(state, row, col, true);
             saveState();
             render();
           });
@@ -134,6 +155,10 @@
     updateFormulaBar();
   }
 
+  document.addEventListener('mouseup', function () {
+    dragging = false;
+  });
+
   document.addEventListener('keydown', function (event) {
     if (event.target === formulaInput || (editing && event.target.closest('.cell'))) {
       return;
@@ -145,16 +170,27 @@
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      state = core.moveSelection(state, { row: -1, col: 0 });
+      state = event.shiftKey
+        ? core.setSelectionFocus(state, state.active.row - 1, state.active.col, true)
+        : core.moveSelection(state, { row: -1, col: 0 });
     } else if (event.key === 'ArrowDown') {
       event.preventDefault();
-      state = core.moveSelection(state, { row: 1, col: 0 });
+      state = event.shiftKey
+        ? core.setSelectionFocus(state, state.active.row + 1, state.active.col, true)
+        : core.moveSelection(state, { row: 1, col: 0 });
     } else if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      state = core.moveSelection(state, { row: 0, col: -1 });
+      state = event.shiftKey
+        ? core.setSelectionFocus(state, state.active.row, state.active.col - 1, true)
+        : core.moveSelection(state, { row: 0, col: -1 });
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
-      state = core.moveSelection(state, { row: 0, col: 1 });
+      state = event.shiftKey
+        ? core.setSelectionFocus(state, state.active.row, state.active.col + 1, true)
+        : core.moveSelection(state, { row: 0, col: 1 });
+    } else if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault();
+      state = core.clearSelection(state);
     } else if (event.key === 'Enter' || event.key === 'F2') {
       event.preventDefault();
       beginEdit(state.active.row, state.active.col);

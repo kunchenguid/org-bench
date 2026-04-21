@@ -150,6 +150,10 @@ h1 {
   background: #eef4ff;
 }
 
+.cell.selected {
+  background: #f3f7ff;
+}
+
 .cell.editing {
   box-shadow: inset 0 0 0 2px #0f9d58;
   background: #f1fff7;
