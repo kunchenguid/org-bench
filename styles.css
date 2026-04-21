@@ -1,0 +1,176 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f6fb;
+  --panel: #ffffff;
+  --grid: #d7deeb;
+  --header: #f8faff;
+  --text: #162033;
+  --muted: #6d7890;
+  --accent: #1877f2;
+  --accent-soft: rgba(24, 119, 242, 0.14);
+  --error: #b42318;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #eef3ff 0%, var(--bg) 55%);
+  color: var(--text);
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(22, 32, 51, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  min-width: 160px;
+}
+
+.formula-panel {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+}
+
+.formula-panel label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.formula-panel input {
+  width: 100%;
+  border: 1px solid rgba(22, 32, 51, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--panel);
+}
+
+.grid-shell {
+  padding: 18px;
+  overflow: auto;
+}
+
+.spreadsheet-grid {
+  display: grid;
+  grid-template-columns: 56px repeat(26, minmax(110px, 1fr));
+  width: max-content;
+  min-width: 100%;
+  border: 1px solid var(--grid);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: 0 14px 40px rgba(17, 24, 39, 0.08);
+}
+
+.corner,
+.column-header,
+.row-header,
+.cell {
+  min-height: 36px;
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+}
+
+.corner,
+.column-header,
+.row-header {
+  position: sticky;
+  background: var(--header);
+  z-index: 2;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.corner,
+.column-header {
+  top: 0;
+}
+
+.corner,
+.row-header {
+  left: 0;
+}
+
+.corner,
+.column-header,
+.row-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell {
+  position: relative;
+  padding: 8px 10px;
+  font-size: 14px;
+  cursor: cell;
+  background: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.cell.active {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.cell.text {
+  text-align: left;
+}
+
+.cell.number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell.error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.cell input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 8px 10px;
+  font: inherit;
+  color: inherit;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+}

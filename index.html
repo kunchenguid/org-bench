@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Facebook Sheets</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div class="brand">Facebook Sheets</div>
+        <div class="formula-panel">
+          <label for="formula-input">fx</label>
+          <input id="formula-input" type="text" spellcheck="false" autocomplete="off" />
+        </div>
+      </header>
+      <main class="grid-shell">
+        <div id="spreadsheet-grid" class="spreadsheet-grid" aria-label="Spreadsheet"></div>
+      </main>
+    </div>
+    <script src="spreadsheet-core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
