@@ -19,6 +19,8 @@ const {
   redoHistory,
   insertRow,
   deleteRow,
+  insertColumn,
+  deleteColumn,
   setCellRaw,
   getCellRaw,
   getCellDisplayValue,
@@ -364,4 +366,47 @@ test('deleting a row shifts lower references upward to keep pointing at the same
 
   assert.equal(getCellRaw(state, 2, 0), '=A2');
   assert.equal(getCellDisplayValue(state, 2, 0), '7');
+});
+
+test('inserting a column shifts stored cell contents rightward', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 1, 'middle');
+
+  state = insertColumn(state, 1);
+
+  assert.equal(getCellRaw(state, 0, 1), '');
+  assert.equal(getCellRaw(state, 0, 2), 'middle');
+});
+
+test('inserting a column updates formula references to the right of the insertion point', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 1, '5');
+  state = setCellRaw(state, 0, 2, '=B1');
+
+  state = insertColumn(state, 1);
+
+  assert.equal(getCellRaw(state, 0, 3), '=C1');
+  assert.equal(getCellDisplayValue(state, 0, 3), '5');
+});
+
+test('deleting a column turns references to that column into #REF!', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 1, '5');
+  state = setCellRaw(state, 0, 2, '=B1');
+
+  state = deleteColumn(state, 1);
+
+  assert.equal(getCellRaw(state, 0, 1), '=#REF!');
+  assert.equal(getCellDisplayValue(state, 0, 1), '#REF!');
+});
+
+test('deleting a column shifts right-side references left to keep pointing at the same data', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 2, '7');
+  state = setCellRaw(state, 0, 3, '=C1');
+
+  state = deleteColumn(state, 1);
+
+  assert.equal(getCellRaw(state, 0, 2), '=B1');
+  assert.equal(getCellDisplayValue(state, 0, 2), '7');
 });

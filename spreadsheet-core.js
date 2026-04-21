@@ -319,6 +319,35 @@
     });
   }
 
+  function rewriteFormulaColumns(raw, colIndex, mode) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    return raw.replace(/(\$?)([A-Z])(\$?)(\d+)/g, function (_match, absCol, colLetter, absRow, rowNumber) {
+      const col = colLetter.charCodeAt(0) - 65;
+
+      if (absCol) {
+        return '$' + colLetter + (absRow ? '$' : '') + rowNumber;
+      }
+
+      let nextCol = col;
+      if (mode === 'insert' && col >= colIndex) {
+        nextCol += 1;
+      }
+      if (mode === 'delete') {
+        if (col === colIndex) {
+          return '#REF!';
+        }
+        if (col > colIndex) {
+          nextCol -= 1;
+        }
+      }
+
+      return columnLabel(nextCol) + (absRow ? '$' : '') + rowNumber;
+    });
+  }
+
   function remapRows(state, rowIndex, mode) {
     const nextCells = {};
     Object.keys(state.cells).forEach(function (key) {
@@ -358,6 +387,51 @@
   function deleteRow(state, rowIndex) {
     return {
       cells: remapRows(state, rowIndex, 'delete'),
+      active: state.active,
+      selection: state.selection,
+      history: state.history,
+    };
+  }
+
+  function remapColumns(state, colIndex, mode) {
+    const nextCells = {};
+    Object.keys(state.cells).forEach(function (key) {
+      const ref = parseCellKey(key);
+      if (!ref) {
+        return;
+      }
+
+      let nextCol = ref.col;
+      if (mode === 'insert' && ref.col >= colIndex) {
+        nextCol += 1;
+      }
+      if (mode === 'delete') {
+        if (ref.col === colIndex) {
+          return;
+        }
+        if (ref.col > colIndex) {
+          nextCol -= 1;
+        }
+      }
+
+      nextCells[cellKey(ref.row, nextCol)] = rewriteFormulaColumns(state.cells[key], colIndex, mode);
+    });
+
+    return nextCells;
+  }
+
+  function insertColumn(state, colIndex) {
+    return {
+      cells: remapColumns(state, colIndex, 'insert'),
+      active: state.active,
+      selection: state.selection,
+      history: state.history,
+    };
+  }
+
+  function deleteColumn(state, colIndex) {
+    return {
+      cells: remapColumns(state, colIndex, 'delete'),
       active: state.active,
       selection: state.selection,
       history: state.history,
@@ -996,6 +1070,8 @@
     shiftFormulaReferences,
     insertRow,
     deleteRow,
+    insertColumn,
+    deleteColumn,
     setCellRaw,
     getCellRaw,
     getLiteralValue,
