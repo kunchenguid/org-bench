@@ -196,6 +196,130 @@
     };
   }
 
+  function isPrintableKey(event) {
+    return event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey;
+  }
+
+  function createEditController(options) {
+    const store = options.store;
+    const state = {
+      editor: null,
+    };
+
+    function getSelection() {
+      return store.getSelection();
+    }
+
+    function getCellRaw(row, col) {
+      const cell = store.getCell(WorkbookStoreApi.coordsToCellId(row, col));
+      return cell ? cell.raw : '';
+    }
+
+    function getEditorState() {
+      return state.editor ? {
+        row: state.editor.row,
+        col: state.editor.col,
+        draft: state.editor.draft,
+      } : null;
+    }
+
+    function isEditing() {
+      return Boolean(state.editor);
+    }
+
+    function beginReplace(key) {
+      const active = getSelection().active;
+      state.editor = {
+        row: active.row,
+        col: active.col,
+        draft: key,
+      };
+      return getEditorState();
+    }
+
+    function startFormulaBarEdit() {
+      const active = getSelection().active;
+      state.editor = {
+        row: active.row,
+        col: active.col,
+        draft: getCellRaw(active.row, active.col),
+      };
+      return getEditorState();
+    }
+
+    function handleGridKeyDown(event) {
+      if (isPrintableKey(event)) {
+        return beginReplace(event.key);
+      }
+      return getSelection();
+    }
+
+    function handleEditorInput(value) {
+      if (!state.editor) {
+        return null;
+      }
+      state.editor.draft = String(value);
+      return getEditorState();
+    }
+
+    function commitEdit(move) {
+      if (!state.editor) {
+        return getSelection();
+      }
+
+      store.commitCell(state.editor.row, state.editor.col, state.editor.draft);
+      state.editor = null;
+
+      if (move === 'down') {
+        const active = store.getSelection().active;
+        store.selectCell(Math.min(active.row + 1, SHEET_ROWS), active.col);
+      }
+
+      if (move === 'right') {
+        const active = store.getSelection().active;
+        store.selectCell(active.row, Math.min(active.col + 1, SHEET_COLUMNS));
+      }
+
+      return getSelection();
+    }
+
+    function cancelEdit() {
+      state.editor = null;
+      return getSelection();
+    }
+
+    function handleEditorKeyDown(event) {
+      if (!state.editor) {
+        return getSelection();
+      }
+
+      if (event.key === 'Enter') {
+        return commitEdit('down');
+      }
+      if (event.key === 'Tab') {
+        return commitEdit('right');
+      }
+      if (event.key === 'Escape') {
+        return cancelEdit();
+      }
+
+      return getEditorState();
+    }
+
+    return {
+      cancelEdit,
+      commitEdit,
+      getCellRaw,
+      getEditorState,
+      getSelection,
+      handleEditorInput,
+      handleEditorKeyDown,
+      handleGridKeyDown,
+      isEditing,
+      startFormulaBarEdit,
+    };
+  }
+
   function resolveNamespace(context) {
     return context.__BENCHMARK_RUN_NAMESPACE__
       || context.BENCHMARK_RUN_NAMESPACE
@@ -216,6 +340,7 @@
       storage: typeof window !== 'undefined' ? window.localStorage : null,
       formulaHelpers: { shiftFormula },
     });
+    const editController = createEditController({ store });
     const mountPoint = document.getElementById('app');
 
     if (!mountPoint) {
@@ -319,10 +444,12 @@
       const displayValues = buildDisplayValues(snapshot);
       const activeCellId = snapshot.selection.activeCellId;
       const activeRaw = snapshot.cells[activeCellId] ? snapshot.cells[activeCellId].raw : '';
+      const editorState = editController.getEditorState();
+      const formulaValue = editorState ? editorState.draft : activeRaw;
 
       nameBox.textContent = activeCellId;
-      formulaText.textContent = activeRaw || FORMULA_PLACEHOLDER;
-      formulaText.className = activeRaw ? 'formula-value' : 'formula-placeholder';
+      formulaText.textContent = formulaValue || FORMULA_PLACEHOLDER;
+      formulaText.className = formulaValue ? 'formula-value' : 'formula-placeholder';
 
       Object.keys(elements.columnHeaders).forEach(function resetColumn(key) {
         elements.columnHeaders[key].className = 'column-header';
@@ -374,6 +501,46 @@
 
         valueNode.textContent = display;
       });
+
+      if (editorState) {
+        const editorCellId = WorkbookStoreApi.coordsToCellId(editorState.row, editorState.col);
+        const editorCellNode = elements.cellNodes[editorCellId];
+        const valueNode = editorCellNode.firstChild;
+        const input = createNode(document, 'input', 'cell-editor');
+        input.type = 'text';
+        input.value = editorState.draft;
+        input.spellcheck = false;
+        editorCellNode.classList.add('editing-cell');
+        valueNode.textContent = '';
+        valueNode.appendChild(input);
+
+        input.addEventListener('input', function handleInput() {
+          editController.handleEditorInput(input.value);
+          formulaText.textContent = input.value || FORMULA_PLACEHOLDER;
+          formulaText.className = input.value ? 'formula-value' : 'formula-placeholder';
+        });
+
+        input.addEventListener('keydown', function handleInputKeyDown(event) {
+          if (event.key !== 'Enter' && event.key !== 'Tab' && event.key !== 'Escape') {
+            return;
+          }
+          event.preventDefault();
+          editController.handleEditorKeyDown(event);
+          render();
+          shell.focus();
+        });
+
+        input.addEventListener('blur', function handleBlur() {
+          if (!editController.isEditing()) {
+            return;
+          }
+          editController.commitEdit();
+          render();
+        });
+
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
     }
 
     function getPointFromTarget(target) {
@@ -421,6 +588,9 @@
         return;
       }
       event.preventDefault();
+      if (editController.isEditing()) {
+        editController.commitEdit();
+      }
       shell.focus();
 
       const selection = store.getSelection();
@@ -439,6 +609,22 @@
     }
 
     function handleKeyDown(event) {
+      if (editController.isEditing()) {
+        if (event.key === 'Enter' || event.key === 'Tab' || event.key === 'Escape') {
+          event.preventDefault();
+          editController.handleEditorKeyDown(event);
+          render();
+        }
+        return;
+      }
+
+      if (isPrintableKey(event)) {
+        event.preventDefault();
+        editController.handleGridKeyDown(event);
+        render();
+        return;
+      }
+
       const navigation = NAVIGATION_KEYS[event.key];
       if (navigation) {
         event.preventDefault();
@@ -566,6 +752,7 @@
     SHEET_COLUMNS,
     SHEET_ROWS,
     buildSurfaceModel,
+    createEditController,
     createSpreadsheetApp,
     getColumnLabel,
     getPasteStart,
