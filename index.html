@@ -1,32 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sheet</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="app-shell">
-      <header class="topbar">
+    <div class="app">
+      <header class="toolbar">
         <div class="brand">Sheet</div>
-        <label class="formula-bar" for="formula-input">
+        <label class="formula-shell" for="formula-input">
           <span class="formula-label">fx</span>
-          <input id="formula-input" type="text" autocomplete="off" spellcheck="false" />
+          <input id="formula-input" class="formula-input" autocomplete="off" spellcheck="false">
         </label>
       </header>
-      <section class="grid-panel">
-        <div id="grid-scroll" class="grid-scroll">
-          <table id="sheet" class="sheet" aria-label="Spreadsheet"></table>
-          <input id="cell-editor" class="cell-editor" type="text" autocomplete="off" spellcheck="false" />
-        </div>
-      </section>
-      <footer class="statusbar">
-        <span id="selection-label">A1</span>
-        <span id="status-label">Ready</span>
-      </footer>
-    </main>
+      <main class="sheet-shell">
+        <div id="grid" class="grid" aria-label="Spreadsheet grid"></div>
+      </main>
+    </div>
     <script src="spreadsheet-core.js"></script>
     <script src="app.js"></script>
   </body>
-</html>
+  </html>
