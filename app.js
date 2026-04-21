@@ -228,7 +228,7 @@
     const bounds = getSelectionBounds();
     const text = core.copyRange(state.cells, bounds);
     event.clipboardData.setData('text/plain', text);
-    clipboardState = { text, bounds, cut: false };
+    clipboardState = appState.createClipboardState(text, bounds, false);
     event.preventDefault();
   }
 
@@ -237,14 +237,14 @@
     const bounds = getSelectionBounds();
     const text = core.copyRange(state.cells, bounds);
     event.clipboardData.setData('text/plain', text);
-    clipboardState = { text, bounds, cut: true };
+    clipboardState = appState.createClipboardState(text, bounds, true);
     event.preventDefault();
   }
 
   function onPaste(event) {
     if (document.activeElement === formulaBar || editSession) return;
     const text = event.clipboardData.getData('text/plain');
-    const source = clipboardState && clipboardState.text === text ? clipboardState : null;
+    const source = appState.matchClipboardState(clipboardState, text);
     state.cells = core.pasteRange(
       state.cells,
       state.selection.focus,
@@ -252,7 +252,7 @@
       source ? source.bounds : null,
       Boolean(source && source.cut)
     );
-    clipboardState = null;
+    clipboardState = appState.advanceClipboardState(source);
     recalculate();
     saveState();
     event.preventDefault();
@@ -310,7 +310,6 @@
 
   function setCellRaw(cellId, raw) {
     const value = String(raw || '');
-    clipboardState = null;
     if (value) {
       state.cells[cellId] = value;
     } else {
@@ -392,7 +391,6 @@
   }
 
   function clearSelectedCells() {
-    clipboardState = null;
     const bounds = getSelectionBounds();
     for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
       for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
