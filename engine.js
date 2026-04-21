@@ -124,13 +124,13 @@
       col: ref.col,
       row: ref.row,
     };
-    if (change.type === 'insert-row' && !ref.rowAbs && ref.row >= change.index) {
+    if (change.type === 'insert-row' && ref.row >= change.index) {
       next.row += change.count;
     }
-    if (change.type === 'insert-col' && !ref.colAbs && ref.col >= change.index) {
+    if (change.type === 'insert-col' && ref.col >= change.index) {
       next.col += change.count;
     }
-    if (change.type === 'delete-row' && !ref.rowAbs) {
+    if (change.type === 'delete-row') {
       if (ref.row >= change.index && ref.row < change.index + change.count) {
         return { error: true };
       }
@@ -138,7 +138,7 @@
         next.row -= change.count;
       }
     }
-    if (change.type === 'delete-col' && !ref.colAbs) {
+    if (change.type === 'delete-col') {
       if (ref.col >= change.index && ref.col < change.index + change.count) {
         return { error: true };
       }

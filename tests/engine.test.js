@@ -53,3 +53,10 @@ test('updates formulas when columns are inserted and deleted', () => {
   assert.equal(applyStructuralChange('=SUM(A1:B2)+C3', { type: 'insert-col', index: 1, count: 1 }), '=SUM(A1:C2)+D3');
   assert.equal(applyStructuralChange('=A1+B2+C3', { type: 'delete-col', index: 1, count: 1 }), '=A1+#REF!+B3');
 });
+
+test('preserves absolute references during structural edits', () => {
+  assert.equal(applyStructuralChange('=$A$1+A1', { type: 'insert-row', index: 0, count: 1 }), '=$A$2+A2');
+  assert.equal(applyStructuralChange('=$A$1+A1', { type: 'insert-col', index: 0, count: 1 }), '=$B$1+B1');
+  assert.equal(applyStructuralChange('=$A$1+A1', { type: 'delete-row', index: 0, count: 1 }), '=#REF!+#REF!');
+  assert.equal(applyStructuralChange('=$A$1+A1', { type: 'delete-col', index: 0, count: 1 }), '=#REF!+#REF!');
+});
