@@ -150,6 +150,14 @@ body {
   font-size: 14px;
 }
 
+.formula-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+  font-size: 14px;
+}
+
 .sheet-viewport {
   min-height: 0;
   overflow: auto;
@@ -202,6 +210,11 @@ body {
   backdrop-filter: blur(10px);
 }
 
+.column-header.active-header,
+.row-header.active-header {
+  color: var(--range-stroke);
+}
+
 .row-header {
   position: sticky;
   left: 0;
@@ -223,6 +236,21 @@ body {
 
 .grid-cell:hover {
   background: linear-gradient(180deg, #ffffff, #f9fbff);
+}
+
+.cell-value {
+  min-height: var(--row-height);
+  padding: 6px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.grid-cell.numeric-cell .cell-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .grid-cell.in-range {

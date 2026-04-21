@@ -5,6 +5,7 @@ const {
   createWorkbookStore,
   coordsToCellId,
 } = require('./workbook-store.js');
+const { shiftFormula } = require('./src/formula-engine.js');
 
 function createMemoryStorage() {
   const data = new Map();
@@ -79,7 +80,11 @@ test('pastes a block and records the action for redo', () => {
 });
 
 test('cuts a rectangular range and restores both source and destination with undo', () => {
-  const store = createWorkbookStore({ namespace: 'apple-run', storage: createMemoryStorage() });
+  const store = createWorkbookStore({
+    namespace: 'apple-run',
+    storage: createMemoryStorage(),
+    formulaHelpers: { shiftFormula },
+  });
 
   store.commitCell(1, 1, 'A');
   store.commitCell(1, 2, 'B');
@@ -96,6 +101,20 @@ test('cuts a rectangular range and restores both source and destination with und
   assert.equal(store.getCell('A1').raw, 'A');
   assert.equal(store.getCell('B2').raw, 'D');
   assert.equal(store.getCell('C4'), null);
+});
+
+test('shifts relative formulas when a cut block is moved', () => {
+  const store = createWorkbookStore({
+    namespace: 'apple-run',
+    storage: createMemoryStorage(),
+    formulaHelpers: { shiftFormula },
+  });
+
+  store.commitCell(1, 1, '=B1+C$1+$D1+$E$1');
+  store.cutSelection({ start: { row: 1, col: 1 }, end: { row: 1, col: 1 } }, { row: 3, col: 3 });
+
+  assert.equal(store.getCell('A1'), null);
+  assert.equal(store.getCell('C3').raw, '=D3+E$1+$D3+$E$1');
 });
 
 test('inserts and deletes rows while preserving undo history boundaries', () => {
