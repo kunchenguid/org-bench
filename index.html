@@ -3,20 +3,32 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sheet</title>
+    <title>Northstar Sheet</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <div class="app-shell">
-      <header class="toolbar">
-        <div class="brand">Sheet</div>
-        <label class="formula-wrap" for="formula-input">
-          <span class="formula-label">fx</span>
-          <input id="formula-input" autocomplete="off" spellcheck="false">
-        </label>
-      </header>
-      <main class="grid-wrap" tabindex="0" aria-label="Spreadsheet grid"></main>
-    </div>
+    <main class="app">
+      <section class="topbar">
+        <div>
+          <div class="title">Northstar Sheet</div>
+          <div class="hint">Ready-to-type spreadsheet with a visible formula bar and precise keyboard editing.</div>
+        </div>
+        <div class="hint">Enter moves down. Tab moves right. F2 edits in place.</div>
+      </section>
+
+      <section class="formula-shell" aria-label="Formula bar">
+        <div class="name-box" data-name-box>A1</div>
+        <div class="formula-prefix">fx</div>
+        <input id="formula-input" class="formula-input" data-formula-bar aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      </section>
+
+      <section class="grid-frame" data-grid-frame>
+        <table class="sheet" aria-label="Spreadsheet grid">
+          <tbody data-grid-body></tbody>
+        </table>
+      </section>
+    </main>
+
     <script src="spreadsheet.js"></script>
     <script src="app.js"></script>
   </body>

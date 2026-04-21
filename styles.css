@@ -1,101 +1,207 @@
 :root {
   color-scheme: light;
-  --bg: #f3f6fb;
-  --panel: rgba(255, 255, 255, 0.9);
-  --grid: #d6deeb;
-  --header: #eef3fb;
-  --text: #1d2939;
-  --muted: #667085;
+  --grid-border: #d5dbe6;
+  --surface: #f5f7fb;
+  --panel: rgba(255, 255, 255, 0.92);
+  --text: #1f2937;
+  --muted: #64748b;
   --accent: #2563eb;
   --accent-soft: rgba(37, 99, 235, 0.14);
-  --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  --error: #c2410c;
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
 }
-* { box-sizing: border-box; }
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   font: 14px/1.4 Inter, system-ui, sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at top, #ffffff 0, #edf3ff 35%, var(--bg) 100%);
+  background: radial-gradient(circle at top, #ffffff 0, #edf3ff 35%, #f5f7fb 100%);
 }
-.app-shell {
+
+.app {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   min-height: 100vh;
   padding: 18px;
   gap: 14px;
 }
-.toolbar, .grid-wrap {
+
+.topbar,
+.formula-shell,
+.grid-frame {
   background: var(--panel);
-  backdrop-filter: blur(14px);
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 18px;
   box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
 }
-.toolbar {
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  gap: 16px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.formula-shell {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 92px 36px 1fr;
+  gap: 10px;
   align-items: center;
   padding: 12px 14px;
-  gap: 14px;
 }
-.brand { font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
-.formula-wrap {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  align-items: center;
-  border: 1px solid var(--grid);
+
+.name-box,
+.formula-prefix,
+.formula-input {
+  min-height: 40px;
+  border: 1px solid var(--grid-border);
   border-radius: 12px;
-  background: #fff;
-  overflow: hidden;
 }
-.formula-label {
+
+.name-box,
+.formula-prefix {
   display: grid;
   place-items: center;
+  background: var(--surface);
   color: var(--muted);
-  background: var(--header);
-  height: 100%;
   font-weight: 600;
 }
-#formula-input { border: 0; padding: 12px 14px; font: inherit; min-width: 0; }
-#formula-input:focus, .cell-input:focus { outline: none; }
-.grid-wrap { overflow: auto; padding: 10px; }
-.sheet { border-collapse: separate; border-spacing: 0; min-width: max-content; }
-.sheet th, .sheet td {
-  border-right: 1px solid var(--grid);
-  border-bottom: 1px solid var(--grid);
-  min-width: 104px;
+
+.formula-input {
+  width: 100%;
+  padding: 0 14px;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+}
+
+.formula-input:focus,
+.cell-input:focus,
+.cell:focus {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: -2px;
+}
+
+.grid-frame {
+  overflow: auto;
+  padding: 10px;
+}
+
+.sheet {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: max-content;
+}
+
+.sheet th,
+.sheet td {
+  min-width: 108px;
   height: 32px;
   padding: 0;
+  border-right: 1px solid var(--grid-border);
+  border-bottom: 1px solid var(--grid-border);
 }
-.sheet thead th, .row-header {
+
+.sheet .corner,
+.sheet .column-header,
+.sheet .row-header {
   position: sticky;
-  z-index: 1;
-  background: var(--header);
+  z-index: 2;
+  background: #f8fafc;
   color: var(--muted);
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   text-align: center;
 }
-.sheet thead th { top: 0; }
-.row-header { left: 0; min-width: 52px; }
-.corner { left: 0; z-index: 2; }
+
+.sheet .corner {
+  left: 0;
+  top: 0;
+  z-index: 4;
+  min-width: 56px;
+}
+
+.sheet .column-header {
+  top: 0;
+}
+
+.sheet .row-header {
+  left: 0;
+  z-index: 3;
+  min-width: 56px;
+}
+
 .cell {
   position: relative;
-  background: white;
-  padding: 6px 8px;
+  width: 100%;
+  height: 100%;
+  padding: 6px 10px;
+  background: #fff;
+  border: 0;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: cell;
 }
+
 .cell.active {
-  background: linear-gradient(0deg, var(--accent-soft), var(--accent-soft)), white;
+  background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
   box-shadow: inset 0 0 0 2px var(--accent);
 }
-.cell-input { width: 100%; height: 100%; padding: 6px 8px; border: 0; font: inherit; }
-@media (max-width: 720px) {
-  .app-shell { padding: 10px; }
-  .toolbar { grid-template-columns: 1fr; }
-  .brand { font-size: 16px; }
-  .sheet th, .sheet td { min-width: 88px; }
+
+.cell.numeric {
+  text-align: right;
+}
+
+.cell.error {
+  color: var(--error);
+}
+
+.cell-input {
+  width: 100%;
+  height: 100%;
+  padding: 6px 10px;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+}
+
+@media (max-width: 800px) {
+  .app {
+    padding: 10px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .formula-shell {
+    grid-template-columns: 72px 32px 1fr;
+    padding: 10px;
+  }
+
+  .sheet th,
+  .sheet td {
+    min-width: 92px;
+  }
 }
