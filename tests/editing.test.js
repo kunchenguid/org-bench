@@ -92,3 +92,28 @@ test('formula bar editing stays in sync with the selected cell', () => {
   controller.selectCell('A1');
   assert.equal(controller.getState().formulaBarValue, '=A1');
 });
+
+test('commit uses provided cell hooks and exposes display values for the grid', () => {
+  const committed = new Map();
+  const controller = createSpreadsheetEditingController({
+    getCell: (cellId) => committed.get(cellId) || { raw: '', display: '' },
+    commitCell: (cellId, raw) => {
+      committed.set(cellId, {
+        raw,
+        display: raw === '=1+2' ? '3' : raw,
+      });
+    },
+  });
+
+  controller.beginFormulaBarEdit();
+  controller.updateDraftValue('=1+2');
+  controller.commitEdit('down');
+
+  assert.deepEqual(committed.get('A1'), {
+    raw: '=1+2',
+    display: '3',
+  });
+  assert.equal(controller.getCellRawValue('A1'), '=1+2');
+  assert.equal(controller.getCellDisplayValue('A1'), '3');
+  assert.equal(controller.getState().selection.activeCellId, 'A2');
+});
