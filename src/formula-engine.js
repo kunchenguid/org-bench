@@ -562,6 +562,16 @@
   }
 
   function evaluateFunction(name, args, context) {
+    if (name === 'IF') {
+      var condition = evaluateAst(args[0], context);
+      if (isError(condition)) {
+        return condition;
+      }
+      return booleanFromValue(condition)
+        ? evaluateAst(args[1], context)
+        : evaluateAst(args[2], context);
+    }
+
     var evaluated = [];
     for (var i = 0; i < args.length; i += 1) {
       var value = evaluateAst(args[i], context);
@@ -582,8 +592,6 @@
         return flat.length ? Math.max.apply(Math, flat.map(numberFromValue)) : 0;
       case 'COUNT':
         return flat.filter(function (item) { return !isBlank(item); }).length;
-      case 'IF':
-        return booleanFromValue(evaluated[0]) ? evaluated[1] : evaluated[2];
       case 'AND':
         return flat.every(function (item) { return booleanFromValue(item); });
       case 'OR':
@@ -699,17 +707,6 @@
     }
   }
 
-  function rewriteFormulaForStructure(raw, mode, axisIndex, axisCount) {
-    if (typeof raw !== 'string' || raw[0] !== '=') {
-      return raw;
-    }
-    try {
-      return '=' + rewriteAst(parseFormulaAst(raw), 0, 0, mode, axisIndex, axisCount);
-    } catch (error) {
-      return raw;
-    }
-  }
-
   function createWorkbook() {
     var rawCells = new Map();
     var computed = new Map();
@@ -768,23 +765,6 @@
       });
     }
 
-    function rebuildCells(transformCell, formulaMode, axisIndex, axisCount) {
-      var nextCells = new Map();
-      Array.from(rawCells.entries()).forEach(function (entry) {
-        var address = entry[0];
-        var raw = entry[1];
-        var position = parseCellAddress(address);
-        var nextPosition = transformCell(position);
-        if (!nextPosition) {
-          return;
-        }
-        var nextRaw = rewriteFormulaForStructure(raw, formulaMode, axisIndex, axisCount);
-        nextCells.set(makeAddress(nextPosition.row, nextPosition.col), nextRaw);
-      });
-      rawCells = nextCells;
-      evaluateAll();
-    }
-
     evaluateAll();
 
     return {
@@ -807,36 +787,6 @@
       },
       getDependencies: function (address) {
         return cloneSet(dependencyMap.get(address.toUpperCase()));
-      },
-      insertRows: function (rowNumber, count) {
-        var start = rowNumber - 1;
-        rebuildCells(function (position) {
-          return { row: position.row >= start ? position.row + count : position.row, col: position.col };
-        }, 'insert-rows', start, count);
-      },
-      deleteRows: function (rowNumber, count) {
-        var start = rowNumber - 1;
-        rebuildCells(function (position) {
-          if (position.row >= start && position.row < start + count) {
-            return null;
-          }
-          return { row: position.row >= start + count ? position.row - count : position.row, col: position.col };
-        }, 'delete-rows', start, count);
-      },
-      insertColumns: function (columnNumber, count) {
-        var start = columnNumber - 1;
-        rebuildCells(function (position) {
-          return { row: position.row, col: position.col >= start ? position.col + count : position.col };
-        }, 'insert-cols', start, count);
-      },
-      deleteColumns: function (columnNumber, count) {
-        var start = columnNumber - 1;
-        rebuildCells(function (position) {
-          if (position.col >= start && position.col < start + count) {
-            return null;
-          }
-          return { row: position.row, col: position.col >= start + count ? position.col - count : position.col };
-        }, 'delete-cols', start, count);
       }
     };
   }

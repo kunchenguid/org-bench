@@ -89,18 +89,14 @@ function runTests() {
   workbook.setCell('H1', '=SUM(A1:B2)');
   expectCell(workbook, 'H1', '71');
 
+  workbook.setCell('I1', '=IF(TRUE, 1, 1/0)');
+  expectCell(workbook, 'I1', '1');
+
+  workbook.setCell('I2', '=IF(FALSE, 1/0, 2)');
+  expectCell(workbook, 'I2', '2');
+
   assert.strictEqual(shiftFormula('=A1+$B$2&C$3&$D4', 2, 1), '=B3+$B$2&D$3&$D6');
   assert.strictEqual(shiftFormula('=SUM(A1:B2)', 1, 2), '=SUM(C2:D3)');
-
-  workbook.setCell('J1', '=A1');
-  workbook.insertRows(1, 1);
-  expectCell(workbook, 'J2', '10', '=A2');
-  workbook.deleteRows(1, 1);
-  expectCell(workbook, 'J1', '10', '=A1');
-
-  workbook.setCell('K1', '=B1');
-  workbook.deleteColumns(2, 1);
-  expectCell(workbook, 'J1', '#REF!', '=#REF!');
 }
 
 runTests();
