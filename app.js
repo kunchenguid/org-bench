@@ -255,6 +255,14 @@
       return getEditorState();
     }
 
+    function appendCharacter(key) {
+      if (!state.editor) {
+        return beginReplace(key);
+      }
+      state.editor.draft += key;
+      return getEditorState();
+    }
+
     function startFormulaBarEdit() {
       const active = getSelection().active;
       state.editor = {
@@ -267,7 +275,7 @@
 
     function handleGridKeyDown(event) {
       if (isPrintableKey(event)) {
-        return beginReplace(event.key);
+        return appendCharacter(event.key);
       }
       return getSelection();
     }
@@ -556,40 +564,8 @@
         const editorCellId = WorkbookStoreApi.coordsToCellId(editorState.row, editorState.col);
         const editorCellNode = elements.cellNodes[editorCellId];
         const valueNode = editorCellNode.firstChild;
-        const input = createNode(document, 'input', 'cell-editor');
-        input.type = 'text';
-        input.value = editorState.draft;
-        input.spellcheck = false;
         editorCellNode.classList.add('editing-cell');
-        valueNode.textContent = '';
-        valueNode.appendChild(input);
-
-        input.addEventListener('input', function handleInput() {
-          editController.handleEditorInput(input.value);
-          formulaText.textContent = input.value || FORMULA_PLACEHOLDER;
-          formulaText.className = input.value ? 'formula-value' : 'formula-placeholder';
-        });
-
-        input.addEventListener('keydown', function handleInputKeyDown(event) {
-          if (event.key !== 'Enter' && event.key !== 'Tab' && event.key !== 'Escape') {
-            return;
-          }
-          event.preventDefault();
-          editController.handleEditorKeyDown(event);
-          render();
-          shell.focus();
-        });
-
-        input.addEventListener('blur', function handleBlur() {
-          if (!editController.isEditing()) {
-            return;
-          }
-          editController.commitEdit();
-          render();
-        });
-
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        valueNode.textContent = editorState.draft;
       }
     }
 
