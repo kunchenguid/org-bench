@@ -73,3 +73,16 @@ test('stores undoable operations and row insertion rewrites references', () => {
   sheet.redo();
   assert.equal(sheet.getRaw('B2'), '=SUM(A2:A3)');
 });
+
+test('deleting a referenced row preserves #REF! in formulas and display', () => {
+  const sheet = new SpreadsheetModel();
+
+  sheet.setCell('A1', '10');
+  sheet.setCell('A2', '20');
+  sheet.setCell('B1', '=A2');
+
+  sheet.deleteRow(1);
+
+  assert.equal(sheet.getRaw('B1'), '=#REF!');
+  assert.equal(sheet.getDisplayValue('B1'), '#REF!');
+});

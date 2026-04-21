@@ -110,6 +110,15 @@
         i += 1;
         continue;
       }
+      if (char === '#') {
+        var errorMatch = /^(#(?:REF!|ERR!|DIV\/0!|CIRC!))/.exec(source.slice(i).toUpperCase());
+        if (!errorMatch) {
+          throw new Error('Invalid error literal');
+        }
+        tokens.push({ type: 'error', value: errorMatch[1] });
+        i += errorMatch[1].length;
+        continue;
+      }
       if (/[0-9.]/.test(char)) {
         var numberMatch = /^(?:\d+(?:\.\d+)?|\.\d+)/.exec(source.slice(i));
         if (!numberMatch) {
@@ -221,6 +230,10 @@
     if (token.type === 'string') {
       this.index += 1;
       return { type: 'string', value: token.value };
+    }
+    if (token.type === 'error') {
+      this.index += 1;
+      return { type: 'error', value: token.value };
     }
     if (token.type === 'ident' && (token.value === 'TRUE' || token.value === 'FALSE')) {
       this.index += 1;
@@ -746,6 +759,7 @@
           case 'number':
           case 'string':
           case 'boolean':
+          case 'error':
             return node.value;
           case 'cell': {
             var refId = formatCellId(node.ref.col, node.ref.row);
