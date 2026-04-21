@@ -12,6 +12,10 @@ const {
   copySelection,
   clearRangeCells,
   pasteSelection,
+  createHistory,
+  applyHistoryState,
+  undoHistory,
+  redoHistory,
   evaluateCell,
   formatValue,
   createStorageAdapter,
@@ -170,6 +174,61 @@ test('cut clearing removes every cell in a selected range', () => {
   assert.equal(getCellRaw(state, 1, 2), '');
   assert.equal(getCellRaw(state, 2, 1), '');
   assert.equal(getCellRaw(state, 2, 2), '');
+});
+
+test('undo and redo restore committed cell edits', () => {
+  let history = createHistory(createEmptyState());
+  let state = commitCell(history.present, 1, 1, '7');
+  history = applyHistoryState(history, state);
+
+  assert.equal(getCellRaw(history.present, 1, 1), '7');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '7');
+});
+
+test('undo and redo restore cut ranges', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '1');
+  state = commitCell(state, 1, 2, '2');
+
+  let history = createHistory(state);
+  history = applyHistoryState(history, clearRangeCells(history.present, { row: 1, col: 1 }, { row: 1, col: 2 }));
+
+  assert.equal(getCellRaw(history.present, 1, 1), '');
+  assert.equal(getCellRaw(history.present, 1, 2), '');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '1');
+  assert.equal(getCellRaw(history.present, 1, 2), '2');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '');
+  assert.equal(getCellRaw(history.present, 1, 2), '');
+});
+
+test('undo and redo restore pasted ranges', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '4');
+  state = commitCell(state, 1, 2, '=A1+1');
+  const clipboard = copySelection(state, { row: 1, col: 1 }, { row: 1, col: 2 });
+
+  let history = createHistory(state);
+  history = applyHistoryState(history, pasteSelection(history.present, clipboard, { row: 2, col: 1 }));
+
+  assert.equal(getCellRaw(history.present, 2, 1), '4');
+  assert.equal(getCellRaw(history.present, 2, 2), '=A2+1');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 2, 1), '');
+  assert.equal(getCellRaw(history.present, 2, 2), '');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 2, 1), '4');
+  assert.equal(getCellRaw(history.present, 2, 2), '=A2+1');
 });
 
 test('detects circular references', () => {

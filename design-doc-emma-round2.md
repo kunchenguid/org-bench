@@ -55,3 +55,10 @@ Use one plain JavaScript file that exports pure spreadsheet-core helpers for Nod
 - Wire keyboard copy, cut, and paste in the browser against the existing pure clipboard helpers first, using an internal clipboard buffer so the feature works from `file://` without extra platform setup.
 - Keep raw formulas authoritative in error states by proving a `#DIV/0!` cell still reloads with the original formula in storage.
 - Measure this slice by explicit counts: one rectangular-selection helper case, one cut-clears-range case, one raw-formula error persistence case, and one browser-verified visible multi-cell selection case.
+
+## Round 8 Extension
+
+- Add undo-redo in the pure layer first so browser shortcuts can revert commit, cut, and paste actions without intertwining history logic with DOM concerns.
+- Keep history snapshots at the spreadsheet-state level rather than inventing per-operation inverses, because the current grid is small and the benchmark values correctness over memory efficiency.
+- Wire standard undo-redo shortcuts in the browser only after the pure helpers are proven with tests.
+- Measure this slice by explicit counts: one commit undo-redo case, one cut undo-redo case, one paste undo-redo case, and one browser-visible cell-value reversion case.

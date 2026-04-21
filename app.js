@@ -51,6 +51,62 @@
     };
   }
 
+  function cloneState(state) {
+    return {
+      cells: { ...state.cells },
+      selection: { ...state.selection },
+      selectionEnd: { ...(state.selectionEnd || state.selection) },
+    };
+  }
+
+  function createHistory(initialState) {
+    return {
+      past: [],
+      present: cloneState(initialState),
+      future: [],
+    };
+  }
+
+  function setHistoryPresent(history, nextState) {
+    return {
+      past: history.past.slice(),
+      present: cloneState(nextState),
+      future: history.future.slice(),
+    };
+  }
+
+  function applyHistoryState(history, nextState) {
+    return {
+      past: history.past.concat([cloneState(history.present)]),
+      present: cloneState(nextState),
+      future: [],
+    };
+  }
+
+  function undoHistory(history) {
+    if (!history.past.length) {
+      return history;
+    }
+    const previous = history.past[history.past.length - 1];
+    return {
+      past: history.past.slice(0, -1),
+      present: cloneState(previous),
+      future: [cloneState(history.present)].concat(history.future),
+    };
+  }
+
+  function redoHistory(history) {
+    if (!history.future.length) {
+      return history;
+    }
+    const next = history.future[0];
+    return {
+      past: history.past.concat([cloneState(history.present)]),
+      present: cloneState(next),
+      future: history.future.slice(1),
+    };
+  }
+
   function makeCellKey(row, col) {
     return row + ':' + col;
   }
@@ -720,12 +776,18 @@
     const columnHeaders = document.querySelector('[data-column-headers]');
     const gridBody = document.querySelector('[data-grid-body]');
     const storage = createStorageAdapter(window.localStorage, getStorageNamespace());
-    let state = loadState(storage);
+    let history = createHistory(loadState(storage));
+    let state = history.present;
     let clipboard = null;
     let dragAnchor = null;
 
     function persist() {
       saveState(storage, state);
+    }
+
+    function syncHistory(nextHistory) {
+      history = nextHistory;
+      state = history.present;
     }
 
     function syncEditors() {
@@ -783,22 +845,20 @@
     }
 
     function commitSelected(value) {
-      state = commitCell(state, state.selection.row, state.selection.col, value);
-      state = selectCell(state, state.selection.row, state.selection.col);
+      syncHistory(applyHistoryState(history, selectCell(commitCell(state, state.selection.row, state.selection.col, value), state.selection.row, state.selection.col)));
       persist();
       renderGrid();
     }
 
     function applySelectionMove(rowDelta, colDelta) {
-      state = moveSelection(state, rowDelta, colDelta);
+      syncHistory(setHistoryPresent(history, moveSelection(state, rowDelta, colDelta)));
       persist();
       renderGrid();
     }
 
     function commitAndAdvance(value, key) {
       const nextSelection = getSelectionAfterCommit(state.selection, key);
-      state = commitCell(state, state.selection.row, state.selection.col, value);
-      state = selectCell(state, nextSelection.row, nextSelection.col);
+      syncHistory(applyHistoryState(history, selectCell(commitCell(state, state.selection.row, state.selection.col, value), nextSelection.row, nextSelection.col)));
       persist();
       renderGrid();
     }
@@ -809,8 +869,7 @@
 
     function cutSelectedRange() {
       copySelectedRange();
-      state = clearRangeCells(state, state.selection, state.selectionEnd);
-      state = selectCell(state, state.selection.row, state.selection.col);
+      syncHistory(applyHistoryState(history, selectCell(clearRangeCells(state, state.selection, state.selectionEnd), state.selection.row, state.selection.col)));
       persist();
       renderGrid();
     }
@@ -819,7 +878,7 @@
       if (!clipboard) {
         return;
       }
-      state = pasteSelection(state, clipboard, state.selection);
+      syncHistory(applyHistoryState(history, pasteSelection(state, clipboard, state.selection)));
       persist();
       renderGrid();
     }
@@ -833,9 +892,9 @@
         return;
       }
       if (event.shiftKey) {
-        state = extendSelection(state, Number(button.dataset.row), Number(button.dataset.col));
+        syncHistory(setHistoryPresent(history, extendSelection(state, Number(button.dataset.row), Number(button.dataset.col))));
       } else {
-        state = selectCell(state, Number(button.dataset.row), Number(button.dataset.col));
+        syncHistory(setHistoryPresent(history, selectCell(state, Number(button.dataset.row), Number(button.dataset.col))));
       }
       persist();
       renderGrid();
@@ -850,7 +909,7 @@
         row: Number(button.dataset.row),
         col: Number(button.dataset.col),
       };
-      state = selectCell(state, dragAnchor.row, dragAnchor.col);
+      syncHistory(setHistoryPresent(history, selectCell(state, dragAnchor.row, dragAnchor.col)));
       persist();
       renderGrid();
     });
@@ -860,7 +919,7 @@
       if (!button || !dragAnchor || (event.buttons & 1) !== 1) {
         return;
       }
-      state = extendSelection(state, Number(button.dataset.row), Number(button.dataset.col));
+      syncHistory(setHistoryPresent(history, extendSelection(state, Number(button.dataset.row), Number(button.dataset.col))));
       persist();
       renderGrid();
     });
@@ -913,6 +972,27 @@
         event.preventDefault();
         return;
       }
+      if (modifier && event.key.toLowerCase() === 'z' && event.shiftKey) {
+        syncHistory(redoHistory(history));
+        persist();
+        renderGrid();
+        event.preventDefault();
+        return;
+      }
+      if (modifier && event.key.toLowerCase() === 'z') {
+        syncHistory(undoHistory(history));
+        persist();
+        renderGrid();
+        event.preventDefault();
+        return;
+      }
+      if (modifier && event.key.toLowerCase() === 'y') {
+        syncHistory(redoHistory(history));
+        persist();
+        renderGrid();
+        event.preventDefault();
+        return;
+      }
       if (event.key === 'ArrowUp') applySelectionMove(-1, 0);
       else if (event.key === 'ArrowDown') applySelectionMove(1, 0);
       else if (event.key === 'ArrowLeft') applySelectionMove(0, -1);
@@ -942,6 +1022,10 @@
   return {
     createGridModel,
     createEmptyState,
+    createHistory,
+    applyHistoryState,
+    undoHistory,
+    redoHistory,
     selectCell,
     extendSelection,
     getSelectionRect,
