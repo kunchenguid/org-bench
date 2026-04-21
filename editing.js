@@ -1,11 +1,14 @@
 (function (root, factory) {
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(
+      require('./app.js'),
+      require('./src/spreadsheet-structure.js')
+    );
     return;
   }
 
-  root.SpreadsheetEditing = factory(root.SpreadsheetShell || {});
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (shellApi) {
+  root.SpreadsheetEditing = factory(root.SpreadsheetShell || {}, root.SpreadsheetStructure || {});
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (shellApi, structureApi) {
   function selectionToPersistenceSelection(selection) {
     const position = parseCellId(selection.activeCellId);
 
@@ -245,7 +248,79 @@
         formulaBarValue: state.formulaBarValue,
         draftValue: state.draftValue,
         editing: state.editing ? { ...state.editing } : null,
+        columnCount: state.columnCount,
+        rowCount: state.rowCount,
       };
+    }
+
+    function applyStructureAction(action) {
+      const currentCells = collectCellMap();
+      const nextGridSize = getNextGridSize(action);
+      state.cells = structureApi.applyStructureOperation(currentCells, action);
+      rewriteCommittedCells(currentCells, state.cells);
+      state.columnCount = nextGridSize.columnCount;
+      state.rowCount = nextGridSize.rowCount;
+      state.selection.activeCellId = rewriteSelectionCellId(state.selection.activeCellId, action, nextGridSize);
+      state.selection.anchorCellId = rewriteSelectionCellId(state.selection.anchorCellId, action, nextGridSize);
+      state.selection.focusCellId = rewriteSelectionCellId(state.selection.focusCellId, action, nextGridSize);
+      syncFormulaBarValue();
+    }
+
+    function collectCellMap() {
+      const cells = {};
+      let rowIndex;
+      let columnIndex;
+
+      for (rowIndex = 0; rowIndex < state.rowCount; rowIndex += 1) {
+        for (columnIndex = 0; columnIndex < state.columnCount; columnIndex += 1) {
+          const cellId = cellPositionToId(columnIndex, rowIndex);
+          const raw = getCellRawValue(cellId);
+          if (raw !== '') {
+            cells[cellId] = raw;
+          }
+        }
+      }
+
+      return cells;
+    }
+
+    function rewriteCommittedCells(existingCells, nextCells) {
+      Object.keys(existingCells).forEach(function (cellId) {
+        commitCell(cellId, '');
+      });
+
+      Object.keys(nextCells).forEach(function (cellId) {
+        commitCell(cellId, nextCells[cellId]);
+      });
+    }
+
+    function getNextGridSize(action) {
+      switch (action.type) {
+        case 'insert-row':
+          return { columnCount: state.columnCount, rowCount: state.rowCount + 1 };
+        case 'delete-row':
+          return { columnCount: state.columnCount, rowCount: Math.max(1, state.rowCount - 1) };
+        case 'insert-column':
+          return { columnCount: state.columnCount + 1, rowCount: state.rowCount };
+        case 'delete-column':
+          return { columnCount: Math.max(1, state.columnCount - 1), rowCount: state.rowCount };
+        default:
+          throw new Error(`Unsupported structure action: ${action.type}`);
+      }
+    }
+
+    function rewriteSelectionCellId(cellId, action, nextGridSize) {
+      const rewritten = structureApi.applyStructureOperation({ [cellId]: '__selected__' }, action);
+      const nextCellId = Object.keys(rewritten)[0];
+      if (nextCellId) {
+        return nextCellId;
+      }
+
+      const position = parseCellId(cellId);
+      return cellPositionToId(
+        clamp(position.columnIndex, 0, nextGridSize.columnCount - 1),
+        clamp(position.rowIndex, 0, nextGridSize.rowCount - 1)
+      );
     }
 
     syncFormulaBarValue();
@@ -264,6 +339,7 @@
       commitEdit,
       cancelEdit,
       handleKeyDown,
+      applyStructureAction,
     };
   }
 
@@ -339,6 +415,56 @@
       }
     }
 
+    function rerenderGrid() {
+      if (!shellApi || typeof shellApi.createSpreadsheetShellModel !== 'function' || typeof shellApi.renderSpreadsheetShell !== 'function') {
+        return;
+      }
+
+      shellApi.renderSpreadsheetShell(
+        doc,
+        shellApi.createSpreadsheetShellModel({
+          columnCount: controller.getState().columnCount,
+          rowCount: controller.getState().rowCount,
+        }),
+        controller.getState()
+      );
+    }
+
+    function closeHeaderMenus() {
+      doc.querySelectorAll('.header-actions.is-open').forEach(function (node) {
+        node.classList.remove('is-open');
+
+        const toggle = node.querySelector('.header-action-toggle');
+        const menu = node.querySelector('.header-action-menu');
+        if (toggle) {
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+        if (menu) {
+          menu.hidden = true;
+        }
+      });
+    }
+
+    function toggleHeaderMenu(container) {
+      const toggle = container.querySelector('.header-action-toggle');
+      const menu = container.querySelector('.header-action-menu');
+      const shouldOpen = !container.classList.contains('is-open');
+
+      closeHeaderMenus();
+
+      if (!shouldOpen) {
+        return;
+      }
+
+      container.classList.add('is-open');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', 'true');
+      }
+      if (menu) {
+        menu.hidden = false;
+      }
+    }
+
     function focusFormulaInput() {
       if (!formulaInput) {
         return;
@@ -349,6 +475,39 @@
     }
 
     doc.addEventListener('click', function (event) {
+      const actionToggle = event.target.closest('.header-action-toggle');
+      if (actionToggle) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleHeaderMenu(actionToggle.closest('.header-actions'));
+        return;
+      }
+
+      const structureAction = event.target.closest('.structure-action');
+      if (structureAction) {
+        const header = structureAction.closest('.column-header, .row-header');
+        const action = header ? resolveStructureAction(header, structureAction.dataset.action, controller.getState()) : null;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!action) {
+          closeHeaderMenus();
+          return;
+        }
+
+        controller.applyStructureAction(action);
+        rerenderGrid();
+        syncDom();
+        closeHeaderMenus();
+        focusActiveCell(doc, controller.getState().selection.activeCellId);
+        return;
+      }
+
+      if (!event.target.closest('.header-actions')) {
+        closeHeaderMenus();
+      }
+
       const cell = event.target.closest('.grid-cell');
       if (!cell) {
         return;
@@ -446,6 +605,33 @@
     }
   }
 
+  function resolveStructureAction(header, action, state) {
+    const kind = header.dataset.structureKind;
+    const index = Number(header.dataset.structureIndex);
+
+    if (!kind || !index) {
+      return null;
+    }
+
+    if (action === 'insert-before') {
+      return { type: `insert-${kind}`, index };
+    }
+
+    if (action === 'insert-after') {
+      return { type: `insert-${kind}`, index: index + 1 };
+    }
+
+    if (action === 'delete') {
+      if ((kind === 'row' && state.rowCount <= 1) || (kind === 'column' && state.columnCount <= 1)) {
+        return null;
+      }
+
+      return { type: `delete-${kind}`, index };
+    }
+
+    return null;
+  }
+
   function isNavigationKey(key) {
     return key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown';
   }
@@ -507,5 +693,6 @@
   return {
     createSpreadsheetEditingController,
     attachSpreadsheetEditing,
+    resolveStructureAction,
   };
 });
