@@ -65,6 +65,50 @@ Implementation shape:
 - Persistence: reload restores raw formulas and current selection using namespaced storage keys.
 - Validation: agent-browser pass over entry, editing, formulas, range clear, undo/redo, structural row or column edits, and reload restore.
 
+## TDD plan for first slices
+
+Each slice starts with a failing automated check, then the minimum implementation to pass it, then a browser-level confirmation where interaction matters.
+
+1. Workbook model
+- First failing unit tests: empty workbook shape, cell raw-content storage, numeric/text coercion, and address helpers for `A1` through `Z100`.
+- Green condition: model API stores raw values without losing formulas and clamps coordinates to the valid 26 x 100 sheet.
+- Browser confirmation: open `index.html` from `file://`, verify the grid renders 26 labeled columns and 100 labeled rows, and confirm the selected cell starts at `A1`.
+
+2. Parser and evaluator
+- First failing unit tests: arithmetic precedence, parentheses, unary minus, boolean literals, string concatenation, comparison operators, and the 12 required function calls on fixed inputs.
+- Green condition: formulas evaluate to expected scalar values and syntax or function errors produce stable spreadsheet-style error markers instead of exceptions.
+- Browser confirmation: enter formulas through the formula bar and confirm displayed values match the unit-test cases.
+
+3. Dependency recalculation
+- First failing unit tests: dependency graph capture for direct references and ranges, recompute order for `A1 -> B1 -> C1`, circular reference detection, and selective recalculation when only one precedent changes.
+- Green condition: changing a precedent updates only impacted dependents, and cycles surface `#CIRC!` or equivalent.
+- Browser confirmation: edit a precedent cell, verify dependents update immediately, then introduce a cycle and verify the visible error state is clear and recoverable.
+
+4. Persistence namespace handling
+- First failing unit tests: all persisted keys are prefixed with the injected namespace, raw formulas are serialized rather than computed values, and selection state round-trips through storage.
+- Green condition: restore logic can rebuild workbook contents and active selection from namespaced storage alone.
+- Browser confirmation: edit cells, reload the page, and confirm both the raw formula and selected cell restore under the benchmark namespace.
+
+5. Grid interactions
+- First failing unit tests: selection movement clamping, edit commit targets, undo stack action boundaries, and copy-paste reference shifting helpers.
+- Green condition: state transitions for click, arrow keys, Enter, Tab, Escape, delete, and paste match spreadsheet expectations.
+- Browser confirmation: click/select/edit/navigate in the real grid, then verify range clear, copy-paste, and undo-redo using agent-browser.
+
+## Claim-to-check mapping
+
+- Claim: DOM rendering is sufficient for the benchmark-scale sheet.
+  Acceptance check: browser snapshot shows the full 26 x 100 grid and interactive selection on local open with no console errors.
+- Claim: the workbook model preserves raw inputs safely.
+  Acceptance check: unit tests assert that a formula such as `=A1+A2` is stored as raw text while the rendered value is derived separately.
+- Claim: parser and evaluator correctness covers the benchmark operators and functions.
+  Acceptance check: table-driven unit tests cover arithmetic, comparison, concatenation, boolean literals, cell references, ranges, and the 12 required functions.
+- Claim: dependency recomputation is stable and correct.
+  Acceptance check: unit tests verify topological recomputation on a small dependency chain and browser checks confirm visible dependent updates after a precedent edit.
+- Claim: persistence is correctly namespaced.
+  Acceptance check: unit tests inspect the storage keys written for a benchmark namespace string and reload tests verify those exact keys restore the prior sheet state.
+- Claim: grid interactions are benchmark-ready.
+  Acceptance check: browser checks cover click selection, typing, Enter-to-commit-and-move-down, Tab-to-move-right, arrow navigation, formula-bar editing, range clear, copy-paste, and undo-redo.
+
 ## Proposed execution order
 
 1. Build the workbook model, parser, evaluator, and dependency recomputation.
