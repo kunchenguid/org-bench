@@ -17,6 +17,8 @@ const {
   pushHistory,
   undoHistory,
   redoHistory,
+  insertRow,
+  deleteRow,
   setCellRaw,
   getCellRaw,
   getCellDisplayValue,
@@ -319,4 +321,47 @@ test('history depth is capped at the latest 50 actions', () => {
   }
 
   assert.equal(state.history.undo.length, 50);
+});
+
+test('inserting a row shifts stored cell contents downward', () => {
+  let state = createState();
+  state = setCellRaw(state, 1, 0, 'middle');
+
+  state = insertRow(state, 1);
+
+  assert.equal(getCellRaw(state, 1, 0), '');
+  assert.equal(getCellRaw(state, 2, 0), 'middle');
+});
+
+test('inserting a row updates formula references below the insertion point', () => {
+  let state = createState();
+  state = setCellRaw(state, 1, 0, '5');
+  state = setCellRaw(state, 2, 0, '=A2');
+
+  state = insertRow(state, 1);
+
+  assert.equal(getCellRaw(state, 3, 0), '=A3');
+  assert.equal(getCellDisplayValue(state, 3, 0), '5');
+});
+
+test('deleting a row turns references to that row into #REF!', () => {
+  let state = createState();
+  state = setCellRaw(state, 1, 0, '5');
+  state = setCellRaw(state, 2, 0, '=A2');
+
+  state = deleteRow(state, 1);
+
+  assert.equal(getCellRaw(state, 1, 0), '=#REF!');
+  assert.equal(getCellDisplayValue(state, 1, 0), '#REF!');
+});
+
+test('deleting a row shifts lower references upward to keep pointing at the same data', () => {
+  let state = createState();
+  state = setCellRaw(state, 2, 0, '7');
+  state = setCellRaw(state, 3, 0, '=A3');
+
+  state = deleteRow(state, 1);
+
+  assert.equal(getCellRaw(state, 2, 0), '=A2');
+  assert.equal(getCellDisplayValue(state, 2, 0), '7');
 });

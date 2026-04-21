@@ -290,6 +290,80 @@
     };
   }
 
+  function rewriteFormulaRows(raw, rowIndex, mode) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    return raw.replace(/(\$?)([A-Z])(\$?)(\d+)/g, function (_match, absCol, colLetter, absRow, rowNumber) {
+      const row = Number(rowNumber) - 1;
+
+      if (absRow) {
+        return (absCol ? '$' : '') + colLetter + '$' + rowNumber;
+      }
+
+      let nextRow = row;
+      if (mode === 'insert' && row >= rowIndex) {
+        nextRow += 1;
+      }
+      if (mode === 'delete') {
+        if (row === rowIndex) {
+          return '#REF!';
+        }
+        if (row > rowIndex) {
+          nextRow -= 1;
+        }
+      }
+
+      return (absCol ? '$' : '') + colLetter + String(nextRow + 1);
+    });
+  }
+
+  function remapRows(state, rowIndex, mode) {
+    const nextCells = {};
+    Object.keys(state.cells).forEach(function (key) {
+      const ref = parseCellKey(key);
+      if (!ref) {
+        return;
+      }
+
+      let nextRow = ref.row;
+      if (mode === 'insert' && ref.row >= rowIndex) {
+        nextRow += 1;
+      }
+      if (mode === 'delete') {
+        if (ref.row === rowIndex) {
+          return;
+        }
+        if (ref.row > rowIndex) {
+          nextRow -= 1;
+        }
+      }
+
+      nextCells[cellKey(nextRow, ref.col)] = rewriteFormulaRows(state.cells[key], rowIndex, mode);
+    });
+
+    return nextCells;
+  }
+
+  function insertRow(state, rowIndex) {
+    return {
+      cells: remapRows(state, rowIndex, 'insert'),
+      active: state.active,
+      selection: state.selection,
+      history: state.history,
+    };
+  }
+
+  function deleteRow(state, rowIndex) {
+    return {
+      cells: remapRows(state, rowIndex, 'delete'),
+      active: state.active,
+      selection: state.selection,
+      history: state.history,
+    };
+  }
+
   function getCellRaw(state, row, col) {
     return state.cells[cellKey(row, col)] || '';
   }
@@ -570,6 +644,9 @@
       if (left === '#CIRC!' || right === '#CIRC!') {
         return '#CIRC!';
       }
+      if (left === '#REF!' || right === '#REF!') {
+        return '#REF!';
+      }
       if (left === '#ERR!' || right === '#ERR!') {
         return '#ERR!';
       }
@@ -663,6 +740,9 @@
     if (args.some(function (value) { return value === '#CIRC!'; })) {
       return '#CIRC!';
     }
+    if (args.some(function (value) { return value === '#REF!'; })) {
+      return '#REF!';
+    }
     if (args.some(function (value) { return value === '#DIV/0!'; })) {
       return '#DIV/0!';
     }
@@ -672,10 +752,10 @@
 
     const numbers = args.map(toNumber);
     if (numbers.some(function (value) {
-      return value === '#ERR!' || value === '#DIV/0!' || value === '#CIRC!';
+      return value === '#ERR!' || value === '#DIV/0!' || value === '#CIRC!' || value === '#REF!';
     })) {
       return numbers.find(function (value) {
-        return value === '#ERR!' || value === '#DIV/0!' || value === '#CIRC!';
+        return value === '#ERR!' || value === '#DIV/0!' || value === '#CIRC!' || value === '#REF!';
       });
     }
 
@@ -734,6 +814,8 @@
 
     if (raw === '') {
       value = 0;
+    } else if (raw === '=#REF!') {
+      value = '#REF!';
     } else if (raw[0] === '=') {
       try {
         value = evaluateFormula(state, raw.slice(1), trail.concat(key), cache);
@@ -751,7 +833,7 @@
   }
 
   function toNumber(value) {
-    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!' || value === '#REF!') {
       return value;
     }
     if (Array.isArray(value)) {
@@ -773,7 +855,7 @@
   }
 
   function formatDisplayValue(value) {
-    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!' || value === '#REF!') {
       return value;
     }
     if (typeof value === 'boolean') {
@@ -799,7 +881,7 @@
   }
 
   function isTruthy(value) {
-    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!' || value === '#REF!') {
       return false;
     }
     if (typeof value === 'boolean') {
@@ -912,6 +994,8 @@
     pasteClipboard,
     cutSelection,
     shiftFormulaReferences,
+    insertRow,
+    deleteRow,
     setCellRaw,
     getCellRaw,
     getLiteralValue,
