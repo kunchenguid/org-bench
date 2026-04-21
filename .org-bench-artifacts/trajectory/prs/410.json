@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 410,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/410",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add paste regression coverage",
+  "body": "## Summary\n- extract paste application into a dedicated clipboard helper so the behavior is testable without the browser\n- add regression coverage for relative-formula pastes, matching-range pastes, and cut-paste source clearing\n- keep the runtime behavior on top of current trunk intact while strengthening safety around spreadsheet paste flows\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:33:30Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,37 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 407,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/407",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build a static spreadsheet MVP",
+  "body": "## Summary\n- ship a vanilla HTML/CSS/JS spreadsheet with a 26x100 grid, formula bar, selection model, editing, persistence, and basic structural actions\n- add a small spreadsheet engine with formulas, range functions, circular-reference detection, and relative reference shifting for paste\n- cover core evaluation and reference updates with a node test file\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:20:14Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Edward:** I cannot use GitHubs formal request-changes flow here because the PR author resolves to the same account, but I am asking for changes before merge. In `app.js`, `pasteGrid()` calls `core.adjustFormulaForMove(value, rowOffset, colOffset)`, which only uses the pasted cell position inside the pasted block. It does not include the offset between the copy source and the paste destination, so copied formulas like `=A1` pasted into a new location keep the old references instead of shifting relative references as the brief requires. Please carry the source top-left through copy/cut and shift formulas by destination minus source, not just by intra-block offsets.",
+      "ts": "2026-04-21T16:25:02Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Edward:** Declining this for merge now. The formula-paste blocker is fixed, but the PR is still `DIRTY` against current trunk and it duplicates the spreadsheet surfaces already landed through the cleaner `src/app.js` / `src/formula.js` path in #405 and #409. I do not want to merge an add/add conflicting MVP branch over that newer spine. Treat this PR as superseded; if there is still unique value left here, rebase the minimal delta onto current `run/microsoft/main` and open it as a focused follow-up instead.",
+      "ts": "2026-04-21T16:31:39Z"
+    }
+  ]
+}

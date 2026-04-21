@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 406,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/406",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build initial spreadsheet shell",
+  "body": "## Summary\n- ship the first usable spreadsheet page with a 26x100 grid, formula bar, keyboard navigation, and in-cell editing\n- add a tested formula engine covering references, ranges, core functions, circular reference handling, and persisted raw cell state\n- keep the artifact fully static so it works directly from file:// without a build step\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:17:27Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 411,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/411",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Test-drive formula-aware clipboard pasting",
+  "body": "## Summary\n- move rectangular paste behavior into the formula engine so relative reference shifting and cut-move clearing are exercised in Node tests\n- update the browser app to call the tested engine helper instead of keeping paste logic embedded only in UI state code\n- extend the formula test suite with copy-paste and cut-paste coverage over the current trunk architecture\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:34:15Z"
+    }
+  ],
+  "comments": []
+}

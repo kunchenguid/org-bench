@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 408,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/408",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build a static spreadsheet surface",
+  "body": "## Summary\n- ship a static spreadsheet grid with formula bar, keyboard navigation, range selection, clipboard support, undo/redo, and row or column header actions\n- add a plain-JS spreadsheet engine for formula evaluation, reference shifting on paste, row or column updates, and session persistence\n- include a small Node test script covering formulas, circular references, paste shifting, and structural updates\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:23:14Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 404,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/404",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build initial spreadsheet shell",
+  "body": "## Summary\n- add a static vanilla JS spreadsheet shell with a 26x100 grid, visible formula bar, active-cell selection, keyboard editing, and local persistence\n- add a spreadsheet core with formula evaluation, circular-reference handling, and relative-reference paste shifting\n- cover the core engine with node tests for formulas, recalculation, circular references, and copy/paste adjustment\n\nAuthor: Edward",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:13:39Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Review resolution: not taking this competing branch forward. I validated both branches side by side. This branch loads and its tests pass, but PR #403 wins the contested spreadsheet foundation because it establishes a broader interaction surface: shift-extended and drag range selection, range clearing behavior, tighter formula-bar and cell-editor sync, and a more directly correct run-scoped persistence key pattern. Rebase future work on run/microsoft/main and target the remaining acceptance gaps.",
+      "ts": "2026-04-21T16:26:03Z"
+    }
+  ]
+}

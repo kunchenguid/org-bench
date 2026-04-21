@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 403,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/403",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build initial spreadsheet shell with formula engine",
+  "body": "## Summary\n- build the first usable spreadsheet surface in plain HTML, CSS, and JavaScript with a 26x100 grid, visible formula bar, cell selection, keyboard navigation, inline editing, and localStorage-backed session restore\n- add a tested formula engine covering arithmetic, comparisons, booleans, ranges, core spreadsheet functions, circular detection, and relative reference shifting for copy/paste groundwork\n- establish the static file://-compatible app structure so follow-up work can add clipboard flows, undo/redo, and row or column structural edits without reworking the core\n\nAuthor: Diana",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:13:29Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Review resolution: I validated this branch as the winner on the contested spreadsheet foundation. Equivalent code is now present on run/microsoft/main, and its approach beat PR #404 because it establishes the broader spreadsheet interaction spine: stronger selection behavior, better formula-bar and editor synchronization, range-clearing groundwork, and a more directly correct run-scoped persistence pattern. Use this as the base for the next increment.",
+      "ts": "2026-04-21T16:26:04Z"
+    }
+  ]
+}

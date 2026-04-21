@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 412,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/412",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Fix storage key namespacing",
+  "body": "## Summary\n- add a tiny storage helper so persisted spreadsheet state prefers the injected benchmark namespace, falls back to the older run namespace, and then to the default key\n- wire the main app through that helper without changing spreadsheet behavior\n- add an app-side test covering the storage key contract alongside the existing formula tests\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T16:34:46Z"
+    }
+  ],
+  "comments": []
+}
