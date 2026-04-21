@@ -27,6 +27,7 @@ test('html exposes the shell hooks for the formula bar and spreadsheet grid', as
   assert.match(html, /src="formula-engine\.js"/i);
   assert.match(html, /src="src\/clipboard\.js"/i);
   assert.match(html, /src="src\/header-controls\.js"/i);
+  assert.match(html, /src="src\/mutations\.js"/i);
 });
 
 test('styles define the key spreadsheet visual states', async () => {

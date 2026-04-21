@@ -5,6 +5,8 @@ const {
   createSpreadsheetStore,
   createMemoryStorage,
 } = require('../src/spreadsheet-store.js');
+const FormulaEngine = require('../formula-engine.js');
+const MutationEngine = require('../src/mutations.js');
 
 test('stores raw cell contents and active selection state', () => {
   const storage = createMemoryStorage();
@@ -159,4 +161,66 @@ test('clearing cells removes raw contents and keeps empty reads stable', () => {
   assert.equal(store.getRawCell('A1'), '');
   assert.equal(store.getRawCell('A2'), '');
   assert.deepEqual([...store.getSnapshot().cells.keys()], []);
+});
+
+test('structural row insertion rewrites raw cells, recomputes formulas, and undoes as one action', () => {
+  const store = createSpreadsheetStore({
+    namespace: 'run-structural-insert',
+    storage: createMemoryStorage(),
+    formulaEngine: FormulaEngine,
+    mutationEngine: MutationEngine,
+  });
+
+  store.applyCells(
+    {
+      A1: '10',
+      A2: '20',
+      B2: '=SUM(A1:A2)',
+    },
+    { label: 'seed' }
+  );
+
+  const changed = store.applyStructuralChange(
+    { kind: 'insert-rows', index: 2, count: 1 },
+    { label: 'insert row' }
+  );
+
+  assert.equal(changed, true);
+  assert.equal(store.getRawCell('A2'), '');
+  assert.equal(store.getRawCell('A3'), '20');
+  assert.equal(store.getRawCell('B3'), '=SUM(A1:A3)');
+  assert.equal(store.getComputedCell('B3').display, '30');
+
+  store.undo();
+
+  assert.equal(store.getRawCell('A2'), '20');
+  assert.equal(store.getRawCell('A3'), '');
+  assert.equal(store.getRawCell('B2'), '=SUM(A1:A2)');
+  assert.equal(store.getComputedCell('B2').display, '30');
+});
+
+test('structural column deletion propagates #REF! through the computed layer', () => {
+  const store = createSpreadsheetStore({
+    namespace: 'run-structural-delete',
+    storage: createMemoryStorage(),
+    formulaEngine: FormulaEngine,
+    mutationEngine: MutationEngine,
+  });
+
+  store.applyCells(
+    {
+      A1: '1',
+      B1: '2',
+      C1: '=A1+B1',
+    },
+    { label: 'seed' }
+  );
+
+  store.applyStructuralChange(
+    { kind: 'delete-columns', index: 2, count: 1 },
+    { label: 'delete column' }
+  );
+
+  assert.equal(store.getRawCell('B1'), '=A1+#REF!');
+  assert.equal(store.getComputedCell('B1').display, '#REF!');
 });
