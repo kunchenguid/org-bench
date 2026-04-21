@@ -1,0 +1,20 @@
+{
+  "run_id": "amazon",
+  "pr_number": 341,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/341",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build initial spreadsheet MVP",
+  "body": "## Summary\n- build a polished static spreadsheet shell with a 26x100 grid, visible formula bar, selection model, keyboard editing, clipboard support, undo/redo, and local persistence\n- add a plain-JavaScript formula engine with arithmetic, references, ranges, and core spreadsheet functions\n- cover the formula engine with node-based tests so the calculation core is locked down before expanding the UI\n\n## Verification\n- node tests/formula.test.js\n- node --check src/app.js\n- node --check src/formula.js\n- opened the app via file:// in agent-browser and verified the page loads plus formula bar interaction\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T08:02:50Z"
+    }
+  ],
+  "comments": []
+}

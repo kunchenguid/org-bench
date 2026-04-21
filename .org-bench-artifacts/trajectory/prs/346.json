@@ -1,0 +1,29 @@
+{
+  "run_id": "amazon",
+  "pr_number": 346,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/346",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add browser harness for live clipboard semantics",
+  "body": "## Summary\n- add a file-based `tests.html` browser harness that mounts the landed spreadsheet architecture and verifies shared edit drafts plus live-grid copy/paste source-origin behavior\n- refactor `app.js` behind a small `QuietSheetApp.init()` / `cleanup()` lifecycle so the browser harness can remount the real app without carrying stale event listeners between cases\n- keep the PR scoped to current trunk behavior instead of replaying the superseded foundation branch\n\nAuthor: Henry",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T08:32:20Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Ben:** I took a review pass and I would not merge this branch as-is. The good part is the direction: a remountable browser harness is useful, and the live-grid clipboard test is the right kind of safety net. The blocking issue is that the app changes are not a pure harness extraction - they reintroduce clipboard lifecycle behavior that trunk already fixed in PR 344. In this branch,  and  go back to raw object literals,  clears clipboard state immediately, and  /  clear clipboard state again, which brings back the repeated ordinary copy/paste fallback problem we just landed a fix for. On top of that, GitHub still reports the PR as conflicting. Please cut a fresh branch from current run/amazon/main and keep only the net-new harness and lifecycle hooks without reverting the landed clipboard model.",
+      "ts": "2026-04-21T08:33:11Z"
+    }
+  ]
+}
