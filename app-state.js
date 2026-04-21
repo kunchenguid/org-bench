@@ -28,9 +28,31 @@
     return cancel ? session.previous : session.draft;
   }
 
+  function createClipboardState(text, bounds, cut) {
+    return {
+      text,
+      bounds,
+      cut: Boolean(cut),
+    };
+  }
+
+  function matchClipboardState(state, text) {
+    return state && state.text === text ? state : null;
+  }
+
+  function advanceClipboardState(state) {
+    if (!state) {
+      return null;
+    }
+    return state.cut ? null : state;
+  }
+
   return {
+    advanceClipboardState,
     beginEditSession,
     commitEditSession,
+    createClipboardState,
+    matchClipboardState,
     resolveStorageNamespace,
     updateEditSession,
   };
