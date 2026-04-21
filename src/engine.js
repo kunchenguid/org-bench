@@ -459,6 +459,24 @@
     };
   }
 
+  function stepAddress(address, direction, maxColumns, maxRows) {
+    const parsed = parseAddress(address);
+    let column = parsed.column;
+    let row = parsed.row;
+
+    if (direction === 'left') {
+      column = Math.max(1, column - 1);
+    } else if (direction === 'right') {
+      column = Math.min(maxColumns, column + 1);
+    } else if (direction === 'up') {
+      row = Math.max(1, row - 1);
+    } else if (direction === 'down') {
+      row = Math.min(maxRows, row + 1);
+    }
+
+    return numberToColumn(column) + row;
+  }
+
   function columnToNumber(label) {
     let total = 0;
     for (let index = 0; index < label.length; index += 1) {
@@ -502,5 +520,6 @@
     getDisplayValue: getDisplayValue,
     normalizeAddress: normalizeAddress,
     shiftFormulaReferences: shiftFormulaReferences,
+    stepAddress: stepAddress,
   };
 });

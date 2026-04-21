@@ -7,6 +7,7 @@ const {
   getCellValue,
   getDisplayValue,
   shiftFormulaReferences,
+  stepAddress,
 } = require('../src/engine.js');
 
 test('evaluates arithmetic formulas using cell references', () => {
@@ -73,4 +74,14 @@ test('shifts both ends of a range when a formula is pasted', () => {
     shiftFormulaReferences('=SUM(A1:B2)', 1, 2),
     '=SUM(C2:D3)'
   );
+});
+
+test('steps addresses within the sheet bounds', () => {
+  assert.equal(stepAddress('A1', 'left', 26, 100), 'A1');
+  assert.equal(stepAddress('A1', 'up', 26, 100), 'A1');
+  assert.equal(stepAddress('A1', 'right', 26, 100), 'B1');
+  assert.equal(stepAddress('A1', 'down', 26, 100), 'A2');
+  assert.equal(stepAddress('Z100', 'right', 26, 100), 'Z100');
+  assert.equal(stepAddress('Z100', 'down', 26, 100), 'Z100');
+  assert.equal(stepAddress('C3', 'left', 26, 100), 'B3');
 });

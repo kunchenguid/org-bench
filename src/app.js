@@ -34,6 +34,9 @@
     if (event.key === 'Enter') {
       event.preventDefault();
       commitFormulaBar('down');
+    } else if (event.key === 'Tab') {
+      event.preventDefault();
+      commitFormulaBar(event.shiftKey ? 'left' : 'right');
     } else if (event.key === 'Escape') {
       event.preventDefault();
       formulaInput.value = engine.getCellRaw(sheet, activeCell);
@@ -253,7 +256,7 @@
     if (shouldCommit && moveDown) {
       moveSelection('ArrowDown');
     } else if (shouldCommit && direction) {
-      moveSelection(direction === 'right' ? 'ArrowRight' : 'ArrowDown');
+      moveSelection(direction === 'right' ? 'ArrowRight' : 'ArrowLeft');
     }
   }
 
@@ -285,16 +288,14 @@
   }
 
   function moveSelection(key) {
-    const match = activeCell.match(/^([A-Z]+)(\d+)$/);
-    let column = labelToColumn(match[1]);
-    let row = Number(match[2]);
-
-    if (key === 'ArrowUp') row = Math.max(1, row - 1);
-    if (key === 'ArrowDown') row = Math.min(MAX_ROWS, row + 1);
-    if (key === 'ArrowLeft') column = Math.max(1, column - 1);
-    if (key === 'ArrowRight') column = Math.min(MAX_COLUMNS, column + 1);
-
-    selectCell(columnToLabel(column) + row);
+    const directions = {
+      ArrowUp: 'up',
+      ArrowDown: 'down',
+      ArrowLeft: 'left',
+      ArrowRight: 'right',
+    };
+    const direction = directions[key] || key;
+    selectCell(engine.stepAddress(activeCell, direction, MAX_COLUMNS, MAX_ROWS));
   }
 
   function getCellElement(address) {
@@ -341,11 +342,6 @@
       row: Number(match[2]),
     };
   }
-
-  function columnToLabel(column) {
-    return String.fromCharCode(64 + column);
-  }
-
   function labelToColumn(label) {
     let total = 0;
     for (let index = 0; index < label.length; index += 1) {
