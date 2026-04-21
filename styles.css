@@ -34,12 +34,23 @@ body {
 }
 .toolbar {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 120px 88px 1fr;
   align-items: center;
   padding: 12px 14px;
   gap: 14px;
 }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
+.active-address {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  background: var(--header);
+  color: var(--text);
+  font-weight: 600;
+}
 .formula-wrap {
   display: grid;
   grid-template-columns: 40px 1fr;
