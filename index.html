@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app">
+      <div class="toolbar">
+        <label class="toolbar-field">
+          <span class="toolbar-label">Cell</span>
+          <input id="name-box" type="text" readonly>
+        </label>
+        <label class="toolbar-field">
+          <span class="toolbar-label">Formula</span>
+          <input id="formula-input" type="text" spellcheck="false" placeholder="Type a value or formula">
+        </label>
+      </div>
+      <main class="sheet">
+        <div class="sheet-frame" aria-label="Spreadsheet grid">
+          <div id="column-headers" class="column-headers">
+            <div class="corner" aria-hidden="true"></div>
+          </div>
+          <div id="grid-body"></div>
+        </div>
+      </main>
+    </div>
+    <script src="core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
