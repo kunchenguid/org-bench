@@ -36,6 +36,7 @@
       return {
         index: columnIndex,
         label: getColumnLabel(columnIndex),
+        actions: createHeaderActions('column', columnIndex),
       };
     });
 
@@ -43,6 +44,7 @@
       return {
         index: rowIndex,
         label: String(rowIndex + 1),
+        actions: createHeaderActions('row', rowIndex),
         cells: columns.map(function mapCell(column) {
           return {
             row: rowIndex,
@@ -74,6 +76,22 @@
         endRow: selection.range.end.row - 1,
       },
     };
+  }
+
+  function createHeaderActions(axis, index) {
+    if (axis === 'column') {
+      return [
+        { label: 'Insert Left', type: 'insert-column', index: index + 1 },
+        { label: 'Insert Right', type: 'insert-column', index: index + 2 },
+        { label: 'Delete Column', type: 'delete-column', index: index + 1 },
+      ];
+    }
+
+    return [
+      { label: 'Insert Above', type: 'insert-row', index: index + 1 },
+      { label: 'Insert Below', type: 'insert-row', index: index + 2 },
+      { label: 'Delete Row', type: 'delete-row', index: index + 1 },
+    ];
   }
 
   function createDefaultSelection() {
@@ -335,10 +353,15 @@
       : function passthroughFormula(raw) {
         return raw;
       };
+    const updateFormulaForStructuralChange = typeof formulaModule.updateFormulaForStructuralChange === 'function'
+      ? formulaModule.updateFormulaForStructuralChange
+      : function passthroughStructuralFormula(raw) {
+        return raw;
+      };
     const store = settings.store || WorkbookStoreApi.createWorkbookStore({
       namespace: resolveNamespace(typeof window !== 'undefined' ? window : globalThis),
       storage: typeof window !== 'undefined' ? window.localStorage : null,
-      formulaHelpers: { shiftFormula },
+      formulaHelpers: { shiftFormula, updateFormulaForStructuralChange },
     });
     const editController = createEditController({ store });
     const mountPoint = document.getElementById('app');
@@ -391,15 +414,23 @@
     grid.appendChild(createNode(document, 'div', 'corner-cell'));
 
     model.columns.forEach(function createColumn(column) {
-      const header = createNode(document, 'div', 'column-header', column.label);
+      const header = createNode(document, 'div', 'column-header');
+      const label = createNode(document, 'span', 'header-label', column.label);
+      const actions = createHeaderActionButtons(document, column.actions, applyHeaderAction);
       header.dataset.column = column.label;
+      header.appendChild(label);
+      header.appendChild(actions);
       elements.columnHeaders[column.index + 1] = header;
       grid.appendChild(header);
     });
 
     model.rows.forEach(function createRow(row) {
-      const rowHeader = createNode(document, 'div', 'row-header', row.label);
+      const rowHeader = createNode(document, 'div', 'row-header');
+      const label = createNode(document, 'span', 'header-label', row.label);
+      const actions = createHeaderActionButtons(document, row.actions, applyHeaderAction);
       rowHeader.dataset.row = row.label;
+      rowHeader.appendChild(label);
+      rowHeader.appendChild(actions);
       elements.rowHeaders[row.index + 1] = rowHeader;
       grid.appendChild(rowHeader);
 
@@ -436,6 +467,25 @@
         displayValues[cellId] = engine.getDisplayText(cellId);
       });
       return displayValues;
+    }
+
+    function createHeaderActionButtons(doc, actions, onAction) {
+      const container = createNode(doc, 'div', 'header-actions');
+
+      actions.forEach(function appendAction(action) {
+        const button = createNode(doc, 'button', 'header-action-button', action.label[0]);
+        button.type = 'button';
+        button.title = action.label;
+        button.setAttribute('aria-label', action.label);
+        button.addEventListener('click', function handleClick(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          onAction(action);
+        });
+        container.appendChild(button);
+      });
+
+      return container;
     }
 
     function render() {
@@ -541,6 +591,20 @@
         input.focus();
         input.setSelectionRange(input.value.length, input.value.length);
       }
+    }
+
+    function applyHeaderAction(action) {
+      if (action.type === 'insert-row') {
+        store.insertRows(action.index, 1);
+      } else if (action.type === 'delete-row') {
+        store.deleteRows(action.index, 1);
+      } else if (action.type === 'insert-column') {
+        store.insertColumns(action.index, 1);
+      } else if (action.type === 'delete-column') {
+        store.deleteColumns(action.index, 1);
+      }
+
+      render();
     }
 
     function getPointFromTarget(target) {

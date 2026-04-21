@@ -159,6 +159,30 @@ test('inserts and deletes columns and keeps cells shifted predictably', () => {
   assert.equal(store.getCell('B1').raw, 'middle');
 });
 
+test('rewrites formulas when rows and columns are structurally edited', () => {
+  const store = createWorkbookStore({
+    namespace: 'apple-run',
+    storage: createMemoryStorage(),
+    formulaHelpers: {
+      shiftFormula,
+      updateFormulaForStructuralChange: require('./src/formula-engine.js').updateFormulaForStructuralChange,
+    },
+  });
+
+  store.commitCell(1, 1, '10');
+  store.commitCell(2, 1, '20');
+  store.commitCell(2, 2, '=SUM(A1:A2)');
+  store.commitCell(1, 3, '=B2');
+
+  store.insertRows(2, 1);
+  assert.equal(store.getCell('B3').raw, '=SUM(A1:A3)');
+  assert.equal(store.getCell('C1').raw, '=B3');
+
+  store.deleteColumns(1, 1);
+  assert.equal(store.getCell('A3').raw, '=SUM(#REF!:#REF!)');
+  assert.equal(store.getCell('B1').raw, '=A3');
+});
+
 test('maintains an evaluated cache and clears it when cells mutate', () => {
   const store = createWorkbookStore({ namespace: 'apple-run', storage: createMemoryStorage() });
 
