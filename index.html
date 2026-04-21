@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northstar Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div class="brand-block">
+          <div class="brand">Northstar Sheet</div>
+          <div class="hint">Enter formulas with <code>=</code>, navigate with arrows, press <code>Enter</code> to commit.</div>
+        </div>
+        <div class="formula-strip">
+          <label class="name-box-label" for="name-box">Cell</label>
+          <input id="name-box" class="name-box" type="text" readonly>
+          <label class="formula-label" for="formula-input">Formula</label>
+          <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+        </div>
+      </header>
+      <main class="grid-shell">
+        <table id="sheet" class="sheet" aria-label="Spreadsheet"></table>
+      </main>
+    </div>
+    <script src="core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
