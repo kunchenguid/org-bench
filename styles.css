@@ -1,0 +1,149 @@
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f3f6fb;
+  color: #132238;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+.formula-bar-wrap {
+  display: grid;
+  grid-template-columns: 88px 40px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid #d7e1f0;
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(16px);
+}
+
+.name-box,
+.formula-label,
+.formula-input {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #c7d5ea;
+  background: #fff;
+}
+
+.name-box,
+.formula-label {
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+
+.formula-label {
+  color: #4b5c76;
+}
+
+.formula-input {
+  width: 100%;
+  padding: 0 12px;
+  font: inherit;
+}
+
+.grid-wrap {
+  overflow: auto;
+  padding: 12px;
+}
+
+.sheet {
+  border-collapse: collapse;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(22, 38, 68, 0.08);
+}
+
+.sheet th,
+.sheet td {
+  border: 1px solid #dbe4f2;
+}
+
+.corner,
+.col-header,
+.row-header {
+  background: #f7faff;
+  color: #4d607d;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.corner {
+  min-width: 48px;
+}
+
+.col-header {
+  min-width: 120px;
+  height: 32px;
+}
+
+.row-header {
+  width: 48px;
+}
+
+.cell {
+  min-width: 120px;
+  height: 32px;
+  padding: 0;
+  position: relative;
+}
+
+.cell-value,
+.cell-editor {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 6px 10px;
+  font: 13px/1.4 inherit;
+}
+
+.cell-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-editor {
+  border: 2px solid #2a7fff;
+  outline: 0;
+}
+
+.cell.active {
+  box-shadow: inset 0 0 0 2px #2a7fff;
+  background: #edf4ff;
+}
+
+.cell.error .cell-value {
+  color: #b42318;
+}
+
+@media (max-width: 720px) {
+  .formula-bar-wrap {
+    grid-template-columns: 72px 36px 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .grid-wrap {
+    padding: 8px;
+  }
+
+  .col-header,
+  .cell {
+    min-width: 96px;
+  }
+}
