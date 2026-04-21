@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   copyRange,
+  createEditBuffer,
   createStore,
   deleteColumn,
   deleteRow,
@@ -13,6 +14,7 @@ const {
   insertRow,
   pasteRange,
   parseCellRef,
+  resolveEditBuffer,
   restoreHistorySnapshot,
   shiftFormula,
 } = require('./spreadsheet-core.js');
@@ -244,4 +246,18 @@ test('history snapshots preserve selection metadata alongside structural cell ch
   assert.equal(restored.store.getCell(0, 2), '20');
   assert.deepEqual(restored.selection, { col: 0, row: 3 });
   assert.deepEqual(restored.rangeAnchor, { col: 0, row: 3 });
+});
+
+test('committing an edit buffer uses the draft value', () => {
+  const buffer = createEditBuffer('=A1');
+  buffer.draft = '=A1+1';
+
+  assert.equal(resolveEditBuffer(buffer, true), '=A1+1');
+});
+
+test('cancelling an edit buffer restores the original value', () => {
+  const buffer = createEditBuffer('=A1');
+  buffer.draft = '=A1+1';
+
+  assert.equal(resolveEditBuffer(buffer, false), '=A1');
 });

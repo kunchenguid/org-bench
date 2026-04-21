@@ -108,6 +108,17 @@
     };
   }
 
+  function createEditBuffer(value) {
+    return {
+      original: value || '',
+      draft: value || '',
+    };
+  }
+
+  function resolveEditBuffer(buffer, shouldCommit) {
+    return shouldCommit ? buffer.draft : buffer.original;
+  }
+
   function rewriteFormulaReferences(formula, axis, index, delta, isDelete) {
     if (!formula || formula[0] !== '=') {
       return formula;
@@ -520,6 +531,7 @@
     ROWS,
     colToName,
     copyRange,
+    createEditBuffer,
     createHistorySnapshot,
     createStore,
     deleteColumn,
@@ -531,6 +543,7 @@
     pasteRange,
     parseCellRef,
     normalizeRange,
+    resolveEditBuffer,
     restoreHistorySnapshot,
     shiftFormula,
   };
