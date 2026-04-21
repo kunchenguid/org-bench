@@ -222,10 +222,17 @@
       return null;
     }
 
+    const shell = root.sheetShell || {};
     const store =
       options && options.store
         ? options.store
-        : SpreadsheetStore.createSpreadsheetStore({ namespace: getStorageNamespace() });
+        : shell.store
+          ? shell.store
+          : SpreadsheetStore.createSpreadsheetStore({
+              namespace: getStorageNamespace(),
+              formulaEngine: root.FormulaEngine,
+              mutationEngine: root.Mutations,
+            });
     const controller = GridSelection.createSelectionController(store, {
       rowCount: ROW_COUNT,
       colCount: COL_COUNT,
@@ -237,6 +244,17 @@
     }
 
     rootElement.__selectionController = controller;
+    shell.store = store;
+    shell.onStructuralAction = function (operation, action) {
+      if (typeof store.applyStructuralChange !== 'function') {
+        return false;
+      }
+
+      return store.applyStructuralChange(operation, {
+        label: action && action.label ? action.label.toLowerCase() : 'structure',
+      });
+    };
+    root.sheetShell = shell;
     installKeyboardNavigation(view.cellGrid, controller);
     installHeaderControls(rootElement, view);
     store.subscribe(function () {

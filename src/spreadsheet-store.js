@@ -41,6 +41,8 @@
       options && Number.isInteger(options.maxHistory) && options.maxHistory > 0
         ? options.maxHistory
         : 50;
+    const formulaEngine = resolveDependency(options, 'formulaEngine', 'FormulaEngine');
+    const mutationEngine = resolveDependency(options, 'mutationEngine', 'Mutations');
     const storageKey = namespace + ':' + STORAGE_SUFFIX;
     const listeners = new Set();
 
@@ -55,6 +57,8 @@
         redo: [],
       },
     };
+
+    recomputeComputed();
 
     function getSnapshot() {
       return {
@@ -95,6 +99,7 @@
       }
 
       applyCellObject(state.cells, normalizedChanges.after);
+      recomputeComputed();
       pushHistory({
         type: 'cells',
         label: options && options.label ? options.label : 'edit',
@@ -112,6 +117,35 @@
         patch[cellId] = '';
       }
       return applyCells(patch, options || { label: 'clear' });
+    }
+
+    function applyStructuralChange(operation, options) {
+      if (!mutationEngine || typeof mutationEngine.applyStructuralChange !== 'function') {
+        return false;
+      }
+
+      const currentCells = mapCellsToObjects(state.cells);
+      const result = mutationEngine.applyStructuralChange(
+        { cells: currentCells },
+        operation
+      );
+      const nextCells = mapObjectsToCells(result && result.state ? result.state.cells : {});
+      const normalizedChanges = normalizeCellPatch(nextCells, state.cells, true);
+
+      if (Object.keys(normalizedChanges.before).length === 0 && Object.keys(normalizedChanges.after).length === 0) {
+        return false;
+      }
+
+      applyHistoryEntry(normalizedChanges.after);
+      pushHistory({
+        type: 'cells',
+        label: options && options.label ? options.label : 'structure',
+        before: normalizedChanges.before,
+        after: normalizedChanges.after,
+      });
+      persistState(storage, storageKey, state);
+      notify('structure');
+      return true;
     }
 
     function setActiveCell(point) {
@@ -184,6 +218,38 @@
 
     function applyHistoryEntry(patch) {
       applyCellObject(state.cells, patch);
+      recomputeComputed();
+    }
+
+    function recomputeComputed() {
+      if (!formulaEngine || typeof formulaEngine.createSpreadsheetEngine !== 'function') {
+        state.computed = new Map();
+        return;
+      }
+
+      const engine = formulaEngine.createSpreadsheetEngine();
+      for (const [cellId, rawValue] of state.cells.entries()) {
+        if (isDeletedReferenceFormula(rawValue)) {
+          continue;
+        }
+        engine.setCell(cellId, rawValue);
+      }
+
+      const computed = {};
+      for (const [cellId, rawValue] of state.cells.entries()) {
+        if (isDeletedReferenceFormula(rawValue)) {
+          computed[cellId] = {
+            raw: rawValue,
+            type: 'error',
+            value: '#REF!',
+            display: '#REF!',
+            dependencies: [],
+          };
+          continue;
+        }
+        computed[cellId] = engine.getCell(cellId);
+      }
+      state.computed = new Map(Object.entries(computed));
     }
 
     function notify(reason) {
@@ -200,6 +266,7 @@
       getComputedCell,
       setCell,
       applyCells,
+      applyStructuralChange,
       clearCells,
       setActiveCell,
       setSelection,
@@ -213,11 +280,18 @@
     };
   }
 
-  function normalizeCellPatch(nextCells, currentCells) {
+  function normalizeCellPatch(nextCells, currentCells, includeDeletions) {
     const before = {};
     const after = {};
 
+    return collectNormalizedCellPatch(nextCells, currentCells, before, after, Boolean(includeDeletions));
+  }
+
+  function collectNormalizedCellPatch(nextCells, currentCells, before, after, includeDeletions) {
+    const seen = new Set();
+
     for (const [cellId, value] of Object.entries(nextCells || {})) {
+      seen.add(cellId);
       const previousValue = currentCells.get(cellId) || '';
       const normalizedValue = value === null || value === undefined ? '' : String(value);
       if (previousValue === normalizedValue) {
@@ -228,7 +302,49 @@
       after[cellId] = normalizedValue;
     }
 
+    if (includeDeletions) {
+      for (const [cellId, previousValue] of currentCells.entries()) {
+        if (seen.has(cellId)) {
+          continue;
+        }
+        before[cellId] = previousValue;
+        after[cellId] = '';
+      }
+    }
+
     return { before, after };
+  }
+
+  function mapCellsToObjects(cells) {
+    const mapped = {};
+    for (const [cellId, rawValue] of cells.entries()) {
+      mapped[cellId] = { raw: rawValue };
+    }
+    return mapped;
+  }
+
+  function mapObjectsToCells(cells) {
+    const mapped = {};
+    for (const [cellId, payload] of Object.entries(cells || {})) {
+      mapped[cellId] = payload && typeof payload === 'object' ? payload.raw || '' : String(payload || '');
+    }
+    return mapped;
+  }
+
+  function isDeletedReferenceFormula(rawValue) {
+    return typeof rawValue === 'string' && rawValue.startsWith('=') && rawValue.includes('#REF!');
+  }
+
+  function resolveDependency(options, optionKey, globalKey) {
+    if (options && options[optionKey]) {
+      return options[optionKey];
+    }
+
+    if (typeof globalThis !== 'undefined' && globalThis[globalKey]) {
+      return globalThis[globalKey];
+    }
+
+    return null;
   }
 
   function applyCellObject(cells, patch) {
