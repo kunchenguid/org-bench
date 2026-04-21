@@ -279,18 +279,26 @@
         return { type: 'literal', value: token.value };
       }
       if (token.type === 'error') {
-        consume();
-        return { type: 'error', value: makeError(token.value) };
+        const start = consume().value;
+        if (peek() && peek().value === ':') {
+          consume(':');
+          const endToken = consume();
+          if (!endToken || !['ref', 'error'].includes(endToken.type)) {
+            throw new Error('Expected range endpoint');
+          }
+          return { type: 'range', start, end: endToken.value };
+        }
+        return { type: 'error', value: makeError(start) };
       }
       if (token.type === 'ref') {
         const start = consume().value;
         if (peek() && peek().value === ':') {
           consume(':');
-          const end = consume().value;
-          if (!end || tokens[index - 1].type !== 'ref') {
+          const endToken = consume();
+          if (!endToken || !['ref', 'error'].includes(endToken.type)) {
             throw new Error('Expected range ref');
           }
-          return { type: 'range', start, end };
+          return { type: 'range', start, end: endToken.value };
         }
         return { type: 'ref', ref: start };
       }
@@ -580,6 +588,12 @@
     }
 
     evaluateRange(startRef, endRef, cache, visiting) {
+      if (String(startRef).startsWith('#')) {
+        return makeError(startRef);
+      }
+      if (String(endRef).startsWith('#')) {
+        return makeError(endRef);
+      }
       const start = normalizeRef(startRef);
       const end = normalizeRef(endRef);
       if (isError(start)) {

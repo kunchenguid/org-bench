@@ -81,3 +81,10 @@ test('ref error literals render as ref errors when evaluated', () => {
   model.setCell('A1', '=#REF!');
   assert.equal(model.getDisplayValue('A1'), '#REF!');
 });
+
+test('shifting an out-of-bounds range endpoint preserves ref errors', () => {
+  const model = new SpreadsheetModel();
+  applyPaste(model, 'A1', '=A1:B2', { sourceSelection: { start: 'B2', end: 'B2' } });
+  assert.equal(model.getRaw('A1'), '=#REF!:A1');
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
