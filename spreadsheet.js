@@ -28,6 +28,18 @@
       clear() {
         cells.clear();
       },
+      insertRow(row, count) {
+        transformStructure(cells, { kind: 'row', action: 'insert', index: row, count: count || 1 });
+      },
+      deleteRow(row, count) {
+        transformStructure(cells, { kind: 'row', action: 'delete', index: row, count: count || 1 });
+      },
+      insertColumn(col, count) {
+        transformStructure(cells, { kind: 'col', action: 'insert', index: col, count: count || 1 });
+      },
+      deleteColumn(col, count) {
+        transformStructure(cells, { kind: 'col', action: 'delete', index: col, count: count || 1 });
+      },
     };
   }
 
@@ -86,6 +98,10 @@
         return numeric;
       }
       return raw;
+    }
+
+    if (raw.includes(ERROR_REF)) {
+      return { error: ERROR_REF };
     }
 
     if (visiting.has(address)) {
@@ -565,6 +581,94 @@
       }
       return `${reference.colAbsolute ? '$' : ''}${columnToLetters(nextCol)}${reference.rowAbsolute ? '$' : ''}${nextRow}`;
     });
+  }
+
+  function transformStructure(cells, operation) {
+    const nextCells = new Map();
+
+    for (const [address, raw] of cells.entries()) {
+      const parsed = parseAddress(address);
+      const nextAddress = shiftAddressForStructure(parsed, operation);
+      if (!nextAddress) {
+        continue;
+      }
+
+      const rewritten = rewriteFormulaForStructure(raw, operation);
+      if (rewritten !== '') {
+        nextCells.set(formatAddress(nextAddress.row, nextAddress.col), rewritten);
+      }
+    }
+
+    cells.clear();
+    for (const [address, raw] of nextCells.entries()) {
+      cells.set(address, raw);
+    }
+  }
+
+  function shiftAddressForStructure(address, operation) {
+    if (!address) {
+      return null;
+    }
+
+    const next = { row: address.row, col: address.col };
+    const axis = operation.kind === 'row' ? 'row' : 'col';
+    const value = next[axis];
+    const end = operation.index + operation.count - 1;
+
+    if (operation.action === 'insert') {
+      if (value >= operation.index) {
+        next[axis] += operation.count;
+      }
+      return next;
+    }
+
+    if (value >= operation.index && value <= end) {
+      return null;
+    }
+    if (value > end) {
+      next[axis] -= operation.count;
+    }
+    return next;
+  }
+
+  function rewriteFormulaForStructure(raw, operation) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    return raw.replace(/\$?[A-Z]+\$?[1-9][0-9]*/g, (match) => {
+      const reference = parseReferenceToken(match);
+      const adjusted = adjustReferenceForStructure(reference, operation);
+      if (adjusted === ERROR_REF) {
+        return ERROR_REF;
+      }
+      return `${reference.colAbsolute ? '$' : ''}${columnToLetters(adjusted.col)}${reference.rowAbsolute ? '$' : ''}${adjusted.row}`;
+    });
+  }
+
+  function adjustReferenceForStructure(reference, operation) {
+    const axis = operation.kind === 'row' ? 'row' : 'col';
+    const end = operation.index + operation.count - 1;
+    const value = reference[axis];
+    const next = {
+      row: reference.row,
+      col: reference.col,
+    };
+
+    if (operation.action === 'insert') {
+      if (value >= operation.index) {
+        next[axis] += operation.count;
+      }
+      return next;
+    }
+
+    if (value >= operation.index && value <= end) {
+      return ERROR_REF;
+    }
+    if (value > end) {
+      next[axis] -= operation.count;
+    }
+    return next;
   }
 
   function getStorageKey(namespace, suffix) {

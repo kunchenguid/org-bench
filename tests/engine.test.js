@@ -63,3 +63,47 @@ test('shifts only relative references when pasting formulas', () => {
 test('builds namespaced storage keys', () => {
   assert.equal(getStorageKey('apple-run', 'workbook'), 'apple-run:workbook');
 });
+
+test('inserting a row rewrites moved formulas to keep pointing at the same data', () => {
+  const workbook = createWorkbook();
+  workbook.setCell('A2', '7');
+  workbook.setCell('B3', '=A2');
+
+  workbook.insertRow(2);
+
+  assert.equal(workbook.getCell('B4'), '=A3');
+  assert.equal(evaluateCellDisplay(workbook, 'B4'), '7');
+});
+
+test('deleting a referenced row turns the formula reference into #REF!', () => {
+  const workbook = createWorkbook();
+  workbook.setCell('A2', '7');
+  workbook.setCell('B4', '=A2');
+
+  workbook.deleteRow(2);
+
+  assert.equal(workbook.getCell('B3'), '=#REF!');
+  assert.equal(evaluateCellDisplay(workbook, 'B3'), '#REF!');
+});
+
+test('inserting a column rewrites formulas after the insertion point', () => {
+  const workbook = createWorkbook();
+  workbook.setCell('B1', '9');
+  workbook.setCell('C2', '=B1');
+
+  workbook.insertColumn(2);
+
+  assert.equal(workbook.getCell('D2'), '=C1');
+  assert.equal(evaluateCellDisplay(workbook, 'D2'), '9');
+});
+
+test('deleting a referenced column turns the formula reference into #REF!', () => {
+  const workbook = createWorkbook();
+  workbook.setCell('B1', '9');
+  workbook.setCell('D2', '=B1');
+
+  workbook.deleteColumn(2);
+
+  assert.equal(workbook.getCell('C2'), '=#REF!');
+  assert.equal(evaluateCellDisplay(workbook, 'C2'), '#REF!');
+});
