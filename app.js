@@ -1,5 +1,6 @@
 (function () {
   const engine = window.SpreadsheetFormulaEngine;
+  const clipboardUtils = window.SpreadsheetClipboardUtils;
   const COLS = 26;
   const ROWS = 100;
   const MAX_HISTORY = 50;
@@ -272,72 +273,46 @@
   }
 
   function buildClipboardPayload() {
-    const bounds = selectionBounds();
-    const rows = [];
-    const rawCells = [];
-
-    for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
-      const values = [];
-      for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
-        const raw = getRaw(row, col);
-        values.push(raw);
-        rawCells.push({ row: row, col: col, raw: raw });
-      }
-      rows.push(values.join('\t'));
-    }
-
-    return {
-      originRow: bounds.minRow,
-      originCol: bounds.minCol,
-      width: bounds.maxCol - bounds.minCol + 1,
-      height: bounds.maxRow - bounds.minRow + 1,
-      rawCells: rawCells,
-      text: rows.join('\n'),
-    };
+    return clipboardUtils.buildClipboardPayload(selectionBounds(), getRaw);
   }
 
   function applyPastedText(text) {
-    const rows = text.replace(/\r/g, '').split('\n').map(function (line) {
-      return line.split('\t');
+    const translated = clipboardUtils.translatePaste({
+      text: text,
+      targetRow: state.selection.focusRow,
+      targetCol: state.selection.focusCol,
+      sourcePayload: state.clipboardPayload,
+      pendingCut: state.pendingCut,
     });
-    if (!rows.length) {
+
+    if (!translated.writes.length) {
       return;
     }
 
     pushHistory();
-    const targetRow = state.selection.focusRow;
-    const targetCol = state.selection.focusCol;
-    const sourcePayload = state.clipboardPayload && state.clipboardPayload.text === text ? state.clipboardPayload : null;
 
-    for (let rowOffset = 0; rowOffset < rows.length; rowOffset += 1) {
-      for (let colOffset = 0; colOffset < rows[rowOffset].length; colOffset += 1) {
-        const row = targetRow + rowOffset;
-        const col = targetCol + colOffset;
-        if (!isInsideGrid(row, col)) {
-          continue;
-        }
-
-        const raw = rows[rowOffset][colOffset];
-        const sourceRow = sourcePayload ? sourcePayload.originRow + rowOffset : targetRow + rowOffset;
-        const sourceCol = sourcePayload ? sourcePayload.originCol + colOffset : targetCol + colOffset;
-        const shifted = state.pendingCut && state.pendingCut.text === text
-          ? raw
-          : engine.shiftFormula(raw, row - sourceRow, col - sourceCol);
-        setRaw(row, col, shifted);
+    translated.writes.forEach(function (cell) {
+      if (isInsideGrid(cell.row, cell.col)) {
+        setRaw(cell.row, cell.col, cell.raw);
       }
-    }
+    });
+
+    translated.clears.forEach(function (cell) {
+      if (isInsideGrid(cell.row, cell.col)) {
+        setRaw(cell.row, cell.col, '');
+      }
+    });
 
     if (state.pendingCut && state.pendingCut.text === text) {
-      state.pendingCut.rawCells.forEach(function (cell) {
-        if (cell.row === targetRow + (cell.row - state.pendingCut.originRow) && cell.col === targetCol + (cell.col - state.pendingCut.originCol)) {
-          return;
-        }
-        setRaw(cell.row, cell.col, '');
-      });
       state.pendingCut = null;
     }
 
-    extendSelection(Math.min(ROWS - 1, targetRow + rows.length - 1), Math.min(COLS - 1, targetCol + rows[0].length - 1));
+    state.selection = {
+      anchorRow: Math.max(0, Math.min(ROWS - 1, translated.selection.minRow)),
+      anchorCol: Math.max(0, Math.min(COLS - 1, translated.selection.minCol)),
+      focusRow: Math.max(0, Math.min(ROWS - 1, translated.selection.maxRow)),
+      focusCol: Math.max(0, Math.min(COLS - 1, translated.selection.maxCol)),
+    };
     persistState();
     render();
   }
