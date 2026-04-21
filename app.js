@@ -7,6 +7,7 @@
 
   const state = loadState();
   let computed = {};
+  let cutSelection = null;
   let editSession = null;
 
   renderGrid();
@@ -78,11 +79,40 @@
 
   function bindEvents() {
     sheetEl.addEventListener('click', onCellClick);
+    sheetEl.addEventListener('mousedown', onCellMouseDown);
     sheetEl.addEventListener('dblclick', onCellDoubleClick);
     document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('cut', onCut);
+    document.addEventListener('paste', onPaste);
     formulaBar.addEventListener('focus', syncFormulaBar);
     formulaBar.addEventListener('input', onFormulaInput);
     formulaBar.addEventListener('keydown', onFormulaKeyDown);
+  }
+
+  function onCellMouseDown(event) {
+    const cell = event.target.closest('td[data-cell-id]');
+    if (!cell) return;
+    const anchor = core.parseCellId(cell.dataset.cellId);
+    state.selection.anchor = anchor;
+    state.selection.focus = anchor;
+    renderSelection();
+
+    function onMove(moveEvent) {
+      const target = moveEvent.target.closest && moveEvent.target.closest('td[data-cell-id]');
+      if (!target) return;
+      state.selection.focus = core.parseCellId(target.dataset.cellId);
+      renderSelection();
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      saveState();
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 
   function onCellClick(event) {
@@ -169,6 +199,31 @@
     }
   }
 
+  function onCopy(event) {
+    if (document.activeElement === formulaBar || editSession) return;
+    event.clipboardData.setData('text/plain', core.copyRange(state.cells, getSelectionBounds()));
+    cutSelection = null;
+    event.preventDefault();
+  }
+
+  function onCut(event) {
+    if (document.activeElement === formulaBar || editSession) return;
+    const bounds = getSelectionBounds();
+    event.clipboardData.setData('text/plain', core.copyRange(state.cells, bounds));
+    cutSelection = bounds;
+    event.preventDefault();
+  }
+
+  function onPaste(event) {
+    if (document.activeElement === formulaBar || editSession) return;
+    const text = event.clipboardData.getData('text/plain');
+    state.cells = core.pasteRange(state.cells, state.selection.focus, text, cutSelection);
+    cutSelection = null;
+    recalculate();
+    saveState();
+    event.preventDefault();
+  }
+
   function beginEdit(cellId, replace, seedText) {
     finishEdit(true);
     const cell = getCellElement(cellId);
@@ -215,6 +270,7 @@
 
   function setCellRaw(cellId, raw) {
     const value = String(raw || '');
+    cutSelection = null;
     if (value) {
       state.cells[cellId] = value;
     } else {
@@ -286,6 +342,7 @@
   }
 
   function clearSelectedCells() {
+    cutSelection = null;
     const bounds = getSelectionBounds();
     for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
       for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {

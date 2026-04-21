@@ -371,6 +371,67 @@
     });
   }
 
+  function copyRange(cells, bounds) {
+    const rows = [];
+    for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
+      const values = [];
+      for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
+        values.push(normalizeRaw(cells[cellIdFromPosition({ row, col })]));
+      }
+      rows.push(values.join('\t'));
+    }
+    return rows.join('\n');
+  }
+
+  function parseClipboardMatrix(text) {
+    return String(text || '')
+      .split(/\r?\n/)
+      .filter(function (row) {
+        return row !== '';
+      })
+      .map(function (row) {
+        return row.split('\t');
+      });
+  }
+
+  function pasteRange(cells, target, text, cutBounds) {
+    const next = Object.assign({}, cells);
+    const rows = parseClipboardMatrix(text);
+    if (!rows.length) return next;
+
+    if (cutBounds) {
+      for (let row = cutBounds.minRow; row <= cutBounds.maxRow; row += 1) {
+        for (let col = cutBounds.minCol; col <= cutBounds.maxCol; col += 1) {
+          delete next[cellIdFromPosition({ row, col })];
+        }
+      }
+    }
+
+    const sourceOrigin = cutBounds
+      ? { row: cutBounds.minRow, col: cutBounds.minCol }
+      : { row: 0, col: 0 };
+
+    rows.forEach(function (values, rowIndex) {
+      values.forEach(function (raw, colIndex) {
+        const destination = {
+          row: target.row + rowIndex,
+          col: target.col + colIndex,
+        };
+        const destinationId = cellIdFromPosition(destination);
+        const rowOffset = destination.row - (sourceOrigin.row + rowIndex);
+        const colOffset = destination.col - (sourceOrigin.col + colIndex);
+        const shifted = raw && raw[0] === '=' ? shiftFormula(raw, rowOffset, colOffset) : raw;
+        if (shifted) {
+          next[destinationId] = shifted;
+        } else {
+          delete next[destinationId];
+        }
+      });
+    });
+
+    return next;
+  }
+
   function evaluateAst(node, context) {
     if (!node) return makeError('#ERR!');
     if (node.type === 'number') return makeNumber(node.value);
@@ -481,7 +542,9 @@
     cellIdFromPosition,
     parseCellId,
     clampCellPosition,
+    copyRange,
     evaluateSpreadsheet,
+    pasteRange,
     shiftFormula,
   };
 });

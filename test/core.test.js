@@ -2,7 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  copyRange,
   evaluateSpreadsheet,
+  pasteRange,
   shiftFormula,
 } = require('../spreadsheet-core.js');
 
@@ -67,4 +69,57 @@ test('detects circular references', () => {
 
 test('shifts relative references when formulas are pasted', () => {
   assert.equal(shiftFormula('=A1+$B1+C$1+$D$1', 1, 2), '=C2+$B2+E$1+$D$1');
+});
+
+test('copies a rectangular range as tab-separated raw contents', () => {
+  const copied = copyRange(
+    {
+      A1: '2',
+      B1: '=A1*3',
+      A2: 'hello',
+      B2: '=CONCAT(A2," world")',
+    },
+    { minRow: 0, maxRow: 1, minCol: 0, maxCol: 1 }
+  );
+
+  assert.equal(copied, '2\t=A1*3\nhello\t=CONCAT(A2," world")');
+});
+
+test('pastes a rectangular range and shifts relative formulas from the source origin', () => {
+  const next = pasteRange(
+    {},
+    { row: 2, col: 2 },
+    '2\t=A1+B1\n3\t=$A1+A$1'
+  );
+
+  assert.deepEqual(next, {
+    C3: '2',
+    D3: '=C3+D3',
+    C4: '3',
+    D4: '=$A3+C$1',
+  });
+});
+
+test('cut-paste moves source contents and clears the original range', () => {
+  const copied = copyRange(
+    {
+      A1: '7',
+      B1: '=A1*2',
+    },
+    { minRow: 0, maxRow: 0, minCol: 0, maxCol: 1 }
+  );
+  const next = pasteRange(
+    {
+      A1: '7',
+      B1: '=A1*2',
+    },
+    { row: 1, col: 0 },
+    copied,
+    { minRow: 0, maxRow: 0, minCol: 0, maxCol: 1 }
+  );
+
+  assert.deepEqual(next, {
+    A2: '7',
+    B2: '=A2*2',
+  });
 });
