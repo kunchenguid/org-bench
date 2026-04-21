@@ -193,9 +193,19 @@
       setCell,
       getCellRaw,
       getCells,
+      replaceCells,
       getDisplayValue,
       evaluateCell
     };
+
+    function replaceCells(nextCells) {
+      rawCells.clear();
+      Object.keys(nextCells || {}).forEach((cellId) => {
+        if (nextCells[cellId] !== '') {
+          rawCells.set(cellId, String(nextCells[cellId]));
+        }
+      });
+    }
   }
 
   function tokenize(input) {
@@ -632,7 +642,8 @@
       rangeFocus: stored.selected || 'A1',
       editing: null,
       dragging: false,
-      clipboard: null
+      clipboard: null,
+      history: createHistoryManager(50)
     };
 
     rootNode.innerHTML = [
@@ -734,6 +745,15 @@
     document.addEventListener('keydown', (event) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const meta = isMac ? event.metaKey : event.ctrlKey;
+      if (meta && !state.editing && (event.key.toLowerCase() === 'z' || event.key.toLowerCase() === 'y')) {
+        event.preventDefault();
+        if (event.key.toLowerCase() === 'y' || event.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
       if (meta && !event.shiftKey) {
         return;
       }
@@ -966,6 +986,7 @@
       if (!state.editing) {
         return;
       }
+      recordHistory();
       engine.setCell(state.editing.cellId, state.editing.value);
       state.editing = null;
       refreshAll();
@@ -1036,6 +1057,7 @@
     }
 
     function clearSelection() {
+      recordHistory();
       const box = getSelectionBox();
       for (let row = box.startRow; row <= box.endRow; row += 1) {
         for (let col = box.startCol; col <= box.endCol; col += 1) {
@@ -1047,6 +1069,7 @@
     }
 
     function applyPaste(payload) {
+      recordHistory();
       const targetBox = getSelectionBox();
       const matrix = payload.matrix;
       const useSelectionBox = matrix.length === targetBox.endRow - targetBox.startRow + 1 && matrix[0].length === targetBox.endCol - targetBox.startCol + 1;
@@ -1089,6 +1112,44 @@
       );
       refreshAll();
       persist();
+    }
+
+    function createSnapshot() {
+      return {
+        selected: state.selected,
+        rangeAnchor: state.rangeAnchor,
+        rangeFocus: state.rangeFocus,
+        cells: engine.getCells()
+      };
+    }
+
+    function restoreSnapshot(snapshot) {
+      engine.replaceCells(snapshot.cells || {});
+      state.selected = snapshot.selected || 'A1';
+      state.rangeAnchor = snapshot.rangeAnchor || state.selected;
+      state.rangeFocus = snapshot.rangeFocus || state.selected;
+      state.editing = null;
+      refreshAll();
+      persist();
+      focusSelectedCell();
+    }
+
+    function recordHistory() {
+      state.history.record(createSnapshot());
+    }
+
+    function undo() {
+      const snapshot = state.history.undo(createSnapshot());
+      if (snapshot) {
+        restoreSnapshot(snapshot);
+      }
+    }
+
+    function redo() {
+      const snapshot = state.history.redo(createSnapshot());
+      if (snapshot) {
+        restoreSnapshot(snapshot);
+      }
     }
 
     function focusSelectedCell() {
@@ -1154,6 +1215,44 @@
     return key.replace('Arrow', '').toLowerCase();
   }
 
+  function createHistoryManager(limit) {
+    const undoStack = [];
+    const redoStack = [];
+
+    return {
+      record: function (snapshot) {
+        undoStack.push(cloneSnapshot(snapshot));
+        if (undoStack.length > limit) {
+          undoStack.shift();
+        }
+        redoStack.length = 0;
+      },
+      undo: function (current) {
+        if (!undoStack.length) {
+          return null;
+        }
+        const snapshot = undoStack.pop();
+        redoStack.push(cloneSnapshot(current));
+        return cloneSnapshot(snapshot);
+      },
+      redo: function (current) {
+        if (!redoStack.length) {
+          return null;
+        }
+        const snapshot = redoStack.pop();
+        undoStack.push(cloneSnapshot(current));
+        if (undoStack.length > limit) {
+          undoStack.shift();
+        }
+        return cloneSnapshot(snapshot);
+      }
+    };
+  }
+
+  function cloneSnapshot(snapshot) {
+    return JSON.parse(JSON.stringify(snapshot));
+  }
+
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
   }
@@ -1165,6 +1264,7 @@
   return {
     createEngine: createEngine,
     createApp: createApp,
+    createHistoryManager: createHistoryManager,
     shiftFormula: shiftFormula,
     COL_COUNT: COL_COUNT,
     ROW_COUNT: ROW_COUNT
