@@ -1,44 +1,22 @@
-(function (global) {
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = factory(require('./workbook-store.js'), require('./src/formula-engine.js'));
+  } else {
+    root.SpreadsheetSurface = factory(root.WorkbookStore, root.SpreadsheetFormulaEngine);
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (WorkbookStoreApi, FormulaApi) {
   const SHEET_COLUMNS = 26;
   const SHEET_ROWS = 100;
-  const DEFAULT_RANGE = {
-    startColumn: 0,
-    startRow: 0,
-    endColumn: 2,
-    endRow: 3,
+  const FORMULA_PLACEHOLDER = 'Paste or select cells to inspect raw contents';
+  const NAVIGATION_KEYS = {
+    ArrowUp: { row: -1, col: 0 },
+    ArrowDown: { row: 1, col: 0 },
+    ArrowLeft: { row: 0, col: -1 },
+    ArrowRight: { row: 0, col: 1 },
   };
 
   function getColumnLabel(index) {
     return String.fromCharCode(65 + index);
-  }
-
-  function buildSurfaceModel() {
-    const columns = Array.from({ length: SHEET_COLUMNS }, (_, columnIndex) => ({
-      index: columnIndex,
-      label: getColumnLabel(columnIndex),
-    }));
-
-    const rows = Array.from({ length: SHEET_ROWS }, (_, rowIndex) => ({
-      index: rowIndex,
-      label: String(rowIndex + 1),
-      cells: columns.map((column) => ({
-        row: rowIndex,
-        column: column.index,
-        address: `${column.label}${rowIndex + 1}`,
-      })),
-    }));
-
-    return {
-      formulaBar: {
-        label: 'fx',
-        name: 'Formula Bar',
-        placeholder: 'Selected cell contents will appear here',
-      },
-      columns,
-      rows,
-      activeCell: { column: 0, row: 0 },
-      range: { ...DEFAULT_RANGE },
-    };
   }
 
   function createNode(document, tagName, className, textContent) {
@@ -52,34 +30,205 @@
     return node;
   }
 
-  function isCellInRange(cell, range) {
-    return cell.column >= range.startColumn && cell.column <= range.endColumn && cell.row >= range.startRow && cell.row <= range.endRow;
+  function buildSurfaceModel(snapshot) {
+    const selection = snapshot && snapshot.selection ? snapshot.selection : createDefaultSelection();
+    const columns = Array.from({ length: SHEET_COLUMNS }, function mapColumn(_, columnIndex) {
+      return {
+        index: columnIndex,
+        label: getColumnLabel(columnIndex),
+      };
+    });
+
+    const rows = Array.from({ length: SHEET_ROWS }, function mapRow(_, rowIndex) {
+      return {
+        index: rowIndex,
+        label: String(rowIndex + 1),
+        cells: columns.map(function mapCell(column) {
+          return {
+            row: rowIndex,
+            column: column.index,
+            address: column.label + String(rowIndex + 1),
+          };
+        }),
+      };
+    });
+
+    return {
+      formulaBar: {
+        label: 'fx',
+        name: 'Formula Bar',
+        placeholder: FORMULA_PLACEHOLDER,
+      },
+      columns,
+      rows,
+      activeCell: {
+        column: selection.active.col - 1,
+        row: selection.active.row - 1,
+      },
+      range: {
+        startColumn: selection.range.start.col - 1,
+        startRow: selection.range.start.row - 1,
+        endColumn: selection.range.end.col - 1,
+        endRow: selection.range.end.row - 1,
+      },
+    };
   }
 
-  function isRangeEdge(cell, range, side) {
-    if (!isCellInRange(cell, range)) {
+  function createDefaultSelection() {
+    return {
+      active: { row: 1, col: 1 },
+      anchor: { row: 1, col: 1 },
+      range: {
+        start: { row: 1, col: 1 },
+        end: { row: 1, col: 1 },
+      },
+      activeCellId: 'A1',
+    };
+  }
+
+  function selectionToBounds(selection) {
+    return {
+      start: {
+        row: Math.min(selection.range.start.row, selection.range.end.row),
+        col: Math.min(selection.range.start.col, selection.range.end.col),
+      },
+      end: {
+        row: Math.max(selection.range.start.row, selection.range.end.row),
+        col: Math.max(selection.range.start.col, selection.range.end.col),
+      },
+    };
+  }
+
+  function isCellInRange(cell, bounds) {
+    return cell.column + 1 >= bounds.start.col && cell.column + 1 <= bounds.end.col && cell.row + 1 >= bounds.start.row && cell.row + 1 <= bounds.end.row;
+  }
+
+  function isRangeEdge(cell, bounds, side) {
+    if (!isCellInRange(cell, bounds)) {
       return false;
     }
 
     if (side === 'top') {
-      return cell.row === range.startRow;
+      return cell.row + 1 === bounds.start.row;
     }
     if (side === 'right') {
-      return cell.column === range.endColumn;
+      return cell.column + 1 === bounds.end.col;
     }
     if (side === 'bottom') {
-      return cell.row === range.endRow;
+      return cell.row + 1 === bounds.end.row;
     }
-    return cell.column === range.startColumn;
+    return cell.column + 1 === bounds.start.col;
   }
 
-  function renderSpreadsheet(document) {
+  function serializeClipboardMatrix(matrix) {
+    return matrix.map(function serializeRow(row) {
+      return row.join('\t');
+    }).join('\n');
+  }
+
+  function parseClipboardText(text) {
+    const normalized = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
+    const rows = normalized.split('\n');
+    while (rows.length > 1 && rows[rows.length - 1] === '') {
+      rows.pop();
+    }
+    return rows.map(function parseRow(row) {
+      return row.split('\t');
+    });
+  }
+
+  function getSelectionMatrix(snapshot, bounds) {
+    const matrix = [];
+    for (let row = bounds.start.row; row <= bounds.end.row; row += 1) {
+      const rowValues = [];
+      for (let col = bounds.start.col; col <= bounds.end.col; col += 1) {
+        const cellId = WorkbookStoreApi.coordsToCellId(row, col);
+        rowValues.push(snapshot.cells[cellId] ? snapshot.cells[cellId].raw : '');
+      }
+      matrix.push(rowValues);
+    }
+    return matrix;
+  }
+
+  function getMatrixShape(matrix) {
+    return {
+      rows: matrix.length,
+      cols: matrix.reduce(function maxColumns(max, row) {
+        return Math.max(max, row.length);
+      }, 0),
+    };
+  }
+
+  function getPasteStart(selection, matrix) {
+    const bounds = selectionToBounds(selection);
+    const shape = getMatrixShape(matrix);
+    const targetHeight = bounds.end.row - bounds.start.row + 1;
+    const targetWidth = bounds.end.col - bounds.start.col + 1;
+
+    if ((targetHeight > 1 || targetWidth > 1) && targetHeight === shape.rows && targetWidth === shape.cols) {
+      return { row: bounds.start.row, col: bounds.start.col };
+    }
+
+    return { row: selection.active.row, col: selection.active.col };
+  }
+
+  function shiftClipboardMatrix(matrix, rowOffset, colOffset, shiftFormula) {
+    return matrix.map(function mapRow(row) {
+      return row.map(function mapValue(value) {
+        if (typeof value === 'string' && value[0] === '=') {
+          return shiftFormula(value, rowOffset, colOffset);
+        }
+        return value;
+      });
+    });
+  }
+
+  function isNumericDisplayValue(value) {
+    return /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(String(value));
+  }
+
+  function clampPoint(point) {
+    return {
+      row: Math.min(Math.max(point.row, 1), SHEET_ROWS),
+      col: Math.min(Math.max(point.col, 1), SHEET_COLUMNS),
+    };
+  }
+
+  function resolveNamespace(context) {
+    return context.__BENCHMARK_RUN_NAMESPACE__
+      || context.BENCHMARK_RUN_NAMESPACE
+      || context.__RUN_STORAGE_NAMESPACE__
+      || 'spreadsheet';
+  }
+
+  function createSpreadsheetApp(document, options) {
+    const settings = options || {};
+    const formulaModule = FormulaApi || {};
+    const shiftFormula = typeof formulaModule.shiftFormula === 'function'
+      ? formulaModule.shiftFormula
+      : function passthroughFormula(raw) {
+        return raw;
+      };
+    const store = settings.store || WorkbookStoreApi.createWorkbookStore({
+      namespace: resolveNamespace(typeof window !== 'undefined' ? window : globalThis),
+      storage: typeof window !== 'undefined' ? window.localStorage : null,
+      formulaHelpers: { shiftFormula },
+    });
     const mountPoint = document.getElementById('app');
+
     if (!mountPoint) {
-      return;
+      return null;
     }
 
     const model = buildSurfaceModel();
+    const elements = {
+      cellNodes: Object.create(null),
+      columnHeaders: Object.create(null),
+      rowHeaders: Object.create(null),
+    };
+    let clipboardState = null;
+    let dragState = null;
+
     const shell = createNode(document, 'main', 'app-shell');
     const topbar = createNode(document, 'section', 'formula-bar');
     const nameBox = createNode(document, 'div', 'name-box', 'A1');
@@ -89,60 +238,46 @@
     const sheetViewport = createNode(document, 'section', 'sheet-viewport');
     const grid = createNode(document, 'div', 'sheet-grid');
 
+    shell.tabIndex = 0;
+    shell.setAttribute('role', 'application');
     nameBox.setAttribute('aria-label', 'Selected cell');
     formulaInput.setAttribute('aria-label', model.formulaBar.name);
     formulaInput.setAttribute('role', 'textbox');
     formulaInput.setAttribute('aria-readonly', 'true');
+    sheetViewport.tabIndex = -1;
+    grid.setAttribute('role', 'grid');
+    grid.style.setProperty('--column-count', String(model.columns.length));
 
     formulaInput.appendChild(formulaText);
     topbar.appendChild(nameBox);
     topbar.appendChild(formulaLabel);
     topbar.appendChild(formulaInput);
 
-    grid.style.setProperty('--column-count', String(model.columns.length));
+    grid.appendChild(createNode(document, 'div', 'corner-cell'));
 
-    const corner = createNode(document, 'div', 'corner-cell');
-    grid.appendChild(corner);
-
-    model.columns.forEach((column) => {
+    model.columns.forEach(function createColumn(column) {
       const header = createNode(document, 'div', 'column-header', column.label);
       header.dataset.column = column.label;
+      elements.columnHeaders[column.index + 1] = header;
       grid.appendChild(header);
     });
 
-    model.rows.forEach((row) => {
+    model.rows.forEach(function createRow(row) {
       const rowHeader = createNode(document, 'div', 'row-header', row.label);
       rowHeader.dataset.row = row.label;
+      elements.rowHeaders[row.index + 1] = rowHeader;
       grid.appendChild(rowHeader);
 
-      row.cells.forEach((cell) => {
+      row.cells.forEach(function createCell(cell) {
         const cellNode = createNode(document, 'div', 'grid-cell');
-        const isActive = cell.column === model.activeCell.column && cell.row === model.activeCell.row;
-        const inRange = isCellInRange(cell, model.range);
-
+        const valueNode = createNode(document, 'div', 'cell-value');
         cellNode.dataset.address = cell.address;
+        cellNode.dataset.row = String(cell.row + 1);
+        cellNode.dataset.col = String(cell.column + 1);
         cellNode.setAttribute('role', 'gridcell');
         cellNode.setAttribute('aria-label', cell.address);
-
-        if (inRange) {
-          cellNode.classList.add('in-range');
-        }
-        if (isActive) {
-          cellNode.classList.add('active-cell');
-        }
-        if (isRangeEdge(cell, model.range, 'top')) {
-          cellNode.classList.add('range-top');
-        }
-        if (isRangeEdge(cell, model.range, 'right')) {
-          cellNode.classList.add('range-right');
-        }
-        if (isRangeEdge(cell, model.range, 'bottom')) {
-          cellNode.classList.add('range-bottom');
-        }
-        if (isRangeEdge(cell, model.range, 'left')) {
-          cellNode.classList.add('range-left');
-        }
-
+        cellNode.appendChild(valueNode);
+        elements.cellNodes[cell.address] = cellNode;
         grid.appendChild(cellNode);
       });
     });
@@ -151,23 +286,287 @@
     shell.appendChild(topbar);
     shell.appendChild(sheetViewport);
     mountPoint.replaceChildren(shell);
+
+    function buildDisplayValues(snapshot) {
+      const displayValues = Object.create(null);
+      if (!formulaModule || typeof formulaModule.createSpreadsheetEngine !== 'function') {
+        return displayValues;
+      }
+
+      const engine = formulaModule.createSpreadsheetEngine();
+      Object.keys(snapshot.cells).forEach(function seedCell(cellId) {
+        engine.setCell(cellId, snapshot.cells[cellId].raw);
+      });
+      Object.keys(snapshot.cells).forEach(function computeCell(cellId) {
+        displayValues[cellId] = engine.getDisplayText(cellId);
+      });
+      return displayValues;
+    }
+
+    function render() {
+      const snapshot = store.getSnapshot();
+      const bounds = selectionToBounds(snapshot.selection);
+      const displayValues = buildDisplayValues(snapshot);
+      const activeCellId = snapshot.selection.activeCellId;
+      const activeRaw = snapshot.cells[activeCellId] ? snapshot.cells[activeCellId].raw : '';
+
+      nameBox.textContent = activeCellId;
+      formulaText.textContent = activeRaw || FORMULA_PLACEHOLDER;
+      formulaText.className = activeRaw ? 'formula-value' : 'formula-placeholder';
+
+      Object.keys(elements.columnHeaders).forEach(function resetColumn(key) {
+        elements.columnHeaders[key].className = 'column-header';
+      });
+      Object.keys(elements.rowHeaders).forEach(function resetRow(key) {
+        elements.rowHeaders[key].className = 'row-header';
+      });
+
+      elements.columnHeaders[snapshot.selection.active.col].classList.add('active-header');
+      elements.rowHeaders[snapshot.selection.active.row].classList.add('active-header');
+
+      Object.keys(elements.cellNodes).forEach(function updateCell(cellId) {
+        const cellNode = elements.cellNodes[cellId];
+        const valueNode = cellNode.firstChild;
+        const coords = WorkbookStoreApi.cellIdToCoords(cellId);
+        const cell = { row: coords.row - 1, column: coords.col - 1 };
+        const isActive = cellId === activeCellId;
+        const inRange = isCellInRange(cell, bounds);
+        const display = Object.prototype.hasOwnProperty.call(displayValues, cellId)
+          ? displayValues[cellId]
+          : (snapshot.cells[cellId] ? snapshot.cells[cellId].raw : '');
+
+        cellNode.className = 'grid-cell';
+        cellNode.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        if (inRange) {
+          cellNode.classList.add('in-range');
+        }
+        if (isActive) {
+          cellNode.classList.add('active-cell');
+        }
+        if (isRangeEdge(cell, bounds, 'top')) {
+          cellNode.classList.add('range-top');
+        }
+        if (isRangeEdge(cell, bounds, 'right')) {
+          cellNode.classList.add('range-right');
+        }
+        if (isRangeEdge(cell, bounds, 'bottom')) {
+          cellNode.classList.add('range-bottom');
+        }
+        if (isRangeEdge(cell, bounds, 'left')) {
+          cellNode.classList.add('range-left');
+        }
+        if (isNumericDisplayValue(display)) {
+          cellNode.classList.add('numeric-cell');
+        }
+
+        valueNode.textContent = display;
+      });
+    }
+
+    function getPointFromTarget(target) {
+      if (!target || typeof target.closest !== 'function') {
+        return null;
+      }
+      const cellNode = target.closest('.grid-cell');
+      if (!cellNode) {
+        return null;
+      }
+      return {
+        row: Number(cellNode.dataset.row),
+        col: Number(cellNode.dataset.col),
+      };
+    }
+
+    function updateRangeSelection(point) {
+      if (!dragState) {
+        return;
+      }
+      store.selectRange(dragState.anchor, point, point, dragState.anchor);
+      render();
+    }
+
+    function stopDragging() {
+      dragState = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    function handleMouseMove(event) {
+      const point = getPointFromTarget(event.target);
+      if (point) {
+        updateRangeSelection(point);
+      }
+    }
+
+    function handleMouseUp() {
+      stopDragging();
+    }
+
+    function handleMouseDown(event) {
+      const point = getPointFromTarget(event.target);
+      if (!point) {
+        return;
+      }
+      event.preventDefault();
+      shell.focus();
+
+      const selection = store.getSelection();
+      if (event.shiftKey) {
+        const anchor = selection.anchor || selection.active;
+        store.selectRange(anchor, point, point, anchor);
+        render();
+        return;
+      }
+
+      dragState = { anchor: point };
+      store.selectCell(point.row, point.col);
+      render();
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    function handleKeyDown(event) {
+      const navigation = NAVIGATION_KEYS[event.key];
+      if (navigation) {
+        event.preventDefault();
+        const selection = store.getSelection();
+        const nextPoint = clampPoint({
+          row: selection.active.row + navigation.row,
+          col: selection.active.col + navigation.col,
+        });
+
+        if (event.shiftKey) {
+          const anchor = selection.anchor || selection.active;
+          store.selectRange(anchor, nextPoint, nextPoint, anchor);
+        } else {
+          store.selectCell(nextPoint.row, nextPoint.col);
+        }
+
+        render();
+        return;
+      }
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        store.clearSelection();
+        render();
+      }
+    }
+
+    function canHandleClipboardEvent() {
+      return document.activeElement === shell || shell.contains(document.activeElement);
+    }
+
+    function buildClipboardPayload(isCut) {
+      const snapshot = store.getSnapshot();
+      const selection = store.getSelection();
+      const bounds = selectionToBounds(selection);
+      const matrix = getSelectionMatrix(snapshot, bounds);
+      return {
+        cut: isCut,
+        range: bounds,
+        source: { row: bounds.start.row, col: bounds.start.col },
+        matrix,
+        text: serializeClipboardMatrix(matrix),
+      };
+    }
+
+    function handleCopy(event) {
+      if (!canHandleClipboardEvent()) {
+        return;
+      }
+      const payload = buildClipboardPayload(false);
+      clipboardState = payload;
+      if (event.clipboardData) {
+        event.clipboardData.setData('text/plain', payload.text);
+      }
+      event.preventDefault();
+    }
+
+    function handleCut(event) {
+      if (!canHandleClipboardEvent()) {
+        return;
+      }
+      const payload = buildClipboardPayload(true);
+      clipboardState = payload;
+      if (event.clipboardData) {
+        event.clipboardData.setData('text/plain', payload.text);
+      }
+      event.preventDefault();
+    }
+
+    function handlePaste(event) {
+      if (!canHandleClipboardEvent()) {
+        return;
+      }
+
+      const text = event.clipboardData ? event.clipboardData.getData('text/plain') : '';
+      const payload = clipboardState && clipboardState.text === text ? clipboardState : null;
+      const matrix = payload ? payload.matrix : parseClipboardText(text);
+      if (!matrix.length) {
+        return;
+      }
+
+      const start = getPasteStart(store.getSelection(), matrix);
+      if (payload && payload.cut) {
+        store.cutSelection(payload.range, start);
+        clipboardState = null;
+      } else {
+        const matrixToPaste = payload
+          ? shiftClipboardMatrix(payload.matrix, start.row - payload.source.row, start.col - payload.source.col, shiftFormula)
+          : matrix;
+        store.pasteBlock(start.row, start.col, matrixToPaste);
+      }
+
+      event.preventDefault();
+      render();
+    }
+
+    shell.addEventListener('mousedown', handleMouseDown);
+    shell.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('cut', handleCut);
+    document.addEventListener('paste', handlePaste);
+
+    render();
+
+    return {
+      render,
+      store,
+      shell,
+      destroy() {
+        stopDragging();
+        shell.removeEventListener('mousedown', handleMouseDown);
+        shell.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('copy', handleCopy);
+        document.removeEventListener('cut', handleCut);
+        document.removeEventListener('paste', handlePaste);
+      },
+    };
+  }
+
+  function renderSpreadsheet(document, options) {
+    return createSpreadsheetApp(document, options);
   }
 
   const api = {
     SHEET_COLUMNS,
     SHEET_ROWS,
     buildSurfaceModel,
+    createSpreadsheetApp,
     getColumnLabel,
+    getPasteStart,
+    getSelectionMatrix,
+    parseClipboardText,
     renderSpreadsheet,
+    selectionToBounds,
+    serializeClipboardMatrix,
+    shiftClipboardMatrix,
   };
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = api;
-  }
-
-  global.SpreadsheetSurface = api;
 
   if (typeof document !== 'undefined') {
     renderSpreadsheet(document);
   }
-})(typeof window !== 'undefined' ? window : globalThis);
+
+  return api;
+});
