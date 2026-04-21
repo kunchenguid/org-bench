@@ -1,6 +1,7 @@
 (function () {
   const engine = window.SpreadsheetFormulaEngine;
   const clipboardUtils = window.SpreadsheetClipboardUtils;
+  const structuralUtils = window.SpreadsheetStructuralUtils;
   const COLS = 26;
   const ROWS = 100;
   const MAX_HISTORY = 50;
@@ -20,6 +21,7 @@
 
   const spreadsheet = document.getElementById('spreadsheet');
   const formulaBar = document.getElementById('formula-bar');
+  const headerMenu = document.getElementById('header-menu');
   const nameBox = document.getElementById('name-box');
   const table = buildTable();
   spreadsheet.appendChild(table);
@@ -97,9 +99,11 @@
     table.addEventListener('mousedown', handleTableMouseDown);
     table.addEventListener('dblclick', handleTableDoubleClick);
     table.addEventListener('click', handleTableClick);
+    table.addEventListener('contextmenu', handleHeaderContextMenu);
     document.addEventListener('mousemove', handleDocumentMouseMove);
     document.addEventListener('mouseup', handleDocumentMouseUp);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('click', handleDocumentClick);
     document.addEventListener('copy', handleCopy);
     document.addEventListener('cut', handleCut);
     document.addEventListener('paste', handlePaste);
@@ -126,6 +130,19 @@
   }
 
   function handleTableClick(event) {
+    const columnHeader = event.target.closest('.column-header');
+    if (columnHeader) {
+      event.preventDefault();
+      openHeaderMenu('col', Number(columnHeader.dataset.col), columnHeader.getBoundingClientRect());
+      return;
+    }
+    const rowHeader = event.target.closest('.row-header');
+    if (rowHeader) {
+      event.preventDefault();
+      openHeaderMenu('row', Number(rowHeader.dataset.row), rowHeader.getBoundingClientRect());
+      return;
+    }
+
     const cell = event.target.closest('.cell');
     if (!cell) {
       return;
@@ -134,6 +151,26 @@
     const col = Number(cell.dataset.col);
     if (!event.shiftKey) {
       selectSingleCell(row, col);
+    }
+  }
+
+  function handleHeaderContextMenu(event) {
+    const columnHeader = event.target.closest('.column-header');
+    const rowHeader = event.target.closest('.row-header');
+    if (!columnHeader && !rowHeader) {
+      return;
+    }
+    event.preventDefault();
+    if (columnHeader) {
+      openHeaderMenu('col', Number(columnHeader.dataset.col), columnHeader.getBoundingClientRect());
+      return;
+    }
+    openHeaderMenu('row', Number(rowHeader.dataset.row), rowHeader.getBoundingClientRect());
+  }
+
+  function handleDocumentClick(event) {
+    if (!headerMenu.hidden && !headerMenu.contains(event.target) && !event.target.closest('.row-header') && !event.target.closest('.column-header')) {
+      closeHeaderMenu();
     }
   }
 
@@ -281,6 +318,7 @@
       text: text,
       targetRow: state.selection.focusRow,
       targetCol: state.selection.focusCol,
+      selection: selectionBounds(),
       sourcePayload: state.clipboardPayload,
       pendingCut: state.pendingCut,
     });
@@ -438,6 +476,10 @@
       return { raw: raw, display: raw, kind: 'text' };
     }
 
+    if (raw.indexOf('#REF!') !== -1) {
+      return { raw: raw, display: '#REF!', kind: 'error' };
+    }
+
     const evaluated = engine.evaluateFormula(raw, {
       getCellRaw: function (cellId) {
         return state.cells[cellId] || '';
@@ -506,6 +548,95 @@
 
     nameBox.value = engine.createCellId(state.selection.focusCol, state.selection.focusRow);
     syncFormulaBar();
+  }
+
+  function openHeaderMenu(type, index, rect) {
+    const items = type === 'row'
+      ? [
+          { action: 'insert-before', label: 'Insert Row Above' },
+          { action: 'insert-after', label: 'Insert Row Below' },
+          { action: 'delete', label: 'Delete Row', danger: true },
+        ]
+      : [
+          { action: 'insert-before', label: 'Insert Column Left' },
+          { action: 'insert-after', label: 'Insert Column Right' },
+          { action: 'delete', label: 'Delete Column', danger: true },
+        ];
+
+    headerMenu.innerHTML = '';
+    items.forEach(function (item) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = item.label;
+      button.dataset.type = type;
+      button.dataset.index = String(index);
+      button.dataset.action = item.action;
+      if (item.danger) {
+        button.className = 'danger';
+      }
+      button.addEventListener('click', handleHeaderMenuAction);
+      headerMenu.appendChild(button);
+    });
+
+    headerMenu.hidden = false;
+    headerMenu.style.top = `${Math.min(window.innerHeight - 160, rect.bottom + 8)}px`;
+    headerMenu.style.left = `${Math.min(window.innerWidth - 200, rect.left)}px`;
+  }
+
+  function closeHeaderMenu() {
+    headerMenu.hidden = true;
+    headerMenu.innerHTML = '';
+  }
+
+  function handleHeaderMenuAction(event) {
+    const button = event.currentTarget;
+    const type = button.dataset.type;
+    const index = Number(button.dataset.index);
+    const action = button.dataset.action;
+    closeHeaderMenu();
+    applyStructuralEdit(type, action, index);
+  }
+
+  function applyStructuralEdit(type, action, index) {
+    pushHistory();
+    if (type === 'row') {
+      if (action === 'insert-before') {
+        state.cells = clipCellsToGrid(structuralUtils.insertRow(state.cells, index));
+        state.selection = { anchorRow: index, anchorCol: 0, focusRow: index, focusCol: state.selection.focusCol };
+      } else if (action === 'insert-after') {
+        state.cells = clipCellsToGrid(structuralUtils.insertRow(state.cells, index + 1));
+        state.selection = { anchorRow: Math.min(ROWS - 1, index + 1), anchorCol: 0, focusRow: Math.min(ROWS - 1, index + 1), focusCol: state.selection.focusCol };
+      } else {
+        state.cells = clipCellsToGrid(structuralUtils.deleteRow(state.cells, index));
+        state.selection = { anchorRow: Math.max(0, Math.min(index, ROWS - 1)), anchorCol: 0, focusRow: Math.max(0, Math.min(index, ROWS - 1)), focusCol: state.selection.focusCol };
+      }
+    } else {
+      if (action === 'insert-before') {
+        state.cells = clipCellsToGrid(structuralUtils.insertColumn(state.cells, index));
+        state.selection = { anchorRow: state.selection.focusRow, anchorCol: index, focusRow: state.selection.focusRow, focusCol: index };
+      } else if (action === 'insert-after') {
+        state.cells = clipCellsToGrid(structuralUtils.insertColumn(state.cells, index + 1));
+        state.selection = { anchorRow: state.selection.focusRow, anchorCol: Math.min(COLS - 1, index + 1), focusRow: state.selection.focusRow, focusCol: Math.min(COLS - 1, index + 1) };
+      } else {
+        state.cells = clipCellsToGrid(structuralUtils.deleteColumn(state.cells, index));
+        state.selection = { anchorRow: state.selection.focusRow, anchorCol: Math.max(0, Math.min(index, COLS - 1)), focusRow: state.selection.focusRow, focusCol: Math.max(0, Math.min(index, COLS - 1)) };
+      }
+    }
+    state.pendingCut = null;
+    state.clipboardPayload = null;
+    persistState();
+    render();
+  }
+
+  function clipCellsToGrid(cells) {
+    const clipped = {};
+    Object.keys(cells).forEach(function (cellId) {
+      const ref = engine.parseCellReference(cellId);
+      if (ref.row < ROWS && ref.col < COLS) {
+        clipped[cellId] = cells[cellId];
+      }
+    });
+    return clipped;
   }
 
   function syncFormulaBar() {

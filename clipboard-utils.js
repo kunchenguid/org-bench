@@ -36,16 +36,35 @@
     });
   }
 
+  function resolvePasteOrigin(options, rows) {
+    const selection = options.selection;
+    const height = rows.length;
+    const width = rows[0] ? rows[0].length : 1;
+
+    if (!selection) {
+      return { row: options.targetRow, col: options.targetCol };
+    }
+
+    const selectionHeight = selection.maxRow - selection.minRow + 1;
+    const selectionWidth = selection.maxCol - selection.minCol + 1;
+    if (selectionHeight === height && selectionWidth === width) {
+      return { row: selection.minRow, col: selection.minCol };
+    }
+
+    return { row: options.targetRow, col: options.targetCol };
+  }
+
   function translatePaste(options) {
     const rows = parseClipboardText(options.text);
     const writes = [];
     const sourcePayload = options.sourcePayload && options.sourcePayload.text === options.text ? options.sourcePayload : null;
     const isCutPaste = options.pendingCut && options.pendingCut.text === options.text;
+    const pasteOrigin = resolvePasteOrigin(options, rows);
 
     for (let rowOffset = 0; rowOffset < rows.length; rowOffset += 1) {
       for (let colOffset = 0; colOffset < rows[rowOffset].length; colOffset += 1) {
-        const row = options.targetRow + rowOffset;
-        const col = options.targetCol + colOffset;
+        const row = pasteOrigin.row + rowOffset;
+        const col = pasteOrigin.col + colOffset;
         const raw = rows[rowOffset][colOffset];
         const sourceRow = sourcePayload ? sourcePayload.originRow + rowOffset : row;
         const sourceCol = sourcePayload ? sourcePayload.originCol + colOffset : col;
@@ -59,8 +78,8 @@
     }
 
     const clears = isCutPaste ? options.pendingCut.rawCells.filter(function (cell) {
-      const destinationRow = options.targetRow + (cell.row - options.pendingCut.originRow);
-      const destinationCol = options.targetCol + (cell.col - options.pendingCut.originCol);
+      const destinationRow = pasteOrigin.row + (cell.row - options.pendingCut.originRow);
+      const destinationCol = pasteOrigin.col + (cell.col - options.pendingCut.originCol);
       return destinationRow !== cell.row || destinationCol !== cell.col;
     }).map(function (cell) {
       return { row: cell.row, col: cell.col };
@@ -70,10 +89,10 @@
       writes: writes,
       clears: clears,
       selection: {
-        minRow: options.targetRow,
-        maxRow: options.targetRow + rows.length - 1,
-        minCol: options.targetCol,
-        maxCol: options.targetCol + (rows[0] ? rows[0].length : 1) - 1,
+        minRow: pasteOrigin.row,
+        maxRow: pasteOrigin.row + rows.length - 1,
+        minCol: pasteOrigin.col,
+        maxCol: pasteOrigin.col + (rows[0] ? rows[0].length : 1) - 1,
       },
     };
   }

@@ -177,6 +177,22 @@ body {
   font-size: 0.85rem;
 }
 
+.column-header,
+.row-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.column-header::after,
+.row-header::after {
+  content: '...';
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: rgba(95, 107, 122, 0.7);
+}
+
 .cell {
   position: relative;
   width: 124px;
@@ -226,6 +242,39 @@ body {
   outline: 2px solid var(--selection-strong);
   outline-offset: -2px;
   background: white;
+}
+
+.header-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+.header-menu button {
+  width: 100%;
+  display: block;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.header-menu button:hover {
+  background: rgba(43, 120, 255, 0.1);
+}
+
+.header-menu button.danger {
+  color: var(--error);
 }
 
 @media (max-width: 900px) {

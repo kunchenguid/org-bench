@@ -139,3 +139,46 @@ test('translatePaste keeps formulas intact for cut-paste and clears the old bloc
     { row: 1, col: 2 },
   ]);
 });
+
+test('translatePaste uses the top-left of a matching destination selection', () => {
+  const payload = buildClipboardPayload({
+    minRow: 0,
+    maxRow: 1,
+    minCol: 0,
+    maxCol: 1,
+  }, function getRaw(row, col) {
+    return {
+      '0,0': '=A1',
+      '0,1': '=B1',
+      '1,0': '=A2',
+      '1,1': '=B2',
+    }[`${row},${col}`];
+  });
+
+  const result = translatePaste({
+    text: payload.text,
+    targetRow: 7,
+    targetCol: 7,
+    selection: {
+      minRow: 4,
+      maxRow: 5,
+      minCol: 3,
+      maxCol: 4,
+    },
+    sourcePayload: payload,
+    pendingCut: null,
+  });
+
+  assert.deepStrictEqual(result.writes, [
+    { row: 4, col: 3, raw: '=D5' },
+    { row: 4, col: 4, raw: '=E5' },
+    { row: 5, col: 3, raw: '=D6' },
+    { row: 5, col: 4, raw: '=E6' },
+  ]);
+  assert.deepStrictEqual(result.selection, {
+    minRow: 4,
+    maxRow: 5,
+    minCol: 3,
+    maxCol: 4,
+  });
+});
