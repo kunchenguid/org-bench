@@ -17,6 +17,16 @@
           <span class="formula-label">fx</span>
           <input id="formula-bar" autocomplete="off" spellcheck="false">
         </label>
+        <section class="structure-bar" aria-label="Row and column actions">
+          <p class="structure-title">Structure</p>
+          <p class="structure-target" id="structure-target">Row 1, Column A</p>
+          <div class="structure-actions">
+            <button type="button" data-structure-action="insert-row">Insert row</button>
+            <button type="button" data-structure-action="delete-row">Delete row</button>
+            <button type="button" data-structure-action="insert-column">Insert column</button>
+            <button type="button" data-structure-action="delete-column">Delete column</button>
+          </div>
+        </section>
       </header>
       <main class="grid-shell">
         <table id="sheet" aria-label="Spreadsheet grid"></table>
