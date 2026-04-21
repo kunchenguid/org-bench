@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 271,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/271",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Integrate formulas into grid editing",
+  "body": "## Summary\n- wire the merged formula engine into the spreadsheet store so formula cells compute display values and recompute dependents after edits\n- keep the formula bar bound to raw cell contents while the grid renders computed output, and load the engine before the store and editing controller\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T02:03:04Z"
+    }
+  ],
+  "comments": []
+}

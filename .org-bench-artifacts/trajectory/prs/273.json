@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 273,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/273",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Integrate structural mutations into the live sheet",
+  "body": "## Summary\n- wire the shared store to the structural mutation engine and recompute computed values after row and column mutations\n- connect the live grid and editing layers to one shared sheet store so header actions update the visible sheet immediately\n- load the formula and mutation scripts in the shell and cover the integration with store and shell tests\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T02:06:40Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 266,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/266",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add grid selection interaction scaffold",
+  "body": "## Summary\n- add a static spreadsheet shell with 26x100 DOM grid generation and sticky row/column headers\n- implement click, arrow-key, Shift+arrow, and Shift+click selection behavior with a distinct active cell and highlighted range\n- include focused selection-model tests for clamping and range extension behavior\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T01:44:18Z"
+    }
+  ],
+  "comments": []
+}
