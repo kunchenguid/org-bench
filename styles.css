@@ -1,158 +1,325 @@
 :root {
   color-scheme: light;
-  font-family: Inter, "SF Pro Text", "Segoe UI", sans-serif;
-  background: #f5f5f7;
-  color: #1d1d1f;
+  --app-bg: #eef2f8;
+  --panel-bg: rgba(255, 255, 255, 0.88);
+  --panel-border: rgba(15, 23, 42, 0.08);
+  --grid-line: #d7dfec;
+  --header-bg: rgba(245, 247, 251, 0.96);
+  --header-text: #5a6475;
+  --cell-bg: #ffffff;
+  --cell-text: #0f172a;
+  --muted-text: #6b7280;
+  --active: #0071e3;
+  --active-soft: rgba(0, 113, 227, 0.12);
+  --range-soft: rgba(0, 113, 227, 0.08);
+  --editing-glow: rgba(0, 113, 227, 0.24);
+  --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.12);
+  --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --header-size: 52px;
+  --row-height: 34px;
+  --column-width: 120px;
+  --radius-xl: 22px;
+  --radius-lg: 16px;
+  --font-sans: Inter, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #fcfcfd 0%, #f2f3f7 100%);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.8), transparent 42%),
+    linear-gradient(180deg, #f6f8fc 0%, var(--app-bg) 100%);
+  color: var(--cell-text);
+  font-family: var(--font-sans);
 }
 
-.shell {
+.app-shell {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.formula-bar-panel,
+.sheet-frame {
+  background: var(--panel-bg);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-md);
+}
+
+.formula-bar-panel {
+  border-radius: var(--radius-xl);
+  padding: 14px 16px 12px;
+}
+
+.formula-bar-chrome {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
   gap: 12px;
-  padding: 18px;
-}
-
-.formula-bar-row {
-  display: grid;
-  grid-template-columns: 52px 1fr;
   align-items: center;
-  gap: 10px;
 }
 
-.formula-bar-label,
-.formula-bar-input,
-.grid,
-.cell,
-.row-header,
-.column-header {
-  font-size: 14px;
+.name-box,
+.formula-field {
+  min-height: 48px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.formula-bar-label {
+.name-box {
   display: grid;
   place-items: center;
-  height: 42px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(29, 29, 31, 0.08);
-  color: #6e6e73;
+  color: #111827;
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
-.formula-bar-input {
-  width: 100%;
-  height: 42px;
+.formula-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
   padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(29, 29, 31, 0.12);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
 }
 
-.formula-bar-input:focus,
-.cell-editor:focus {
-  outline: 2px solid rgba(0, 113, 227, 0.24);
-  outline-offset: 0;
-  border-color: #0071e3;
+.formula-field__symbol {
+  color: var(--muted-text);
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.grid-wrap {
+.formula-input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--cell-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.formula-input::placeholder {
+  color: #94a3b8;
+}
+
+.formula-bar-hint {
+  margin: 10px 2px 0;
+  color: var(--muted-text);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+
+.sheet-frame {
+  min-height: 0;
+  border-radius: 28px;
+  padding: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.sheet-surface {
+  height: calc(100vh - 178px);
+  min-height: 480px;
   overflow: auto;
   border-radius: 18px;
-  border: 1px solid rgba(29, 29, 31, 0.08);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(252, 253, 255, 0.96));
 }
 
-.grid {
-  width: max-content;
-  border-collapse: separate;
-  border-spacing: 0;
+.sheet-grid {
+  display: grid;
+  grid-template-columns: var(--header-size) repeat(26, var(--column-width));
+  grid-template-rows: var(--header-size) repeat(100, var(--row-height));
+  min-width: max-content;
+  min-height: max-content;
+  position: relative;
 }
 
-.corner,
+.sheet-corner,
+.column-header,
 .row-header,
+.cell {
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
+}
+
+.sheet-corner,
+.column-header,
+.row-header {
+  background: var(--header-bg);
+}
+
+.sheet-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  box-shadow: 1px 1px 0 0 var(--grid-line);
+}
+
+.column-headers,
+.row-headers,
+.cell-grid {
+  display: contents;
+}
+
 .column-header {
   position: sticky;
-  background: #f7f8fb;
-  color: #6e6e73;
-  font-weight: 600;
-  z-index: 1;
-}
-
-.corner {
-  left: 0;
   top: 0;
-  width: 54px;
-  min-width: 54px;
-}
-
-.column-header {
-  top: 0;
-  min-width: 120px;
-  height: 38px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  height: var(--header-size);
+  color: var(--header-text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .row-header {
+  position: sticky;
   left: 0;
-  min-width: 54px;
-  width: 54px;
-}
-
-.corner,
-.row-header,
-.column-header,
-.cell {
-  border-right: 1px solid #e4e6eb;
-  border-bottom: 1px solid #e4e6eb;
-  padding: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: var(--header-size);
+  color: var(--header-text);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .cell {
-  min-width: 120px;
-  height: 34px;
-  padding: 7px 10px;
-  background: rgba(255, 255, 255, 0.9);
-  cursor: cell;
-  vertical-align: middle;
-}
-
-.cell.active {
   position: relative;
-  background: #f4f9ff;
-  box-shadow: inset 0 0 0 2px #0071e3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  padding: 0 10px;
+  background: var(--cell-bg);
+  color: var(--cell-text);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.cell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cell.is-in-range::before {
+  background: var(--range-soft);
+}
+
+.cell.is-active {
+  z-index: 2;
+}
+
+.cell.is-active::before {
+  inset: -1px;
+  border: 2px solid var(--active);
+  background: var(--active-soft);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+}
+
+.cell.is-editing::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px var(--editing-glow) inset;
+  pointer-events: none;
 }
 
 .cell-editor {
-  width: calc(100% + 20px);
-  height: calc(100% + 14px);
-  margin: -7px -10px;
-  padding: 7px 10px;
-  border: 1px solid #0071e3;
-  background: #ffffff;
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-context-menu {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 220px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-lg);
+}
+
+.sheet-context-menu__item {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cell-text);
+  cursor: pointer;
   font: inherit;
+  font-size: 14px;
+  text-align: left;
+  padding: 10px 12px;
+}
+
+.sheet-context-menu__item:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.sheet-context-menu__item--danger {
+  color: #c2410c;
+}
+
+.sheet-context-menu__divider {
+  height: 1px;
+  margin: 8px 0;
+  background: rgba(15, 23, 42, 0.08);
 }
 
 @media (max-width: 720px) {
-  .shell {
+  .app-shell {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .formula-bar-panel {
+    border-radius: 18px;
     padding: 12px;
   }
 
-  .formula-bar-row {
-    grid-template-columns: 44px 1fr;
+  .formula-bar-chrome {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 8px;
   }
 
-  .column-header,
-  .cell {
-    min-width: 96px;
+  .name-box,
+  .formula-field {
+    min-height: 42px;
+    border-radius: 12px;
+  }
+
+  .sheet-frame {
+    border-radius: 20px;
+    padding: 10px;
+  }
+
+  .sheet-surface {
+    height: calc(100vh - 150px);
+    min-height: 360px;
   }
 }
