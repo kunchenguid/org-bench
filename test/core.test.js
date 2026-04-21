@@ -89,7 +89,8 @@ test('pastes a rectangular range and shifts relative formulas from the source or
   const next = pasteRange(
     {},
     { row: 2, col: 2 },
-    '2\t=A1+B1\n3\t=$A1+A$1'
+    '2\t=A1+B1\n3\t=$A1+A$1',
+    { minRow: 0, maxRow: 1, minCol: 0, maxCol: 1 }
   );
 
   assert.deepEqual(next, {
@@ -97,6 +98,20 @@ test('pastes a rectangular range and shifts relative formulas from the source or
     D3: '=C3+D3',
     C4: '3',
     D4: '=$A3+C$1',
+  });
+});
+
+test('copy-paste keeps the original source anchor for relative references', () => {
+  const next = pasteRange(
+    {},
+    { row: 4, col: 4 },
+    '=B2+C2\n=$B2+C$2',
+    { minRow: 1, maxRow: 2, minCol: 1, maxCol: 2 }
+  );
+
+  assert.deepEqual(next, {
+    E5: '=E5+F5',
+    E6: '=$B5+F$2',
   });
 });
 
@@ -115,7 +130,8 @@ test('cut-paste moves source contents and clears the original range', () => {
     },
     { row: 1, col: 0 },
     copied,
-    { minRow: 0, maxRow: 0, minCol: 0, maxCol: 1 }
+    { minRow: 0, maxRow: 0, minCol: 0, maxCol: 1 },
+    true
   );
 
   assert.deepEqual(next, {

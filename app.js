@@ -8,7 +8,7 @@
 
   const state = loadState();
   let computed = {};
-  let cutSelection = null;
+  let clipboardState = null;
   let editSession = null;
 
   renderGrid();
@@ -225,24 +225,34 @@
 
   function onCopy(event) {
     if (document.activeElement === formulaBar || editSession) return;
-    event.clipboardData.setData('text/plain', core.copyRange(state.cells, getSelectionBounds()));
-    cutSelection = null;
+    const bounds = getSelectionBounds();
+    const text = core.copyRange(state.cells, bounds);
+    event.clipboardData.setData('text/plain', text);
+    clipboardState = { text, bounds, cut: false };
     event.preventDefault();
   }
 
   function onCut(event) {
     if (document.activeElement === formulaBar || editSession) return;
     const bounds = getSelectionBounds();
-    event.clipboardData.setData('text/plain', core.copyRange(state.cells, bounds));
-    cutSelection = bounds;
+    const text = core.copyRange(state.cells, bounds);
+    event.clipboardData.setData('text/plain', text);
+    clipboardState = { text, bounds, cut: true };
     event.preventDefault();
   }
 
   function onPaste(event) {
     if (document.activeElement === formulaBar || editSession) return;
     const text = event.clipboardData.getData('text/plain');
-    state.cells = core.pasteRange(state.cells, state.selection.focus, text, cutSelection);
-    cutSelection = null;
+    const source = clipboardState && clipboardState.text === text ? clipboardState : null;
+    state.cells = core.pasteRange(
+      state.cells,
+      state.selection.focus,
+      text,
+      source ? source.bounds : null,
+      Boolean(source && source.cut)
+    );
+    clipboardState = null;
     recalculate();
     saveState();
     event.preventDefault();
@@ -300,7 +310,7 @@
 
   function setCellRaw(cellId, raw) {
     const value = String(raw || '');
-    cutSelection = null;
+    clipboardState = null;
     if (value) {
       state.cells[cellId] = value;
     } else {
@@ -382,7 +392,7 @@
   }
 
   function clearSelectedCells() {
-    cutSelection = null;
+    clipboardState = null;
     const bounds = getSelectionBounds();
     for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
       for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {

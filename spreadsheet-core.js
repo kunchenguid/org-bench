@@ -394,21 +394,21 @@
       });
   }
 
-  function pasteRange(cells, target, text, cutBounds) {
+  function pasteRange(cells, target, text, sourceBounds, clearSource) {
     const next = Object.assign({}, cells);
     const rows = parseClipboardMatrix(text);
     if (!rows.length) return next;
 
-    if (cutBounds) {
-      for (let row = cutBounds.minRow; row <= cutBounds.maxRow; row += 1) {
-        for (let col = cutBounds.minCol; col <= cutBounds.maxCol; col += 1) {
+    if (clearSource && sourceBounds) {
+      for (let row = sourceBounds.minRow; row <= sourceBounds.maxRow; row += 1) {
+        for (let col = sourceBounds.minCol; col <= sourceBounds.maxCol; col += 1) {
           delete next[cellIdFromPosition({ row, col })];
         }
       }
     }
 
-    const sourceOrigin = cutBounds
-      ? { row: cutBounds.minRow, col: cutBounds.minCol }
+    const sourceOrigin = sourceBounds
+      ? { row: sourceBounds.minRow, col: sourceBounds.minCol }
       : { row: 0, col: 0 };
 
     rows.forEach(function (values, rowIndex) {
