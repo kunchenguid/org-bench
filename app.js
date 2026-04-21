@@ -883,6 +883,16 @@
       renderGrid();
     }
 
+    function focusEditor(preserveContents) {
+      editor.focus();
+      if (preserveContents) {
+        const end = editor.value.length;
+        editor.setSelectionRange(end, end);
+      } else {
+        editor.select();
+      }
+    }
+
     renderHeaders();
     renderGrid();
 
@@ -928,6 +938,17 @@
       dragAnchor = null;
     });
 
+    gridBody.addEventListener('dblclick', function (event) {
+      const button = event.target.closest('.grid-cell');
+      if (!button) {
+        return;
+      }
+      syncHistory(setHistoryPresent(history, selectCell(state, Number(button.dataset.row), Number(button.dataset.col))));
+      persist();
+      renderGrid();
+      focusEditor(true);
+    });
+
     formulaBar.addEventListener('input', function () {
       editor.value = formulaBar.value;
     });
@@ -950,6 +971,10 @@
         syncEditors();
         event.preventDefault();
       }
+    });
+
+    editor.addEventListener('input', function () {
+      formulaBar.value = editor.value;
     });
 
     document.addEventListener('keydown', function (event) {
@@ -998,14 +1023,13 @@
       else if (event.key === 'ArrowLeft') applySelectionMove(0, -1);
       else if (event.key === 'ArrowRight') applySelectionMove(0, 1);
       else if (event.key === 'Enter' || event.key === 'F2') {
-        editor.focus();
-        editor.select();
+        focusEditor(true);
         event.preventDefault();
         return;
       } else if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        editor.focus();
         editor.value = event.key;
         formulaBar.value = event.key;
+        focusEditor(false);
         event.preventDefault();
         return;
       } else {

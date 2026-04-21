@@ -34,6 +34,26 @@
     return String(namespace || '') + suffix;
   }
 
+  function isPrintableKey(key) {
+    return typeof key === 'string' && key.length === 1;
+  }
+
+  function initialEditValue(currentValue, preserveContents, typedKey) {
+    if (preserveContents) {
+      return currentValue || '';
+    }
+
+    return typedKey || '';
+  }
+
+  function commitMove(position, key) {
+    if (key === 'Tab') {
+      return movePosition(position, 1, 0);
+    }
+
+    return movePosition(position, 0, 1);
+  }
+
   var api = {
     GRID_COLUMNS: GRID_COLUMNS,
     GRID_ROWS: GRID_ROWS,
@@ -41,6 +61,9 @@
     movePosition: movePosition,
     columnLabel: columnLabel,
     cellKey: cellKey,
+    commitMove: commitMove,
+    initialEditValue: initialEditValue,
+    isPrintableKey: isPrintableKey,
     storageKey: storageKey,
   };
 
