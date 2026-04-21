@@ -69,6 +69,68 @@
     });
   }
 
+  function applyStructuralChange(action, index) {
+    pushHistory();
+    if (action === 'insert-row') {
+      core.insertRow(store, index);
+      if (selection.row >= index) {
+        selection.row = Math.min(core.ROWS - 1, selection.row + 1);
+      }
+    } else if (action === 'delete-row') {
+      core.deleteRow(store, index);
+      selection.row = Math.max(0, Math.min(core.ROWS - 1, selection.row > index ? selection.row - 1 : selection.row));
+    } else if (action === 'insert-col') {
+      core.insertColumn(store, index);
+      if (selection.col >= index) {
+        selection.col = Math.min(core.COLS - 1, selection.col + 1);
+      }
+    } else if (action === 'delete-col') {
+      core.deleteColumn(store, index);
+      selection.col = Math.max(0, Math.min(core.COLS - 1, selection.col > index ? selection.col - 1 : selection.col));
+    }
+    rangeAnchor = { col: selection.col, row: selection.row };
+    save();
+    render();
+  }
+
+  function buildHeaderControl(label, insertTitle, deleteTitle, insertAction, deleteAction) {
+    const shell = document.createElement('div');
+    shell.className = 'header-shell';
+
+    const text = document.createElement('span');
+    text.className = 'header-label';
+    text.textContent = label;
+    shell.appendChild(text);
+
+    const actions = document.createElement('span');
+    actions.className = 'header-actions';
+
+    const insertButton = document.createElement('button');
+    insertButton.type = 'button';
+    insertButton.className = 'header-action';
+    insertButton.title = insertTitle;
+    insertButton.textContent = '+';
+    insertButton.addEventListener('click', function (event) {
+      event.stopPropagation();
+      applyStructuralChange(insertAction.type, insertAction.index);
+    });
+    actions.appendChild(insertButton);
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'header-action';
+    deleteButton.title = deleteTitle;
+    deleteButton.textContent = '-';
+    deleteButton.addEventListener('click', function (event) {
+      event.stopPropagation();
+      applyStructuralChange(deleteAction.type, deleteAction.index);
+    });
+    actions.appendChild(deleteButton);
+
+    shell.appendChild(actions);
+    return shell;
+  }
+
   function render() {
     const sheet = core.evaluateSheet(store);
     grid.innerHTML = '';
@@ -78,13 +140,25 @@
     for (let col = 0; col < core.COLS; col += 1) {
       const header = document.createElement('div');
       header.className = 'col-header';
-      header.textContent = core.colToName(col);
+      header.appendChild(buildHeaderControl(
+        core.colToName(col),
+        'Insert column left',
+        'Delete column',
+        { type: 'insert-col', index: col },
+        { type: 'delete-col', index: col }
+      ));
       grid.appendChild(header);
     }
     for (let row = 0; row < core.ROWS; row += 1) {
       const rowHeader = document.createElement('div');
       rowHeader.className = 'row-header';
-      rowHeader.textContent = String(row + 1);
+      rowHeader.appendChild(buildHeaderControl(
+        String(row + 1),
+        'Insert row above',
+        'Delete row',
+        { type: 'insert-row', index: row },
+        { type: 'delete-row', index: row }
+      ));
       grid.appendChild(rowHeader);
       for (let col = 0; col < core.COLS; col += 1) {
         const range = getSelectionRange();

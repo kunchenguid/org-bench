@@ -91,6 +91,81 @@
     };
   }
 
+  function rewriteFormulaReferences(formula, axis, index, delta, isDelete) {
+    if (!formula || formula[0] !== '=') {
+      return formula;
+    }
+    return formula.replace(/\$?[A-Z]\$?\d+/g, function (match) {
+      const token = parseRefToken(match);
+      const value = axis === 'row' ? token.row : token.col;
+      if (isDelete && value === index) {
+        return '#REF!';
+      }
+      if (value >= index) {
+        if (axis === 'row') {
+          token.row = clamp(token.row + delta, 0, ROWS - 1);
+        } else {
+          token.col = clamp(token.col + delta, 0, COLS - 1);
+        }
+      }
+      return stringifyRefToken(token);
+    });
+  }
+
+  function remapStore(store, mapper, rewriter) {
+    const next = new Map();
+    store.raw.forEach(function (raw, key) {
+      const parts = key.split(',');
+      const mapped = mapper(Number(parts[0]), Number(parts[1]));
+      if (!mapped) {
+        return;
+      }
+      next.set(cellKey(mapped.col, mapped.row), rewriter(raw));
+    });
+    store.raw.clear();
+    next.forEach(function (value, key) {
+      store.raw.set(key, value);
+    });
+  }
+
+  function insertRow(store, rowIndex) {
+    remapStore(store, function (col, row) {
+      return { col: col, row: row >= rowIndex ? row + 1 : row };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, 'row', rowIndex, 1, false);
+    });
+  }
+
+  function deleteRow(store, rowIndex) {
+    remapStore(store, function (col, row) {
+      if (row === rowIndex) {
+        return null;
+      }
+      return { col: col, row: row > rowIndex ? row - 1 : row };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, 'row', rowIndex, -1, true);
+    });
+  }
+
+  function insertColumn(store, colIndex) {
+    remapStore(store, function (col, row) {
+      return { col: col >= colIndex ? col + 1 : col, row: row };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, 'col', colIndex, 1, false);
+    });
+  }
+
+  function deleteColumn(store, colIndex) {
+    remapStore(store, function (col, row) {
+      if (col === colIndex) {
+        return null;
+      }
+      return { col: col > colIndex ? col - 1 : col, row: row };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, 'col', colIndex, -1, true);
+    });
+  }
+
   function normalizeRange(range) {
     return {
       startCol: Math.min(range.startCol, range.endCol),
@@ -264,6 +339,9 @@
     if (!trimmed) {
       return '';
     }
+    if (trimmed.includes('#REF!')) {
+      throw { error: '#REF!' };
+    }
     const concatParts = splitTopLevel(trimmed, '&');
     if (concatParts.length) {
       return concatParts.map(function (part) {
@@ -426,8 +504,12 @@
     colToName,
     copyRange,
     createStore,
+    deleteColumn,
+    deleteRow,
     evaluateCell,
     evaluateSheet,
+    insertColumn,
+    insertRow,
     pasteRange,
     parseCellRef,
     normalizeRange,

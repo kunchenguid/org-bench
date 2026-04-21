@@ -4,8 +4,12 @@ const assert = require('node:assert/strict');
 const {
   copyRange,
   createStore,
+  deleteColumn,
+  deleteRow,
   evaluateCell,
   evaluateSheet,
+  insertColumn,
+  insertRow,
   pasteRange,
   parseCellRef,
   shiftFormula,
@@ -174,4 +178,54 @@ test('treats empty references as zero in numeric formulas', () => {
   const sheet = evaluateSheet(store);
 
   assert.equal(sheet.getDisplay(0, 0), '2');
+});
+
+test('inserting a row keeps formulas pointing at the same data', () => {
+  const store = createStore();
+  store.setCell(0, 0, '10');
+  store.setCell(0, 1, '20');
+  store.setCell(1, 0, '=A2');
+
+  insertRow(store, 1);
+
+  assert.equal(store.getCell(0, 0), '10');
+  assert.equal(store.getCell(0, 2), '20');
+  assert.equal(store.getCell(1, 0), '=A3');
+});
+
+test('deleting a referenced row produces #REF!', () => {
+  const store = createStore();
+  store.setCell(0, 0, '10');
+  store.setCell(0, 1, '20');
+  store.setCell(1, 0, '=A2');
+
+  deleteRow(store, 1);
+
+  assert.equal(store.getCell(1, 0), '=#REF!');
+  assert.equal(evaluateSheet(store).getDisplay(1, 0), '#REF!');
+});
+
+test('inserting a column keeps formulas pointing at the same data', () => {
+  const store = createStore();
+  store.setCell(0, 0, '10');
+  store.setCell(1, 0, '20');
+  store.setCell(0, 1, '=B1');
+
+  insertColumn(store, 1);
+
+  assert.equal(store.getCell(0, 0), '10');
+  assert.equal(store.getCell(2, 0), '20');
+  assert.equal(store.getCell(0, 1), '=C1');
+});
+
+test('deleting a referenced column produces #REF!', () => {
+  const store = createStore();
+  store.setCell(0, 0, '10');
+  store.setCell(1, 0, '20');
+  store.setCell(0, 1, '=B1');
+
+  deleteColumn(store, 1);
+
+  assert.equal(store.getCell(0, 1), '=#REF!');
+  assert.equal(evaluateSheet(store).getDisplay(0, 1), '#REF!');
 });

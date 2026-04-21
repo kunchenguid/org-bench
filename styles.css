@@ -114,6 +114,42 @@ body {
   justify-content: center;
 }
 
+.header-shell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+}
+
+.header-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.header-action {
+  border: 0;
+  border-radius: 6px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font: inherit;
+  line-height: 1;
+  color: var(--muted);
+  background: rgba(148, 163, 184, 0.12);
+  cursor: pointer;
+}
+
+.header-action:hover {
+  color: var(--accent);
+  background: rgba(37, 99, 235, 0.15);
+}
+
 .cell {
   position: relative;
   background: #fff;
