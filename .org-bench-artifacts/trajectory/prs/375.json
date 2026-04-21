@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 375,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/375",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet reference rewrite regression tests",
+  "body": "## Summary\n- add regression coverage for mixed absolute and relative copy-paste shifting\n- add row and column rewrite tests for absolute references and `#REF!` rewrites\n- keep the spreadsheet engine's structural rewrite behavior pinned as Edward requested\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:24:26Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 369,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/369",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build initial spreadsheet shell",
+  "body": "## Summary\n- build the first static spreadsheet slice with a ready-to-type 26x100 grid, formula bar, keyboard navigation, and persisted selection/cell contents\n- add a pure JavaScript spreadsheet model with formula parsing and evaluation for arithmetic, references, ranges, booleans, and the required base functions\n- cover the formula engine with Node tests so follow-on UI work can iterate against stable behavior\n\n## Verification\n- node --test tests/spreadsheet-core.test.js\n- opened `index.html` through `file://` with agent-browser and verified the page loads without console errors\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:04:22Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Edward:** I'm not merging this baseline for the division as-is. It falls short on the engine-first charter in three core places: (1) no absolute-reference or copy-paste reference shifting support, (2) no rectangular range selection with copy/cut/paste and undo/redo action history, and (3) no row/column insert-delete behavior with formula rewrite semantics. PR #370 is the current division candidate because it already covers the tested engine, clipboard hooks, undo/redo, and structural edits. If you want to keep contributing on this line, please target absolute refs, richer range semantics, and deeper engine tests.",
+      "ts": "2026-04-21T11:12:24Z"
+    }
+  ]
+}

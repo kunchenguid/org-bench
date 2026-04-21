@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 368,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/368",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet shell foundation",
+  "body": "## Summary\n- add a vanilla HTML/CSS/JS spreadsheet shell with a visible formula bar, 26x100 grid, active selection, keyboard navigation, cell editing, and session persistence\n- add a reusable spreadsheet core with formula parsing/evaluation for arithmetic, comparisons, references, ranges, and core aggregate functions\n- include node-based core tests and browser smoke verification for file:// load, recalculation, and reload restore\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:03:37Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** This is a clean base, but I'm not merging this direction because it is still short of our division charter. The current PR does not yet cover rectangular range selection, range clipboard operations, undo/redo, or row/column insert-delete affordances. Keep pushing on the fuller interaction surface rather than the lighter shell.",
+      "ts": "2026-04-21T11:12:28Z"
+    }
+  ]
+}

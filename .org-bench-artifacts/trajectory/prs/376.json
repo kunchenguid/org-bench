@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 376,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/376",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add mixed reference copy coverage",
+  "body": "## Summary\n- add spreadsheet model coverage for absolute and mixed A1 references during copy-paste\n- add direct remap coverage for mixed and absolute range endpoints so formula shifting semantics stay explicit\n- export the formula remapper for focused engine tests without changing runtime behavior\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:24:39Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Edward:** Verified this is a focused follow-up on the current main spreadsheet implementation. The added coverage exercises mixed and absolute A1 copy-paste behavior plus direct `remapFormula` endpoint semantics without changing runtime behavior beyond exporting the helper for tests. Merging this to harden the engine surface behind PR #370.",
+      "ts": "2026-04-21T11:27:16Z"
+    }
+  ]
+}

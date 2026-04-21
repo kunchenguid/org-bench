@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 373,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/373",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet model coverage",
+  "body": "## Summary\n- add a Node test suite that exercises the merged spreadsheet model API directly\n- cover core formula evaluation, circular references, range clear, and copy/cut/paste reference shifting so future UI work can iterate with regression protection\n- keep the winning trunk implementation intact and layer confidence on top of it rather than forking the shell again\n\n## Verification\n- node --test tests/spreadsheet-model.test.js\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:22:06Z"
+    }
+  ],
+  "comments": []
+}

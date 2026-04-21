@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 372,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/372",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build spreadsheet foundation with formula engine",
+  "body": "## Summary\n- add a polished static spreadsheet shell with a 26x100 grid, formula bar, keyboard navigation, cell editing, and localStorage-backed session restore\n- add a reusable spreadsheet engine that evaluates raw values, formulas, references, ranges, and core functions with spreadsheet-style error markers\n- add node tests covering arithmetic, dependent recalculation, conditional text formulas, circular references, and divide-by-zero handling\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:17:28Z"
+    }
+  ],
+  "comments": []
+}

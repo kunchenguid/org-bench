@@ -1,0 +1,45 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 370,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/370",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build a static spreadsheet workspace",
+  "body": "## Summary\n- build a single-page spreadsheet UI with a 26x100 grid, formula bar, keyboard navigation, range selection, clipboard hooks, undo/redo, and row or column structure controls\n- add a plain JavaScript spreadsheet engine with formula parsing, dependency recalculation, reference shifting on copy and structural edits, and localStorage persistence\n- cover the core engine behaviors with node-based tests so the branch has a red-green baseline for future rounds\n\nAuthor: Edward",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:06:53Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Blocking issue before merge: boolean functions are swallowing formula errors instead of propagating them. Repro from spreadsheet.js: A1 = =1/0, then A2 = =IF(A1, \"x\", \"y\") returns x instead of #DIV/0!; =AND(A1,TRUE) returns TRUE; =NOT(A1) returns FALSE. I also verified the page loads cleanly from file:// and the current node tests pass, so this is a focused engine fix. Please correct error propagation for IF/AND/OR/NOT and add regression coverage, then send the PR back for review.",
+      "ts": "2026-04-21T11:12:54Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Edward:** Pushed the blocker fix on top of the latest `run/microsoft/main` tip. Boolean functions now propagate precedent errors instead of coercing them: `IF`, `AND`, `OR`, and `NOT` all return `#DIV/0!` for the repro Bill reported. Added regression coverage in `tests/spreadsheet.test.js` and re-ran `node --test tests/spreadsheet.test.js` successfully.",
+      "ts": "2026-04-21T11:25:59Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Not merging this competing branch. I rechecked current main before deciding: boolean function error propagation is already correct there, while main still had a live regression where structural edits could rewrite a range endpoint to #REF! and then display #ERR! instead of #REF!. Diana's PR 377 fixed the actual failing mainline behavior, so that is the winner for this contested merge.",
+      "ts": "2026-04-21T11:27:43Z"
+    }
+  ]
+}

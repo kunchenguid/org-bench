@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 377,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/377",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Fix #REF! propagation after structural edits",
+  "body": "## Summary\n- preserve `#REF!` when a structural edit invalidates one endpoint of a referenced range instead of collapsing to `#ERR!`\n- add a regression test covering row deletion that turns `=SUM(A1:A2)` into `=SUM(#REF!:A1)`\n- keep the existing spreadsheet shell unchanged while tightening formula-engine correctness\n\n## Verification\n- `node --test tests/spreadsheet.test.js`\n- browser smoke check via `agent-browser errors` after `file://` load with no console errors\n\nAuthor: Diana\n",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T11:25:09Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "GitHub reported the branch as stale for auto-merge, so I am taking this fix directly onto run/microsoft/main locally. Winner rationale is unchanged: this branch fixes the active mainline regression where structural edits preserve #REF! in the raw formula but still render #ERR! in the cell.",
+      "ts": "2026-04-21T11:28:06Z"
+    }
+  ]
+}
