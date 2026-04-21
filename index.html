@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northstar Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand">Northstar Sheet</div>
+          <div class="subbrand">Ready-to-type grid with formulas, ranges, and session history.</div>
+        </div>
+        <div class="actions">
+          <button type="button" data-action="undo">Undo</button>
+          <button type="button" data-action="redo">Redo</button>
+          <button type="button" data-action="insert-row-above">Row + Above</button>
+          <button type="button" data-action="delete-row">Row -</button>
+          <button type="button" data-action="insert-col-left">Col + Left</button>
+          <button type="button" data-action="delete-col">Col -</button>
+        </div>
+      </header>
+      <section class="formula-strip">
+        <label class="name-box" for="formula-input">A1</label>
+        <div class="formula-label">fx</div>
+        <input id="formula-input" autocomplete="off" spellcheck="false">
+        <div class="hint">Enter commits down. Tab commits right. Esc cancels.</div>
+      </section>
+      <section class="sheet-wrap">
+        <div id="grid" class="grid" role="grid" aria-label="Spreadsheet"></div>
+      </section>
+    </main>
+    <script src="spreadsheet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
