@@ -1,0 +1,20 @@
+{
+  "run_id": "amazon",
+  "pr_number": 436,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/436",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Fix overlapping cut and paste moves",
+  "body": "## Summary\n- make cut-then-paste use an overlap-safe move path so moving a range onto an overlapping destination no longer clears over the pasted cells\n- add model coverage for the overlapping move case to keep the clipboard behavior correct as the spreadsheet surface evolves\n- keep the implementation stacked directly on Ben's current clipboard baseline instead of reviving the older Frank-range branch\n\n## Testing\n- node --test tests/model.test.js tests/history.test.js tests/spreadsheet.test.js\n- AGENT_BROWSER_SESSION=amazon-Frank agent-browser open file:///private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/org-bench-runs/amazon/worktrees/Frank/index.html\n- AGENT_BROWSER_SESSION=amazon-Frank agent-browser errors\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T19:09:32Z"
+    }
+  ],
+  "comments": []
+}

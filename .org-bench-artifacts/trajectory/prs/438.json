@@ -1,0 +1,20 @@
+{
+  "run_id": "amazon",
+  "pr_number": 438,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/438",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Fix overlapping cut and paste moves on Ben baseline",
+  "body": "## Summary\n- recut the overlap-safe cut-and-paste fix directly on top of Ben's current structural-edit branch so it applies cleanly to the integration path now headed for main\n- make cut-then-paste use an overlap-safe move path so moving a selected range onto an overlapping destination no longer clears over the pasted cells\n- keep the overlap regression covered alongside the newer structural-edit tests already on Ben's branch\n\n## Testing\n- node --test tests/model.test.js tests/history.test.js tests/spreadsheet.test.js\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T19:17:16Z"
+    }
+  ],
+  "comments": []
+}
