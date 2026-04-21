@@ -11,6 +11,7 @@
     parseSelectionRect,
     resolveStorageNamespace,
   } = window.SpreadsheetLib;
+  const { retargetFormulaBarEdit } = window.SpreadsheetAppState;
 
   const namespace = resolveStorageNamespace(window);
   const storageKey = `${namespace}:sheet-state`;
@@ -203,6 +204,10 @@
   function setSelection(start, end) {
     state.active = end;
     state.selection = { start, end };
+    const retargetedEdit = retargetFormulaBarEdit(state.editing, end, model.getRaw.bind(model));
+    if (retargetedEdit) {
+      state.editing = retargetedEdit;
+    }
     refreshSelection();
     syncFormulaBar();
     saveState();
@@ -236,6 +241,7 @@
       coord,
       value: initialValue,
       original: model.getRaw(coord),
+      source: fromFormulaBar ? 'formula' : 'cell',
     };
     const td = document.querySelector(`td[data-coord="${coord}"]`);
     td.innerHTML = '';
