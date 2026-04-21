@@ -109,6 +109,7 @@
     insertButton.type = 'button';
     insertButton.className = 'header-action';
     insertButton.title = insertTitle;
+    insertButton.setAttribute('aria-label', insertTitle + ' ' + label);
     insertButton.textContent = '+';
     insertButton.addEventListener('click', function (event) {
       event.stopPropagation();
@@ -120,6 +121,7 @@
     deleteButton.type = 'button';
     deleteButton.className = 'header-action';
     deleteButton.title = deleteTitle;
+    deleteButton.setAttribute('aria-label', deleteTitle + ' ' + label);
     deleteButton.textContent = '-';
     deleteButton.addEventListener('click', function (event) {
       event.stopPropagation();
@@ -134,12 +136,18 @@
   function render() {
     const sheet = core.evaluateSheet(store);
     grid.innerHTML = '';
+    grid.setAttribute('role', 'grid');
+    grid.setAttribute('aria-rowcount', String(core.ROWS + 1));
+    grid.setAttribute('aria-colcount', String(core.COLS + 1));
     const corner = document.createElement('div');
     corner.className = 'corner';
+    corner.setAttribute('aria-hidden', 'true');
     grid.appendChild(corner);
     for (let col = 0; col < core.COLS; col += 1) {
       const header = document.createElement('div');
       header.className = 'col-header';
+      header.setAttribute('role', 'columnheader');
+      header.setAttribute('aria-colindex', String(col + 2));
       header.appendChild(buildHeaderControl(
         core.colToName(col),
         'Insert column left',
@@ -152,6 +160,8 @@
     for (let row = 0; row < core.ROWS; row += 1) {
       const rowHeader = document.createElement('div');
       rowHeader.className = 'row-header';
+      rowHeader.setAttribute('role', 'rowheader');
+      rowHeader.setAttribute('aria-rowindex', String(row + 2));
       rowHeader.appendChild(buildHeaderControl(
         String(row + 1),
         'Insert row above',
@@ -167,9 +177,16 @@
         cell.className = 'cell';
         cell.dataset.col = String(col);
         cell.dataset.row = String(row);
-        cell.tabIndex = -1;
+        cell.tabIndex = selection.col === col && selection.row === row ? 0 : -1;
+        cell.setAttribute('role', 'gridcell');
+        cell.setAttribute('aria-label', core.colToName(col) + String(row + 1));
+        cell.setAttribute('aria-colindex', String(col + 2));
+        cell.setAttribute('aria-rowindex', String(row + 2));
         if (col >= range.startCol && col <= range.endCol && row >= range.startRow && row <= range.endRow) {
           cell.classList.add('selected');
+          cell.setAttribute('aria-selected', 'true');
+        } else {
+          cell.setAttribute('aria-selected', 'false');
         }
         if (selection.col === col && selection.row === row) {
           cell.classList.add('active');
