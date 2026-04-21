@@ -9,6 +9,7 @@ const {
   moveSelection,
   setCellRaw,
   getCellRaw,
+  getCellDisplayValue,
   serializeState,
   deserializeState,
   getStorageNamespace,
@@ -56,4 +57,58 @@ test('namespace resolution prefers injected benchmark namespace', () => {
   assert.equal(getStorageNamespace({ BENCHMARK_STORAGE_NAMESPACE: 'fallback' }), 'fallback');
   assert.equal(getStorageNamespace({}), 'spreadsheet');
   assert.equal(getStorageKey('run-123'), 'run-123:spreadsheet-state');
+});
+
+test('display values parse numbers and preserve literal text', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '42');
+  state = setCellRaw(state, 0, 1, 'hello');
+
+  assert.equal(getCellDisplayValue(state, 0, 0), '42');
+  assert.equal(getCellDisplayValue(state, 0, 1), 'hello');
+});
+
+test('formula display values evaluate arithmetic with precedence', () => {
+  const state = setCellRaw(createState(), 0, 0, '=1+2*3');
+
+  assert.equal(getCellDisplayValue(state, 0, 0), '7');
+});
+
+test('formula display values resolve cell references and recompute from precedents', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '10');
+  state = setCellRaw(state, 1, 0, '5');
+  state = setCellRaw(state, 2, 0, '=A1+A2');
+
+  assert.equal(getCellDisplayValue(state, 2, 0), '15');
+
+  state = setCellRaw(state, 1, 0, '9');
+  assert.equal(getCellDisplayValue(state, 2, 0), '19');
+});
+
+test('formula display values aggregate rectangular ranges in core functions', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '2');
+  state = setCellRaw(state, 1, 0, '4');
+  state = setCellRaw(state, 2, 0, '6');
+  state = setCellRaw(state, 3, 0, '=SUM(A1:A3)');
+  state = setCellRaw(state, 4, 0, '=AVERAGE(A1:A3)');
+  state = setCellRaw(state, 5, 0, '=MIN(A1:A3)');
+  state = setCellRaw(state, 6, 0, '=MAX(A1:A3)');
+  state = setCellRaw(state, 7, 0, '=COUNT(A1:A3)');
+
+  assert.equal(getCellDisplayValue(state, 3, 0), '12');
+  assert.equal(getCellDisplayValue(state, 4, 0), '4');
+  assert.equal(getCellDisplayValue(state, 5, 0), '2');
+  assert.equal(getCellDisplayValue(state, 6, 0), '6');
+  assert.equal(getCellDisplayValue(state, 7, 0), '3');
+});
+
+test('circular references surface a clear error marker', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '=B1');
+  state = setCellRaw(state, 0, 1, '=A1');
+
+  assert.equal(getCellDisplayValue(state, 0, 0), '#CIRC!');
+  assert.equal(getCellDisplayValue(state, 0, 1), '#CIRC!');
 });

@@ -112,7 +112,7 @@
         } else {
           const button = document.createElement('button');
           button.type = 'button';
-          button.textContent = core.getDisplayValue(core.getCellRaw(state, row, col));
+          button.textContent = core.getCellDisplayValue(state, row, col);
           button.addEventListener('click', function () {
             state = core.setActiveCell(state, row, col);
             saveState();

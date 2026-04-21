@@ -43,6 +43,19 @@
     return columnLabel(col) + String(row + 1);
   }
 
+  function parseCellKey(key) {
+    const match = /^([A-Z])(\d+)$/.exec(key);
+
+    if (!match) {
+      return null;
+    }
+
+    return {
+      row: Number(match[2]) - 1,
+      col: match[1].charCodeAt(0) - 65,
+    };
+  }
+
   function moveSelection(state, delta) {
     return {
       cells: state.cells,
@@ -80,8 +93,388 @@
     return state.cells[cellKey(row, col)] || '';
   }
 
-  function getDisplayValue(raw) {
+  function isNumeric(raw) {
+    return /^[-+]?\d+(?:\.\d+)?$/.test(String(raw).trim());
+  }
+
+  function getLiteralValue(raw) {
+    if (raw === '') {
+      return '';
+    }
+
+    const trimmed = String(raw).trim();
+    if (isNumeric(trimmed)) {
+      return String(Number(trimmed));
+    }
+
     return raw;
+  }
+
+  function tokenizeFormula(source) {
+    const tokens = [];
+    let index = 0;
+
+    while (index < source.length) {
+      const char = source[index];
+
+      if (/\s/.test(char)) {
+        index += 1;
+        continue;
+      }
+
+      if (/[0-9.]/.test(char)) {
+        let end = index + 1;
+        while (end < source.length && /[0-9.]/.test(source[end])) {
+          end += 1;
+        }
+        tokens.push({ type: 'number', value: source.slice(index, end) });
+        index = end;
+        continue;
+      }
+
+      if (/[A-Za-z]/.test(char)) {
+        let end = index + 1;
+        while (end < source.length && /[A-Za-z0-9]/.test(source[end])) {
+          end += 1;
+        }
+        tokens.push({ type: 'word', value: source.slice(index, end).toUpperCase() });
+        index = end;
+        continue;
+      }
+
+      if ('+-*/(),:'.includes(char)) {
+        tokens.push({ type: char, value: char });
+        index += 1;
+        continue;
+      }
+
+      throw new Error('Unexpected token');
+    }
+
+    return tokens;
+  }
+
+  function parseFormula(source) {
+    const tokens = tokenizeFormula(source);
+    let index = 0;
+
+    function peek(type) {
+      const token = tokens[index];
+      return token && token.type === type;
+    }
+
+    function consume(type) {
+      if (!peek(type)) {
+        throw new Error('Unexpected token');
+      }
+      const token = tokens[index];
+      index += 1;
+      return token;
+    }
+
+    function parseExpression() {
+      return parseAdditive();
+    }
+
+    function parseAdditive() {
+      let node = parseMultiplicative();
+
+      while (peek('+') || peek('-')) {
+        const operator = consume(tokens[index].type).type;
+        node = { type: 'binary', operator, left: node, right: parseMultiplicative() };
+      }
+
+      return node;
+    }
+
+    function parseMultiplicative() {
+      let node = parseUnary();
+
+      while (peek('*') || peek('/')) {
+        const operator = consume(tokens[index].type).type;
+        node = { type: 'binary', operator, left: node, right: parseUnary() };
+      }
+
+      return node;
+    }
+
+    function parseUnary() {
+      if (peek('-')) {
+        consume('-');
+        return { type: 'unary', operator: '-', value: parseUnary() };
+      }
+
+      return parsePrimary();
+    }
+
+    function parsePrimary() {
+      if (peek('number')) {
+        return { type: 'number', value: Number(consume('number').value) };
+      }
+
+      if (peek('word')) {
+        const word = consume('word').value;
+
+        if (peek('(')) {
+          consume('(');
+          const args = [];
+          if (!peek(')')) {
+            while (true) {
+              args.push(parseExpression());
+              if (peek(',')) {
+                consume(',');
+                continue;
+              }
+              break;
+            }
+          }
+          consume(')');
+          return { type: 'call', name: word, args };
+        }
+
+        const cell = parseCellKey(word);
+        if (!cell) {
+          throw new Error('Unknown identifier');
+        }
+
+        let node = { type: 'cell', key: word, row: cell.row, col: cell.col };
+        if (peek(':')) {
+          consume(':');
+          const endWord = consume('word').value;
+          const endCell = parseCellKey(endWord);
+          if (!endCell) {
+            throw new Error('Invalid range');
+          }
+          node = {
+            type: 'range',
+            start: { key: word, row: cell.row, col: cell.col },
+            end: { key: endWord, row: endCell.row, col: endCell.col },
+          };
+        }
+        return node;
+      }
+
+      if (peek('(')) {
+        consume('(');
+        const node = parseExpression();
+        consume(')');
+        return node;
+      }
+
+      throw new Error('Unexpected token');
+    }
+
+    const ast = parseExpression();
+    if (index !== tokens.length) {
+      throw new Error('Unexpected token');
+    }
+    return ast;
+  }
+
+  function evaluateFormula(state, expression, trail, cache) {
+    const ast = parseFormula(expression);
+    return evaluateNode(state, ast, trail, cache);
+  }
+
+  function evaluateNode(state, node, trail, cache) {
+    if (node.type === 'number') {
+      return node.value;
+    }
+
+    if (node.type === 'unary') {
+      return -toNumber(evaluateNode(state, node.value, trail, cache));
+    }
+
+    if (node.type === 'binary') {
+      const left = toNumber(evaluateNode(state, node.left, trail, cache));
+      const right = toNumber(evaluateNode(state, node.right, trail, cache));
+
+      if (left === '#CIRC!' || right === '#CIRC!') {
+        return '#CIRC!';
+      }
+      if (left === '#ERR!' || right === '#ERR!') {
+        return '#ERR!';
+      }
+      if (left === '#DIV/0!' || right === '#DIV/0!') {
+        return '#DIV/0!';
+      }
+
+      if (node.operator === '+') {
+        return left + right;
+      }
+      if (node.operator === '-') {
+        return left - right;
+      }
+      if (node.operator === '*') {
+        return left * right;
+      }
+      if (node.operator === '/') {
+        return right === 0 ? '#DIV/0!' : left / right;
+      }
+    }
+
+    if (node.type === 'cell') {
+      return evaluateCellByKey(state, node.key, trail, cache);
+    }
+
+    if (node.type === 'range') {
+      return expandRange(node).map(function (key) {
+        return evaluateCellByKey(state, key, trail, cache);
+      });
+    }
+
+    if (node.type === 'call') {
+      return evaluateCall(state, node, trail, cache);
+    }
+
+    throw new Error('Unknown node');
+  }
+
+  function expandRange(rangeNode) {
+    const startRow = Math.min(rangeNode.start.row, rangeNode.end.row);
+    const endRow = Math.max(rangeNode.start.row, rangeNode.end.row);
+    const startCol = Math.min(rangeNode.start.col, rangeNode.end.col);
+    const endCol = Math.max(rangeNode.start.col, rangeNode.end.col);
+    const keys = [];
+
+    for (let row = startRow; row <= endRow; row += 1) {
+      for (let col = startCol; col <= endCol; col += 1) {
+        keys.push(cellKey(row, col));
+      }
+    }
+
+    return keys;
+  }
+
+  function flattenValues(values) {
+    return values.reduce(function (items, value) {
+      if (Array.isArray(value)) {
+        return items.concat(flattenValues(value));
+      }
+      items.push(value);
+      return items;
+    }, []);
+  }
+
+  function evaluateCall(state, node, trail, cache) {
+    const args = flattenValues(node.args.map(function (arg) {
+      return evaluateNode(state, arg, trail, cache);
+    }));
+
+    if (args.some(function (value) { return value === '#CIRC!'; })) {
+      return '#CIRC!';
+    }
+    if (args.some(function (value) { return value === '#DIV/0!'; })) {
+      return '#DIV/0!';
+    }
+    if (args.some(function (value) { return value === '#ERR!'; })) {
+      return '#ERR!';
+    }
+
+    const numbers = args.map(toNumber);
+    if (numbers.some(function (value) {
+      return value === '#ERR!' || value === '#DIV/0!' || value === '#CIRC!';
+    })) {
+      return numbers.find(function (value) {
+        return value === '#ERR!' || value === '#DIV/0!' || value === '#CIRC!';
+      });
+    }
+
+    if (node.name === 'SUM') {
+      return numbers.reduce(function (sum, value) { return sum + value; }, 0);
+    }
+    if (node.name === 'AVERAGE') {
+      return numbers.length ? numbers.reduce(function (sum, value) { return sum + value; }, 0) / numbers.length : 0;
+    }
+    if (node.name === 'MIN') {
+      return numbers.length ? Math.min.apply(Math, numbers) : 0;
+    }
+    if (node.name === 'MAX') {
+      return numbers.length ? Math.max.apply(Math, numbers) : 0;
+    }
+    if (node.name === 'COUNT') {
+      return numbers.filter(function (value) { return typeof value === 'number' && !Number.isNaN(value); }).length;
+    }
+
+    return '#ERR!';
+  }
+
+  function evaluateCellByKey(state, key, trail, cache) {
+    if (trail.indexOf(key) !== -1) {
+      return '#CIRC!';
+    }
+
+    if (Object.prototype.hasOwnProperty.call(cache, key)) {
+      return cache[key];
+    }
+
+    const cell = parseCellKey(key);
+    const raw = cell ? getCellRaw(state, cell.row, cell.col) : '';
+    let value;
+
+    if (raw === '') {
+      value = 0;
+    } else if (raw[0] === '=') {
+      try {
+        value = evaluateFormula(state, raw.slice(1), trail.concat(key), cache);
+      } catch (_error) {
+        value = '#ERR!';
+      }
+    } else if (isNumeric(raw)) {
+      value = Number(raw);
+    } else {
+      value = raw;
+    }
+
+    cache[key] = value;
+    return value;
+  }
+
+  function toNumber(value) {
+    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return '#ERR!';
+    }
+    if (value === '') {
+      return 0;
+    }
+    if (typeof value === 'number') {
+      return value;
+    }
+    if (typeof value === 'string' && isNumeric(value)) {
+      return Number(value);
+    }
+    return 0;
+  }
+
+  function formatDisplayValue(value) {
+    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return String(Number.isInteger(value) ? value : Number(value.toFixed(6)));
+    }
+    return String(value);
+  }
+
+  function getCellDisplayValue(state, row, col) {
+    const raw = getCellRaw(state, row, col);
+
+    if (raw === '') {
+      return '';
+    }
+
+    if (raw[0] !== '=') {
+      return getLiteralValue(raw);
+    }
+
+    try {
+      return formatDisplayValue(evaluateCellByKey(state, cellKey(row, col), [], {}));
+    } catch (_error) {
+      return '#ERR!';
+    }
   }
 
   function serializeState(state) {
@@ -124,12 +517,14 @@
     ROW_COUNT,
     columnLabel,
     cellKey,
+    parseCellKey,
     createState,
     moveSelection,
     setActiveCell,
     setCellRaw,
     getCellRaw,
-    getDisplayValue,
+    getLiteralValue,
+    getCellDisplayValue,
     serializeState,
     deserializeState,
     getStorageNamespace,
