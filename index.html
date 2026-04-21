@@ -1,24 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Amazon Sheet</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="app-shell">
-    <header class="formula-panel">
-      <div class="name-box" id="name-box">A1</div>
-      <label class="formula-label" for="formula-input">fx</label>
-      <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
-    </header>
-    <main class="grid-shell">
-      <div id="grid-root" class="grid-root" aria-label="Spreadsheet"></div>
-      <input id="cell-editor" class="cell-editor hidden" type="text" spellcheck="false" autocomplete="off">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Amazon Spreadsheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="toolbar">
+        <div class="brand">
+          <span class="brand-mark">A</span>
+          <div>
+            <strong>Spreadsheet</strong>
+            <p>Ready for quick calculations.</p>
+          </div>
+        </div>
+        <label class="name-box" aria-label="Selected cell">
+          <span>Name</span>
+          <strong data-selected-cell>A1</strong>
+        </label>
+        <label class="formula-bar">
+          <span>Formula</span>
+          <input data-formula-input type="text" spellcheck="false" autocomplete="off">
+        </label>
+        <div class="status" data-status>Ready</div>
+      </header>
+      <section class="grid-shell">
+        <div class="grid" data-grid></div>
+        <input class="cell-editor" data-cell-editor type="text" hidden spellcheck="false" autocomplete="off">
+      </section>
     </main>
-  </div>
-  <script src="spreadsheet.js"></script>
-  <script src="app.js"></script>
-</body>
+    <script src="src/model.js"></script>
+    <script src="src/app.js"></script>
+  </body>
 </html>
