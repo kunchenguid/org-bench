@@ -6,19 +6,64 @@
 
   root.SpreadsheetEditing = factory(root.SpreadsheetShell || {});
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (shellApi) {
-  function createEditingState(options) {
-    const settings = options || {};
-    const activeCellId = settings.activeCellId || 'A1';
+  function selectionToPersistenceSelection(selection) {
+    const position = parseCellId(selection.activeCellId);
 
     return {
-      cells: { ...(settings.cells || {}) },
+      col: position.columnIndex + 1,
+      row: position.rowIndex + 1,
+    };
+  }
+
+  function persistenceSelectionToCellId(selection) {
+    if (!selection || !Number.isInteger(selection.col) || !Number.isInteger(selection.row)) {
+      return null;
+    }
+
+    if (selection.col < 1 || selection.row < 1) {
+      return null;
+    }
+
+    return cellPositionToId(selection.col - 1, selection.row - 1);
+  }
+
+  function resolvePersistence(options) {
+    if (options && options.persistence) {
+      return options.persistence;
+    }
+
+    if (typeof globalThis !== 'undefined' && typeof globalThis.createSpreadsheetPersistence === 'function') {
+      return globalThis.createSpreadsheetPersistence({
+        namespace: globalThis.__BENCHMARK_RUN_NAMESPACE__,
+      });
+    }
+
+    return null;
+  }
+
+  function loadPersistedState(persistence) {
+    if (!persistence || typeof persistence.load !== 'function') {
+      return null;
+    }
+
+    return persistence.load();
+  }
+
+  function createEditingState(options) {
+    const settings = options || {};
+    const persistedState = settings.persistedState || {};
+    const persistedActiveCellId = persistenceSelectionToCellId(persistedState.selection);
+    const activeCellId = persistedActiveCellId || settings.activeCellId || 'A1';
+
+    return {
+      cells: { ...(persistedState.cells || {}), ...(settings.cells || {}) },
       selection: {
         activeCellId,
         anchorCellId: activeCellId,
         focusCellId: activeCellId,
       },
       mode: 'navigate',
-      formulaBarValue: settings.cells && settings.cells[activeCellId] ? settings.cells[activeCellId] : '',
+      formulaBarValue: '',
       draftValue: '',
       editing: null,
       columnCount: settings.columnCount || 26,
@@ -28,7 +73,21 @@
 
   function createSpreadsheetEditingController(options) {
     const settings = options || {};
+    const persistence = resolvePersistence(settings);
+    const persistedState = loadPersistedState(persistence);
+    settings.persistedState = persistedState;
     const state = createEditingState(settings);
+
+    function persistState() {
+      if (!persistence || typeof persistence.save !== 'function') {
+        return;
+      }
+
+      persistence.save({
+        cells: state.cells,
+        selection: selectionToPersistenceSelection(state.selection),
+      });
+    }
 
     function getCellRawValue(cellId) {
       return state.cells[cellId] || '';
@@ -45,6 +104,7 @@
       state.selection.anchorCellId = cellId;
       state.selection.focusCellId = cellId;
       syncFormulaBarValue();
+      persistState();
     }
 
     function moveSelection(columnDelta, rowDelta) {
@@ -112,6 +172,7 @@
       }
 
       syncFormulaBarValue();
+      persistState();
     }
 
     function handleKeyDown(event) {
@@ -185,10 +246,12 @@
     const settings = options || {};
     const formulaInput = doc.getElementById('formula-input');
     const initialCell = doc.querySelector('.grid-cell.active') || doc.querySelector('.grid-cell');
+    const persistence = resolvePersistence(settings);
     const controller = createSpreadsheetEditingController({
       activeCellId: initialCell ? initialCell.dataset.cellId : 'A1',
       columnCount: settings.columnCount || doc.querySelectorAll('.column-header').length || 26,
       rowCount: settings.rowCount || doc.querySelectorAll('.row-header').length || 100,
+      persistence,
     });
 
     function syncDom() {

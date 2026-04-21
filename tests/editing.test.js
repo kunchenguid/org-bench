@@ -92,3 +92,70 @@ test('formula bar editing stays in sync with the selected cell', () => {
   controller.selectCell('A1');
   assert.equal(controller.getState().formulaBarValue, '=A1');
 });
+
+test('controller restores cells and selection from persistence on startup', () => {
+  const persistence = {
+    load() {
+      return {
+        cells: { B2: 'restored value' },
+        selection: { col: 2, row: 2 },
+      };
+    },
+    save() {},
+  };
+
+  const controller = createSpreadsheetEditingController({ persistence });
+
+  assert.equal(controller.getCellRawValue('B2'), 'restored value');
+  assert.equal(controller.getState().selection.activeCellId, 'B2');
+  assert.equal(controller.getState().formulaBarValue, 'restored value');
+});
+
+test('controller persists committed edits and the resulting selection', () => {
+  const saves = [];
+  const persistence = {
+    load() {
+      return {
+        cells: {},
+        selection: null,
+      };
+    },
+    save(state) {
+      saves.push(state);
+    },
+  };
+
+  const controller = createSpreadsheetEditingController({ persistence });
+
+  controller.handleTextInput('42');
+  controller.handleKeyDown({ key: 'Enter' });
+
+  assert.deepEqual(saves.at(-1), {
+    cells: { A1: '42' },
+    selection: { col: 1, row: 2 },
+  });
+});
+
+test('controller persists selection-only changes outside edit mode', () => {
+  const saves = [];
+  const persistence = {
+    load() {
+      return {
+        cells: {},
+        selection: null,
+      };
+    },
+    save(state) {
+      saves.push(state);
+    },
+  };
+
+  const controller = createSpreadsheetEditingController({ persistence });
+
+  controller.selectCell('C3');
+
+  assert.deepEqual(saves.at(-1), {
+    cells: {},
+    selection: { col: 3, row: 3 },
+  });
+});
