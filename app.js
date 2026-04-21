@@ -9,7 +9,7 @@
   const gridWrap = document.querySelector('.grid-wrap');
   const formulaInput = document.querySelector('#formula-input');
   const nameBox = document.querySelector('#name-box');
-  const state = { active: persisted.active || 'A1', editing: null };
+  const state = { active: persisted.active || 'A1', editing: null, rangeAnchor: null };
 
   renderGrid();
   syncFormulaBar();
@@ -17,7 +17,9 @@
 
   gridWrap.addEventListener('click', function (event) {
     const cell = event.target.closest('[data-address]');
-    if (cell) selectCell(cell.dataset.address);
+    if (!cell) return;
+    if (event.shiftKey) extendSelectionTo(cell.dataset.address);
+    else selectCell(cell.dataset.address);
   });
   gridWrap.addEventListener('dblclick', function (event) {
     const cell = event.target.closest('[data-address]');
@@ -50,11 +52,13 @@
     gridWrap.replaceChildren(table);
     updateVisibleCells();
   }
+
   function renderHeader() {
     let html = '<thead><tr><th class="corner row-header"></th>';
     for (let col = 1; col <= COLS; col += 1) html += '<th>' + core.indexToColumn(col) + '</th>';
     return html + '</tr></thead>';
   }
+
   function renderBody() {
     let html = '<tbody>';
     for (let row = 1; row <= ROWS; row += 1) {
@@ -67,13 +71,15 @@
     }
     return html + '</tbody>';
   }
+
   function handleGridKeydown(event) {
     if (state.editing && state.editing !== 'formula') return;
     if (event.target.classList.contains('cell-input')) return;
     const movement = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[event.key];
     if (movement) {
       event.preventDefault();
-      moveSelection(movement[0], movement[1]);
+      if (event.shiftKey) extendSelection(movement[0], movement[1]);
+      else moveSelection(movement[0], movement[1]);
       return;
     }
     if (event.key === 'Enter' || event.key === 'F2') {
@@ -83,7 +89,7 @@
     }
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      commitValue(state.active, '', null);
+      clearSelectedCells();
       return;
     }
     if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
@@ -91,6 +97,7 @@
       startEdit(state.active, true, event.key);
     }
   }
+
   function startEdit(address, replace, value) {
     selectCell(address);
     const cell = getCellElement(address);
@@ -122,6 +129,7 @@
       if (state.editing === address) commitValue(address, input.value, null);
     });
   }
+
   function commitValue(address, value, move) {
     core.setCell(sheet, address, value);
     state.editing = null;
@@ -132,45 +140,117 @@
     syncFormulaBar();
     focusActiveCell();
   }
+
   function selectCell(address) {
     state.active = address;
+    state.rangeAnchor = null;
     updateVisibleCells();
     syncFormulaBar();
     persistState();
   }
+
   function moveSelection(dx, dy) {
     const current = core.splitAddress(state.active);
     selectCell(core.makeAddress(clamp(current.col + dx, 1, COLS), clamp(current.row + dy, 1, ROWS)));
     focusActiveCell();
   }
+
+  function extendSelection(dx, dy) {
+    if (!state.rangeAnchor) state.rangeAnchor = core.splitAddress(state.active);
+    const current = core.splitAddress(state.active);
+    state.active = core.makeAddress(clamp(current.col + dx, 1, COLS), clamp(current.row + dy, 1, ROWS));
+    updateVisibleCells();
+    syncFormulaBar();
+    persistState();
+    focusActiveCell();
+  }
+
+  function extendSelectionTo(address) {
+    if (!state.rangeAnchor) state.rangeAnchor = core.splitAddress(state.active);
+    state.active = address;
+    updateVisibleCells();
+    syncFormulaBar();
+    persistState();
+    focusActiveCell();
+  }
+
+  function clearSelectedCells() {
+    const addresses = getSelectedAddresses();
+    for (let i = 0; i < addresses.length; i += 1) {
+      core.setCell(sheet, addresses[i], '');
+    }
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+  }
+
+  function getSelectedRange() {
+    if (!state.rangeAnchor) return null;
+    const anchor = state.rangeAnchor;
+    const active = core.splitAddress(state.active);
+    return {
+      startCol: Math.min(anchor.col, active.col),
+      endCol: Math.max(anchor.col, active.col),
+      startRow: Math.min(anchor.row, active.row),
+      endRow: Math.max(anchor.row, active.row),
+    };
+  }
+
+  function getSelectedAddresses() {
+    const range = getSelectedRange();
+    if (!range) return [state.active];
+    const addresses = [];
+    for (let row = range.startRow; row <= range.endRow; row += 1) {
+      for (let col = range.startCol; col <= range.endCol; col += 1) {
+        addresses.push(core.makeAddress(col, row));
+      }
+    }
+    return addresses;
+  }
+
+  function isCellSelected(address) {
+    const range = getSelectedRange();
+    if (!range) return address === state.active;
+    const position = core.splitAddress(address);
+    return position.col >= range.startCol && position.col <= range.endCol && position.row >= range.startRow && position.row <= range.endRow;
+  }
+
   function updateVisibleCells() {
     const cells = gridWrap.querySelectorAll('[data-address]');
     for (let i = 0; i < cells.length; i += 1) {
       const address = cells[i].dataset.address;
+      cells[i].classList.toggle('range', isCellSelected(address));
       cells[i].classList.toggle('active', address === state.active);
       if (state.editing === address) continue;
       cells[i].textContent = core.getCellDisplay(sheet, address);
     }
   }
+
   function syncFormulaBar() {
     nameBox.textContent = state.active;
     if (state.editing !== 'formula') formulaInput.value = core.getCellRaw(sheet, state.active);
   }
+
   function focusActiveCell() {
     const cell = getCellElement(state.active);
     if (cell) cell.focus();
   }
+
   function getCellElement(address) {
     return gridWrap.querySelector('[data-address="' + address + '"]');
   }
+
   function persistState() {
     storageApi.savePersistedSheet(localStorage, storageNamespace, { cells: sheet.cells, active: state.active });
   }
+
   function loadState() {
     return storageApi.loadPersistedSheet(localStorage, storageNamespace) || {};
   }
+
   function resolveStorageNamespace() {
     return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'spreadsheet';
   }
+
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 })();
