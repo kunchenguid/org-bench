@@ -184,6 +184,14 @@
       reference.row;
   }
 
+  function parseCellKey(key) {
+    const parts = key.split(':');
+    return {
+      row: Number(parts[0]),
+      col: Number(parts[1]),
+    };
+  }
+
   function shiftReferenceToken(token, rowOffset, colOffset) {
     const reference = parseReferenceToken(token);
     const shifted = {
@@ -202,6 +210,75 @@
     return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (token) {
       return shiftReferenceToken(token, rowOffset, colOffset);
     });
+  }
+
+  function rewriteFormulaRows(raw, rowIndex, mode) {
+    if (!raw.startsWith('=')) {
+      return raw;
+    }
+    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (token) {
+      const reference = parseReferenceToken(token);
+      if (mode === 'insert' && reference.row >= rowIndex) {
+        reference.row += 1;
+        return formatReferenceToken(reference);
+      }
+      if (mode === 'delete') {
+        if (reference.row === rowIndex) {
+          return '#REF!';
+        }
+        if (reference.row > rowIndex) {
+          reference.row -= 1;
+          return formatReferenceToken(reference);
+        }
+      }
+      return token;
+    });
+  }
+
+  function shiftSelectionRows(position, rowIndex, mode) {
+    if (mode === 'insert' && position.row >= rowIndex) {
+      return { row: clamp(position.row + 1, 1, ROW_COUNT), col: position.col };
+    }
+    if (mode === 'delete') {
+      if (position.row === rowIndex) {
+        return { row: clamp(position.row, 1, ROW_COUNT), col: position.col };
+      }
+      if (position.row > rowIndex) {
+        return { row: clamp(position.row - 1, 1, ROW_COUNT), col: position.col };
+      }
+    }
+    return { row: position.row, col: position.col };
+  }
+
+  function remapRows(state, rowIndex, mode) {
+    const nextState = createEmptyState();
+    Object.keys(state.cells).forEach(function (key) {
+      const position = parseCellKey(key);
+      if (mode === 'insert') {
+        const nextRow = position.row >= rowIndex ? position.row + 1 : position.row;
+        if (nextRow > ROW_COUNT) {
+          return;
+        }
+        nextState.cells[makeCellKey(nextRow, position.col)] = rewriteFormulaRows(state.cells[key], rowIndex, mode);
+        return;
+      }
+      if (position.row === rowIndex) {
+        return;
+      }
+      const nextRow = position.row > rowIndex ? position.row - 1 : position.row;
+      nextState.cells[makeCellKey(nextRow, position.col)] = rewriteFormulaRows(state.cells[key], rowIndex, mode);
+    });
+    nextState.selection = shiftSelectionRows(state.selection, rowIndex, mode);
+    nextState.selectionEnd = shiftSelectionRows(state.selectionEnd || state.selection, rowIndex, mode);
+    return nextState;
+  }
+
+  function insertRow(state, rowIndex) {
+    return remapRows(state, clamp(rowIndex, 1, ROW_COUNT), 'insert');
+  }
+
+  function deleteRow(state, rowIndex) {
+    return remapRows(state, clamp(rowIndex, 1, ROW_COUNT), 'delete');
   }
 
   function copySelection(state, start, end) {
@@ -415,6 +492,11 @@
       if (['<=', '>=', '<>'].indexOf(twoChar) >= 0) {
         tokens.push({ type: 'op', value: twoChar });
         index += 2;
+        continue;
+      }
+      if (formula.slice(index, index + 5) === '#REF!') {
+        tokens.push({ type: 'error', value: '#REF!' });
+        index += 5;
         continue;
       }
       if ('()+-*/&,=:'.indexOf(char) >= 0 || char === '<' || char === '>') {
@@ -662,6 +744,10 @@
       const stringToken = take('string');
       if (stringToken) {
         return stringToken.value;
+      }
+      const errorToken = take('error');
+      if (errorToken) {
+        return errorToken.value;
       }
       const refToken = take('ref');
       if (refToken) {
@@ -1055,6 +1141,8 @@
     getSelectionRect,
     commitCell,
     getCellRaw,
+    insertRow,
+    deleteRow,
     moveSelection,
     getSelectionAfterCommit,
     copySelection,

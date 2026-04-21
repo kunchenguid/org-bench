@@ -16,6 +16,8 @@ const {
   applyHistoryState,
   undoHistory,
   redoHistory,
+  insertRow,
+  deleteRow,
   evaluateCell,
   formatValue,
   createStorageAdapter,
@@ -174,6 +176,47 @@ test('cut clearing removes every cell in a selected range', () => {
   assert.equal(getCellRaw(state, 1, 2), '');
   assert.equal(getCellRaw(state, 2, 1), '');
   assert.equal(getCellRaw(state, 2, 2), '');
+});
+
+test('insertRow shifts cells downward and rewrites formula references', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '1');
+  state = commitCell(state, 2, 1, '2');
+  state = commitCell(state, 1, 2, '=A2');
+
+  state = insertRow(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 1), '1');
+  assert.equal(getCellRaw(state, 2, 1), '');
+  assert.equal(getCellRaw(state, 3, 1), '2');
+  assert.equal(getCellRaw(state, 1, 2), '=A3');
+  assert.equal(formatValue(evaluateCell(state, 1, 2).value), '2');
+});
+
+test('deleteRow shifts later references upward', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '1');
+  state = commitCell(state, 2, 1, '2');
+  state = commitCell(state, 3, 1, '3');
+  state = commitCell(state, 1, 2, '=A3');
+
+  state = deleteRow(state, 2);
+
+  assert.equal(getCellRaw(state, 2, 1), '3');
+  assert.equal(getCellRaw(state, 3, 1), '');
+  assert.equal(getCellRaw(state, 1, 2), '=A2');
+  assert.equal(formatValue(evaluateCell(state, 1, 2).value), '3');
+});
+
+test('deleteRow rewrites references to deleted cells as #REF!', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 2, 1, '2');
+  state = commitCell(state, 1, 2, '=A2');
+
+  state = deleteRow(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 2), '=#REF!');
+  assert.equal(formatValue(evaluateCell(state, 1, 2).value), '#REF!');
 });
 
 test('undo and redo restore committed cell edits', () => {
