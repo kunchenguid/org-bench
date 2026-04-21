@@ -153,6 +153,10 @@ body {
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 
+.cell.selected-range {
+  background: var(--accent-soft);
+}
+
 .cell.error {
   color: var(--error);
 }

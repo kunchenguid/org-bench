@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { createEngine } = require('./app.js');
+const { createEngine, shiftFormula } = require('./app.js');
 
 function run(name, fn) {
   try {
@@ -49,4 +49,20 @@ run('supports IF and concatenation', () => {
   engine.setCell('A1', '4');
   engine.setCell('B1', '=IF(A1>3,"ok","no")&"!"');
   assert.equal(engine.getDisplayValue('B1'), 'ok!');
+});
+
+run('supports absolute and mixed references in formulas', () => {
+  const engine = createEngine();
+  engine.setCell('A1', '2');
+  engine.setCell('A2', '5');
+  engine.setCell('B1', '7');
+  engine.setCell('B2', '=A$1+$A2+$B$1');
+  assert.equal(engine.getDisplayValue('B2'), '14');
+});
+
+run('shifts only relative parts when copying formulas', () => {
+  assert.equal(
+    shiftFormula('=SUM(A1:B2)+$C$3+C$4+$D5', 1, 2),
+    '=SUM(B3:C4)+$C$3+D$4+$D7'
+  );
 });
