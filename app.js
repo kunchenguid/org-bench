@@ -1,18 +1,28 @@
 (function () {
   var core = window.SpreadsheetCore;
   var FormulaEngine = window.FormulaEngine;
+  var Structure = window.SpreadsheetStructure;
   var selectionApi = window.RangeSelection;
   var rowCount = 100;
   var columnCount = 26;
   var gridElement = document.getElementById('sheet-grid');
   var formulaInput = document.getElementById('formula-input');
+  var insertRowButton = document.getElementById('insert-row-btn');
+  var deleteRowButton = document.getElementById('delete-row-btn');
+  var insertColumnButton = document.getElementById('insert-column-btn');
+  var deleteColumnButton = document.getElementById('delete-column-btn');
+  var undoButton = document.getElementById('undo-btn');
+  var redoButton = document.getElementById('redo-btn');
   var namespace = core.resolveStorageNamespace(window);
   var storageKey = namespace + ':sheet-state';
   var state = loadState();
+  rowCount = state.rowCount || rowCount;
+  columnCount = state.columnCount || columnCount;
   var activeEditor = null;
   var formulaEngine = null;
   var dragAnchor = null;
   var pendingCut = null;
+  var history = Structure && Structure.createHistory ? Structure.createHistory(50) : null;
 
   renderGrid();
   renderSelection();
@@ -20,6 +30,8 @@
 
   function defaultState() {
     return {
+      rowCount: rowCount,
+      columnCount: columnCount,
       selected: { row: 0, column: 0 },
       rangeAnchor: { row: 0, column: 0 },
       cells: {},
@@ -39,6 +51,8 @@
       }
 
       return {
+        rowCount: Math.max(1, Number(parsed.rowCount) || rowCount),
+        columnCount: Math.max(1, Number(parsed.columnCount) || columnCount),
         selected: {
           row: clamp(Number(parsed.selected.row) || 0, 0, rowCount - 1),
           column: clamp(Number(parsed.selected.column) || 0, 0, columnCount - 1),
@@ -63,6 +77,8 @@
 
   function renderGrid() {
     var fragment = document.createDocumentFragment();
+    gridElement.setAttribute('aria-rowcount', String(rowCount));
+    gridElement.setAttribute('aria-colcount', String(columnCount));
     fragment.appendChild(makeCell('div', 'corner-cell'));
 
     for (var columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
@@ -102,9 +118,16 @@
     document.addEventListener('copy', handleCopy);
     document.addEventListener('cut', handleCut);
     document.addEventListener('paste', handlePaste);
+    insertRowButton.addEventListener('click', function () { runStructuralAction('insert-row', Structure.insertRow, state.selected.row + 1); });
+    deleteRowButton.addEventListener('click', function () { runStructuralAction('delete-row', Structure.deleteRow, state.selected.row + 1); });
+    insertColumnButton.addEventListener('click', function () { runStructuralAction('insert-column', Structure.insertColumn, state.selected.column + 1); });
+    deleteColumnButton.addEventListener('click', function () { runStructuralAction('delete-column', Structure.deleteColumn, state.selected.column + 1); });
+    undoButton.addEventListener('click', handleUndo);
+    redoButton.addEventListener('click', handleRedo);
     formulaInput.addEventListener('focus', syncFormulaBar);
     formulaInput.addEventListener('input', handleFormulaInput);
     formulaInput.addEventListener('keydown', handleFormulaKeydown);
+    updateActionButtons();
   }
 
   function handleGridPointerDown(event) {
@@ -157,6 +180,24 @@
   function handleDocumentKeydown(event) {
     if (activeEditor) {
       return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && !event.altKey) {
+      if (event.key.toLowerCase() === 'z' && event.shiftKey) {
+        handleRedo();
+        event.preventDefault();
+        return;
+      }
+      if (event.key.toLowerCase() === 'z') {
+        handleUndo();
+        event.preventDefault();
+        return;
+      }
+      if (event.key.toLowerCase() === 'y') {
+        handleRedo();
+        event.preventDefault();
+        return;
+      }
     }
 
     if (event.target === formulaInput) {
@@ -328,6 +369,7 @@
 
     syncFormulaBar();
     refreshGridValues();
+    updateActionButtons();
   }
 
   function refreshGridValues() {
@@ -477,6 +519,83 @@
     }
 
     return formulaEngine.evaluateCell(cellId);
+  }
+
+  function getStructureState() {
+    return Structure.createEmptyState({
+      rowCount: rowCount,
+      columnCount: columnCount,
+      cells: state.cells,
+    });
+  }
+
+  function runStructuralAction(label, operation, index) {
+    var before;
+    var after;
+
+    if (!Structure || typeof operation !== 'function') {
+      return;
+    }
+
+    before = getStructureState();
+    after = operation(before, index);
+    if (history) {
+      history.record(before, after, label);
+    }
+    applyStructureState(after);
+  }
+
+  function applyStructureState(nextState) {
+    rowCount = nextState.rowCount;
+    columnCount = nextState.columnCount;
+    state.rowCount = rowCount;
+    state.columnCount = columnCount;
+    state.cells = nextState.cells;
+    state.selected = {
+      row: clamp(state.selected.row, 0, rowCount - 1),
+      column: clamp(state.selected.column, 0, columnCount - 1),
+    };
+    state.rangeAnchor = {
+      row: clamp(getAnchorPosition().row, 0, rowCount - 1),
+      column: clamp(getAnchorPosition().column, 0, columnCount - 1),
+    };
+    formulaEngine = null;
+    renderGrid();
+    renderSelection();
+    saveState();
+  }
+
+  function handleUndo() {
+    var entry;
+    if (!history) {
+      return;
+    }
+    entry = history.undo();
+    if (entry) {
+      applyStructureState(entry.state);
+    }
+  }
+
+  function handleRedo() {
+    var entry;
+    if (!history) {
+      return;
+    }
+    entry = history.redo();
+    if (entry) {
+      applyStructureState(entry.state);
+    }
+  }
+
+  function updateActionButtons() {
+    if (!Structure) {
+      return;
+    }
+
+    deleteRowButton.disabled = rowCount <= 1;
+    deleteColumnButton.disabled = columnCount <= 1;
+    undoButton.disabled = !history || !history.canUndo();
+    redoButton.disabled = !history || !history.canRedo();
   }
 
   function canHandleClipboard(event) {

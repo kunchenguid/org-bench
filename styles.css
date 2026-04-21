@@ -61,6 +61,25 @@ body {
   font-weight: 700;
 }
 
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action-bar button {
+  border: 1px solid var(--grid);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 9px 12px;
+  font: inherit;
+}
+
+.action-bar button:disabled {
+  opacity: 0.45;
+}
+
 .subtitle,
 .formula-label {
   font-size: 0.75rem;
@@ -201,5 +220,9 @@ body {
   .toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .action-bar {
+    justify-content: flex-start;
   }
 }

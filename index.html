@@ -13,6 +13,14 @@
           <span class="brand">Oracle Sheet</span>
           <span class="subtitle">Local-first spreadsheet</span>
         </div>
+        <div class="action-bar" aria-label="Spreadsheet actions">
+          <button id="insert-row-btn" type="button">Insert Row</button>
+          <button id="delete-row-btn" type="button">Delete Row</button>
+          <button id="insert-column-btn" type="button">Insert Column</button>
+          <button id="delete-column-btn" type="button">Delete Column</button>
+          <button id="undo-btn" type="button">Undo</button>
+          <button id="redo-btn" type="button">Redo</button>
+        </div>
         <label class="formula-bar" for="formula-input">
           <span class="formula-label">fx</span>
           <input id="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="Formula bar">
@@ -27,6 +35,7 @@
     </script>
     <script src="app-core.js"></script>
     <script src="src/formula-engine.js"></script>
+    <script src="src/spreadsheet-structure.js"></script>
     <script src="range-selection.js"></script>
     <script src="app.js"></script>
   </body>

@@ -1,3 +1,11 @@
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = factory();
+    return;
+  }
+
+  root.SpreadsheetStructure = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
 function createEmptyState(options = {}) {
   return {
     rowCount: options.rowCount || 100,
@@ -356,7 +364,7 @@ function cloneState(state) {
   };
 }
 
-module.exports = {
+return {
   createEmptyState,
   insertRow,
   deleteRow,
@@ -364,3 +372,4 @@ module.exports = {
   deleteColumn,
   createHistory,
 };
+});
