@@ -57,6 +57,8 @@
       formulaBar: {
         label: 'fx',
         name: 'Formula Bar',
+        modeLabel: 'Formula',
+        hint: 'Press Enter to commit',
         placeholder: FORMULA_PLACEHOLDER,
       },
       columns,
@@ -232,7 +234,11 @@
     const shell = createNode(document, 'main', 'app-shell');
     const topbar = createNode(document, 'section', 'formula-bar');
     const nameBox = createNode(document, 'div', 'name-box', 'A1');
+    const formulaMeta = createNode(document, 'div', 'formula-meta');
     const formulaLabel = createNode(document, 'div', 'formula-label', model.formulaBar.label);
+    const formulaCaption = createNode(document, 'div', 'formula-caption');
+    const formulaMode = createNode(document, 'span', 'formula-mode', model.formulaBar.modeLabel);
+    const formulaHint = createNode(document, 'span', 'formula-hint', model.formulaBar.hint);
     const formulaInput = createNode(document, 'div', 'formula-input');
     const formulaText = createNode(document, 'span', 'formula-placeholder', model.formulaBar.placeholder);
     const sheetViewport = createNode(document, 'section', 'sheet-viewport');
@@ -248,9 +254,13 @@
     grid.setAttribute('role', 'grid');
     grid.style.setProperty('--column-count', String(model.columns.length));
 
+    formulaCaption.appendChild(formulaMode);
+    formulaCaption.appendChild(formulaHint);
+    formulaMeta.appendChild(formulaLabel);
+    formulaMeta.appendChild(formulaCaption);
     formulaInput.appendChild(formulaText);
     topbar.appendChild(nameBox);
-    topbar.appendChild(formulaLabel);
+    topbar.appendChild(formulaMeta);
     topbar.appendChild(formulaInput);
 
     grid.appendChild(createNode(document, 'div', 'corner-cell'));
@@ -357,6 +367,9 @@
         }
         if (isNumericDisplayValue(display)) {
           cellNode.classList.add('numeric-cell');
+        }
+        if (typeof display === 'string' && display[0] === '#') {
+          cellNode.classList.add('is-error');
         }
 
         valueNode.textContent = display;

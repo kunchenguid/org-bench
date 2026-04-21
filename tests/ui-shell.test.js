@@ -23,6 +23,8 @@ test('surface model defines spreadsheet chrome and default highlights', () => {
   const model = buildSurfaceModel();
 
   assert.equal(model.formulaBar.label, 'fx');
+  assert.equal(model.formulaBar.modeLabel, 'Formula');
+  assert.equal(model.formulaBar.hint, 'Press Enter to commit');
   assert.equal(model.columns.length, 26);
   assert.equal(model.rows.length, 100);
   assert.deepEqual(model.activeCell, { column: 0, row: 0 });
