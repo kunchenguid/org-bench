@@ -43,9 +43,40 @@
         activeCellId: 'A1',
         anchorCellId: 'A1',
         focusCellId: 'A1',
+        range: {
+          startCellId: 'A1',
+          endCellId: 'A1',
+        },
       },
       formulaBarValue: '',
       mode: 'navigate',
+    };
+  }
+
+  function parseCellId(cellId) {
+    const match = /^([A-Z]+)([0-9]+)$/.exec(cellId);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      columnIndex: match[1].charCodeAt(0) - 65,
+      rowIndex: Number(match[2]) - 1,
+    };
+  }
+
+  function getSelectionBounds(selection) {
+    const anchor = parseCellId(selection.anchorCellId);
+    const focus = parseCellId(selection.focusCellId);
+    if (!anchor || !focus) {
+      return null;
+    }
+
+    return {
+      startColumnIndex: Math.min(anchor.columnIndex, focus.columnIndex),
+      endColumnIndex: Math.max(anchor.columnIndex, focus.columnIndex),
+      startRowIndex: Math.min(anchor.rowIndex, focus.rowIndex),
+      endRowIndex: Math.max(anchor.rowIndex, focus.rowIndex),
     };
   }
 
@@ -119,13 +150,34 @@
     const activeCellId = shellState.selection.activeCellId;
     const activeColumn = activeCellId.replace(/[0-9]/g, '');
     const activeRow = activeCellId.replace(/[^0-9]/g, '');
+    const selectionBounds = getSelectionBounds(shellState.selection);
 
-    doc.querySelectorAll('.grid-cell.active, .column-header.active, .row-header.active').forEach(function (node) {
+    doc.querySelectorAll('.grid-cell.active, .grid-cell.in-range, .column-header.active, .row-header.active').forEach(function (node) {
       node.classList.remove('active');
+      node.classList.remove('in-range');
       if (node.classList.contains('grid-cell')) {
         node.setAttribute('aria-selected', 'false');
       }
     });
+
+    if (selectionBounds) {
+      doc.querySelectorAll('.grid-cell').forEach(function (node) {
+        const cellPosition = parseCellId(node.dataset.cellId);
+        if (!cellPosition) {
+          return;
+        }
+
+        const isInRange =
+          cellPosition.columnIndex >= selectionBounds.startColumnIndex &&
+          cellPosition.columnIndex <= selectionBounds.endColumnIndex &&
+          cellPosition.rowIndex >= selectionBounds.startRowIndex &&
+          cellPosition.rowIndex <= selectionBounds.endRowIndex;
+
+        if (isInRange) {
+          node.classList.add('in-range');
+        }
+      });
+    }
 
     const activeCell = doc.querySelector(`[data-cell-id="${activeCellId}"]`);
     if (activeCell) {
@@ -164,6 +216,8 @@
       shellState.selection.activeCellId = cell.dataset.cellId;
       shellState.selection.anchorCellId = cell.dataset.cellId;
       shellState.selection.focusCellId = cell.dataset.cellId;
+      shellState.selection.range.startCellId = cell.dataset.cellId;
+      shellState.selection.range.endCellId = cell.dataset.cellId;
       syncSelectionUI(doc, shellState);
     });
   }
@@ -193,6 +247,7 @@
     columnIndexToLabel,
     createSpreadsheetShellModel,
     createInitialShellState,
+    getSelectionBounds,
     renderSpreadsheetShell,
   };
 });

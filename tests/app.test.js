@@ -4,6 +4,7 @@ const {
   createSpreadsheetShellModel,
   columnIndexToLabel,
   createInitialShellState,
+  getSelectionBounds,
 } = require('../app.js');
 
 function test(name, fn) {
@@ -41,7 +42,26 @@ test('createInitialShellState exposes clean integration points', () => {
     activeCellId: 'A1',
     anchorCellId: 'A1',
     focusCellId: 'A1',
+    range: {
+      startCellId: 'A1',
+      endCellId: 'A1',
+    },
   });
   assert.equal(state.formulaBarValue, '');
   assert.equal(state.mode, 'navigate');
+});
+
+test('getSelectionBounds normalizes a rectangular selection range', () => {
+  assert.deepEqual(
+    getSelectionBounds({
+      anchorCellId: 'C4',
+      focusCellId: 'A2',
+    }),
+    {
+      startColumnIndex: 0,
+      endColumnIndex: 2,
+      startRowIndex: 1,
+      endRowIndex: 3,
+    }
+  );
 });
