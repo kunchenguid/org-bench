@@ -78,6 +78,47 @@ test('computed cache updates do not create history entries', () => {
   assert.equal(store.getSnapshot().history.undo.length, undoDepthBefore);
 });
 
+test('formula cells compute display values and recompute dependents when precedents change', () => {
+  const store = createSpreadsheetStore({
+    namespace: 'run-formulas',
+    storage: createMemoryStorage(),
+  });
+
+  store.applyCells(
+    {
+      A1: '2',
+      A2: '3',
+      B1: '=A1+A2',
+      C1: '=B1*2',
+    },
+    { label: 'seed' }
+  );
+
+  assert.deepEqual(store.getComputedCell('B1'), {
+    kind: 'number',
+    value: 5,
+    display: '5',
+    dependencies: ['A1', 'A2'],
+  });
+  assert.deepEqual(store.getComputedCell('C1'), {
+    kind: 'number',
+    value: 10,
+    display: '10',
+    dependencies: ['B1'],
+  });
+  assert.equal(store.getDisplayCell('B1'), '5');
+
+  store.setCell('A2', '10', { label: 'edit' });
+
+  assert.equal(store.getDisplayCell('B1'), '12');
+  assert.deepEqual(store.getComputedCell('C1'), {
+    kind: 'number',
+    value: 24,
+    display: '24',
+    dependencies: ['B1'],
+  });
+});
+
 test('restores persisted state from namespace-prefixed storage key', () => {
   const storage = createMemoryStorage();
   const first = createSpreadsheetStore({

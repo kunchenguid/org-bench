@@ -82,6 +82,23 @@ test('formula bar editing writes the same raw text back to the selected cell', (
   assert.equal(controller.getFormulaBarText(), '=SUM(A1:A4)');
 });
 
+test('formula bar keeps the raw formula while the cell display comes from computed output', () => {
+  const { store, controller } = createController();
+
+  store.setCell('A1', '4');
+  store.setCell('B1', '=A1*2');
+  controller.selectCell({ row: 0, col: 1 });
+
+  assert.equal(store.getRawCell('B1'), '=A1*2');
+  assert.equal(controller.getFormulaBarText(), '=A1*2');
+  assert.equal(store.getDisplayCell('B1'), '8');
+
+  store.setCell('A1', '5');
+
+  assert.equal(controller.getFormulaBarText(), '=A1*2');
+  assert.equal(store.getDisplayCell('B1'), '10');
+});
+
 function createClipboardData() {
   const values = new Map();
   return {
