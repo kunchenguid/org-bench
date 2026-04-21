@@ -1,7 +1,7 @@
 'use strict';
 
 let cachedFormulaEngine = null;
-
+const CUSTOM_CLIPBOARD_MIME = 'application/x-spreadsheet-cell-range';
 function buildClipboardPayload(snapshot, selection, mode) {
   const bounds = getSelectionBounds(selection);
   const cells = snapshot && snapshot.cells instanceof Map ? snapshot.cells : new Map();
@@ -74,6 +74,35 @@ function applyClipboardPaste(store, payload, selection, options) {
   return store.applyCells(patch, { label: 'paste' });
 }
 
+function writeClipboardData(clipboardData, payload) {
+  if (!clipboardData || !payload) {
+    return false;
+  }
+
+  const serialized = JSON.stringify(payload);
+  clipboardData.setData(CUSTOM_CLIPBOARD_MIME, serialized);
+  clipboardData.setData('text/plain', payloadToPlainText(payload));
+  return true;
+}
+
+function readClipboardData(clipboardData) {
+  if (!clipboardData) {
+    return null;
+  }
+
+  const custom = clipboardData.getData(CUSTOM_CLIPBOARD_MIME);
+  if (custom) {
+    try {
+      return JSON.parse(custom);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  const plainText = clipboardData.getData('text/plain');
+  return plainText ? payloadFromPlainText(plainText) : null;
+}
+
 function resolvePasteBounds(selection, payload) {
   const bounds = getSelectionBounds(selection);
   const selectionWidth = bounds.right - bounds.left + 1;
@@ -143,6 +172,35 @@ function identityTransform(raw) {
   return raw;
 }
 
+function payloadToPlainText(payload) {
+  return payload.rows.map(function (row) {
+    return row.join('\t');
+  }).join('\n');
+}
+
+function payloadFromPlainText(text) {
+  const normalized = String(text || '').replace(/\r\n?/g, '\n');
+  const rows = normalized.split('\n').map(function (row) {
+    return row.split('\t');
+  });
+  const width = rows.reduce(function (max, row) {
+    return Math.max(max, row.length);
+  }, 0);
+  const height = rows.length;
+
+  return {
+    kind: 'cell-range',
+    mode: 'copy',
+    width: width,
+    height: height,
+    source: {
+      anchor: { row: 0, col: 0 },
+      focus: { row: Math.max(height - 1, 0), col: Math.max(width - 1, 0) },
+    },
+    rows,
+  };
+}
+
 function createDefaultTransform() {
   const formulaEngine = getFormulaEngine();
 
@@ -187,8 +245,20 @@ function getFormulaEngine() {
   return cachedFormulaEngine;
 }
 
-module.exports = {
+const api = {
+  CUSTOM_CLIPBOARD_MIME,
   buildClipboardPayload,
   clearSelectedRange,
   applyClipboardPaste,
+  writeClipboardData,
+  readClipboardData,
+  payloadToPlainText,
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = api;
+}
+
+if (typeof window !== 'undefined') {
+  window.SpreadsheetClipboard = api;
+}

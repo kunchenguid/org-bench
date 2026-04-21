@@ -23,6 +23,10 @@ test('html exposes the shell hooks for the formula bar and spreadsheet grid', as
   assert.match(html, /data-column-headers/i);
   assert.match(html, /data-row-headers/i);
   assert.match(html, /data-cell-grid/i);
+  assert.match(html, /data-sheet-context-menu/i);
+  assert.match(html, /src="formula-engine\.js"/i);
+  assert.match(html, /src="src\/clipboard\.js"/i);
+  assert.match(html, /src="src\/header-controls\.js"/i);
 });
 
 test('styles define the key spreadsheet visual states', async () => {
@@ -32,5 +36,7 @@ test('styles define the key spreadsheet visual states', async () => {
   assert.match(css, /\.cell\.is-in-range/);
   assert.match(css, /\.cell\.is-editing/);
   assert.match(css, /\.sheet-context-menu/);
+  assert.match(css, /\.header-affordance/);
+  assert.match(css, /\.sheet-context-menu__shortcut/);
   assert.match(css, /position:\s*sticky/);
 });
