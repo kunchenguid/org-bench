@@ -5,6 +5,9 @@
   const sheet = document.getElementById('sheet');
   const nameBox = document.getElementById('name-box');
   const selectionSize = document.getElementById('selection-size');
+  const clipboardState = {
+    cutRange: null,
+  };
   const engine = window.SpreadsheetFormula.createEngine({
     getCellRaw(address) {
       return state.cells[address] || '';
@@ -31,6 +34,9 @@
     });
 
     document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('cut', onCut);
+    document.addEventListener('paste', onPaste);
     formulaInput.addEventListener('focus', function () {
       formulaDraft = state.cells[state.selected] || '';
       formulaInput.select();
@@ -128,6 +134,12 @@
     if (event.key === 'Enter' || event.key === 'F2') {
       event.preventDefault();
       beginEdit(state.selected, state.cells[state.selected] || '');
+      return;
+    }
+
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      clearActiveSelection();
       return;
     }
 
@@ -262,6 +274,58 @@
     if (document.activeElement !== formulaInput || formulaDraft === null) {
       formulaInput.value = state.cells[state.selected] || '';
     }
+  }
+
+  function onCopy(event) {
+    if (editor || document.activeElement === formulaInput) return;
+    const matrix = window.SpreadsheetClipboard.selectionToMatrix(state.cells, currentRange());
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', window.SpreadsheetClipboard.matrixToTsv(matrix));
+    clipboardState.cutRange = null;
+  }
+
+  function onCut(event) {
+    if (editor || document.activeElement === formulaInput) return;
+    const matrix = window.SpreadsheetClipboard.selectionToMatrix(state.cells, currentRange());
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', window.SpreadsheetClipboard.matrixToTsv(matrix));
+    clipboardState.cutRange = currentRange();
+  }
+
+  function onPaste(event) {
+    if (editor || document.activeElement === formulaInput) return;
+    const text = event.clipboardData.getData('text/plain');
+    if (!text) return;
+    event.preventDefault();
+    const matrix = window.SpreadsheetClipboard.tsvToMatrix(text);
+    const changes = window.SpreadsheetClipboard.buildPasteChanges({
+      source: matrix,
+      destination: currentRange(),
+    });
+    Object.keys(changes).forEach(function (address) {
+      if (changes[address]) {
+        state.cells[address] = changes[address];
+      } else {
+        delete state.cells[address];
+      }
+    });
+    if (clipboardState.cutRange) {
+      state.cells = window.SpreadsheetClipboard.clearSelection(state.cells, clipboardState.cutRange);
+      clipboardState.cutRange = null;
+    }
+    saveState();
+    refresh();
+  }
+
+  function clearActiveSelection() {
+    state.cells = window.SpreadsheetClipboard.clearSelection(state.cells, currentRange());
+    clipboardState.cutRange = null;
+    saveState();
+    refresh();
+  }
+
+  function currentRange() {
+    return window.SpreadsheetSelection.createSelection(state.anchor, state.selected);
   }
 
   function highlightHeaders(range) {
