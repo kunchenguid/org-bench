@@ -19,6 +19,15 @@ test('evaluates formulas with references and functions', () => {
   assert.equal(model.getDisplayValue('B3'), 'small');
 });
 
+test('IF only evaluates the chosen branch', () => {
+  const model = new SpreadsheetModel();
+  model.setCellRaw('A1', '=IF(TRUE, 1, 1/0)');
+  model.setCellRaw('A2', '=IF(FALSE, 1/0, 2)');
+
+  assert.equal(model.getDisplayValue('A1'), '1');
+  assert.equal(model.getDisplayValue('A2'), '2');
+});
+
 test('detects circular references', () => {
   const model = new SpreadsheetModel();
   model.setCellRaw('A1', '=B1');
@@ -50,6 +59,18 @@ test('inserting a row keeps references pointing at the same data', () => {
 
   assert.equal(model.getCellRaw('B2'), '=SUM(A2:A3)');
   assert.equal(model.getDisplayValue('B2'), '30');
+});
+
+test('deleting a referenced row preserves #REF! in formulas', () => {
+  const model = new SpreadsheetModel();
+  model.setCellRaw('A1', '10');
+  model.setCellRaw('A2', '20');
+  model.setCellRaw('B2', '=A1+A2');
+
+  model.deleteRow(0);
+
+  assert.equal(model.getCellRaw('B1'), '=#REF!+A1');
+  assert.equal(model.getDisplayValue('B1'), '#REF!');
 });
 
 test('undo and redo restore prior cell state', () => {
