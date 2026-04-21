@@ -101,3 +101,74 @@ test('undo restores a cleared cell and keeps history bounded', () => {
 
   assert.equal(state.history.past.length, 50);
 });
+
+test('evaluates arithmetic formulas with cell references and recomputes dependents', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '2');
+  commitCell(state, 1, 0, '4');
+  commitCell(state, 2, 0, '=A1+A2*2');
+
+  assert.deepEqual(state.cells.get('A3'), {
+    raw: '=A1+A2*2',
+    value: 10,
+    display: '10',
+    kind: 'formula',
+  });
+
+  commitCell(state, 1, 0, '5');
+
+  assert.equal(state.cells.get('A3').display, '12');
+});
+
+test('evaluates SUM over ranges and string concatenation', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '3');
+  commitCell(state, 1, 0, '4');
+  commitCell(state, 2, 0, '="Total: "&SUM(A1:A2)');
+
+  assert.deepEqual(state.cells.get('A3'), {
+    raw: '="Total: "&SUM(A1:A2)',
+    value: 'Total: 7',
+    display: 'Total: 7',
+    kind: 'formula',
+  });
+});
+
+test('supports boolean comparisons in formulas', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '5');
+  commitCell(state, 0, 1, '=A1>=3');
+
+  assert.deepEqual(state.cells.get('B1'), {
+    raw: '=A1>=3',
+    value: true,
+    display: 'TRUE',
+    kind: 'formula',
+  });
+});
+
+test('reports divide by zero errors clearly', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '=1/0');
+
+  assert.deepEqual(state.cells.get('A1'), {
+    raw: '=1/0',
+    value: '#DIV/0!',
+    display: '#DIV/0!',
+    kind: 'error',
+  });
+});
+
+test('detects circular references', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '=B1');
+  commitCell(state, 0, 1, '=A1');
+
+  assert.equal(state.cells.get('A1').display, '#CIRC!');
+  assert.equal(state.cells.get('B1').display, '#CIRC!');
+});
