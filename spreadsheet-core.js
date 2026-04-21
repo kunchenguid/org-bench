@@ -91,6 +91,23 @@
     };
   }
 
+  function createHistorySnapshot(store, selection, rangeAnchor) {
+    return JSON.stringify({
+      cells: store.toJSON(),
+      selection: selection,
+      rangeAnchor: rangeAnchor,
+    });
+  }
+
+  function restoreHistorySnapshot(snapshot) {
+    const parsed = JSON.parse(snapshot);
+    return {
+      store: createStore(parsed.cells),
+      selection: parsed.selection,
+      rangeAnchor: parsed.rangeAnchor,
+    };
+  }
+
   function rewriteFormulaReferences(formula, axis, index, delta, isDelete) {
     if (!formula || formula[0] !== '=') {
       return formula;
@@ -503,6 +520,7 @@
     ROWS,
     colToName,
     copyRange,
+    createHistorySnapshot,
     createStore,
     deleteColumn,
     deleteRow,
@@ -513,6 +531,7 @@
     pasteRange,
     parseCellRef,
     normalizeRange,
+    restoreHistorySnapshot,
     shiftFormula,
   };
 });
