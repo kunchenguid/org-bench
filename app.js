@@ -454,7 +454,12 @@
     input.setSelectionRange(length, length);
   }
 
-  function shouldIgnoreDocumentKeydown(state, activeElement, formulaInput, cellEditor) {
+  function shouldIgnoreDocumentKeydown(state, activeElement, formulaInput, cellEditor, event) {
+    var key = event && typeof event.key === 'string' ? event.key.toLowerCase() : '';
+    if ((event && (event.metaKey || event.ctrlKey) && !event.altKey) && (key === 'z' || key === 'y')) {
+      return false;
+    }
+
     return activeElement === formulaInput || activeElement === cellEditor;
   }
 
@@ -779,7 +784,7 @@
         return;
       }
 
-      if (shouldIgnoreDocumentKeydown(state, activeElement, formulaInput, cellEditor)) {
+      if (shouldIgnoreDocumentKeydown(state, activeElement, formulaInput, cellEditor, event)) {
         return;
       }
 
