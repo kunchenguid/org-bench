@@ -50,6 +50,45 @@
     };
   }
 
+  function createHistory(initialState) {
+    return {
+      past: [],
+      present: initialState,
+      future: [],
+    };
+  }
+
+  function pushHistory(history, nextState) {
+    const past = history.past.concat([history.present]).slice(-50);
+    return {
+      past,
+      present: nextState,
+      future: [],
+    };
+  }
+
+  function undoHistory(history) {
+    if (!history.past.length) {
+      return history;
+    }
+    return {
+      past: history.past.slice(0, -1),
+      present: history.past[history.past.length - 1],
+      future: [history.present].concat(history.future),
+    };
+  }
+
+  function redoHistory(history) {
+    if (!history.future.length) {
+      return history;
+    }
+    return {
+      past: history.past.concat([history.present]).slice(-50),
+      present: history.future[0],
+      future: history.future.slice(1),
+    };
+  }
+
   function makeCellKey(row, col) {
     return row + ':' + col;
   }
@@ -683,13 +722,18 @@
     const columnHeaders = document.querySelector('[data-column-headers]');
     const gridBody = document.querySelector('[data-grid-body]');
     const storage = createStorageAdapter(window.localStorage, getStorageNamespace());
-    let state = loadState(storage);
+    let history = createHistory(loadState(storage));
+
+    function getState() {
+      return history.present;
+    }
 
     function persist() {
-      saveState(storage, state);
+      saveState(storage, getState());
     }
 
     function syncEditors() {
+      const state = getState();
       const raw = getCellRaw(state, state.selection.row, state.selection.col);
       formulaBar.value = raw;
       editor.value = raw;
@@ -710,6 +754,7 @@
     }
 
     function renderGrid() {
+      const state = getState();
       const memo = {};
       gridBody.innerHTML = '';
       gridModel.rows.forEach(function (row) {
@@ -739,21 +784,28 @@
     }
 
     function commitSelected(value) {
-      state = commitCell(state, state.selection.row, state.selection.col, value);
+      const state = getState();
+      history = pushHistory(history, commitCell(state, state.selection.row, state.selection.col, value));
       persist();
       renderGrid();
     }
 
     function applySelectionMove(rowDelta, colDelta) {
-      state = moveSelection(state, rowDelta, colDelta);
+      history = {
+        past: history.past,
+        present: moveSelection(getState(), rowDelta, colDelta),
+        future: history.future,
+      };
       persist();
       renderGrid();
     }
 
     function commitAndAdvance(value, key) {
+      const state = getState();
       const nextSelection = getSelectionAfterCommit(state.selection, key);
-      state = commitCell(state, state.selection.row, state.selection.col, value);
-      state = selectCell(state, nextSelection.row, nextSelection.col);
+      let nextState = commitCell(state, state.selection.row, state.selection.col, value);
+      nextState = selectCell(nextState, nextSelection.row, nextSelection.col);
+      history = pushHistory(history, nextState);
       persist();
       renderGrid();
     }
@@ -776,7 +828,11 @@
       if (!button) {
         return;
       }
-      state = selectCell(state, Number(button.dataset.row), Number(button.dataset.col));
+      history = {
+        past: history.past,
+        present: selectCell(getState(), Number(button.dataset.row), Number(button.dataset.col)),
+        future: history.future,
+      };
       persist();
       renderGrid();
     });
@@ -821,6 +877,24 @@
     });
 
     document.addEventListener('keydown', function (event) {
+      const isUndo = (event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z';
+      const isRedo = ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'z') ||
+        ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y');
+
+      if (isUndo) {
+        history = undoHistory(history);
+        renderGrid();
+        event.preventDefault();
+        return;
+      }
+
+      if (isRedo) {
+        history = redoHistory(history);
+        renderGrid();
+        event.preventDefault();
+        return;
+      }
+
       if (event.target === formulaBar || event.target === editor) {
         return;
       }
@@ -852,6 +926,10 @@
   return {
     createGridModel,
     createEmptyState,
+    createHistory,
+    pushHistory,
+    undoHistory,
+    redoHistory,
     selectCell,
     commitCell,
     getCellRaw,

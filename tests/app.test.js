@@ -2,6 +2,10 @@ const assert = require('node:assert/strict');
 const {
   createGridModel,
   createEmptyState,
+  createHistory,
+  pushHistory,
+  undoHistory,
+  redoHistory,
   selectCell,
   commitCell,
   getCellRaw,
@@ -165,4 +169,41 @@ test('persists namespaced raw contents and selection', () => {
   assert.equal(getCellRaw(restored, 4, 2), '=1+1');
   assert.deepEqual(restored.selection, { row: 4, col: 2 });
   assert.ok(backing.has('bench-2:spreadsheet-state'));
+});
+
+test('undoHistory restores the previous committed cell change', () => {
+  let history = createHistory(createEmptyState());
+  let next = commitCell(history.present, 1, 1, '3');
+  history = pushHistory(history, next);
+  next = commitCell(history.present, 1, 1, '9');
+  history = pushHistory(history, next);
+
+  history = undoHistory(history);
+
+  assert.equal(getCellRaw(history.present, 1, 1), '3');
+});
+
+test('redoHistory reapplies an undone cell change', () => {
+  let history = createHistory(createEmptyState());
+  let next = commitCell(history.present, 1, 1, '3');
+  history = pushHistory(history, next);
+  next = commitCell(history.present, 1, 1, '9');
+  history = pushHistory(history, next);
+
+  history = undoHistory(history);
+  history = redoHistory(history);
+
+  assert.equal(getCellRaw(history.present, 1, 1), '9');
+});
+
+test('pushHistory keeps only the last 50 user changes', () => {
+  let history = createHistory(createEmptyState());
+
+  for (let index = 1; index <= 55; index += 1) {
+    const next = commitCell(history.present, 1, 1, String(index));
+    history = pushHistory(history, next);
+  }
+
+  assert.equal(history.past.length, 50);
+  assert.equal(getCellRaw(history.past[0], 1, 1), '5');
 });
