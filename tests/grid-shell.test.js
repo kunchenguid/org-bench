@@ -5,6 +5,8 @@ const {
   clampCell,
   createInitialSelection,
   selectionFromEndpoints,
+  createHeaderActionItems,
+  applyStructuralCommand,
   selectionFromRuntimeSelection,
   handleHistoryHotkey,
 } = require('../app.js');
@@ -64,6 +66,65 @@ test('createInitialSelection starts on A1 with a single-cell range', () => {
     maxColumn: 0,
     active: { row: 0, column: 0 },
   });
+});
+
+test('createHeaderActionItems exposes discoverable row and column commands', () => {
+  assert.deepEqual(createHeaderActionItems('row', 3), [
+    { label: 'Insert above', command: { type: 'insert-row', index: 3 } },
+    { label: 'Insert below', command: { type: 'insert-row', index: 4 } },
+    { label: 'Delete row', command: { type: 'delete-row', index: 3 } },
+  ]);
+
+  assert.deepEqual(createHeaderActionItems('column', 2), [
+    { label: 'Insert left', command: { type: 'insert-column', index: 2 } },
+    { label: 'Insert right', command: { type: 'insert-column', index: 3 } },
+    { label: 'Delete column', command: { type: 'delete-column', index: 2 } },
+  ]);
+});
+
+test('applyStructuralCommand rewrites formulas and grows the sheet for row inserts', () => {
+  const nextState = applyStructuralCommand({
+    rowCount: 100,
+    columnCount: 26,
+    cells: {
+      A1: '10',
+      A2: '20',
+      B1: '=A2',
+    },
+    selection: selectionFromEndpoints({ row: 1, column: 0 }, { row: 1, column: 0 }),
+  }, { type: 'insert-row', index: 2 });
+
+  assert.equal(nextState.rowCount, 101);
+  assert.equal(nextState.columnCount, 26);
+  assert.deepEqual(nextState.cells, {
+    A1: '10',
+    A3: '20',
+    B1: '=A3',
+  });
+  assert.deepEqual(nextState.selection.active, { row: 2, column: 0 });
+});
+
+test('applyStructuralCommand rewrites formulas and keeps selection in bounds for column deletes', () => {
+  const nextState = applyStructuralCommand({
+    rowCount: 100,
+    columnCount: 26,
+    cells: {
+      A1: '7',
+      B1: '9',
+      C1: '=B1',
+      D1: '=SUM(A1:C1)',
+    },
+    selection: selectionFromEndpoints({ row: 0, column: 1 }, { row: 0, column: 1 }),
+  }, { type: 'delete-column', index: 2 });
+
+  assert.equal(nextState.rowCount, 100);
+  assert.equal(nextState.columnCount, 25);
+  assert.deepEqual(nextState.cells, {
+    A1: '7',
+    B1: '=#REF!',
+    C1: '=SUM(A1:B1)',
+  });
+  assert.deepEqual(nextState.selection.active, { row: 0, column: 1 });
 });
 
 test('selectionFromRuntimeSelection clamps restored runtime selection into the grid', () => {
