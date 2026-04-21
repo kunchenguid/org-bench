@@ -1,5 +1,6 @@
 (function () {
   const engine = window.SpreadsheetEngine;
+  const historyApi = window.SpreadsheetHistory;
   const selection = window.SpreadsheetSelection;
   const MAX_COLUMNS = 26;
   const MAX_ROWS = 100;
@@ -12,6 +13,7 @@
 
   const storedState = loadState();
   const sheet = engine.createEmptySheet(storedState.cells);
+  const history = historyApi.createHistory();
   let activeCell = storedState.activeCell || 'A1';
   let rangeAnchorCell = storedState.rangeAnchorCell || activeCell;
   let editingCell = null;
@@ -82,6 +84,20 @@
 
     if ((event.metaKey || event.ctrlKey) && !event.altKey) {
       const lowerKey = event.key.toLowerCase();
+      if (lowerKey === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redoLastAction();
+        } else {
+          undoLastAction();
+        }
+        return;
+      }
+      if (lowerKey === 'y') {
+        event.preventDefault();
+        redoLastAction();
+        return;
+      }
       if (lowerKey === 'c') {
         event.preventDefault();
         copyActiveCell(false);
@@ -309,12 +325,11 @@
   }
 
   function setRawValue(address, raw, preserveSelection) {
-    engine.setCell(sheet, address, raw);
-    refreshAllCells();
-    if (preserveSelection !== false) {
-      selectCell(address);
-    }
-    saveState();
+    const before = {};
+    const after = {};
+    before[address] = engine.getCellRaw(sheet, address);
+    after[address] = raw == null ? '' : String(raw);
+    applyAction(before, after, preserveSelection !== false ? address : null, true);
   }
 
   function moveSelection(key, extendRange) {
@@ -329,12 +344,12 @@
   }
 
   function clearSelection() {
-    selection.listAddressesInRange(rangeAnchorCell, activeCell).forEach(function (address) {
-      engine.setCell(sheet, address, '');
-      refreshCell(address);
+    const before = captureSnapshot(selection.listAddressesInRange(rangeAnchorCell, activeCell));
+    const after = {};
+    Object.keys(before).forEach(function (address) {
+      after[address] = '';
     });
-    formulaInput.value = engine.getCellRaw(sheet, activeCell);
-    saveState();
+    applyAction(before, after, null, true);
   }
 
   function getCellElement(address) {
@@ -366,11 +381,55 @@
       );
     }
 
-    setRawValue(activeCell, nextRaw);
+    const before = captureSnapshot([activeCell].concat(clipboard.cut && clipboard.source !== activeCell ? [clipboard.source] : []));
+    const after = {};
+    after[activeCell] = nextRaw;
 
     if (clipboard.cut && clipboard.source !== activeCell) {
-      setRawValue(clipboard.source, '', false);
+      after[clipboard.source] = '';
       clipboard = null;
+    }
+    applyAction(before, after, activeCell, true);
+  }
+
+  function undoLastAction() {
+    const action = historyApi.undo(history);
+    if (action) {
+      applyAction(action.after, action.before, null, false);
+    }
+  }
+
+  function redoLastAction() {
+    const action = historyApi.redo(history);
+    if (action) {
+      applyAction(action.before, action.after, null, false);
+    }
+  }
+
+  function captureSnapshot(addresses) {
+    return addresses.reduce(function (snapshot, address) {
+      snapshot[address] = engine.getCellRaw(sheet, address);
+      return snapshot;
+    }, {});
+  }
+
+  function applyAction(before, after, selectionAddress, recordHistory) {
+    if (JSON.stringify(before) === JSON.stringify(after)) {
+      return;
+    }
+
+    Object.keys(after).forEach(function (address) {
+      engine.setCell(sheet, address, after[address]);
+    });
+    refreshAllCells();
+    if (selectionAddress) {
+      selectCell(selectionAddress, false);
+    } else {
+      updateSelection();
+      saveState();
+    }
+    if (recordHistory) {
+      historyApi.recordAction(history, { before: before, after: after });
     }
   }
 
