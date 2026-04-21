@@ -10,6 +10,10 @@ const {
   applyCellEdit,
   undo,
   redo,
+  insertRow,
+  deleteRow,
+  insertColumn,
+  deleteColumn,
 } = require('./spreadsheet-core.js');
 
 test('starts with A1 selected and an empty sheet', () => {
@@ -171,4 +175,78 @@ test('detects circular references', () => {
 
   assert.equal(state.cells.get('A1').display, '#CIRC!');
   assert.equal(state.cells.get('B1').display, '#CIRC!');
+});
+
+test('inserting a row shifts referenced rows to keep pointing at the same data', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '2');
+  commitCell(state, 1, 0, '4');
+  commitCell(state, 0, 1, '=A1+A2');
+
+  insertRow(state, 1);
+
+  assert.equal(state.cells.get('A1').display, '2');
+  assert.equal(state.cells.get('A3').display, '4');
+  assert.deepEqual(state.cells.get('B1'), {
+    raw: '=A1+A3',
+    value: 6,
+    display: '6',
+    kind: 'formula',
+  });
+});
+
+test('deleting a referenced row turns that reference into #REF!', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '2');
+  commitCell(state, 1, 0, '4');
+  commitCell(state, 2, 1, '=A1+A2');
+
+  deleteRow(state, 0);
+
+  assert.equal(state.cells.get('A1').display, '4');
+  assert.deepEqual(state.cells.get('B2'), {
+    raw: '=#REF!+A1',
+    value: '#REF!',
+    display: '#REF!',
+    kind: 'error',
+  });
+});
+
+test('inserting a column shifts referenced columns to keep pointing at the same data', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '2');
+  commitCell(state, 0, 1, '4');
+  commitCell(state, 1, 0, '=A1+B1');
+
+  insertColumn(state, 1);
+
+  assert.equal(state.cells.get('A1').display, '2');
+  assert.equal(state.cells.get('C1').display, '4');
+  assert.deepEqual(state.cells.get('A2'), {
+    raw: '=A1+C1',
+    value: 6,
+    display: '6',
+    kind: 'formula',
+  });
+});
+
+test('deleting a referenced column turns that reference into #REF!', () => {
+  const state = createSpreadsheetState();
+
+  commitCell(state, 0, 0, '2');
+  commitCell(state, 0, 1, '4');
+  commitCell(state, 1, 2, '=A1+B1');
+
+  deleteColumn(state, 0);
+
+  assert.equal(state.cells.get('A1').display, '4');
+  assert.deepEqual(state.cells.get('B2'), {
+    raw: '=#REF!+A1',
+    value: '#REF!',
+    display: '#REF!',
+    kind: 'error',
+  });
 });

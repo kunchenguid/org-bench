@@ -57,6 +57,28 @@ body {
   background: var(--panel);
 }
 
+.structure-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.structure-actions button {
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.structure-actions button:hover,
+.structure-actions button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
 .formula-label {
   color: var(--muted);
   font-weight: 700;
@@ -161,6 +183,14 @@ body {
   .topbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .structure-actions {
+    width: 100%;
+  }
+
+  .structure-actions button {
+    flex: 1 1 calc(50% - 8px);
   }
 
   .grid-panel {

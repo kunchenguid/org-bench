@@ -53,6 +53,22 @@
     recalculateState(state);
   }
 
+  function insertRow(state, rowIndex) {
+    applyStructuralEdit(state, { axis: 'row', kind: 'insert', index: clamp(rowIndex, 0, ROWS - 1) });
+  }
+
+  function deleteRow(state, rowIndex) {
+    applyStructuralEdit(state, { axis: 'row', kind: 'delete', index: clamp(rowIndex, 0, ROWS - 1) });
+  }
+
+  function insertColumn(state, colIndex) {
+    applyStructuralEdit(state, { axis: 'col', kind: 'insert', index: clamp(colIndex, 0, COLS - 1) });
+  }
+
+  function deleteColumn(state, colIndex) {
+    applyStructuralEdit(state, { axis: 'col', kind: 'delete', index: clamp(colIndex, 0, COLS - 1) });
+  }
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -171,6 +187,130 @@
 
     recalculateState(state);
     return state;
+  }
+
+  function applyStructuralEdit(state, operation) {
+    const nextRawCells = new Map();
+
+    for (const [key, raw] of state.rawCells.entries()) {
+      const position = decodeCellKey(key);
+      const nextPosition = shiftPosition(position, operation);
+      if (!nextPosition) {
+        continue;
+      }
+
+      const nextRaw = raw.startsWith('=') ? `=${rewriteFormula(raw.slice(1), operation)}` : raw;
+      nextRawCells.set(cellKey(nextPosition.row, nextPosition.col), nextRaw);
+    }
+
+    state.rawCells = nextRawCells;
+    state.selection = shiftSelection(state.selection, operation);
+    recalculateState(state);
+  }
+
+  function shiftPosition(position, operation) {
+    if (operation.axis === 'row') {
+      if (operation.kind === 'insert') {
+        if (position.row < operation.index) {
+          return position;
+        }
+        if (position.row >= ROWS - 1) {
+          return null;
+        }
+        return { row: position.row + 1, col: position.col };
+      }
+
+      if (position.row === operation.index) {
+        return null;
+      }
+
+      if (position.row > operation.index) {
+        return { row: position.row - 1, col: position.col };
+      }
+
+      return position;
+    }
+
+    if (operation.kind === 'insert') {
+      if (position.col < operation.index) {
+        return position;
+      }
+      if (position.col >= COLS - 1) {
+        return null;
+      }
+      return { row: position.row, col: position.col + 1 };
+    }
+
+    if (position.col === operation.index) {
+      return null;
+    }
+
+    if (position.col > operation.index) {
+      return { row: position.row, col: position.col - 1 };
+    }
+
+    return position;
+  }
+
+  function shiftSelection(selection, operation) {
+    const next = shiftPosition({ row: selection.row, col: selection.col }, operation);
+    if (next) {
+      return next;
+    }
+
+    return {
+      row: clamp(selection.row, 0, ROWS - 1),
+      col: clamp(selection.col, 0, COLS - 1),
+    };
+  }
+
+  function rewriteFormula(source, operation) {
+    return source.replace(/#REF!|[A-Z]\d+/g, (token) => {
+      if (token === '#REF!') {
+        return token;
+      }
+
+      const position = decodeCellKey(token);
+      if (!position) {
+        return token;
+      }
+
+      if (operation.axis === 'row') {
+        if (operation.kind === 'insert') {
+          if (position.row >= operation.index) {
+            return cellKey(position.row + 1, position.col);
+          }
+          return token;
+        }
+
+        if (position.row === operation.index) {
+          return '#REF!';
+        }
+
+        if (position.row > operation.index) {
+          return cellKey(position.row - 1, position.col);
+        }
+
+        return token;
+      }
+
+      if (operation.kind === 'insert') {
+        if (position.col >= operation.index) {
+          return cellKey(position.row, position.col + 1);
+        }
+        return token;
+      }
+
+      if (position.col === operation.index) {
+        return '#REF!';
+      }
+
+      if (position.col > operation.index) {
+        return cellKey(position.row, position.col - 1);
+      }
+
+      return token;
+    });
   }
 
   function recalculateState(state) {
@@ -300,6 +440,12 @@
 
         index += 1;
         tokens.push({ type: 'string', value });
+        continue;
+      }
+
+      if (source.slice(index, index + 5) === '#REF!') {
+        tokens.push({ type: 'error', value: '#REF!' });
+        index += 5;
         continue;
       }
 
@@ -434,6 +580,11 @@
         return { type: 'string', value: string.value };
       }
 
+      const error = match('error');
+      if (error) {
+        return { type: 'error', value: error.value };
+      }
+
       const identifier = match('identifier');
       if (identifier) {
         if (identifier.value === 'TRUE' || identifier.value === 'FALSE') {
@@ -482,6 +633,8 @@
       case 'string':
       case 'boolean':
         return node.value;
+      case 'error':
+        throw new FormulaError(node.value);
       case 'unary':
         return -toNumber(evaluateExpression(node.value, state, cache, stack));
       case 'binary':
@@ -664,6 +817,10 @@
     cellKey,
     createSpreadsheetState,
     commitCell,
+    insertRow,
+    deleteRow,
+    insertColumn,
+    deleteColumn,
     moveSelection,
     applyCellEdit,
     undo,

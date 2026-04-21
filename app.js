@@ -6,6 +6,10 @@
   const table = document.getElementById('sheet');
   const gridScroll = document.getElementById('grid-scroll');
   const editor = document.getElementById('cell-editor');
+  const insertRowButton = document.getElementById('insert-row');
+  const deleteRowButton = document.getElementById('delete-row');
+  const insertColumnButton = document.getElementById('insert-column');
+  const deleteColumnButton = document.getElementById('delete-column');
 
   const storageNamespace = resolveStorageNamespace();
   let state = loadState();
@@ -86,7 +90,7 @@
       const col = Number(cellNode.dataset.col);
       const cell = state.cells.get(core.cellKey(row, col));
       cellNode.textContent = cell ? cell.display : '';
-      cellNode.classList.toggle('number', !!cell && cell.kind === 'number');
+      cellNode.classList.toggle('number', !!cell && typeof cell.value === 'number');
     });
   }
 
@@ -129,6 +133,10 @@
     editor.addEventListener('keydown', onEditorKeyDown);
     window.addEventListener('resize', positionEditor);
     gridScroll.addEventListener('scroll', positionEditor);
+    insertRowButton.addEventListener('click', () => applyStructure('insert-row'));
+    deleteRowButton.addEventListener('click', () => applyStructure('delete-row'));
+    insertColumnButton.addEventListener('click', () => applyStructure('insert-column'));
+    deleteColumnButton.addEventListener('click', () => applyStructure('delete-column'));
   }
 
   function onCellClick(event) {
@@ -383,5 +391,24 @@
 
   function getCellNode(row, col) {
     return table.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+  }
+
+  function applyStructure(action) {
+    if (editSession) {
+      cancelEdit();
+    }
+
+    if (action === 'insert-row') {
+      core.insertRow(state, state.selection.row);
+    } else if (action === 'delete-row') {
+      core.deleteRow(state, state.selection.row);
+    } else if (action === 'insert-column') {
+      core.insertColumn(state, state.selection.col);
+    } else if (action === 'delete-column') {
+      core.deleteColumn(state, state.selection.col);
+    }
+
+    renderCells();
+    renderSelection();
   }
 })();
