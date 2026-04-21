@@ -525,6 +525,10 @@
     });
   }
 
+  function adjustFormulaForPaste(formula, sourceRow, sourceCol, targetRow, targetCol) {
+    return adjustFormulaForMove(formula, targetRow - sourceRow, targetCol - sourceCol);
+  }
+
   function transformFormulaRefs(formula, transform) {
     if (!formula || formula[0] !== '=') return formula;
     return replaceRefsInFormula(formula, function (ref) {
@@ -655,6 +659,7 @@
     cloneCells,
     evaluateSheet,
     adjustFormulaForMove,
+    adjustFormulaForPaste,
     applyRowInsertionToFormula,
     applyRowDeletionToFormula,
     applyColInsertionToFormula,

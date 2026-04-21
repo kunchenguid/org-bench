@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const {
   evaluateSheet,
   adjustFormulaForMove,
+  adjustFormulaForPaste,
   applyRowInsertionToFormula,
   applyRowDeletionToFormula,
 } = require('./spreadsheet.js');
@@ -44,6 +45,11 @@ run('detects circular references', () => {
 run('adjusts relative references when formulas move', () => {
   const moved = adjustFormulaForMove('=A1+$B2&C$3&$D$4', 2, 1);
   assert.equal(moved, '=B3+$B4&D$3&$D$4');
+});
+
+run('adjusts relative references based on paste destination', () => {
+  const pasted = adjustFormulaForPaste('=A1+$B2&C$3&$D$4', 0, 1, 0, 2);
+  assert.equal(pasted, '=B1+$B2&D$3&$D$4');
 });
 
 run('updates formulas when inserting and deleting rows', () => {

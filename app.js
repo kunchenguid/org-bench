@@ -24,6 +24,8 @@
     formulaDirty: false,
     history: [],
     future: [],
+    clipboard: null,
+    cutSelection: null,
   };
 
   const domCells = {};
@@ -159,7 +161,7 @@
     render();
   }
 
-  function pasteGrid(text, cutSource) {
+  function pasteGrid(text) {
     const matrix = core.parseClipboard(text);
     const bounds = core.normalizeSelection(state.selection);
     const targetHeight = bounds.endRow - bounds.startRow + 1;
@@ -175,20 +177,27 @@
         const value = row[colOffset] || '';
         const destinationId = core.cellId(bounds.startCol + colOffset, bounds.startRow + rowOffset);
         let nextValue = value;
-        if (value && value[0] === '=') {
-          nextValue = core.adjustFormulaForMove(value, rowOffset, colOffset);
+        if (value && value[0] === '=' && state.clipboard) {
+          nextValue = core.adjustFormulaForPaste(
+            value,
+            state.clipboard.bounds.startRow + rowOffset,
+            state.clipboard.bounds.startCol + colOffset,
+            bounds.startRow + rowOffset,
+            bounds.startCol + colOffset
+          );
         }
         if (nextValue) state.cells[destinationId] = nextValue;
         else delete state.cells[destinationId];
       }
     }
-    if (cutSource) {
-      const source = cutSource;
+    if (state.cutSelection) {
+      const source = state.cutSelection;
       for (let row = source.startRow; row <= source.endRow; row += 1) {
         for (let col = source.startCol; col <= source.endCol; col += 1) {
           delete state.cells[core.cellId(col, row)];
         }
       }
+      state.cutSelection = null;
     }
     const after = snapshotState();
     pushHistory(before, after);
@@ -409,9 +418,12 @@
   });
 
   document.addEventListener('copy', function (event) {
+    const bounds = core.normalizeSelection(state.selection);
     const text = core.serializeRange(state.cells, state.selection);
     event.clipboardData.setData('text/plain', text);
     event.preventDefault();
+    state.clipboard = { text, bounds };
+    state.cutSelection = null;
   });
 
   document.addEventListener('cut', function (event) {
@@ -419,16 +431,19 @@
     const text = core.serializeRange(state.cells, state.selection);
     event.clipboardData.setData('text/plain', text);
     event.preventDefault();
-    clearSelection();
-    state.lastCut = bounds;
+    state.clipboard = { text, bounds };
+    state.cutSelection = bounds;
   });
 
   document.addEventListener('paste', function (event) {
     const text = event.clipboardData.getData('text/plain');
     if (!text) return;
     event.preventDefault();
-    pasteGrid(text, state.lastCut || null);
-    state.lastCut = null;
+    if (!state.clipboard || state.clipboard.text !== text) {
+      state.clipboard = null;
+      state.cutSelection = null;
+    }
+    pasteGrid(text);
   });
 
   formulaInput.addEventListener('focus', function () {
