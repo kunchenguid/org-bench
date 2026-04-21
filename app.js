@@ -63,6 +63,30 @@
     return selectionFromEndpoints(clamped, clamped);
   }
 
+  function handleHistoryHotkey(event, runtime) {
+    if (!runtime || (!event.metaKey && !event.ctrlKey) || event.altKey) {
+      return null;
+    }
+
+    var key = String(event.key || '').toLowerCase();
+    if (key === 'z' && event.shiftKey) {
+      event.preventDefault();
+      return runtime.redo();
+    }
+
+    if (key === 'z') {
+      event.preventDefault();
+      return runtime.undo();
+    }
+
+    if (key === 'y') {
+      event.preventDefault();
+      return runtime.redo();
+    }
+
+    return null;
+  }
+
   function addressFromCell(cell) {
     return String.fromCharCode(65 + cell.column) + String(cell.row + 1);
   }
@@ -223,13 +247,29 @@
       formulaInput.value = typeof rawValue === 'string' ? rawValue : '';
     }
 
-    function setSelection(nextSelection) {
+    function setSelection(nextSelection, options) {
       state.selection = nextSelection;
       applySelectionState(table, state.selection);
-      if (runtime) {
+      if (runtime && !(options && options.skipRuntime)) {
         runtime.updateSelection(selectionToRuntimeSelection(state.selection), 'shell:selection');
       }
       syncFormulaBar();
+    }
+
+    function applyRuntimeState(nextRuntimeState) {
+      if (!nextRuntimeState) {
+        return;
+      }
+
+      setSelection(selectionFromRuntimeSelection(nextRuntimeState.selection, TOTAL_ROWS, TOTAL_COLUMNS), {
+        skipRuntime: true,
+      });
+    }
+
+    if (runtime) {
+      runtime.bus.on('state:change', function (payload) {
+        applyRuntimeState(payload && payload.state);
+      });
     }
 
     setSelection(state.selection);
@@ -279,6 +319,12 @@
         return;
       }
 
+      var historyState = handleHistoryHotkey(event, runtime);
+      if (historyState) {
+        applyRuntimeState(historyState);
+        return;
+      }
+
       var delta = null;
       if (event.key === 'ArrowUp') {
         delta = { row: -1, column: 0 };
@@ -314,6 +360,8 @@
     clampCell: clampCell,
     createInitialSelection: createInitialSelection,
     selectionFromEndpoints: selectionFromEndpoints,
+    selectionFromRuntimeSelection: selectionFromRuntimeSelection,
+    handleHistoryHotkey: handleHistoryHotkey,
     initSpreadsheetShell: initSpreadsheetShell,
   };
 
