@@ -762,9 +762,35 @@
   }
 
   function applyPaste(model, targetCoord, text, options) {
-    const target = parseCoord(targetCoord);
     const matrix = parseTSV(text);
     const sourceTopLeft = options && options.sourceSelection ? parseCoord(options.sourceSelection.start) : null;
+    const targetRect = options && options.targetSelection ? parseSelectionRect(options.targetSelection) : null;
+    const sourceHeight = matrix.length;
+    const sourceWidth = matrix.reduce((max, rowValues) => Math.max(max, rowValues.length), 0);
+    const target = parseCoord(targetCoord);
+
+    if (
+      targetRect &&
+      targetRect.rowEnd - targetRect.rowStart + 1 === sourceHeight &&
+      targetRect.colEnd - targetRect.colStart + 1 > sourceWidth
+    ) {
+      for (let targetCol = targetRect.colStart; targetCol <= targetRect.colEnd; targetCol += sourceWidth) {
+        matrix.forEach((rowValues, rowIndex) => {
+          rowValues.forEach((raw, colIndex) => {
+            const row = clamp(targetRect.rowStart + rowIndex, 0, ROWS - 1);
+            const col = clamp(targetCol + colIndex, 0, COLS - 1);
+            const dest = toCoord(row, col);
+            let nextRaw = raw;
+            if (nextRaw.startsWith('=') && sourceTopLeft) {
+              nextRaw = shiftFormula(nextRaw, row - (sourceTopLeft.row + rowIndex), col - (sourceTopLeft.col + colIndex));
+            }
+            model.setCell(dest, nextRaw);
+          });
+        });
+      }
+      return;
+    }
+
     matrix.forEach((rowValues, rowIndex) => {
       rowValues.forEach((raw, colIndex) => {
         const row = clamp(target.row + rowIndex, 0, ROWS - 1);

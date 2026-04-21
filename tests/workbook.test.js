@@ -115,3 +115,15 @@ test('deleting a referenced column turns formulas into #REF!', () => {
   assert.equal(model.getRaw('A1'), '=#REF!*2');
   assert.equal(model.getDisplayValue('A1'), '#REF!');
 });
+
+test('pasting into a matching-size target range writes cell-by-cell across that range', () => {
+  const model = new SpreadsheetModel();
+  applyPaste(model, 'C1', '1\n2', {
+    targetSelection: { start: 'C1', end: 'D2' },
+  });
+
+  assert.equal(model.getRaw('C1'), '1');
+  assert.equal(model.getRaw('D1'), '1');
+  assert.equal(model.getRaw('C2'), '2');
+  assert.equal(model.getRaw('D2'), '2');
+});

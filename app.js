@@ -32,6 +32,7 @@
     editing: null,
     dragAnchor: null,
     headerMenu: null,
+    pendingCut: null,
   };
 
   renderGrid();
@@ -155,7 +156,13 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.coord = coord;
-        button.addEventListener('click', () => setSelection(coord, coord));
+        button.addEventListener('click', (event) => {
+          if (event.shiftKey) {
+            setSelection(state.selection.start, coord);
+          } else {
+            setSelection(coord, coord);
+          }
+        });
         button.addEventListener('focus', () => setSelection(coord, coord));
         td.appendChild(button);
         tr.appendChild(td);
@@ -188,7 +195,13 @@
       nextButton.type = 'button';
       nextButton.dataset.coord = coord;
       nextButton.textContent = display;
-      nextButton.addEventListener('click', () => setSelection(coord, coord));
+      nextButton.addEventListener('click', (event) => {
+        if (event.shiftKey) {
+          setSelection(state.selection.start, coord);
+        } else {
+          setSelection(coord, coord);
+        }
+      });
       nextButton.addEventListener('focus', () => setSelection(coord, coord));
       td.appendChild(nextButton);
     }
@@ -410,8 +423,9 @@
     event.clipboardData.setData('text/plain', selectionToTSV(model, state.selection));
     event.clipboardData.setData('application/x-facebook-sheet', JSON.stringify({
       selection: state.selection,
+      cut: true,
     }));
-    clearSelection();
+    state.pendingCut = { start: state.selection.start, end: state.selection.end };
   }
 
   function handlePaste(event) {
@@ -432,7 +446,12 @@
     pushHistory();
     applyPaste(model, state.active, text, {
       sourceSelection: metadata && metadata.selection ? metadata.selection : null,
+      targetSelection: state.selection,
     });
+    if (metadata && metadata.cut && state.pendingCut) {
+      model.clearRect(state.pendingCut.start, state.pendingCut.end);
+      state.pendingCut = null;
+    }
     renderAllCells();
     syncFormulaBar();
     saveState();
