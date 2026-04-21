@@ -29,9 +29,37 @@
   function createSpreadsheetEditingController(options) {
     const settings = options || {};
     const state = createEditingState(settings);
+    const readCell = settings.getCell || function (cellId) {
+      const raw = state.cells[cellId] || '';
+
+      return {
+        raw: raw,
+        display: raw,
+      };
+    };
+    const commitCell = settings.commitCell || function (cellId, raw) {
+      if (raw === undefined || raw === null || raw === '') {
+        delete state.cells[cellId];
+        return;
+      }
+
+      state.cells[cellId] = String(raw);
+    };
 
     function getCellRawValue(cellId) {
-      return state.cells[cellId] || '';
+      const cell = readCell(cellId);
+
+      return cell && typeof cell.raw === 'string' ? cell.raw : '';
+    }
+
+    function getCellDisplayValue(cellId) {
+      const cell = readCell(cellId);
+
+      if (cell && typeof cell.display === 'string') {
+        return cell.display;
+      }
+
+      return getCellRawValue(cellId);
     }
 
     function syncFormulaBarValue() {
@@ -96,7 +124,7 @@
         return;
       }
 
-      state.cells[state.editing.cellId] = state.draftValue;
+      commitCell(state.editing.cellId, state.draftValue);
       state.mode = 'navigate';
       state.draftValue = '';
       state.editing = null;
@@ -164,6 +192,7 @@
     return {
       getState,
       getCellRawValue,
+      getCellDisplayValue,
       selectCell,
       beginEdit,
       beginFormulaBarEdit: function () {
@@ -183,12 +212,22 @@
     }
 
     const settings = options || {};
+    const formulaEngine = typeof globalThis !== 'undefined' ? globalThis.SpreadsheetFormulaEngine : null;
+    const workbook = formulaEngine && typeof formulaEngine.createWorkbook === 'function'
+      ? formulaEngine.createWorkbook()
+      : null;
     const formulaInput = doc.getElementById('formula-input');
     const initialCell = doc.querySelector('.grid-cell.active') || doc.querySelector('.grid-cell');
     const controller = createSpreadsheetEditingController({
       activeCellId: initialCell ? initialCell.dataset.cellId : 'A1',
       columnCount: settings.columnCount || doc.querySelectorAll('.column-header').length || 26,
       rowCount: settings.rowCount || doc.querySelectorAll('.row-header').length || 100,
+      getCell: workbook ? function (cellId) {
+        return workbook.getCell(cellId);
+      } : undefined,
+      commitCell: workbook ? function (cellId, raw) {
+        workbook.setCell(cellId, raw);
+      } : undefined,
     });
 
     function syncDom() {
@@ -207,7 +246,7 @@
       doc.querySelectorAll('.grid-cell').forEach(function (cell) {
         const content = cell.querySelector('.grid-cell-content');
         if (content) {
-          content.textContent = controller.getCellRawValue(cell.dataset.cellId);
+          content.textContent = controller.getCellDisplayValue(cell.dataset.cellId);
         }
       });
 
