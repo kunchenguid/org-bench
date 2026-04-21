@@ -115,6 +115,20 @@
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
+  function isBlank(value) {
+    return value === '' || value === null || value === undefined;
+  }
+
+  function asBoolean(value) {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return value !== 0;
+    }
+    return !isBlank(value) && String(value).toUpperCase() !== 'FALSE';
+  }
+
   function evaluateFormula(sheet, formula, stack) {
     const helpers = {
       SUM: (...args) => flattenArgs(args).reduce((sum, value) => sum + asNumber(value), 0),
@@ -122,6 +136,20 @@
         const values = flattenArgs(args);
         return values.length ? helpers.SUM(...values) / values.length : 0;
       },
+      MIN: (...args) => Math.min(...flattenArgs(args).map(asNumber)),
+      MAX: (...args) => Math.max(...flattenArgs(args).map(asNumber)),
+      COUNT: (...args) => flattenArgs(args).filter((value) => !isBlank(value)).length,
+      IF: (condition, whenTrue, whenFalse) => (asBoolean(condition) ? whenTrue : whenFalse),
+      AND: (...args) => flattenArgs(args).every(asBoolean),
+      OR: (...args) => flattenArgs(args).some(asBoolean),
+      NOT: (value) => !asBoolean(value),
+      ABS: (value) => Math.abs(asNumber(value)),
+      ROUND: (value, digits) => {
+        const precision = Math.max(0, asNumber(digits));
+        const factor = 10 ** precision;
+        return Math.round(asNumber(value) * factor) / factor;
+      },
+      CONCAT: (...args) => flattenArgs(args).join(''),
     };
 
     const ranges = [];
@@ -132,6 +160,10 @@
     });
 
     const expression = withRanges
+      .replace(/<>/g, '!=')
+      .replace(/&/g, '+')
+      .replace(/\bTRUE\b/g, 'true')
+      .replace(/\bFALSE\b/g, 'false')
       .replace(REF_RE, (match) => `__cell__("${match}")`)
       .replace(/__RANGE_TOKEN_(\d+)__/g, (_, index) => ranges[Number(index)]);
 
@@ -140,15 +172,37 @@
       '__range__',
       'SUM',
       'AVERAGE',
+      'MIN',
+      'MAX',
+      'COUNT',
+      'IF',
+      'AND',
+      'OR',
+      'NOT',
+      'ABS',
+      'ROUND',
+      'CONCAT',
       `return (${expression});`
     );
 
-    return runner(
+    const value = runner(
       (cellId) => evaluateCell(sheet, cellId, stack).value,
       (start, end) => expandRange(start, end).map((cellId) => evaluateCell(sheet, cellId, stack).value),
       helpers.SUM,
-      helpers.AVERAGE
+      helpers.AVERAGE,
+      helpers.MIN,
+      helpers.MAX,
+      helpers.COUNT,
+      helpers.IF,
+      helpers.AND,
+      helpers.OR,
+      helpers.NOT,
+      helpers.ABS,
+      helpers.ROUND,
+      helpers.CONCAT
     );
+
+    return typeof value === 'number' && !Number.isFinite(value) ? '#DIV/0!' : value;
   }
 
   function evaluateCell(sheet, cellId, stack) {

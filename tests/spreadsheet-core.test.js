@@ -43,6 +43,40 @@ test('supports SUM and AVERAGE over a range', () => {
   assert.equal(evaluateCell(sheet, 'B2').display, '2');
 });
 
+test('supports comparison, boolean, and text-oriented formulas', () => {
+  const sheet = createSheet();
+  setCellRaw(sheet, 'A1', '9');
+  setCellRaw(sheet, 'A2', '3');
+  setCellRaw(sheet, 'B1', '=A1>A2');
+  setCellRaw(sheet, 'B2', '=IF(A1>A2,"high","low")');
+  setCellRaw(sheet, 'B3', '=AND(TRUE, A2<5)');
+  setCellRaw(sheet, 'B4', '=NOT(FALSE)');
+  setCellRaw(sheet, 'B5', '=CONCAT("Total: ", A1)');
+  setCellRaw(sheet, 'B6', '=ROUND(A1/A2, 2)');
+  setCellRaw(sheet, 'B7', '=MIN(A1:A2)');
+  setCellRaw(sheet, 'B8', '=MAX(A1:A2)');
+  setCellRaw(sheet, 'B9', '=COUNT(A1:A2)');
+
+  assert.equal(evaluateCell(sheet, 'B1').display, 'TRUE');
+  assert.equal(evaluateCell(sheet, 'B2').display, 'high');
+  assert.equal(evaluateCell(sheet, 'B3').display, 'TRUE');
+  assert.equal(evaluateCell(sheet, 'B4').display, 'TRUE');
+  assert.equal(evaluateCell(sheet, 'B5').display, 'Total: 9');
+  assert.equal(evaluateCell(sheet, 'B6').display, '3');
+  assert.equal(evaluateCell(sheet, 'B7').display, '3');
+  assert.equal(evaluateCell(sheet, 'B8').display, '9');
+  assert.equal(evaluateCell(sheet, 'B9').display, '2');
+});
+
+test('surfaces divide-by-zero as a spreadsheet-style error', () => {
+  const sheet = createSheet();
+  setCellRaw(sheet, 'A1', '10');
+  setCellRaw(sheet, 'A2', '0');
+  setCellRaw(sheet, 'B1', '=A1/A2');
+
+  assert.equal(evaluateCell(sheet, 'B1').display, '#DIV/0!');
+});
+
 test('marks circular references clearly', () => {
   const sheet = createSheet();
   setCellRaw(sheet, 'A1', '=B1');
