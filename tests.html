@@ -58,8 +58,10 @@
           localStorage.removeItem("amazon-sheet:active");
         }
 
-        function mountApp() {
-          clearSpreadsheetStorage();
+        function mountApp(options) {
+          if (!options || !options.preserveStorage) {
+            clearSpreadsheetStorage();
+          }
           var existing = document.getElementById("app-test-root");
           if (existing) {
             existing.remove();
@@ -73,6 +75,10 @@
             formulaInput: document.getElementById("formula-input"),
             spreadsheet: document.getElementById("spreadsheet"),
           };
+        }
+
+        function dispatchDocumentKey(key, options) {
+          document.dispatchEvent(new KeyboardEvent("keydown", Object.assign({ key: key, bubbles: true }, options || {})));
         }
 
         run("createWorkbook exposes raw and display values", function () {
@@ -129,9 +135,9 @@
         });
 
         run("formula bar and in-cell editing share one draft", function () {
-          var ui = mountApp();
+          var ui = mountApp({ preserveStorage: true });
           ui.spreadsheet.querySelector('[data-cell="A1"]').click();
-          document.dispatchEvent(new KeyboardEvent("keydown", { key: "1", bubbles: true }));
+          dispatchDocumentKey("1");
 
           var editor = ui.spreadsheet.querySelector('[data-editor="A1"]');
           editor.value = "123";
@@ -142,6 +148,21 @@
           ui.formulaInput.focus();
           ui.formulaInput.dispatchEvent(new FocusEvent("focus"));
           assertEqual(ui.formulaInput.value, "123", "formula bar keeps the same draft when taking over editing");
+        });
+
+        run("keyboard paste writes shifted formulas into persisted app state", function () {
+          localStorage.setItem("amazon-sheet:cells", JSON.stringify({ A1: "10", A2: "20", B1: "=A1+A2" }));
+          localStorage.setItem("amazon-sheet:active", "B1");
+          var ui = mountApp({ preserveStorage: true });
+          ui.spreadsheet.querySelector('[data-cell="B1"]').click();
+
+          dispatchDocumentKey("c", { ctrlKey: true });
+          dispatchDocumentKey("ArrowRight");
+          dispatchDocumentKey("v", { ctrlKey: true });
+
+          var persisted = JSON.parse(localStorage.getItem("amazon-sheet:cells") || "{}");
+          assertEqual(persisted.C1, "=B1+B2", "paste keeps source-origin shifting in app state");
+          assertEqual(ui.spreadsheet.querySelector('[data-cell="C1"]').textContent.trim(), "30", "pasted formula renders in the grid");
         });
 
         document.title = failures ? "FAIL (" + failures + ")" : "PASS";

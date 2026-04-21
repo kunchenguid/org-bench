@@ -528,6 +528,11 @@
   }
 
   function createApp() {
+    if (window.__amazonSheetCleanup) {
+      window.__amazonSheetCleanup();
+      window.__amazonSheetCleanup = null;
+    }
+
     var root = document.getElementById("spreadsheet");
     var formulaInput = document.getElementById("formula-input");
     if (!root || !formulaInput) {
@@ -661,7 +666,7 @@
       render();
     }
 
-    root.addEventListener("click", function (event) {
+    function handleRootClick(event) {
       var cell = event.target.closest("[data-cell]");
       if (!cell) {
         return;
@@ -670,25 +675,25 @@
       editingKey = null;
       save();
       render();
-    });
+    }
 
-    root.addEventListener("dblclick", function (event) {
+    function handleRootDoubleClick(event) {
       var cell = event.target.closest("[data-cell]");
       if (!cell) {
         return;
       }
       activeKey = cell.getAttribute("data-cell");
       beginEdit(activeKey);
-    });
+    }
 
-    root.addEventListener("input", function (event) {
+    function handleRootInput(event) {
       if (event.target.matches(".cell-editor")) {
         draftValue = event.target.value;
         formulaInput.value = draftValue;
       }
-    });
+    }
 
-    root.addEventListener("keydown", function (event) {
+    function handleRootKeydown(event) {
       if (!event.target.matches(".cell-editor")) {
         return;
       }
@@ -702,19 +707,19 @@
         event.preventDefault();
         cancelEdit();
       }
-    });
+    }
 
-    formulaInput.addEventListener("focus", function () {
+    function handleFormulaFocus() {
       editingKey = "formula";
       draftValue = editingKey ? draftValue : workbook.getRaw(activeKey);
       formulaInput.value = draftValue;
-    });
+    }
 
-    formulaInput.addEventListener("input", function () {
+    function handleFormulaInput() {
       draftValue = formulaInput.value;
-    });
+    }
 
-    formulaInput.addEventListener("keydown", function (event) {
+    function handleFormulaKeydown(event) {
       if (event.key === "Enter") {
         event.preventDefault();
         commitEdit("down");
@@ -722,14 +727,26 @@
         event.preventDefault();
         cancelEdit();
       }
-    });
+    }
 
-    document.addEventListener("keydown", function (event) {
+    function handleDocumentKeydown(event) {
       var tag = document.activeElement && document.activeElement.tagName;
       if (tag === "INPUT" && document.activeElement !== formulaInput && !document.activeElement.classList.contains("cell-editor")) {
         return;
       }
       if (editingKey && editingKey !== "formula") {
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        workbook.copyRange(activeKey + ":" + activeKey);
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        workbook.pasteRange(activeKey);
+        save();
+        render();
         return;
       }
       if (event.target === formulaInput && editingKey === "formula") {
@@ -754,7 +771,27 @@
         event.preventDefault();
         beginEdit(activeKey, event.key);
       }
-    });
+    }
+
+    root.addEventListener("click", handleRootClick);
+    root.addEventListener("dblclick", handleRootDoubleClick);
+    root.addEventListener("input", handleRootInput);
+    root.addEventListener("keydown", handleRootKeydown);
+    formulaInput.addEventListener("focus", handleFormulaFocus);
+    formulaInput.addEventListener("input", handleFormulaInput);
+    formulaInput.addEventListener("keydown", handleFormulaKeydown);
+    document.addEventListener("keydown", handleDocumentKeydown);
+
+    window.__amazonSheetCleanup = function () {
+      root.removeEventListener("click", handleRootClick);
+      root.removeEventListener("dblclick", handleRootDoubleClick);
+      root.removeEventListener("input", handleRootInput);
+      root.removeEventListener("keydown", handleRootKeydown);
+      formulaInput.removeEventListener("focus", handleFormulaFocus);
+      formulaInput.removeEventListener("input", handleFormulaInput);
+      formulaInput.removeEventListener("keydown", handleFormulaKeydown);
+      document.removeEventListener("keydown", handleDocumentKeydown);
+    };
 
     render();
   }
