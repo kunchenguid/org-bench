@@ -141,11 +141,16 @@
   });
 
   formulaInput.addEventListener('input', function () {
+    if (isEditing && !editor.hidden && editor.value !== formulaInput.value) {
+      editor.value = formulaInput.value;
+    }
     status.textContent = 'Editing ' + model.getSelectedCell();
   });
 
   editor.addEventListener('input', function () {
-    formulaInput.value = editor.value;
+    if (formulaInput.value !== editor.value) {
+      formulaInput.value = editor.value;
+    }
     status.textContent = 'Editing ' + model.getSelectedCell();
   });
 

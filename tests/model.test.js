@@ -105,6 +105,17 @@ test('pastes a copied block and rewrites relative formulas from the source offse
   assert.equal(model.getDisplayValue('B2'), '6');
 });
 
+test('out of bounds shifts surface as reference errors after paste', () => {
+  const model = createSpreadsheetModel();
+
+  model.setCell('A2', '=A1');
+  const block = model.copyBlock('A2', 'A2');
+  model.pasteBlock('A1', block);
+
+  assert.equal(model.getRawValue('A1'), '=#REF!');
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
+
 test('undo and redo restore whole-sheet snapshots in order', () => {
   const history = createHistoryManager(3);
 

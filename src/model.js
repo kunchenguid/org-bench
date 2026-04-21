@@ -186,6 +186,10 @@
         return parseLiteral(raw);
       }
 
+      if (raw.indexOf('#REF!') !== -1) {
+        return errorValue('#REF!');
+      }
+
       try {
         const parser = createParser(raw.slice(1), function (referenceAddress) {
           return evaluateCell(referenceAddress, stack.concat(address));
