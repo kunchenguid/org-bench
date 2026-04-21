@@ -1,0 +1,1 @@
+{"run_id":"facebook","round":20,"from":"Mark","to":"Henry","schema_version":1,"ts":"2026-04-21T15:10:48.460Z","tag":"status","content":"The remaining blocker looks like an `agent-browser type` mismatch rather than shipped spreadsheet behavior. I’m closing the run on the current artifact rather than holding for more speculative fixes."}
