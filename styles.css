@@ -1,0 +1,150 @@
+:root {
+  color-scheme: light;
+  --grid-border: #d7dce5;
+  --header-bg: rgba(244, 246, 249, 0.94);
+  --sheet-bg: #ffffff;
+  --canvas-bg: #eef1f6;
+  --active: #0071e3;
+  --range: rgba(0, 113, 227, 0.12);
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: linear-gradient(180deg, #f6f8fb 0%, #edf1f7 100%);
+  color: var(--text);
+  font-family: Inter, "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+body {
+  padding: 20px;
+}
+
+#app,
+.app-shell {
+  height: 100%;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+}
+
+.formula-shell {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.name-box,
+.formula-bar-placeholder {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 14px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(16px);
+}
+
+.name-box {
+  font-weight: 600;
+  justify-content: center;
+}
+
+.formula-bar-placeholder {
+  color: var(--muted);
+}
+
+.grid-viewport {
+  overflow: auto;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
+  outline: none;
+}
+
+.grid-table {
+  display: grid;
+  grid-template-columns: 64px repeat(var(--column-count), 120px);
+  grid-auto-rows: 40px;
+  min-width: max-content;
+  background: var(--sheet-bg);
+}
+
+.corner-cell,
+.column-header,
+.row-header,
+.grid-cell {
+  border-right: 1px solid var(--grid-border);
+  border-bottom: 1px solid var(--grid-border);
+}
+
+.corner-cell,
+.column-header,
+.row-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--header-bg);
+  backdrop-filter: blur(18px);
+  z-index: 2;
+}
+
+.corner-cell {
+  z-index: 4;
+}
+
+.sticky-row {
+  position: sticky;
+  top: 0;
+}
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+}
+
+.grid-cell {
+  appearance: none;
+  border-top: 0;
+  border-left: 0;
+  margin: 0;
+  background: #fff;
+  padding: 0;
+  text-align: left;
+  position: relative;
+}
+
+.grid-cell:hover {
+  background: #f9fbff;
+}
+
+.grid-cell.is-selected {
+  background: var(--range);
+}
+
+.grid-cell.is-active {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--active);
+  z-index: 1;
+}
+
+.grid-cell.is-selected.is-active {
+  background: rgba(255, 255, 255, 0.95);
+}
