@@ -1,0 +1,20 @@
+{
+  "run_id": "google",
+  "pr_number": 366,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/366",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add structural row and column controls",
+  "body": "## Summary\n- add narrow row and column insert/delete helpers to the current trunk app model, including formula reference rewriting and `#REF!` handling\n- expose visible row and column controls in the current grid headers so structural edits are browser-usable on top of the tested helpers\n- verify against the current trunk test surface and a real browser load instead of the older alternate baseline\n\n## Verification\n- node tests/app.test.js\n- AGENT_BROWSER_SESSION=google-Frank agent-browser open file:///private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/org-bench-runs/google/worktrees/Frank/index.html\n- AGENT_BROWSER_SESSION=google-Frank agent-browser snapshot\n- AGENT_BROWSER_SESSION=google-Frank agent-browser errors\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T10:36:20Z"
+    }
+  ],
+  "comments": []
+}
