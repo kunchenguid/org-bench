@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 
-const { retargetFormulaBarEdit } = require('../app-state.js');
+const { retargetFormulaBarEdit, shouldRenderCellEditor } = require('../app-state.js');
 
 function test(name, fn) {
   try {
@@ -39,4 +39,12 @@ test('ignores cell-editor sessions', () => {
     original: '7',
     source: 'cell',
   }, 'B2', () => '9'), null);
+});
+
+test('does not render an in-cell editor for formula-bar sessions', () => {
+  assert.equal(shouldRenderCellEditor({ coord: 'B1', source: 'formula' }, 'B1'), false);
+});
+
+test('renders an in-cell editor for direct cell sessions', () => {
+  assert.equal(shouldRenderCellEditor({ coord: 'B1', source: 'cell' }, 'B1'), true);
 });

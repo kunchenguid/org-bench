@@ -19,7 +19,12 @@
     };
   }
 
+  function shouldRenderCellEditor(editing, coord) {
+    return Boolean(editing && editing.coord === coord && editing.source === 'cell');
+  }
+
   return {
     retargetFormulaBarEdit,
+    shouldRenderCellEditor,
   };
 }));
