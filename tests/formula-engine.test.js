@@ -1,5 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
 const { createFormulaEngine, translateFormula } = require('../src/formula-engine.js');
 
@@ -72,4 +75,25 @@ test('treats empty references as zero or empty string depending on context', () 
   assert.equal(engine.getCellDisplay('A1'), '5');
   assert.equal(engine.getCellDisplay('A2'), 'x');
   assert.equal(engine.getCellDisplay('A3'), 'TRUE');
+});
+
+test('exposes the same API from a browser script tag', () => {
+  const scriptSource = fs.readFileSync(path.join(__dirname, '../src/formula-engine.js'), 'utf8');
+  const context = {
+    window: {},
+    console,
+  };
+
+  vm.runInNewContext(scriptSource, context);
+
+  assert.equal(typeof context.window.SpreadsheetFormulaEngine, 'object');
+  assert.equal(typeof context.window.SpreadsheetFormulaEngine.createFormulaEngine, 'function');
+  assert.equal(typeof context.window.SpreadsheetFormulaEngine.translateFormula, 'function');
+
+  const browserEngine = context.window.SpreadsheetFormulaEngine.createFormulaEngine();
+  browserEngine.setCell('A1', '4');
+  browserEngine.setCell('A2', '=A1*2');
+
+  assert.equal(browserEngine.getCellDisplay('A2'), '8');
+  assert.equal(context.window.SpreadsheetFormulaEngine.translateFormula('=A1+$B$2', 'A1', 'C3'), '=C3+$B$2');
 });

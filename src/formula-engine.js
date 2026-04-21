@@ -777,7 +777,18 @@ function isError(value) {
   return value && value.kind === 'error';
 }
 
-module.exports = {
+const formulaEngineApi = {
   createFormulaEngine,
   translateFormula,
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = formulaEngineApi;
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.SpreadsheetFormulaEngine = formulaEngineApi;
+  if (globalThis.window && globalThis.window !== globalThis) {
+    globalThis.window.SpreadsheetFormulaEngine = formulaEngineApi;
+  }
+}
