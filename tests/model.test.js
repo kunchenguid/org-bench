@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createSpreadsheetModel, expandRange } = require('../src/model.js');
+const { createSpreadsheetModel, expandRange, createHistoryManager, shiftFormulaReferences } = require('../src/model.js');
 
 test('stores raw values and evaluates formulas through references', () => {
   const model = createSpreadsheetModel();
@@ -86,4 +86,54 @@ test('shows reference errors instead of silently clamping invalid addresses', ()
 
   assert.equal(model.getDisplayValue('A1'), '#REF!');
   assert.equal(model.getDisplayValue('A2'), '#REF!');
+});
+
+test('shifts relative references when a formula is copied', () => {
+  assert.equal(shiftFormulaReferences('=A1+$B2+C$3+$D$4', 1, 2), '=C2+$B3+E$3+$D$4');
+});
+
+test('pastes a copied block and rewrites relative formulas from the source offset', () => {
+  const model = createSpreadsheetModel();
+
+  model.setCell('A1', '5');
+  model.setCell('B1', '=A1+1');
+  const block = model.copyBlock('A1', 'B1');
+  model.pasteBlock('A2', block);
+
+  assert.equal(model.getRawValue('A2'), '5');
+  assert.equal(model.getRawValue('B2'), '=A2+1');
+  assert.equal(model.getDisplayValue('B2'), '6');
+});
+
+test('out of bounds shifts surface as reference errors after paste', () => {
+  const model = createSpreadsheetModel();
+
+  model.setCell('A2', '=A1');
+  const block = model.copyBlock('A2', 'A2');
+  model.pasteBlock('A1', block);
+
+  assert.equal(model.getRawValue('A1'), '=#REF!');
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
+
+test('undo and redo restore whole-sheet snapshots in order', () => {
+  const history = createHistoryManager(3);
+
+  history.record({ cells: { A1: '1' } }, { cells: { A1: '2' } });
+  history.record({ cells: { A1: '2' } }, { cells: { A1: '3' } });
+
+  assert.deepEqual(history.undo(), { cells: { A1: '2' } });
+  assert.deepEqual(history.undo(), { cells: { A1: '1' } });
+  assert.deepEqual(history.redo(), { cells: { A1: '2' } });
+});
+
+test('redo is dropped after recording a new action from an undone state', () => {
+  const history = createHistoryManager(5);
+
+  history.record({ cells: { A1: '1' } }, { cells: { A1: '2' } });
+  history.record({ cells: { A1: '2' } }, { cells: { A1: '3' } });
+  history.undo();
+  history.record({ cells: { A1: '2' } }, { cells: { A1: '9' } });
+
+  assert.equal(history.redo(), null);
 });

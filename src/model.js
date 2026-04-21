@@ -12,6 +12,47 @@
     'SUM', 'AVERAGE', 'MIN', 'MAX', 'COUNT', 'IF', 'AND', 'OR', 'NOT', 'ABS', 'ROUND', 'CONCAT'
   ]);
 
+  function createHistoryManager(limit) {
+    const maxEntries = limit || 50;
+    let undoStack = [];
+    let redoStack = [];
+
+    function record(before, after) {
+      if (JSON.stringify(before) === JSON.stringify(after)) {
+        return;
+      }
+      undoStack.push({ before: cloneSnapshot(before), after: cloneSnapshot(after) });
+      if (undoStack.length > maxEntries) {
+        undoStack.shift();
+      }
+      redoStack = [];
+    }
+
+    function undo() {
+      if (!undoStack.length) {
+        return null;
+      }
+      const entry = undoStack.pop();
+      redoStack.push(cloneSnapshot(entry));
+      return cloneSnapshot(entry.before);
+    }
+
+    function redo() {
+      if (!redoStack.length) {
+        return null;
+      }
+      const entry = redoStack.pop();
+      undoStack.push(cloneSnapshot(entry));
+      return cloneSnapshot(entry.after);
+    }
+
+    return {
+      record: record,
+      undo: undo,
+      redo: redo
+    };
+  }
+
   function createSpreadsheetModel(state) {
     const cells = new Map();
     const initialCells = state && state.cells ? state.cells : {};
@@ -55,6 +96,61 @@
       });
     }
 
+    function copyBlock(startAddress, endAddress) {
+      const addresses = expandRange(startAddress, endAddress);
+      const startPoint = addressToPoint(startAddress);
+      const endPoint = addressToPoint(endAddress);
+      const minColumn = Math.min(startPoint.column, endPoint.column);
+      const maxColumn = Math.max(startPoint.column, endPoint.column);
+      const minRow = Math.min(startPoint.row, endPoint.row);
+      const maxRow = Math.max(startPoint.row, endPoint.row);
+      const cellsByRow = [];
+
+      for (let row = minRow; row <= maxRow; row += 1) {
+        const currentRow = [];
+        for (let column = minColumn; column <= maxColumn; column += 1) {
+          currentRow.push(getRawValue(pointToAddress(column, row)));
+        }
+        cellsByRow.push(currentRow);
+      }
+
+      return {
+        sourceStart: pointToAddress(minColumn, minRow),
+        width: maxColumn - minColumn + 1,
+        height: maxRow - minRow + 1,
+        cells: cellsByRow,
+        addresses: addresses
+      };
+    }
+
+    function pasteBlock(targetAddress, block) {
+      const sourcePoint = addressToPoint(block.sourceStart);
+      const targetPoint = addressToPoint(targetAddress);
+      const rowDelta = targetPoint.row - sourcePoint.row;
+      const columnDelta = targetPoint.column - sourcePoint.column;
+
+      for (let rowIndex = 0; rowIndex < block.cells.length; rowIndex += 1) {
+        for (let columnIndex = 0; columnIndex < block.cells[rowIndex].length; columnIndex += 1) {
+          const rawValue = block.cells[rowIndex][columnIndex];
+          setCell(
+            pointToAddress(targetPoint.column + columnIndex, targetPoint.row + rowIndex),
+            shiftFormulaReferences(rawValue, rowDelta, columnDelta)
+          );
+        }
+      }
+    }
+
+    function loadState(nextState) {
+      cells.clear();
+      const nextCells = nextState && nextState.cells ? nextState.cells : {};
+      Object.keys(nextCells).forEach(function (address) {
+        if (nextCells[address] !== '') {
+          cells.set(normalizeAddress(address), String(nextCells[address]));
+        }
+      });
+      selectedCell = normalizeAddress(nextState && nextState.selectedCell ? nextState.selectedCell : 'A1');
+    }
+
     function selectCell(address) {
       selectedCell = normalizeAddress(address);
     }
@@ -90,6 +186,10 @@
         return parseLiteral(raw);
       }
 
+      if (raw.indexOf('#REF!') !== -1) {
+        return errorValue('#REF!');
+      }
+
       try {
         const parser = createParser(raw.slice(1), function (referenceAddress) {
           return evaluateCell(referenceAddress, stack.concat(address));
@@ -103,9 +203,12 @@
     return {
       setCell: setCell,
       clearCells: clearCells,
+      copyBlock: copyBlock,
+      pasteBlock: pasteBlock,
       getRawValue: getRawValue,
       getCellValue: getCellValue,
       getDisplayValue: getDisplayValue,
+      loadState: loadState,
       selectCell: selectCell,
       getSelectedCell: getSelectedCell,
       serialize: serialize
@@ -325,13 +428,13 @@
     function parseCellReference() {
       skipWhitespace();
       const remaining = source.slice(index);
-      const match = remaining.match(/^[A-Za-z]+\d+/);
+      const match = remaining.match(/^(\$?[A-Za-z]+\$?\d+)/);
       if (!match) {
         return '';
       }
       index += match[0].length;
       try {
-        return normalizeAddress(match[0].toUpperCase());
+        return normalizeAddress(match[0].toUpperCase().replace(/\$/g, ''));
       } catch (error) {
         throw errorValue('#REF!');
       }
@@ -454,6 +557,31 @@
     }
 
     return addresses;
+  }
+
+  function shiftFormulaReferences(formula, rowDelta, columnDelta) {
+    if (!formula || formula.charAt(0) !== '=') {
+      return formula || '';
+    }
+
+    return formula.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, function (_, absoluteColumn, letters, absoluteRow, rowDigits) {
+      const point = {
+        column: lettersToColumnIndex(letters),
+        row: Number(rowDigits) - 1
+      };
+      const nextColumn = absoluteColumn ? point.column : point.column + columnDelta;
+      const nextRow = absoluteRow ? point.row : point.row + rowDelta;
+
+      if (nextColumn < 0 || nextColumn >= COLUMN_COUNT || nextRow < 0 || nextRow >= ROW_COUNT) {
+        return '#REF!';
+      }
+
+      return (absoluteColumn ? '$' : '') + indexToColumnLetters(nextColumn) + (absoluteRow ? '$' : '') + String(nextRow + 1);
+    });
+  }
+
+  function cloneSnapshot(value) {
+    return JSON.parse(JSON.stringify(value));
   }
 
   function applyNumericBinary(left, right, operator) {
@@ -618,7 +746,9 @@
     COLUMN_COUNT: COLUMN_COUNT,
     ROW_COUNT: ROW_COUNT,
     createSpreadsheetModel: createSpreadsheetModel,
+    createHistoryManager: createHistoryManager,
     expandRange: expandRange,
+    shiftFormulaReferences: shiftFormulaReferences,
     addressToPoint: addressToPoint,
     pointToAddress: pointToAddress,
     indexToColumnLetters: indexToColumnLetters

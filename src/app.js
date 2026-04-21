@@ -11,10 +11,12 @@
   const rows = modelApi.ROW_COUNT;
   const state = loadState();
   const model = modelApi.createSpreadsheetModel(state);
+  const history = modelApi.createHistoryManager(50);
   let isEditing = false;
-  let selectionAnchor = model.getSelectedCell();
-  let selectionFocus = model.getSelectedCell();
+  let selectionAnchor = state && state.selectionAnchor ? state.selectionAnchor : model.getSelectedCell();
+  let selectionFocus = state && state.selectionFocus ? state.selectionFocus : model.getSelectedCell();
   let isDraggingSelection = false;
+  let clipboard = null;
 
   buildGrid();
   refresh();
@@ -84,7 +86,42 @@
 
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      clearSelection();
+      applyAction(function () {
+        model.clearCells(getSelectedAddresses());
+      });
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
+      event.preventDefault();
+      clipboard = model.copyBlock(selectionAnchor, selectionFocus);
+      status.textContent = selectionSummary(getSelectedAddresses().length) + ' copied';
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'x') {
+      event.preventDefault();
+      clipboard = model.copyBlock(selectionAnchor, selectionFocus);
+      clipboard.cut = true;
+      status.textContent = selectionSummary(getSelectedAddresses().length) + ' cut';
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      pasteSelection();
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      restoreSnapshot(history.undo());
+      return;
+    }
+
+    if (((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'z') || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y')) {
+      event.preventDefault();
+      restoreSnapshot(history.redo());
       return;
     }
 
@@ -104,11 +141,16 @@
   });
 
   formulaInput.addEventListener('input', function () {
+    if (isEditing && !editor.hidden && editor.value !== formulaInput.value) {
+      editor.value = formulaInput.value;
+    }
     status.textContent = 'Editing ' + model.getSelectedCell();
   });
 
   editor.addEventListener('input', function () {
-    formulaInput.value = editor.value;
+    if (formulaInput.value !== editor.value) {
+      formulaInput.value = editor.value;
+    }
     status.textContent = 'Editing ' + model.getSelectedCell();
   });
 
@@ -206,12 +248,13 @@
   }
 
   function commitValue(value, columnDelta, rowDelta) {
-    model.setCell(model.getSelectedCell(), value);
-    persist();
+    const nextAddress = nextAddressFromSelection(columnDelta, rowDelta);
+    applyAction(function () {
+      model.setCell(model.getSelectedCell(), value);
+      updateSelection(nextAddress, false);
+    });
     isEditing = false;
     editor.hidden = true;
-    moveSelection(columnDelta, rowDelta, false);
-    refresh();
   }
 
   function moveSelection(columnDelta, rowDelta, extendSelection) {
@@ -227,14 +270,24 @@
       selectionAnchor = address;
     }
     selectionFocus = address;
-    persist();
     refresh();
   }
 
-  function clearSelection() {
-    model.clearCells(getSelectedAddresses());
-    persist();
-    refresh();
+  function pasteSelection() {
+    if (!clipboard) {
+      return;
+    }
+
+    applyAction(function () {
+      if (clipboard.cut) {
+        model.clearCells(clipboard.addresses);
+      }
+      model.pasteBlock(model.getSelectedCell(), clipboard);
+    });
+
+    if (clipboard.cut) {
+      clipboard = null;
+    }
   }
 
   function getSelectedAddresses() {
@@ -258,7 +311,10 @@
   }
 
   function persist() {
-    window.localStorage.setItem(storageKey, JSON.stringify(model.serialize()));
+    const payload = model.serialize();
+    payload.selectionAnchor = selectionAnchor;
+    payload.selectionFocus = selectionFocus;
+    window.localStorage.setItem(storageKey, JSON.stringify(payload));
   }
 
   function loadState() {
@@ -290,5 +346,40 @@
     }
 
     return size + ' cells selected';
+  }
+
+  function snapshotState() {
+    const snapshot = model.serialize();
+    snapshot.selectionAnchor = selectionAnchor;
+    snapshot.selectionFocus = selectionFocus;
+    return snapshot;
+  }
+
+  function applyAction(mutator) {
+    const before = snapshotState();
+    mutator();
+    const after = snapshotState();
+    history.record(before, after);
+    persist();
+    refresh();
+  }
+
+  function restoreSnapshot(snapshot) {
+    if (!snapshot) {
+      return;
+    }
+    model.loadState(snapshot);
+    selectionAnchor = snapshot.selectionAnchor || model.getSelectedCell();
+    selectionFocus = snapshot.selectionFocus || model.getSelectedCell();
+    persist();
+    refresh();
+  }
+
+  function nextAddressFromSelection(columnDelta, rowDelta) {
+    const point = modelApi.addressToPoint(model.getSelectedCell());
+    return modelApi.pointToAddress(
+      clamp(point.column + columnDelta, 0, columns - 1),
+      clamp(point.row + rowDelta, 0, rows - 1)
+    );
   }
 })();
