@@ -105,7 +105,7 @@
 
     function updateSelection(selection, source) {
       var current = store.getState();
-      return commit({
+      return syncState({
         cells: current.cells,
         selection: selection,
       }, source || 'runtime:selection');
