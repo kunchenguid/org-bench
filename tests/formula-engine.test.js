@@ -85,3 +85,15 @@ test('preserves raw formulas while returning spreadsheet booleans for display', 
     error: null,
   });
 });
+
+test('accepts absolute references during evaluation and exposes formula dependencies', () => {
+  const engine = makeEngine({
+    A1: '2',
+    B2: '5',
+    C3: '7',
+    D4: '=$A$1+B$2+$C3+SUM(A1:B2)',
+  });
+
+  assert.equal(engine.evaluateCell('D4').value, 21);
+  assert.deepEqual(engine.getDependencies('D4'), ['A1', 'A2', 'B1', 'B2', 'C3']);
+});

@@ -50,6 +50,22 @@
     return this._evaluateCell(normalizeAddress(address), []);
   };
 
+  FormulaEngine.prototype.getDependencies = function (address) {
+    const raw = normalizeRaw(this.getCell(normalizeAddress(address)));
+    if (!raw || raw.charAt(0) !== '=') {
+      return [];
+    }
+
+    try {
+      const parser = new Parser(raw.slice(1));
+      const ast = parser.parseExpression(0);
+      parser.expect('eof');
+      return Array.from(collectDependencies(ast, new Set())).sort();
+    } catch (error) {
+      return [];
+    }
+  };
+
   FormulaEngine.prototype._evaluateCell = function (address, stack) {
     if (!address) {
       return makeResult('', null);
@@ -361,6 +377,37 @@
       fail(ERROR.ref);
     }
     return { type: 'range', start: left.address, end: right.address };
+  }
+
+  function collectDependencies(node, result) {
+    if (!node) {
+      return result;
+    }
+
+    switch (node.type) {
+      case 'cell':
+        result.add(node.address);
+        return result;
+      case 'range':
+        expandRange(node.start, node.end).forEach(function (address) {
+          result.add(address);
+        });
+        return result;
+      case 'binary':
+        collectDependencies(node.left, result);
+        collectDependencies(node.right, result);
+        return result;
+      case 'unary':
+        collectDependencies(node.argument, result);
+        return result;
+      case 'call':
+        node.args.forEach(function (arg) {
+          collectDependencies(arg, result);
+        });
+        return result;
+      default:
+        return result;
+    }
   }
 
   function normalizeAddress(address) {
