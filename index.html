@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Northstar Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="topbar-copy">
+          <div class="eyebrow">Northstar Sheet</div>
+          <h1>Ready-to-type spreadsheet</h1>
+        </div>
+        <div class="formula-bar" aria-label="Formula bar">
+          <input id="cell-name" class="cell-name" type="text" aria-label="Selected cell" readonly>
+          <label class="formula-wrap" for="formula-input">
+            <span class="formula-label">fx</span>
+            <input id="formula-input" class="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="fx">
+          </label>
+        </div>
+      </header>
+      <main class="sheet-shell">
+        <div id="sheet-root" class="sheet-root" aria-label="Spreadsheet"></div>
+      </main>
+    </div>
+    <script src="spreadsheet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
