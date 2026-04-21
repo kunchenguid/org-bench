@@ -280,6 +280,19 @@
       return getSelection();
     }
 
+    function handleTextInput(text) {
+      const value = String(text == null ? '' : text);
+      if (!value) {
+        return getSelection();
+      }
+
+      for (let index = 0; index < value.length; index += 1) {
+        appendCharacter(value[index]);
+      }
+
+      return getEditorState();
+    }
+
     function handleEditorInput(value) {
       if (!state.editor) {
         return null;
@@ -341,6 +354,7 @@
       handleEditorInput,
       handleEditorKeyDown,
       handleGridKeyDown,
+      handleTextInput,
       isEditing,
       startFormulaBarEdit,
     };
@@ -692,6 +706,24 @@
       }
     }
 
+    function handleBeforeInput(event) {
+      if (document.activeElement !== shell) {
+        return;
+      }
+
+      if (event.inputType !== 'insertText' && event.inputType !== 'insertCompositionText') {
+        return;
+      }
+
+      if (!event.data) {
+        return;
+      }
+
+      event.preventDefault();
+      editController.handleTextInput(event.data);
+      render();
+    }
+
     function canHandleClipboardEvent() {
       return document.activeElement === shell || shell.contains(document.activeElement);
     }
@@ -763,6 +795,7 @@
 
     shell.addEventListener('mousedown', handleMouseDown);
     shell.addEventListener('keydown', handleKeyDown);
+    shell.addEventListener('beforeinput', handleBeforeInput);
     document.addEventListener('copy', handleCopy);
     document.addEventListener('cut', handleCut);
     document.addEventListener('paste', handlePaste);
@@ -777,6 +810,7 @@
         stopDragging();
         shell.removeEventListener('mousedown', handleMouseDown);
         shell.removeEventListener('keydown', handleKeyDown);
+        shell.removeEventListener('beforeinput', handleBeforeInput);
         document.removeEventListener('copy', handleCopy);
         document.removeEventListener('cut', handleCut);
         document.removeEventListener('paste', handlePaste);
