@@ -1,0 +1,239 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f6fb;
+  --panel: #ffffff;
+  --grid: #d6deeb;
+  --grid-strong: #c2cddd;
+  --header: #eef3fb;
+  --text: #182230;
+  --muted: #607086;
+  --accent: #2e6df6;
+  --accent-soft: rgba(46, 109, 246, 0.14);
+  --error: #c03844;
+  --shadow: 0 16px 40px rgba(19, 30, 52, 0.12);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: linear-gradient(180deg, #f7f9fd 0%, #edf2fa 100%);
+  color: var(--text);
+}
+
+body {
+  padding: 20px;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  height: calc(100vh - 40px);
+}
+
+.topbar,
+.statusbar {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(194, 205, 221, 0.8);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.topbar {
+  padding: 16px 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.brand p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.formula-strip {
+  display: grid;
+  grid-template-columns: 92px 42px 1fr;
+  gap: 10px;
+}
+
+.name-box,
+.formula-input,
+.cell-editor {
+  width: 100%;
+  border: 1px solid var(--grid-strong);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.formula-label {
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #e8eef9;
+  color: var(--muted);
+  border: 1px solid var(--grid-strong);
+  font-weight: 700;
+}
+
+.workspace {
+  min-height: 0;
+}
+
+.grid-scroller {
+  position: relative;
+  height: 100%;
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(194, 205, 221, 0.8);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: max-content;
+}
+
+.grid th,
+.grid td {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  min-width: 112px;
+  height: 34px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--header);
+  text-align: center;
+}
+
+.grid tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--header);
+  text-align: right;
+  color: var(--muted);
+  min-width: 56px;
+}
+
+.grid .corner {
+  left: 0;
+  z-index: 4;
+  min-width: 56px;
+}
+
+.grid td {
+  background: rgba(255, 255, 255, 0.86);
+  text-align: right;
+  cursor: cell;
+}
+
+.grid td.is-text,
+.grid td.is-formula {
+  text-align: left;
+}
+
+.grid td.is-in-range {
+  background: rgba(46, 109, 246, 0.08);
+}
+
+.grid td.is-active {
+  background: rgba(46, 109, 246, 0.14);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.grid td.is-error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.grid th.is-highlighted {
+  background: #dde8ff;
+  color: #1747b5;
+}
+
+.cell-editor {
+  position: absolute;
+  z-index: 10;
+  border-radius: 0;
+  border: 2px solid var(--accent);
+  box-shadow: 0 10px 24px rgba(46, 109, 246, 0.18);
+}
+
+.statusbar {
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.header-menu {
+  position: absolute;
+  z-index: 20;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(16, 25, 40, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(12, 19, 31, 0.22);
+}
+
+.header-menu button {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: left;
+  background: transparent;
+  color: #f7f9fd;
+  font: inherit;
+  cursor: pointer;
+}
+
+.header-menu button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 720px) {
+  body {
+    padding: 12px;
+  }
+
+  .app-shell {
+    height: calc(100vh - 24px);
+  }
+
+  .formula-strip {
+    grid-template-columns: 76px 38px 1fr;
+  }
+
+  .grid th,
+  .grid td {
+    min-width: 88px;
+  }
+}

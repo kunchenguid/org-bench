@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northstar Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell" data-spreadsheet-app>
+      <header class="topbar">
+        <div class="brand">
+          <h1>Northstar Sheet</h1>
+          <p>Ready-to-type spreadsheet with formulas, ranges, clipboard, and session restore.</p>
+        </div>
+        <div class="formula-strip">
+          <input class="name-box" data-name-box aria-label="Selected cell" readonly>
+          <label class="formula-label" for="formula-input">fx</label>
+          <input id="formula-input" class="formula-input" data-formula-input aria-label="Formula bar" spellcheck="false" autocomplete="off">
+        </div>
+      </header>
+
+      <section class="workspace">
+        <div class="grid-scroller" data-grid-scroller>
+          <table class="grid" data-grid aria-label="Spreadsheet grid"></table>
+          <input class="cell-editor" data-cell-editor hidden spellcheck="false" autocomplete="off">
+        </div>
+      </section>
+
+      <footer class="statusbar">
+        <span>Enter or F2 edits. Shift selects ranges. Delete clears. Right-click headers to insert or delete rows and columns.</span>
+      </footer>
+
+      <div class="header-menu" data-header-menu hidden>
+        <button type="button" data-action="insert-before">Insert before</button>
+        <button type="button" data-action="insert-after">Insert after</button>
+        <button type="button" data-action="delete">Delete</button>
+      </div>
+    </main>
+    <script src="app.js"></script>
+  </body>
+  </html>
