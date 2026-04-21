@@ -7,6 +7,8 @@ const {
   getCellRaw,
   moveSelection,
   getSelectionAfterCommit,
+  copySelection,
+  pasteSelection,
   evaluateCell,
   formatValue,
   createStorageAdapter,
@@ -89,6 +91,50 @@ test('supports boolean comparison and if', () => {
   state = commitCell(state, 1, 2, '=IF(A1>=10,"big","small")');
 
   assert.equal(formatValue(evaluateCell(state, 1, 2).value), 'small');
+});
+
+test('supports range functions and boolean outputs reused by another formula', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '1');
+  state = commitCell(state, 1, 2, '2');
+  state = commitCell(state, 2, 1, '3');
+  state = commitCell(state, 2, 2, '4');
+  state = commitCell(state, 1, 3, '=SUM(A1:B2)');
+  state = commitCell(state, 1, 4, '=C1>9');
+  state = commitCell(state, 1, 5, '=AND(D1,TRUE)');
+
+  assert.equal(formatValue(evaluateCell(state, 1, 3).value), '10');
+  assert.equal(formatValue(evaluateCell(state, 1, 4).value), 'TRUE');
+  assert.equal(formatValue(evaluateCell(state, 1, 5).value), 'TRUE');
+});
+
+test('pasting a copied formula shifts relative refs and preserves absolute refs', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '5');
+  state = commitCell(state, 1, 2, '=A1+$A$1+A$1+$A1');
+
+  const clipboard = copySelection(state, { row: 1, col: 2 }, { row: 1, col: 2 });
+  state = pasteSelection(state, clipboard, { row: 2, col: 2 });
+
+  assert.equal(getCellRaw(state, 2, 2), '=A2+$A$1+A$1+$A2');
+  assert.equal(formatValue(evaluateCell(state, 2, 2).value), '10');
+});
+
+test('pasting a rectangular block writes cell-by-cell and shifts formulas from the source block', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '1');
+  state = commitCell(state, 1, 2, '2');
+  state = commitCell(state, 2, 1, '3');
+  state = commitCell(state, 2, 2, '=A1+B1');
+
+  const clipboard = copySelection(state, { row: 1, col: 1 }, { row: 2, col: 2 });
+  state = pasteSelection(state, clipboard, { row: 3, col: 3 });
+
+  assert.equal(getCellRaw(state, 3, 3), '1');
+  assert.equal(getCellRaw(state, 3, 4), '2');
+  assert.equal(getCellRaw(state, 4, 3), '3');
+  assert.equal(getCellRaw(state, 4, 4), '=C3+D3');
+  assert.equal(formatValue(evaluateCell(state, 4, 4).value), '3');
 });
 
 test('detects circular references', () => {

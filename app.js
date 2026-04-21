@@ -83,6 +83,92 @@
     return state.cells[makeCellKey(row, col)] || '';
   }
 
+  function normalizeRect(start, end) {
+    return {
+      startRow: Math.min(start.row, end.row),
+      endRow: Math.max(start.row, end.row),
+      startCol: Math.min(start.col, end.col),
+      endCol: Math.max(start.col, end.col),
+    };
+  }
+
+  function parseReferenceToken(token) {
+    const match = token.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/);
+    return {
+      colAbsolute: match[1] === '$',
+      col: columnNameToNumber(match[2]),
+      rowAbsolute: match[3] === '$',
+      row: Number(match[4]),
+    };
+  }
+
+  function formatReferenceToken(reference) {
+    return (reference.colAbsolute ? '$' : '') +
+      columnNumberToName(reference.col) +
+      (reference.rowAbsolute ? '$' : '') +
+      reference.row;
+  }
+
+  function shiftReferenceToken(token, rowOffset, colOffset) {
+    const reference = parseReferenceToken(token);
+    const shifted = {
+      colAbsolute: reference.colAbsolute,
+      rowAbsolute: reference.rowAbsolute,
+      col: reference.colAbsolute ? reference.col : clamp(reference.col + colOffset, 1, COLUMN_COUNT),
+      row: reference.rowAbsolute ? reference.row : clamp(reference.row + rowOffset, 1, ROW_COUNT),
+    };
+    return formatReferenceToken(shifted);
+  }
+
+  function shiftFormulaReferences(raw, rowOffset, colOffset) {
+    if (!raw.startsWith('=')) {
+      return raw;
+    }
+    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (token) {
+      return shiftReferenceToken(token, rowOffset, colOffset);
+    });
+  }
+
+  function copySelection(state, start, end) {
+    const rect = normalizeRect(start, end);
+    const rows = [];
+    for (let row = rect.startRow; row <= rect.endRow; row += 1) {
+      const columns = [];
+      for (let col = rect.startCol; col <= rect.endCol; col += 1) {
+        columns.push({
+          raw: getCellRaw(state, row, col),
+          sourceRow: row,
+          sourceCol: col,
+        });
+      }
+      rows.push(columns);
+    }
+    return {
+      origin: { row: rect.startRow, col: rect.startCol },
+      rows,
+    };
+  }
+
+  function pasteSelection(state, clipboard, target) {
+    let nextState = state;
+    for (let rowIndex = 0; rowIndex < clipboard.rows.length; rowIndex += 1) {
+      for (let colIndex = 0; colIndex < clipboard.rows[rowIndex].length; colIndex += 1) {
+        const cell = clipboard.rows[rowIndex][colIndex];
+        const destinationRow = target.row + rowIndex;
+        const destinationCol = target.col + colIndex;
+        const rowOffset = destinationRow - cell.sourceRow;
+        const colOffset = destinationCol - cell.sourceCol;
+        nextState = commitCell(
+          nextState,
+          destinationRow,
+          destinationCol,
+          shiftFormulaReferences(cell.raw, rowOffset, colOffset)
+        );
+      }
+    }
+    return nextState;
+  }
+
   function moveSelection(state, rowDelta, colDelta) {
     return selectCell(state, state.selection.row + rowDelta, state.selection.col + colDelta);
   }
@@ -238,9 +324,15 @@
         index += 2;
         continue;
       }
-      if ('()+-*/&,='.indexOf(char) >= 0 || char === '<' || char === '>') {
+      if ('()+-*/&,=:'.indexOf(char) >= 0 || char === '<' || char === '>') {
         tokens.push({ type: char === '(' || char === ')' || char === ',' ? char : 'op', value: char });
         index += 1;
+        continue;
+      }
+      const refMatch = formula.slice(index).match(/^\$?[A-Za-z]+\$?[0-9]+/);
+      if (refMatch) {
+        tokens.push({ type: 'ref', value: refMatch[0].toUpperCase() });
+        index += refMatch[0].length;
         continue;
       }
       const numberMatch = formula.slice(index).match(/^[0-9]*\.?[0-9]+/);
@@ -389,8 +481,20 @@
     }
 
     function applyFunction(name, args) {
+      function flattenArgs(values) {
+        const flat = [];
+        values.forEach(function (value) {
+          if (Array.isArray(value)) {
+            flat.push.apply(flat, flattenArgs(value));
+          } else {
+            flat.push(value);
+          }
+        });
+        return flat;
+      }
+
       function numericArgs() {
-        return args.map(toNumber);
+        return flattenArgs(args).map(toNumber);
       }
 
       if (name === 'SUM') {
@@ -411,7 +515,7 @@
         return values.some(isErrorValue) ? values.find(isErrorValue) : Math.max.apply(Math, values);
       }
       if (name === 'COUNT') {
-        return args.filter(function (value) { return value !== ''; }).length;
+        return flattenArgs(args).filter(function (value) { return value !== ''; }).length;
       }
       if (name === 'ABS') {
         const value = toNumber(args[0] || 0);
@@ -426,7 +530,7 @@
         return Math.round(value * factor) / factor;
       }
       if (name === 'CONCAT') {
-        const values = args.map(toText);
+        const values = flattenArgs(args).map(toText);
         return values.some(isErrorValue) ? values.find(isErrorValue) : values.join('');
       }
       if (name === 'IF') {
@@ -466,6 +570,17 @@
       if (stringToken) {
         return stringToken.value;
       }
+      const refToken = take('ref');
+      if (refToken) {
+        if (take('op', ':')) {
+          const endRefToken = expect('ref');
+          const startReference = parseReferenceToken(refToken.value);
+          const endReference = parseReferenceToken(endRefToken.value);
+          return context.resolveRange(startReference, endReference);
+        }
+        const reference = parseReferenceToken(refToken.value);
+        return context.resolveRef(reference.row, reference.col);
+      }
       const identToken = take('ident');
       if (identToken) {
         if (take('(', '(')) {
@@ -476,10 +591,6 @@
         }
         if (identToken.value === 'FALSE') {
           return false;
-        }
-        if (/^[A-Z]+[0-9]+$/.test(identToken.value)) {
-          const match = identToken.value.match(/^([A-Z]+)([0-9]+)$/);
-          return context.resolveRef(Number(match[2]), columnNameToNumber(match[1]));
         }
         return '#ERR!';
       }
@@ -534,6 +645,19 @@
             return '#REF!';
           }
           return evaluateCell(state, refRow, refCol, cache, trail.concat(key)).value;
+        },
+        resolveRange(startReference, endReference) {
+          const rect = normalizeRect(
+            { row: startReference.row, col: startReference.col },
+            { row: endReference.row, col: endReference.col }
+          );
+          const values = [];
+          for (let rowIndex = rect.startRow; rowIndex <= rect.endRow; rowIndex += 1) {
+            for (let colIndex = rect.startCol; colIndex <= rect.endCol; colIndex += 1) {
+              values.push(this.resolveRef(rowIndex, colIndex));
+            }
+          }
+          return values;
         },
       }),
     };
@@ -709,6 +833,8 @@
     getCellRaw,
     moveSelection,
     getSelectionAfterCommit,
+    copySelection,
+    pasteSelection,
     evaluateCell,
     formatValue,
     createStorageAdapter,

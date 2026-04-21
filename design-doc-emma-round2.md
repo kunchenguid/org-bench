@@ -42,3 +42,9 @@ Use one plain JavaScript file that exports pure spreadsheet-core helpers for Nod
 - Persistence: browser verification that a raw formula remains visible in the formula bar after reload while the grid shows the evaluated value.
 - Edit semantics: browser verification for Enter, Tab, F2, and Escape from the active cell and formula bar.
 - Error handling: explicit tests for divide-by-zero, bad syntax, and out-of-bounds references.
+
+## Round 4 Extension
+
+- Implement range references for function arguments so formulas like `SUM(A1:B2)` can be evaluated without adding broader parser complexity.
+- Add clipboard-core helpers in the pure layer first so relative and absolute references can be shifted and tested before wiring browser clipboard events.
+- Measure this slice by explicit counts: one range-function case, one non-IF boolean/comparison reuse case, one single-cell relative-vs-absolute paste case, and one rectangular 2 by 2 paste case.
