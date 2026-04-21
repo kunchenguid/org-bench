@@ -281,6 +281,26 @@ test('deleting a referenced column rewrites the formula to #REF!', () => {
   assert.equal(formatValue(evaluateCell(state, 1, 1).value), '#REF!');
 });
 
+test('undo and redo restore structural row inserts', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 3, 1, '9');
+  state = commitCell(state, 1, 1, '=A3');
+
+  let history = createHistory(state);
+  history = applyHistoryState(history, insertRow(history.present, 2));
+
+  assert.equal(getCellRaw(history.present, 1, 1), '=A4');
+  assert.equal(getCellRaw(history.present, 4, 1), '9');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '=A3');
+  assert.equal(getCellRaw(history.present, 3, 1), '9');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '=A4');
+  assert.equal(getCellRaw(history.present, 4, 1), '9');
+});
+
 test('detects circular references', () => {
   let state = createEmptyState();
   state = commitCell(state, 1, 1, '=B1');

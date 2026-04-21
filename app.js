@@ -898,6 +898,10 @@
     const selectedCellLabel = document.querySelector('[data-selected-cell]');
     const columnHeaders = document.querySelector('[data-column-headers]');
     const gridBody = document.querySelector('[data-grid-body]');
+    const insertRowButtons = document.querySelectorAll('[data-insert-row]');
+    const deleteRowButtons = document.querySelectorAll('[data-delete-row]');
+    const insertColumnButtons = document.querySelectorAll('[data-insert-column]');
+    const deleteColumnButtons = document.querySelectorAll('[data-delete-column]');
     const storage = createStorageAdapter(window.localStorage, getStorageNamespace());
     let history = createHistory(loadState(storage));
     let state = history.present;
@@ -1006,6 +1010,12 @@
       renderGrid();
     }
 
+    function applyStructuralEdit(transform) {
+      syncHistory(applyHistoryState(history, transform(state)));
+      persist();
+      renderGrid();
+    }
+
     function focusEditor(preserveContents) {
       editor.focus();
       if (preserveContents) {
@@ -1074,6 +1084,38 @@
 
     formulaBar.addEventListener('input', function () {
       editor.value = formulaBar.value;
+    });
+
+    insertRowButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        applyStructuralEdit(function (currentState) {
+          return insertRow(currentState, currentState.selection.row);
+        });
+      });
+    });
+
+    deleteRowButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        applyStructuralEdit(function (currentState) {
+          return deleteRow(currentState, currentState.selection.row);
+        });
+      });
+    });
+
+    insertColumnButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        applyStructuralEdit(function (currentState) {
+          return insertColumn(currentState, currentState.selection.col);
+        });
+      });
+    });
+
+    deleteColumnButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        applyStructuralEdit(function (currentState) {
+          return deleteColumn(currentState, currentState.selection.col);
+        });
+      });
     });
 
     formulaBar.addEventListener('keydown', function (event) {

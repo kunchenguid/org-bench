@@ -69,3 +69,10 @@ Use one plain JavaScript file that exports pure spreadsheet-core helpers for Nod
 - Rewrite formulas by shifting references that cross inserted structure and converting deleted references to `#REF!` when a referenced row or column is removed.
 - Keep this slice deliberately narrow: implement insert-row, delete-row, insert-column, and delete-column semantics on the stored raw cell map only.
 - Measure this slice by explicit counts: one row-insert rewrite case, one row-delete with `#REF!` case, one column-insert rewrite case, and one column-delete with `#REF!` case.
+
+## Round 11 Extension
+
+- Add lightweight browser controls for row and column insert/delete so the structural helpers are reachable from the real product path.
+- Route structural edits through the same history layer as commit, cut, and paste so undo-redo semantics stay consistent.
+- Keep the UI thin: buttons call the existing pure helpers using the active cell as the insertion/deletion anchor.
+- Measure this slice by explicit counts: one structural-history case in Node tests and one browser-visible structural edit flow.

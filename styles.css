@@ -47,6 +47,14 @@ body {
   padding: 16px 18px;
 }
 
+.toolbar-controls {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
 .brand {
   font-weight: 700;
   font-size: 1.1rem;
@@ -63,6 +71,36 @@ body {
   gap: 12px;
   flex: 1;
   justify-content: flex-end;
+}
+
+.structure-actions,
+.structure-panel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.structure-panel-actions {
+  flex-direction: column;
+}
+
+.action-button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: #f8fbff;
+}
+
+.action-button:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .cell-label {
@@ -185,5 +223,10 @@ body {
 
   .formula-wrap {
     justify-content: stretch;
+  }
+
+  .toolbar-controls {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
