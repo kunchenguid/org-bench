@@ -208,6 +208,10 @@ body {
   font-weight: 600;
 }
 
+.cell-grid:focus {
+  outline: none;
+}
+
 .header-title {
   min-width: 0;
 }
@@ -246,7 +250,6 @@ body {
   color: var(--cell-text);
   background: rgba(15, 23, 42, 0.08);
 }
-
 .cell {
   position: relative;
   display: flex;
@@ -258,6 +261,7 @@ body {
   color: var(--cell-text);
   font-size: 14px;
   line-height: 1;
+  user-select: none;
 }
 
 .cell::before {
