@@ -432,6 +432,7 @@
     pushHistory();
     applyPaste(model, state.active, text, {
       sourceSelection: metadata && metadata.selection ? metadata.selection : null,
+      targetSelection: state.selection,
     });
     renderAllCells();
     syncFormulaBar();

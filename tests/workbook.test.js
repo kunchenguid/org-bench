@@ -68,6 +68,33 @@ test('pasting copied formulas shifts references by source-to-target offset', () 
   assert.equal(model.getRaw('C2'), '=$A2+D$1');
 });
 
+test('pasting into a matching-size selection uses the selection top-left', () => {
+  const model = new SpreadsheetModel();
+
+  applyPaste(model, 'E5', '1\t2\n3\t4', {
+    targetSelection: { start: 'D4', end: 'E5' },
+  });
+
+  assert.equal(model.getRaw('D4'), '1');
+  assert.equal(model.getRaw('E4'), '2');
+  assert.equal(model.getRaw('D5'), '3');
+  assert.equal(model.getRaw('E5'), '4');
+  assert.equal(model.getRaw('F6'), '');
+});
+
+test('pasting into a different-size selection still uses the active cell', () => {
+  const model = new SpreadsheetModel();
+
+  applyPaste(model, 'E5', '1\t2\n3\t4', {
+    targetSelection: { start: 'D4', end: 'D5' },
+  });
+
+  assert.equal(model.getRaw('E5'), '1');
+  assert.equal(model.getRaw('F5'), '2');
+  assert.equal(model.getRaw('E6'), '3');
+  assert.equal(model.getRaw('F6'), '4');
+});
+
 test('inserting a row keeps formulas pointing at the moved data', () => {
   const model = new SpreadsheetModel();
   model.setCell('A1', '3');
