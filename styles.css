@@ -101,6 +101,13 @@ h1 {
   z-index: 1;
 }
 
+.col-header,
+.row-header {
+  min-width: 52px;
+  vertical-align: top;
+  padding: 4px;
+}
+
 .corner {
   left: 0;
   top: 0;
@@ -117,6 +124,34 @@ h1 {
   left: 0;
   z-index: 2;
   min-width: 52px;
+}
+
+.header-label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.header-action {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #dfe8f8;
+  color: #23406c;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.header-action.danger {
+  background: #f4dde1;
+  color: #8f2e3f;
 }
 
 .cell {

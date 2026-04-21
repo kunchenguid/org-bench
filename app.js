@@ -146,6 +146,55 @@
     });
   }
 
+  function applyRowAction(action, row) {
+    applyUserAction(function (draft) {
+      return action === 'insert' ? core.insertRow(draft, row) : core.deleteRow(draft, row);
+    });
+  }
+
+  function applyColumnAction(action, col) {
+    applyUserAction(function (draft) {
+      return action === 'insert' ? core.insertColumn(draft, col) : core.deleteColumn(draft, col);
+    });
+  }
+
+  function buildHeaderActions(kind, index) {
+    const actions = document.createElement('div');
+    actions.className = 'header-actions';
+
+    const insert = document.createElement('button');
+    insert.type = 'button';
+    insert.className = 'header-action';
+    insert.textContent = '+';
+    insert.title = kind === 'row' ? 'Insert row' : 'Insert column';
+    insert.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (kind === 'row') {
+        applyRowAction('insert', index);
+      } else {
+        applyColumnAction('insert', index);
+      }
+    });
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'header-action danger';
+    remove.textContent = '-';
+    remove.title = kind === 'row' ? 'Delete row' : 'Delete column';
+    remove.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (kind === 'row') {
+        applyRowAction('delete', index);
+      } else {
+        applyColumnAction('delete', index);
+      }
+    });
+
+    actions.appendChild(insert);
+    actions.appendChild(remove);
+    return actions;
+  }
+
   function render() {
     const fragment = document.createDocumentFragment();
     const headerRow = document.createElement('tr');
@@ -156,7 +205,11 @@
     for (let col = 0; col < core.COL_COUNT; col += 1) {
       const th = document.createElement('th');
       th.className = 'col-header';
-      th.textContent = core.columnLabel(col);
+      const label = document.createElement('div');
+      label.className = 'header-label';
+      label.textContent = core.columnLabel(col);
+      th.appendChild(label);
+      th.appendChild(buildHeaderActions('column', col));
       headerRow.appendChild(th);
     }
 
@@ -166,7 +219,11 @@
       const tr = document.createElement('tr');
       const rowHeader = document.createElement('th');
       rowHeader.className = 'row-header';
-      rowHeader.textContent = String(row + 1);
+      const rowLabel = document.createElement('div');
+      rowLabel.className = 'header-label';
+      rowLabel.textContent = String(row + 1);
+      rowHeader.appendChild(rowLabel);
+      rowHeader.appendChild(buildHeaderActions('row', row));
       tr.appendChild(rowHeader);
 
       for (let col = 0; col < core.COL_COUNT; col += 1) {
