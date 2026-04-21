@@ -2,79 +2,86 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  SpreadsheetModel,
-  parseCellId,
-  formatCellId,
-  shiftFormula,
-  shouldSyncFormulaBar,
+  createEmptySheet,
+  setCell,
+  getCellValue,
+  getDisplayValue,
+  shiftFormulaReferences,
+  stepAddress,
 } = require('../src/engine.js');
 
-test('parses and formats cell ids', () => {
-  assert.deepEqual(parseCellId('C12'), { col: 2, row: 11 });
-  assert.equal(formatCellId(25, 99), 'Z100');
+test('evaluates arithmetic formulas using cell references', () => {
+  const sheet = createEmptySheet();
+
+  setCell(sheet, 'A1', '2');
+  setCell(sheet, 'A2', '3');
+  setCell(sheet, 'A3', '=A1+A2*4');
+
+  assert.equal(getCellValue(sheet, 'A3'), 14);
+  assert.equal(getDisplayValue(sheet, 'A3'), '14');
 });
 
-test('evaluates arithmetic formulas and recomputes dependents', () => {
-  const sheet = new SpreadsheetModel();
-  sheet.setCell('A1', '2');
-  sheet.setCell('A2', '3');
-  sheet.setCell('A3', '=A1+A2*4');
-  assert.equal(sheet.getDisplayValue('A3'), '14');
-  sheet.setCell('A2', '5');
-  assert.equal(sheet.getDisplayValue('A3'), '22');
+test('recalculates dependents after a precedent cell changes', () => {
+  const sheet = createEmptySheet();
+
+  setCell(sheet, 'B1', '5');
+  setCell(sheet, 'B2', '=B1+1');
+  assert.equal(getCellValue(sheet, 'B2'), 6);
+
+  setCell(sheet, 'B1', '9');
+  assert.equal(getCellValue(sheet, 'B2'), 10);
 });
 
-test('supports ranges, functions, booleans, and concatenation', () => {
-  const sheet = new SpreadsheetModel();
-  sheet.setCell('A1', '1');
-  sheet.setCell('A2', '2');
-  sheet.setCell('A3', '3');
-  sheet.setCell('B1', '=SUM(A1:A3)');
-  sheet.setCell('B2', '=AVERAGE(A1:A3)');
-  sheet.setCell('B3', '=IF(B1>5, "ok", "no")&"!"');
-  assert.equal(sheet.getDisplayValue('B1'), '6');
-  assert.equal(sheet.getDisplayValue('B2'), '2');
-  assert.equal(sheet.getDisplayValue('B3'), 'ok!');
+test('supports SUM over a rectangular range', () => {
+  const sheet = createEmptySheet();
+
+  setCell(sheet, 'A1', '1');
+  setCell(sheet, 'A2', '2');
+  setCell(sheet, 'A3', '3');
+  setCell(sheet, 'B1', '=SUM(A1:A3)');
+
+  assert.equal(getCellValue(sheet, 'B1'), 6);
 });
 
-test('detects circular references', () => {
-  const sheet = new SpreadsheetModel();
-  sheet.setCell('A1', '=B1');
-  sheet.setCell('B1', '=A1');
-  assert.equal(sheet.getDisplayValue('A1'), '#CIRC!');
-  assert.equal(sheet.getDisplayValue('B1'), '#CIRC!');
+test('detects simple circular references', () => {
+  const sheet = createEmptySheet();
+
+  setCell(sheet, 'C1', '=C2');
+  setCell(sheet, 'C2', '=C1');
+
+  assert.equal(getDisplayValue(sheet, 'C1'), '#CIRC!');
+  assert.equal(getDisplayValue(sheet, 'C2'), '#CIRC!');
 });
 
-test('shifts relative references on paste while keeping absolute ones fixed', () => {
-  assert.equal(shiftFormula('=A1+$B$2+C$3+$D4', 1, 2), '=B3+$B$2+D$3+$D6');
+test('preserves literal text for non-numeric input', () => {
+  const sheet = createEmptySheet();
+
+  setCell(sheet, 'D1', 'hello');
+
+  assert.equal(getCellValue(sheet, 'D1'), 'hello');
+  assert.equal(getDisplayValue(sheet, 'D1'), 'hello');
 });
 
-test('stores undoable operations and row insertion rewrites references', () => {
-  const sheet = new SpreadsheetModel();
-  sheet.setCell('A1', '10');
-  sheet.setCell('A2', '20');
-  sheet.setCell('B1', '=SUM(A1:A2)');
-  sheet.insertRow(0);
-  assert.equal(sheet.getRaw('B2'), '=SUM(A2:A3)');
-  assert.equal(sheet.getDisplayValue('B2'), '30');
-  sheet.undo();
-  assert.equal(sheet.getRaw('B1'), '=SUM(A1:A2)');
-  sheet.redo();
-  assert.equal(sheet.getRaw('B2'), '=SUM(A2:A3)');
+test('shifts relative references when a formula is pasted', () => {
+  assert.equal(
+    shiftFormulaReferences('=A1+B$2+$C3+$D$4', 2, 1),
+    '=B3+C$2+$C5+$D$4'
+  );
 });
 
-test('deleting a referenced row preserves #REF! in formulas and display', () => {
-  const sheet = new SpreadsheetModel();
-  sheet.setCell('A1', '10');
-  sheet.setCell('A2', '20');
-  sheet.setCell('B1', '=A2');
-  sheet.deleteRow(1);
-  assert.equal(sheet.getRaw('B1'), '=#REF!');
-  assert.equal(sheet.getDisplayValue('B1'), '#REF!');
+test('shifts both ends of a range when a formula is pasted', () => {
+  assert.equal(
+    shiftFormulaReferences('=SUM(A1:B2)', 1, 2),
+    '=SUM(C2:D3)'
+  );
 });
 
-test('formula bar syncs to the new selection after committing from the formula bar', () => {
-  const formulaBar = { id: 'formula-bar' };
-  assert.equal(shouldSyncFormulaBar(formulaBar, formulaBar, null), true);
-  assert.equal(shouldSyncFormulaBar(formulaBar, formulaBar, '1'), false);
+test('steps addresses within the sheet bounds', () => {
+  assert.equal(stepAddress('A1', 'left', 26, 100), 'A1');
+  assert.equal(stepAddress('A1', 'up', 26, 100), 'A1');
+  assert.equal(stepAddress('A1', 'right', 26, 100), 'B1');
+  assert.equal(stepAddress('A1', 'down', 26, 100), 'A2');
+  assert.equal(stepAddress('Z100', 'right', 26, 100), 'Z100');
+  assert.equal(stepAddress('Z100', 'down', 26, 100), 'Z100');
+  assert.equal(stepAddress('C3', 'left', 26, 100), 'B3');
 });

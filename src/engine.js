@@ -5,851 +5,521 @@
     root.SpreadsheetEngine = factory();
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  'use strict';
+  const CIRCULAR = { type: 'error', code: '#CIRC!' };
 
-  var COL_COUNT = 26;
-  var ROW_COUNT = 100;
-  var ERROR = {
-    ERR: '#ERR!',
-    DIV0: '#DIV/0!',
-    REF: '#REF!',
-    CIRC: '#CIRC!',
-  };
-
-  function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  function columnLabelFromIndex(index) {
-    var label = '';
-    var current = index + 1;
-    while (current > 0) {
-      var remainder = (current - 1) % 26;
-      label = String.fromCharCode(65 + remainder) + label;
-      current = Math.floor((current - 1) / 26);
-    }
-    return label;
-  }
-
-  function columnIndexFromLabel(label) {
-    var total = 0;
-    for (var i = 0; i < label.length; i += 1) {
-      total = total * 26 + (label.charCodeAt(i) - 64);
-    }
-    return total - 1;
-  }
-
-  function parseCellId(cellId) {
-    var match = /^([A-Z]+)([1-9][0-9]*)$/.exec(String(cellId).toUpperCase());
-    if (!match) {
-      throw new Error('Invalid cell id: ' + cellId);
-    }
+  function createEmptySheet(initialCells) {
     return {
-      col: columnIndexFromLabel(match[1]),
-      row: Number(match[2]) - 1,
+      cells: Object.assign({}, initialCells || {}),
     };
   }
 
-  function formatCellId(col, row) {
-    return columnLabelFromIndex(col) + String(row + 1);
-  }
-
-  function parseRefToken(token) {
-    var match = /^(\$?)([A-Z]+)(\$?)([1-9][0-9]*)$/i.exec(token);
-    if (!match) {
-      throw new Error('Invalid reference: ' + token);
+  function setCell(sheet, address, raw) {
+    const value = raw == null ? '' : String(raw);
+    if (value === '') {
+      delete sheet.cells[address];
+      return;
     }
-    return {
-      colAbs: match[1] === '$',
-      col: columnIndexFromLabel(match[2].toUpperCase()),
-      rowAbs: match[3] === '$',
-      row: Number(match[4]) - 1,
-    };
+    sheet.cells[address] = value;
   }
 
-  function formatRefToken(ref) {
-    if (ref.invalid) {
-      return ERROR.REF;
+  function getCellRaw(sheet, address) {
+    return sheet.cells[address] || '';
+  }
+
+  function getCellValue(sheet, address) {
+    const result = evaluateCell(sheet, address, []);
+    if (result && result.type === 'error') {
+      return result.code;
     }
-    return (ref.colAbs ? '$' : '') + columnLabelFromIndex(ref.col) + (ref.rowAbs ? '$' : '') + String(ref.row + 1);
+    return result;
   }
 
-  function tokenizeFormula(source) {
-    var tokens = [];
-    var i = 0;
-    while (i < source.length) {
-      var char = source[i];
+  function getDisplayValue(sheet, address) {
+    const value = getCellValue(sheet, address);
+    if (value == null) {
+      return '';
+    }
+    if (value === true) {
+      return 'TRUE';
+    }
+    if (value === false) {
+      return 'FALSE';
+    }
+    return String(value);
+  }
+
+  function evaluateCell(sheet, address, stack) {
+    if (stack.indexOf(address) !== -1) {
+      return CIRCULAR;
+    }
+
+    const raw = getCellRaw(sheet, address);
+    if (!raw) {
+      return '';
+    }
+
+    if (raw.charAt(0) !== '=') {
+      return parseLiteral(raw);
+    }
+
+    try {
+      const parser = new Parser(tokenize(raw.slice(1)));
+      const ast = parser.parseExpression();
+      parser.expectEnd();
+      return evaluateAst(ast, sheet, stack.concat(address));
+    } catch (error) {
+      return error && error.type === 'error' ? error : { type: 'error', code: '#ERR!' };
+    }
+  }
+
+  function parseLiteral(raw) {
+    const trimmed = raw.trim();
+    if (trimmed === '') {
+      return '';
+    }
+    if (/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(trimmed)) {
+      return Number(trimmed);
+    }
+    if (trimmed.toUpperCase() === 'TRUE') {
+      return true;
+    }
+    if (trimmed.toUpperCase() === 'FALSE') {
+      return false;
+    }
+    return raw;
+  }
+
+  function tokenize(source) {
+    const tokens = [];
+    let index = 0;
+    while (index < source.length) {
+      const char = source.charAt(index);
       if (/\s/.test(char)) {
-        i += 1;
+        index += 1;
         continue;
       }
-      var twoChar = source.slice(i, i + 2);
-      if (twoChar === '<=' || twoChar === '>=' || twoChar === '<>') {
-        tokens.push({ type: 'op', value: twoChar });
-        i += 2;
+      const two = source.slice(index, index + 2);
+      if (two === '<=' || two === '>=' || two === '<>') {
+        tokens.push({ type: 'op', value: two });
+        index += 2;
         continue;
       }
-      if ('+-*/&(),:=<>'.indexOf(char) >= 0) {
-        tokens.push({ type: 'op', value: char });
-        i += 1;
+      if ('+-*/&=<>():,'.indexOf(char) !== -1) {
+        tokens.push({ type: char === '(' || char === ')' || char === ',' || char === ':' ? char : 'op', value: char });
+        index += 1;
         continue;
       }
       if (char === '"') {
-        var value = '';
-        i += 1;
-        while (i < source.length) {
-          if (source[i] === '"') {
-            if (source[i + 1] === '"') {
-              value += '"';
-              i += 2;
-              continue;
-            }
-            break;
-          }
-          value += source[i];
-          i += 1;
+        let end = index + 1;
+        let value = '';
+        while (end < source.length && source.charAt(end) !== '"') {
+          value += source.charAt(end);
+          end += 1;
         }
-        if (source[i] !== '"') {
-          throw new Error('Unterminated string');
+        if (source.charAt(end) !== '"') {
+          throw { type: 'error', code: '#ERR!' };
         }
         tokens.push({ type: 'string', value: value });
-        i += 1;
+        index = end + 1;
         continue;
       }
-      if (char === '#') {
-        var errorMatch = /^(#(?:REF!|ERR!|DIV\/0!|CIRC!))/.exec(source.slice(i).toUpperCase());
-        if (!errorMatch) {
-          throw new Error('Invalid error literal');
-        }
-        tokens.push({ type: 'error', value: errorMatch[1] });
-        i += errorMatch[1].length;
-        continue;
-      }
-      if (/[0-9.]/.test(char)) {
-        var numberMatch = /^(?:\d+(?:\.\d+)?|\.\d+)/.exec(source.slice(i));
-        if (!numberMatch) {
-          throw new Error('Invalid number');
-        }
+      const numberMatch = source.slice(index).match(/^(?:\d+\.?\d*|\.\d+)/);
+      if (numberMatch) {
         tokens.push({ type: 'number', value: Number(numberMatch[0]) });
-        i += numberMatch[0].length;
+        index += numberMatch[0].length;
         continue;
       }
-      if (char === '$' || /[A-Za-z_]/.test(char)) {
-        var refMatch = /^\$?[A-Za-z]+\$?[1-9][0-9]*/.exec(source.slice(i));
-        if (refMatch) {
-          tokens.push({ type: 'cell', value: parseRefToken(refMatch[0].toUpperCase()) });
-          i += refMatch[0].length;
-          continue;
+      const identifierMatch = source.slice(index).match(/^\$?[A-Za-z]+\$?\d+|^[A-Za-z_]+/);
+      if (identifierMatch) {
+        const value = identifierMatch[0];
+        if (/^\$?[A-Za-z]+\$?\d+$/.test(value)) {
+          tokens.push({ type: 'ref', value: value.toUpperCase() });
+        } else {
+          tokens.push({ type: 'ident', value: value.toUpperCase() });
         }
-        var identMatch = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(i));
-        if (!identMatch) {
-          throw new Error('Invalid identifier');
-        }
-        tokens.push({ type: 'ident', value: identMatch[0].toUpperCase() });
-        i += identMatch[0].length;
+        index += value.length;
         continue;
       }
-      throw new Error('Unexpected token: ' + char);
+      throw { type: 'error', code: '#ERR!' };
     }
     return tokens;
   }
 
-  function FormulaParser(tokens) {
+  function Parser(tokens) {
     this.tokens = tokens;
     this.index = 0;
   }
 
-  FormulaParser.prototype.peek = function () {
-    return this.tokens[this.index] || null;
+  Parser.prototype.peek = function () {
+    return this.tokens[this.index];
   };
 
-  FormulaParser.prototype.consume = function (type, value) {
-    var token = this.peek();
-    if (!token || token.type !== type || (value !== undefined && token.value !== value)) {
-      throw new Error('Unexpected token');
-    }
+  Parser.prototype.consume = function () {
+    const token = this.tokens[this.index];
     this.index += 1;
     return token;
   };
 
-  FormulaParser.prototype.parse = function () {
-    var expression = this.parseComparison();
+  Parser.prototype.expectEnd = function () {
     if (this.peek()) {
-      throw new Error('Trailing tokens');
+      throw { type: 'error', code: '#ERR!' };
     }
-    return expression;
   };
 
-  FormulaParser.prototype.parseComparison = function () {
-    var node = this.parseConcat();
-    while (this.peek() && this.peek().type === 'op' && ['=', '<>', '<', '<=', '>', '>='].indexOf(this.peek().value) >= 0) {
-      var operator = this.consume('op').value;
-      node = { type: 'binary', operator: operator, left: node, right: this.parseConcat() };
-    }
-    return node;
+  Parser.prototype.parseExpression = function () {
+    return this.parseComparison();
   };
 
-  FormulaParser.prototype.parseConcat = function () {
-    var node = this.parseAddSub();
+  Parser.prototype.parseComparison = function () {
+    let left = this.parseConcat();
+    while (this.peek() && this.peek().type === 'op' && ['=', '<>', '<', '<=', '>', '>='].indexOf(this.peek().value) !== -1) {
+      const operator = this.consume().value;
+      left = { type: 'binary', operator: operator, left: left, right: this.parseConcat() };
+    }
+    return left;
+  };
+
+  Parser.prototype.parseConcat = function () {
+    let left = this.parseAdditive();
     while (this.peek() && this.peek().type === 'op' && this.peek().value === '&') {
-      this.consume('op', '&');
-      node = { type: 'binary', operator: '&', left: node, right: this.parseAddSub() };
+      this.consume();
+      left = { type: 'binary', operator: '&', left: left, right: this.parseAdditive() };
     }
-    return node;
+    return left;
   };
 
-  FormulaParser.prototype.parseAddSub = function () {
-    var node = this.parseMulDiv();
+  Parser.prototype.parseAdditive = function () {
+    let left = this.parseMultiplicative();
     while (this.peek() && this.peek().type === 'op' && (this.peek().value === '+' || this.peek().value === '-')) {
-      var operator = this.consume('op').value;
-      node = { type: 'binary', operator: operator, left: node, right: this.parseMulDiv() };
+      const operator = this.consume().value;
+      left = { type: 'binary', operator: operator, left: left, right: this.parseMultiplicative() };
     }
-    return node;
+    return left;
   };
 
-  FormulaParser.prototype.parseMulDiv = function () {
-    var node = this.parseUnary();
+  Parser.prototype.parseMultiplicative = function () {
+    let left = this.parseUnary();
     while (this.peek() && this.peek().type === 'op' && (this.peek().value === '*' || this.peek().value === '/')) {
-      var operator = this.consume('op').value;
-      node = { type: 'binary', operator: operator, left: node, right: this.parseUnary() };
+      const operator = this.consume().value;
+      left = { type: 'binary', operator: operator, left: left, right: this.parseUnary() };
     }
-    return node;
+    return left;
   };
 
-  FormulaParser.prototype.parseUnary = function () {
+  Parser.prototype.parseUnary = function () {
     if (this.peek() && this.peek().type === 'op' && this.peek().value === '-') {
-      this.consume('op', '-');
-      return { type: 'unary', operator: '-', operand: this.parseUnary() };
+      this.consume();
+      return { type: 'unary', operator: '-', value: this.parseUnary() };
     }
     return this.parsePrimary();
   };
 
-  FormulaParser.prototype.parsePrimary = function () {
-    var token = this.peek();
+  Parser.prototype.parsePrimary = function () {
+    const token = this.peek();
     if (!token) {
-      throw new Error('Expected expression');
+      throw { type: 'error', code: '#ERR!' };
     }
     if (token.type === 'number') {
-      this.index += 1;
+      this.consume();
       return { type: 'number', value: token.value };
     }
     if (token.type === 'string') {
-      this.index += 1;
+      this.consume();
       return { type: 'string', value: token.value };
     }
-    if (token.type === 'error') {
-      this.index += 1;
-      return { type: 'error', value: token.value };
-    }
-    if (token.type === 'ident' && (token.value === 'TRUE' || token.value === 'FALSE')) {
-      this.index += 1;
-      return { type: 'boolean', value: token.value === 'TRUE' };
-    }
-    if (token.type === 'cell') {
-      this.index += 1;
-      if (this.peek() && this.peek().type === 'op' && this.peek().value === ':') {
-        this.consume('op', ':');
-        var end = this.consume('cell').value;
-        return { type: 'range', start: token.value, end: end };
+    if (token.type === 'ref') {
+      this.consume();
+      if (this.peek() && this.peek().type === ':') {
+        this.consume();
+        const end = this.consume();
+        if (!end || end.type !== 'ref') {
+          throw { type: 'error', code: '#ERR!' };
+        }
+        return { type: 'range', start: token.value, end: end.value };
       }
-      return { type: 'cell', ref: token.value };
+      return { type: 'ref', value: token.value };
     }
     if (token.type === 'ident') {
-      this.index += 1;
-      var name = token.value;
-      if (this.peek() && this.peek().type === 'op' && this.peek().value === '(') {
-        this.consume('op', '(');
-        var args = [];
-        if (!(this.peek() && this.peek().type === 'op' && this.peek().value === ')')) {
-          while (true) {
-            args.push(this.parseComparison());
-            if (this.peek() && this.peek().type === 'op' && this.peek().value === ',') {
-              this.consume('op', ',');
-              continue;
-            }
+      this.consume();
+      if (token.value === 'TRUE' || token.value === 'FALSE') {
+        return { type: 'boolean', value: token.value === 'TRUE' };
+      }
+      if (!this.peek() || this.peek().type !== '(') {
+        throw { type: 'error', code: '#ERR!' };
+      }
+      this.consume();
+      const args = [];
+      if (!this.peek() || this.peek().type !== ')') {
+        do {
+          args.push(this.parseExpression());
+          if (!this.peek() || this.peek().type !== ',') {
             break;
           }
-        }
-        this.consume('op', ')');
-        return { type: 'func', name: name, args: args };
+          this.consume();
+        } while (true);
       }
-      throw new Error('Unexpected identifier');
+      if (!this.peek() || this.peek().type !== ')') {
+        throw { type: 'error', code: '#ERR!' };
+      }
+      this.consume();
+      return { type: 'call', name: token.value, args: args };
     }
-    if (token.type === 'op' && token.value === '(') {
-      this.consume('op', '(');
-      var node = this.parseComparison();
-      this.consume('op', ')');
-      return node;
+    if (token.type === '(') {
+      this.consume();
+      const expression = this.parseExpression();
+      if (!this.peek() || this.peek().type !== ')') {
+        throw { type: 'error', code: '#ERR!' };
+      }
+      this.consume();
+      return expression;
     }
-    throw new Error('Expected primary');
+    throw { type: 'error', code: '#ERR!' };
   };
 
-  function parseFormula(formula) {
-    return new FormulaParser(tokenizeFormula(formula)).parse();
+  function evaluateAst(node, sheet, stack) {
+    switch (node.type) {
+      case 'number':
+      case 'string':
+      case 'boolean':
+        return node.value;
+      case 'ref':
+        return evaluateCell(sheet, normalizeAddress(node.value), stack);
+      case 'range':
+        return expandRange(node.start, node.end).map(function (address) {
+          return evaluateCell(sheet, address, stack);
+        });
+      case 'unary':
+        return -toNumber(evaluateAst(node.value, sheet, stack));
+      case 'binary':
+        return evaluateBinary(node, sheet, stack);
+      case 'call':
+        return evaluateCall(node, sheet, stack);
+      default:
+        throw { type: 'error', code: '#ERR!' };
+    }
   }
 
-  function isErrorValue(value) {
-    return typeof value === 'string' && /^#/.test(value);
+  function evaluateBinary(node, sheet, stack) {
+    const left = evaluateAst(node.left, sheet, stack);
+    const right = evaluateAst(node.right, sheet, stack);
+    if (isError(left)) {
+      return left;
+    }
+    if (isError(right)) {
+      return right;
+    }
+    switch (node.operator) {
+      case '+': return toNumber(left) + toNumber(right);
+      case '-': return toNumber(left) - toNumber(right);
+      case '*': return toNumber(left) * toNumber(right);
+      case '/':
+        if (toNumber(right) === 0) {
+          return { type: 'error', code: '#DIV/0!' };
+        }
+        return toNumber(left) / toNumber(right);
+      case '&': return toText(left) + toText(right);
+      case '=': return compareValues(left, right) === 0;
+      case '<>': return compareValues(left, right) !== 0;
+      case '<': return compareValues(left, right) < 0;
+      case '<=': return compareValues(left, right) <= 0;
+      case '>': return compareValues(left, right) > 0;
+      case '>=': return compareValues(left, right) >= 0;
+      default:
+        throw { type: 'error', code: '#ERR!' };
+    }
   }
 
-  function toNumber(value) {
-    if (isErrorValue(value)) {
-      return value;
+  function evaluateCall(node, sheet, stack) {
+    const evaluatedArgs = node.args.map(function (arg) {
+      return evaluateAst(arg, sheet, stack);
+    });
+    for (let i = 0; i < evaluatedArgs.length; i += 1) {
+      if (isError(evaluatedArgs[i])) {
+        return evaluatedArgs[i];
+      }
     }
-    if (value === '' || value === null || value === undefined) {
-      return 0;
+    switch (node.name) {
+      case 'SUM':
+        return flattenValues(evaluatedArgs).reduce(function (total, value) {
+          return total + toNumber(value);
+        }, 0);
+      case 'AVERAGE': {
+        const averageValues = flattenValues(evaluatedArgs);
+        return averageValues.length ? averageValues.reduce(function (total, value) {
+          return total + toNumber(value);
+        }, 0) / averageValues.length : 0;
+      }
+      case 'MIN':
+        return Math.min.apply(Math, flattenValues(evaluatedArgs).map(toNumber));
+      case 'MAX':
+        return Math.max.apply(Math, flattenValues(evaluatedArgs).map(toNumber));
+      case 'COUNT':
+        return flattenValues(evaluatedArgs).filter(function (value) { return value !== ''; }).length;
+      case 'IF':
+        return evaluatedArgs[0] ? evaluatedArgs[1] : evaluatedArgs[2];
+      case 'AND':
+        return flattenValues(evaluatedArgs).every(Boolean);
+      case 'OR':
+        return flattenValues(evaluatedArgs).some(Boolean);
+      case 'NOT':
+        return !evaluatedArgs[0];
+      case 'ABS':
+        return Math.abs(toNumber(evaluatedArgs[0]));
+      case 'ROUND':
+        return Math.round(toNumber(evaluatedArgs[0]));
+      case 'CONCAT':
+        return flattenValues(evaluatedArgs).map(toText).join('');
+      default:
+        return { type: 'error', code: '#ERR!' };
     }
-    if (typeof value === 'number') {
-      return value;
-    }
-    if (typeof value === 'boolean') {
-      return value ? 1 : 0;
-    }
-    var numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : ERROR.ERR;
-  }
-
-  function toText(value) {
-    if (isErrorValue(value)) {
-      return value;
-    }
-    if (value === null || value === undefined) {
-      return '';
-    }
-    if (typeof value === 'boolean') {
-      return value ? 'TRUE' : 'FALSE';
-    }
-    return String(value);
-  }
-
-  function toBoolean(value) {
-    if (isErrorValue(value)) {
-      return value;
-    }
-    if (typeof value === 'boolean') {
-      return value;
-    }
-    if (typeof value === 'number') {
-      return value !== 0;
-    }
-    return String(value || '').length > 0;
   }
 
   function flattenValues(values) {
-    var flattened = [];
-    for (var i = 0; i < values.length; i += 1) {
-      if (Array.isArray(values[i])) {
-        flattened = flattened.concat(flattenValues(values[i]));
-      } else {
-        flattened.push(values[i]);
+    return values.reduce(function (all, value) {
+      if (Array.isArray(value)) {
+        return all.concat(flattenValues(value));
       }
-    }
-    return flattened;
+      all.push(value);
+      return all;
+    }, []);
   }
 
-  function evaluateFunction(name, argNodes, evaluator) {
-    var upper = name.toUpperCase();
-    if (upper === 'IF') {
-      if (argNodes.length < 2) {
-        return ERROR.ERR;
-      }
-      var condition = evaluator(argNodes[0]);
-      if (isErrorValue(condition)) {
-        return condition;
-      }
-      return toBoolean(condition) ? evaluator(argNodes[1]) : evaluator(argNodes[2] || { type: 'string', value: '' });
-    }
-
-    var args = [];
-    for (var i = 0; i < argNodes.length; i += 1) {
-      var value = evaluator(argNodes[i]);
-      if (isErrorValue(value)) {
-        return value;
-      }
-      args.push(value);
-    }
-
-    var flat = flattenValues(args);
-    var numericValues;
-    switch (upper) {
-      case 'SUM':
-        numericValues = flat.map(toNumber);
-        return numericValues.some(isErrorValue) ? numericValues.find(isErrorValue) : numericValues.reduce(function (sum, value) { return sum + value; }, 0);
-      case 'AVERAGE':
-        numericValues = flat.map(toNumber);
-        if (!numericValues.length) {
-          return 0;
-        }
-        if (numericValues.some(isErrorValue)) {
-          return numericValues.find(isErrorValue);
-        }
-        return numericValues.reduce(function (sum, value) { return sum + value; }, 0) / numericValues.length;
-      case 'MIN':
-        numericValues = flat.map(toNumber);
-        return numericValues.some(isErrorValue) ? numericValues.find(isErrorValue) : Math.min.apply(Math, numericValues);
-      case 'MAX':
-        numericValues = flat.map(toNumber);
-        return numericValues.some(isErrorValue) ? numericValues.find(isErrorValue) : Math.max.apply(Math, numericValues);
-      case 'COUNT':
-        return flat.filter(function (value) {
-          return value !== '' && value !== null && value !== undefined;
-        }).length;
-      case 'AND':
-        return flat.every(function (value) { return toBoolean(value); });
-      case 'OR':
-        return flat.some(function (value) { return toBoolean(value); });
-      case 'NOT':
-        return !toBoolean(flat[0]);
-      case 'ABS':
-        return Math.abs(toNumber(flat[0] || 0));
-      case 'ROUND':
-        return Number(toNumber(flat[0] || 0).toFixed(Number(flat[1] || 0)));
-      case 'CONCAT':
-        return flat.map(toText).join('');
-      default:
-        return ERROR.ERR;
-    }
+  function isError(value) {
+    return value && typeof value === 'object' && value.type === 'error';
   }
 
-  function formatDisplayValue(value) {
-    if (isErrorValue(value)) {
-      return value;
+  function toNumber(value) {
+    if (value === '' || value == null) {
+      return 0;
     }
-    if (value === null || value === undefined) {
+    if (value === true) {
+      return 1;
+    }
+    if (value === false) {
+      return 0;
+    }
+    const result = Number(value);
+    if (Number.isNaN(result)) {
+      throw { type: 'error', code: '#ERR!' };
+    }
+    return result;
+  }
+
+  function toText(value) {
+    if (value == null) {
       return '';
     }
-    if (typeof value === 'boolean') {
-      return value ? 'TRUE' : 'FALSE';
+    if (value === true) {
+      return 'TRUE';
     }
-    if (typeof value === 'number') {
-      if (Object.is(value, -0)) {
-        return '0';
-      }
-      return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(10))).replace(/\.0+$/, '');
+    if (value === false) {
+      return 'FALSE';
     }
     return String(value);
   }
 
-  function serializeStateObject(object) {
-    return JSON.parse(JSON.stringify(object));
+  function compareValues(left, right) {
+    if (typeof left === 'number' || typeof right === 'number') {
+      return toNumber(left) - toNumber(right);
+    }
+    const leftText = toText(left);
+    const rightText = toText(right);
+    if (leftText === rightText) {
+      return 0;
+    }
+    return leftText < rightText ? -1 : 1;
   }
 
-  function createEmptySelection() {
+  function normalizeAddress(address) {
+    return address.replace(/\$/g, '').toUpperCase();
+  }
+
+  function shiftFormulaReferences(raw, rowOffset, columnOffset) {
+    if (!raw || raw.charAt(0) !== '=') {
+      return raw;
+    }
+
+    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (reference) {
+      const match = reference.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/);
+      const nextColumn = match[1] ? columnToNumber(match[2]) : columnToNumber(match[2]) + columnOffset;
+      const nextRow = match[3] ? Number(match[4]) : Number(match[4]) + rowOffset;
+      return (match[1] ? '$' : '') + numberToColumn(Math.max(1, nextColumn)) + (match[3] ? '$' : '') + String(Math.max(1, nextRow));
+    });
+  }
+
+  function parseAddress(address) {
+    const normalized = normalizeAddress(address);
+    const match = normalized.match(/^([A-Z]+)(\d+)$/);
+    if (!match) {
+      throw { type: 'error', code: '#REF!' };
+    }
     return {
-      anchor: { row: 0, col: 0 },
-      focus: { row: 0, col: 0 },
+      column: columnToNumber(match[1]),
+      row: Number(match[2]),
     };
   }
 
-  function normalizeRange(selection) {
-    var minRow = Math.min(selection.anchor.row, selection.focus.row);
-    var maxRow = Math.max(selection.anchor.row, selection.focus.row);
-    var minCol = Math.min(selection.anchor.col, selection.focus.col);
-    var maxCol = Math.max(selection.anchor.col, selection.focus.col);
-    return {
-      top: minRow,
-      bottom: maxRow,
-      left: minCol,
-      right: maxCol,
-    };
-  }
+  function stepAddress(address, direction, maxColumns, maxRows) {
+    const parsed = parseAddress(address);
+    let column = parsed.column;
+    let row = parsed.row;
 
-  function iterateFormulaReferences(formula, mapper) {
-    if (!formula || formula.charAt(0) !== '=') {
-      return formula;
-    }
-    var output = '=';
-    var source = formula.slice(1);
-    var index = 0;
-    var inString = false;
-    while (index < source.length) {
-      var char = source[index];
-      if (char === '"') {
-        output += char;
-        if (source[index + 1] === '"') {
-          output += '"';
-          index += 2;
-          continue;
-        }
-        inString = !inString;
-        index += 1;
-        continue;
-      }
-      if (!inString) {
-        var match = /^\$?[A-Za-z]+\$?[1-9][0-9]*/.exec(source.slice(index));
-        if (match) {
-          output += mapper(parseRefToken(match[0].toUpperCase()));
-          index += match[0].length;
-          continue;
-        }
-      }
-      output += char;
-      index += 1;
-    }
-    return output;
-  }
-
-  function shiftFormula(formula, colOffset, rowOffset) {
-    return iterateFormulaReferences(formula, function (ref) {
-      return formatRefToken({
-        colAbs: ref.colAbs,
-        rowAbs: ref.rowAbs,
-        col: ref.colAbs ? ref.col : ref.col + colOffset,
-        row: ref.rowAbs ? ref.row : ref.row + rowOffset,
-      });
-    });
-  }
-
-  function adjustFormulaForInsertRow(formula, rowIndex) {
-    return iterateFormulaReferences(formula, function (ref) {
-      return formatRefToken({
-        colAbs: ref.colAbs,
-        rowAbs: ref.rowAbs,
-        col: ref.col,
-        row: !ref.rowAbs && ref.row >= rowIndex ? ref.row + 1 : ref.row,
-      });
-    });
-  }
-
-  function adjustFormulaForInsertColumn(formula, colIndex) {
-    return iterateFormulaReferences(formula, function (ref) {
-      return formatRefToken({
-        colAbs: ref.colAbs,
-        rowAbs: ref.rowAbs,
-        col: !ref.colAbs && ref.col >= colIndex ? ref.col + 1 : ref.col,
-        row: ref.row,
-      });
-    });
-  }
-
-  function adjustFormulaForDeleteRow(formula, rowIndex) {
-    return iterateFormulaReferences(formula, function (ref) {
-      if (!ref.rowAbs && ref.row === rowIndex) {
-        return ERROR.REF;
-      }
-      return formatRefToken({
-        colAbs: ref.colAbs,
-        rowAbs: ref.rowAbs,
-        col: ref.col,
-        row: !ref.rowAbs && ref.row > rowIndex ? ref.row - 1 : ref.row,
-      });
-    });
-  }
-
-  function adjustFormulaForDeleteColumn(formula, colIndex) {
-    return iterateFormulaReferences(formula, function (ref) {
-      if (!ref.colAbs && ref.col === colIndex) {
-        return ERROR.REF;
-      }
-      return formatRefToken({
-        colAbs: ref.colAbs,
-        rowAbs: ref.rowAbs,
-        col: !ref.colAbs && ref.col > colIndex ? ref.col - 1 : ref.col,
-        row: ref.row,
-      });
-    });
-  }
-
-  function SpreadsheetModel(state) {
-    var initialState = state || {};
-    this.cells = initialState.cells || {};
-    this.selection = initialState.selection || createEmptySelection();
-    this.history = [];
-    this.future = [];
-    this.maxHistory = 50;
-  }
-
-  SpreadsheetModel.prototype.snapshot = function () {
-    return serializeStateObject({ cells: this.cells, selection: this.selection });
-  };
-
-  SpreadsheetModel.prototype.restore = function (state) {
-    this.cells = serializeStateObject(state.cells || {});
-    this.selection = serializeStateObject(state.selection || createEmptySelection());
-  };
-
-  SpreadsheetModel.prototype.recordHistory = function () {
-    this.history.push(this.snapshot());
-    if (this.history.length > this.maxHistory) {
-      this.history.shift();
-    }
-    this.future = [];
-  };
-
-  SpreadsheetModel.prototype.undo = function () {
-    if (!this.history.length) {
-      return false;
-    }
-    this.future.push(this.snapshot());
-    this.restore(this.history.pop());
-    return true;
-  };
-
-  SpreadsheetModel.prototype.redo = function () {
-    if (!this.future.length) {
-      return false;
-    }
-    this.history.push(this.snapshot());
-    this.restore(this.future.pop());
-    return true;
-  };
-
-  SpreadsheetModel.prototype.getRaw = function (cellId) {
-    return Object.prototype.hasOwnProperty.call(this.cells, cellId) ? this.cells[cellId] : '';
-  };
-
-  SpreadsheetModel.prototype.setCell = function (cellId, raw, options) {
-    var value = raw == null ? '' : String(raw);
-    if (!(options && options.skipHistory)) {
-      this.recordHistory();
-    }
-    if (!value) {
-      delete this.cells[cellId];
-      return;
-    }
-    this.cells[cellId] = value;
-  };
-
-  SpreadsheetModel.prototype.setCells = function (entries, options) {
-    if (!(options && options.skipHistory)) {
-      this.recordHistory();
-    }
-    for (var key in entries) {
-      if (Object.prototype.hasOwnProperty.call(entries, key)) {
-        if (entries[key] === '') {
-          delete this.cells[key];
-        } else {
-          this.cells[key] = entries[key];
-        }
-      }
-    }
-  };
-
-  SpreadsheetModel.prototype.clearRange = function (selection) {
-    var range = normalizeRange(selection);
-    var updates = {};
-    for (var row = range.top; row <= range.bottom; row += 1) {
-      for (var col = range.left; col <= range.right; col += 1) {
-        updates[formatCellId(col, row)] = '';
-      }
-    }
-    this.setCells(updates);
-  };
-
-  SpreadsheetModel.prototype.insertRow = function (rowIndex) {
-    this.recordHistory();
-    var nextCells = {};
-    for (var cellId in this.cells) {
-      if (!Object.prototype.hasOwnProperty.call(this.cells, cellId)) {
-        continue;
-      }
-      var coord = parseCellId(cellId);
-      var nextRow = coord.row >= rowIndex ? coord.row + 1 : coord.row;
-      nextCells[formatCellId(coord.col, nextRow)] = adjustFormulaForInsertRow(this.cells[cellId], rowIndex);
-    }
-    this.cells = nextCells;
-    if (this.selection.anchor.row >= rowIndex) {
-      this.selection.anchor.row += 1;
-    }
-    if (this.selection.focus.row >= rowIndex) {
-      this.selection.focus.row += 1;
-    }
-  };
-
-  SpreadsheetModel.prototype.deleteRow = function (rowIndex) {
-    this.recordHistory();
-    var nextCells = {};
-    for (var cellId in this.cells) {
-      if (!Object.prototype.hasOwnProperty.call(this.cells, cellId)) {
-        continue;
-      }
-      var coord = parseCellId(cellId);
-      if (coord.row === rowIndex) {
-        continue;
-      }
-      var nextRow = coord.row > rowIndex ? coord.row - 1 : coord.row;
-      nextCells[formatCellId(coord.col, nextRow)] = adjustFormulaForDeleteRow(this.cells[cellId], rowIndex);
-    }
-    this.cells = nextCells;
-    this.selection.anchor.row = clamp(this.selection.anchor.row > rowIndex ? this.selection.anchor.row - 1 : this.selection.anchor.row, 0, ROW_COUNT - 1);
-    this.selection.focus.row = clamp(this.selection.focus.row > rowIndex ? this.selection.focus.row - 1 : this.selection.focus.row, 0, ROW_COUNT - 1);
-  };
-
-  SpreadsheetModel.prototype.insertColumn = function (colIndex) {
-    this.recordHistory();
-    var nextCells = {};
-    for (var cellId in this.cells) {
-      if (!Object.prototype.hasOwnProperty.call(this.cells, cellId)) {
-        continue;
-      }
-      var coord = parseCellId(cellId);
-      var nextCol = coord.col >= colIndex ? coord.col + 1 : coord.col;
-      nextCells[formatCellId(nextCol, coord.row)] = adjustFormulaForInsertColumn(this.cells[cellId], colIndex);
-    }
-    this.cells = nextCells;
-    if (this.selection.anchor.col >= colIndex) {
-      this.selection.anchor.col += 1;
-    }
-    if (this.selection.focus.col >= colIndex) {
-      this.selection.focus.col += 1;
-    }
-  };
-
-  SpreadsheetModel.prototype.deleteColumn = function (colIndex) {
-    this.recordHistory();
-    var nextCells = {};
-    for (var cellId in this.cells) {
-      if (!Object.prototype.hasOwnProperty.call(this.cells, cellId)) {
-        continue;
-      }
-      var coord = parseCellId(cellId);
-      if (coord.col === colIndex) {
-        continue;
-      }
-      var nextCol = coord.col > colIndex ? coord.col - 1 : coord.col;
-      nextCells[formatCellId(nextCol, coord.row)] = adjustFormulaForDeleteColumn(this.cells[cellId], colIndex);
-    }
-    this.cells = nextCells;
-    this.selection.anchor.col = clamp(this.selection.anchor.col > colIndex ? this.selection.anchor.col - 1 : this.selection.anchor.col, 0, COL_COUNT - 1);
-    this.selection.focus.col = clamp(this.selection.focus.col > colIndex ? this.selection.focus.col - 1 : this.selection.focus.col, 0, COL_COUNT - 1);
-  };
-
-  SpreadsheetModel.prototype.getRangeRaw = function (selection) {
-    var range = normalizeRange(selection);
-    var rows = [];
-    for (var row = range.top; row <= range.bottom; row += 1) {
-      var cols = [];
-      for (var col = range.left; col <= range.right; col += 1) {
-        cols.push(this.getRaw(formatCellId(col, row)));
-      }
-      rows.push(cols);
-    }
-    return rows;
-  };
-
-  SpreadsheetModel.prototype.evaluateCell = function (cellId, stack, cache) {
-    stack = stack || [];
-    cache = cache || {};
-    if (Object.prototype.hasOwnProperty.call(cache, cellId)) {
-      return cache[cellId];
-    }
-    if (stack.indexOf(cellId) >= 0) {
-      cache[cellId] = ERROR.CIRC;
-      return ERROR.CIRC;
-    }
-    var raw = this.getRaw(cellId);
-    if (!raw) {
-      cache[cellId] = '';
-      return '';
-    }
-    if (raw.charAt(0) !== '=') {
-      var numeric = Number(raw);
-      cache[cellId] = raw.trim() !== '' && Number.isFinite(numeric) ? numeric : raw;
-      return cache[cellId];
-    }
-    try {
-      var ast = parseFormula(raw.slice(1));
-      var model = this;
-      var nextStack = stack.concat(cellId);
-      var evalNode = function (node) {
-        switch (node.type) {
-          case 'number':
-          case 'string':
-          case 'boolean':
-          case 'error':
-            return node.value;
-          case 'cell':
-            return model.evaluateCell(formatCellId(node.ref.col, node.ref.row), nextStack, cache);
-          case 'range': {
-            var top = Math.min(node.start.row, node.end.row);
-            var bottom = Math.max(node.start.row, node.end.row);
-            var left = Math.min(node.start.col, node.end.col);
-            var right = Math.max(node.start.col, node.end.col);
-            var values = [];
-            for (var row = top; row <= bottom; row += 1) {
-              for (var col = left; col <= right; col += 1) {
-                values.push(model.evaluateCell(formatCellId(col, row), nextStack, cache));
-              }
-            }
-            return values;
-          }
-          case 'unary': {
-            var operand = evalNode(node.operand);
-            return isErrorValue(operand) ? operand : -toNumber(operand);
-          }
-          case 'binary': {
-            var leftValue = evalNode(node.left);
-            var rightValue = evalNode(node.right);
-            if (isErrorValue(leftValue)) {
-              return leftValue;
-            }
-            if (isErrorValue(rightValue)) {
-              return rightValue;
-            }
-            switch (node.operator) {
-              case '+': return toNumber(leftValue) + toNumber(rightValue);
-              case '-': return toNumber(leftValue) - toNumber(rightValue);
-              case '*': return toNumber(leftValue) * toNumber(rightValue);
-              case '/':
-                if (toNumber(rightValue) === 0) {
-                  return ERROR.DIV0;
-                }
-                return toNumber(leftValue) / toNumber(rightValue);
-              case '&': return toText(leftValue) + toText(rightValue);
-              case '=': return toText(leftValue) === toText(rightValue);
-              case '<>': return toText(leftValue) !== toText(rightValue);
-              case '<': return toNumber(leftValue) < toNumber(rightValue);
-              case '<=': return toNumber(leftValue) <= toNumber(rightValue);
-              case '>': return toNumber(leftValue) > toNumber(rightValue);
-              case '>=': return toNumber(leftValue) >= toNumber(rightValue);
-              default: return ERROR.ERR;
-            }
-          }
-          case 'func':
-            return evaluateFunction(node.name, node.args, evalNode);
-          default:
-            return ERROR.ERR;
-        }
-      };
-      cache[cellId] = evalNode(ast);
-      return cache[cellId];
-    } catch (error) {
-      cache[cellId] = ERROR.ERR;
-      return ERROR.ERR;
-    }
-  };
-
-  SpreadsheetModel.prototype.getDisplayValue = function (cellId) {
-    return formatDisplayValue(this.evaluateCell(cellId, [], {}));
-  };
-
-  function stepAddress(cellId, direction, maxColumns, maxRows) {
-    var coord = parseCellId(cellId);
     if (direction === 'left') {
-      coord.col = clamp(coord.col - 1, 0, maxColumns - 1);
+      column = Math.max(1, column - 1);
     } else if (direction === 'right') {
-      coord.col = clamp(coord.col + 1, 0, maxColumns - 1);
+      column = Math.min(maxColumns, column + 1);
     } else if (direction === 'up') {
-      coord.row = clamp(coord.row - 1, 0, maxRows - 1);
+      row = Math.max(1, row - 1);
     } else if (direction === 'down') {
-      coord.row = clamp(coord.row + 1, 0, maxRows - 1);
+      row = Math.min(maxRows, row + 1);
     }
-    return formatCellId(coord.col, coord.row);
+
+    return numberToColumn(column) + row;
   }
 
-  function shouldSyncFormulaBar(activeElement, formulaBar, formulaDraft) {
-    return activeElement !== formulaBar || formulaDraft === null;
+  function columnToNumber(label) {
+    let total = 0;
+    for (let index = 0; index < label.length; index += 1) {
+      total = total * 26 + (label.charCodeAt(index) - 64);
+    }
+    return total;
+  }
+
+  function numberToColumn(number) {
+    let result = '';
+    let current = number;
+    while (current > 0) {
+      const remainder = (current - 1) % 26;
+      result = String.fromCharCode(65 + remainder) + result;
+      current = Math.floor((current - 1) / 26);
+    }
+    return result;
+  }
+
+  function expandRange(start, end) {
+    const startRef = parseAddress(start);
+    const endRef = parseAddress(end);
+    const minColumn = Math.min(startRef.column, endRef.column);
+    const maxColumn = Math.max(startRef.column, endRef.column);
+    const minRow = Math.min(startRef.row, endRef.row);
+    const maxRow = Math.max(startRef.row, endRef.row);
+    const addresses = [];
+    for (let row = minRow; row <= maxRow; row += 1) {
+      for (let column = minColumn; column <= maxColumn; column += 1) {
+        addresses.push(numberToColumn(column) + row);
+      }
+    }
+    return addresses;
   }
 
   return {
-    COL_COUNT: COL_COUNT,
-    ROW_COUNT: ROW_COUNT,
-    SpreadsheetModel: SpreadsheetModel,
-    parseCellId: parseCellId,
-    formatCellId: formatCellId,
-    normalizeRange: normalizeRange,
-    shiftFormula: shiftFormula,
+    createEmptySheet: createEmptySheet,
+    setCell: setCell,
+    getCellRaw: getCellRaw,
+    getCellValue: getCellValue,
+    getDisplayValue: getDisplayValue,
+    normalizeAddress: normalizeAddress,
+    shiftFormulaReferences: shiftFormulaReferences,
     stepAddress: stepAddress,
-    shouldSyncFormulaBar: shouldSyncFormulaBar,
   };
 });

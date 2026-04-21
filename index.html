@@ -3,41 +3,33 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Northstar Sheet</title>
+    <title>Amazon Sheet</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="app-shell" data-spreadsheet-app>
+    <div class="app-shell">
       <header class="topbar">
         <div class="brand">
-          <h1>Northstar Sheet</h1>
-          <p>Ready-to-type spreadsheet with formulas, ranges, clipboard, and session restore.</p>
+          <span class="brand-mark">as</span>
+          <div>
+            <h1>Amazon Sheet</h1>
+            <p>Ready to type. Formulas live in the bar.</p>
+          </div>
         </div>
-        <div class="formula-strip">
-          <input class="name-box" id="name-box" aria-label="Selected cell" readonly>
-          <label class="formula-label" for="formula-input">fx</label>
-          <input id="formula-input" class="formula-input" aria-label="Formula bar" spellcheck="false" autocomplete="off">
+        <div class="formula-panel">
+          <label for="formula-input">Formula</label>
+          <div class="formula-row">
+            <span id="name-box" class="name-box">A1</span>
+            <input id="formula-input" type="text" spellcheck="false" autocomplete="off">
+          </div>
         </div>
       </header>
-
-      <section class="workspace">
-        <div class="grid-scroller" id="grid-scroller">
-          <table class="grid" id="sheet-grid" aria-label="Spreadsheet grid"></table>
-          <input class="cell-editor" id="cell-editor" hidden spellcheck="false" autocomplete="off">
-        </div>
-      </section>
-
-      <footer class="statusbar">
-        <span>Enter or F2 edits. Shift selects ranges. Delete clears. Right-click headers to insert or delete rows and columns.</span>
-      </footer>
-
-      <div class="header-menu" id="header-menu" hidden>
-        <button type="button" data-action="insert-before">Insert before</button>
-        <button type="button" data-action="insert-after">Insert after</button>
-        <button type="button" data-action="delete">Delete</button>
-      </div>
-    </main>
+      <main class="grid-wrap">
+        <table id="sheet-grid" class="sheet-grid" aria-label="Spreadsheet"></table>
+      </main>
+    </div>
     <script src="src/engine.js"></script>
+    <script src="src/selection.js"></script>
     <script src="src/app.js"></script>
   </body>
 </html>

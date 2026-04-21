@@ -1,265 +1,231 @@
 :root {
   color-scheme: light;
-  --bg: #f3f6fb;
+  --bg: #f5f7fb;
   --panel: #ffffff;
-  --grid: #d6deeb;
-  --grid-strong: #c2cddd;
-  --header: #eef3fb;
-  --text: #182230;
-  --muted: #607086;
-  --accent: #2e6df6;
-  --accent-soft: rgba(46, 109, 246, 0.14);
-  --error: #c03844;
-  --shadow: 0 16px 40px rgba(19, 30, 52, 0.12);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --grid: #d7dde8;
+  --header: #eef2f8;
+  --text: #132033;
+  --muted: #5e6b7f;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.14);
+  --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
 }
 
 * {
   box-sizing: border-box;
 }
 
-html,
 body {
   margin: 0;
-  min-height: 100%;
-  background: linear-gradient(180deg, #f7f9fd 0%, #edf2fa 100%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
-}
-
-html {
-  min-height: 100%;
-}
-
-body {
-  padding: 20px;
+  background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 30%);
 }
 
 .app-shell {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 12px;
-  height: calc(100vh - 40px);
+  min-height: 100vh;
+  padding: 18px;
 }
 
-.topbar,
-.statusbar {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(194, 205, 221, 0.8);
+.topbar {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  margin-bottom: 14px;
+}
+
+.brand,
+.formula-panel,
+.grid-wrap {
+  background: var(--panel);
+  border: 1px solid rgba(19, 32, 51, 0.08);
   border-radius: 16px;
   box-shadow: var(--shadow);
 }
 
-.topbar {
-  padding: 16px 18px;
-  display: grid;
+.brand {
+  display: flex;
   gap: 14px;
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--text);
+  color: white;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.brand h1,
+.brand p {
+  margin: 0;
 }
 
 .brand h1 {
-  margin: 0;
-  font-size: 1.1rem;
+  font-size: 18px;
 }
 
 .brand p {
-  margin: 4px 0 0;
+  margin-top: 4px;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 13px;
 }
 
-.formula-strip {
+.formula-panel {
+  padding: 14px 16px;
+}
+
+.formula-panel label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.formula-row {
   display: grid;
-  grid-template-columns: 92px 42px 1fr;
+  grid-template-columns: 72px 1fr;
   gap: 10px;
 }
 
 .name-box,
-.formula-input,
-.cell-editor {
-  width: 100%;
-  border: 1px solid var(--grid-strong);
-  background: var(--panel);
-  color: var(--text);
+#formula-input {
+  min-height: 42px;
   border-radius: 10px;
-  padding: 10px 12px;
-  font: inherit;
+  border: 1px solid var(--grid);
+  background: #fbfdff;
 }
 
-.formula-label {
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: #e8eef9;
-  color: var(--muted);
-  border: 1px solid var(--grid-strong);
+.name-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
 }
 
-.workspace {
-  min-height: 0;
+#formula-input {
+  width: 100%;
+  padding: 0 12px;
+  font: inherit;
 }
 
-.grid-scroller {
-  position: relative;
-  height: 100%;
+.grid-wrap {
   overflow: auto;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(194, 205, 221, 0.8);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
+  padding: 12px;
 }
 
-.grid {
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: max-content;
+.sheet-grid {
+  border-collapse: collapse;
+  background: white;
 }
 
-.grid th,
-.grid td {
-  border-right: 1px solid var(--grid);
-  border-bottom: 1px solid var(--grid);
-  min-width: 112px;
-  height: 34px;
-  padding: 6px 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 14px;
+.sheet-grid th,
+.sheet-grid td {
+  border: 1px solid var(--grid);
 }
 
-.grid thead th {
+.corner,
+.column-header,
+.row-header {
   position: sticky;
+  background: var(--header);
+  z-index: 1;
+}
+
+.corner {
+  left: 0;
   top: 0;
   z-index: 3;
-  background: var(--header);
-  text-align: center;
+  min-width: 54px;
 }
 
-.grid tbody th {
-  position: sticky;
+.column-header {
+  top: 0;
+  min-width: 110px;
+  height: 34px;
+  font-size: 12px;
+}
+
+.row-header {
   left: 0;
   z-index: 2;
-  background: var(--header);
-  text-align: right;
-  color: var(--muted);
-  min-width: 56px;
+  min-width: 54px;
+  text-align: center;
+  font-size: 12px;
 }
 
-.grid .corner {
-  left: 0;
-  z-index: 4;
-  min-width: 56px;
+.cell {
+  min-width: 110px;
+  height: 28px;
+  padding: 0;
+  background: white;
 }
 
-.grid td {
-  background: rgba(255, 255, 255, 0.86);
-  text-align: right;
-  cursor: cell;
-}
-
-.grid td button {
+.cell button,
+.cell input {
   width: 100%;
   height: 100%;
   border: 0;
-  padding: 0;
+  padding: 4px 8px;
   background: transparent;
   color: inherit;
   font: inherit;
-  text-align: inherit;
+  text-align: left;
+}
+
+.cell button {
   cursor: cell;
 }
 
-.grid td.is-text,
-.grid td.is-formula,
-.grid td.is-text button,
-.grid td.is-formula button {
-  text-align: left;
+.cell.numeric button,
+.cell.numeric input {
+  text-align: right;
 }
 
-.grid td button:focus {
-  outline: none;
+.cell.active {
+  background: var(--accent-soft);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
-.grid td.is-in-range {
-  background: rgba(46, 109, 246, 0.08);
+.cell.in-range {
+  background: rgba(37, 99, 235, 0.08);
 }
 
-.grid td.is-active {
-  background: rgba(46, 109, 246, 0.14);
-  box-shadow: inset 0 0 0 2px var(--accent);
+.cell input {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
-.grid td.is-error {
-  color: var(--error);
-  font-weight: 600;
+.cell.error button {
+  color: #b42318;
 }
 
-.grid th.is-highlighted {
-  background: #dde8ff;
-  color: #1747b5;
-}
-
-.cell-editor {
-  position: absolute;
-  z-index: 10;
-  border-radius: 0;
-  border: 2px solid var(--accent);
-  box-shadow: 0 10px 24px rgba(46, 109, 246, 0.18);
-}
-
-.grid th {
-  user-select: none;
-}
-
-.statusbar {
-  padding: 10px 14px;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.header-menu {
-  position: absolute;
-  z-index: 20;
-  display: grid;
-  gap: 4px;
-  padding: 8px;
-  background: rgba(16, 25, 40, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 20px 48px rgba(12, 19, 31, 0.22);
-}
-
-.header-menu button {
-  appearance: none;
-  border: 0;
-  border-radius: 8px;
-  padding: 8px 12px;
-  text-align: left;
-  background: transparent;
-  color: #f7f9fd;
-  font: inherit;
-  cursor: pointer;
-}
-
-.header-menu button:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-@media (max-width: 720px) {
-  body {
-    padding: 12px;
+@media (max-width: 900px) {
+  .topbar {
+    grid-template-columns: 1fr;
   }
 
   .app-shell {
-    height: calc(100vh - 24px);
+    padding: 12px;
   }
 
-  .formula-strip {
-    grid-template-columns: 76px 38px 1fr;
+  .formula-row {
+    grid-template-columns: 62px 1fr;
   }
 
-  .grid th,
-  .grid td {
-    min-width: 88px;
+  .column-header,
+  .cell {
+    min-width: 92px;
   }
 }
