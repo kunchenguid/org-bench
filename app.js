@@ -10,18 +10,32 @@
   var formulaInput = document.getElementById("formula-input");
   var status = document.getElementById("app-status");
   var structuralEdits = window.SpreadsheetStructuralEdits;
+  var rangeClipboard = window.RangeClipboard;
   var workbookState = createWorkbookState();
   var activeCellId = workbookState.getSelectedCell();
+  var selection = selectionForCell(activeCellId);
+  var dragAnchor = null;
+  var isDragging = false;
+  var clipboardText = "";
+  var clipboardRange = null;
+  var cutRange = null;
 
   renderHeaders();
   renderGrid();
   refreshGridValues();
-  setActiveCell(activeCellId);
+  setSelection(selection);
   status.textContent = "Workbook state ready";
 
   columnHeaders.addEventListener("click", handleHeaderClick);
   rowHeaders.addEventListener("click", handleHeaderClick);
   document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("mousedown", handlePointerStart);
+  document.addEventListener("mouseover", handlePointerMove);
+  document.addEventListener("mouseup", handlePointerEnd);
+  document.addEventListener("keydown", handleKeydown);
+  document.addEventListener("copy", handleCopy);
+  document.addEventListener("cut", handleCut);
+  document.addEventListener("paste", handlePaste);
 
   function columnLabel(index) {
     return String.fromCharCode(65 + index);
@@ -121,14 +135,13 @@
 
   function refreshGridValues() {
     grid.querySelectorAll(".cell").forEach(function (cell) {
-      var label = cell.querySelector(".cell-label");
-      label.textContent = workbookState.getCellRaw(cell.dataset.cellId);
+      cell.querySelector(".cell-label").textContent = workbookState.getCellRaw(cell.dataset.cellId);
     });
+    refreshSelectionVisuals();
   }
 
   function parseCellId(cellId) {
     var match = /^([A-Z])([1-9][0-9]*)$/.exec(cellId);
-
     return {
       col: match[1].charCodeAt(0) - 64,
       row: Number(match[2]),
@@ -141,7 +154,6 @@
 
   function selectionForCell(cellId) {
     var point = parseCellId(cellId);
-
     return {
       start: { row: point.row, col: point.col },
       end: { row: point.row, col: point.col },
@@ -181,35 +193,35 @@
     if (axis === "row") {
       if (action === "insert-before") {
         nextCells = structuralEdits.insertRow(currentCells, targetIndex);
-        nextSelection = structuralEdits.adjustSelection(selectionForCell(activeCellId), { type: "insert-row", index: targetIndex, maxRows: ROWS, maxCols: COLS });
+        nextSelection = structuralEdits.adjustSelection(selection, { type: "insert-row", index: targetIndex, maxRows: ROWS, maxCols: COLS });
         label = "Inserted row above " + targetIndex;
       } else if (action === "insert-after") {
         nextCells = structuralEdits.insertRow(currentCells, targetIndex + 1);
-        nextSelection = structuralEdits.adjustSelection(selectionForCell(activeCellId), { type: "insert-row", index: targetIndex + 1, maxRows: ROWS, maxCols: COLS });
+        nextSelection = structuralEdits.adjustSelection(selection, { type: "insert-row", index: targetIndex + 1, maxRows: ROWS, maxCols: COLS });
         label = "Inserted row below " + targetIndex;
       } else {
         nextCells = structuralEdits.deleteRow(currentCells, targetIndex);
-        nextSelection = structuralEdits.adjustSelection(selectionForCell(activeCellId), { type: "delete-row", index: targetIndex, maxRows: ROWS, maxCols: COLS });
+        nextSelection = structuralEdits.adjustSelection(selection, { type: "delete-row", index: targetIndex, maxRows: ROWS, maxCols: COLS });
         label = "Deleted row " + targetIndex;
       }
     } else {
       if (action === "insert-before") {
         nextCells = structuralEdits.insertColumn(currentCells, targetIndex);
-        nextSelection = structuralEdits.adjustSelection(selectionForCell(activeCellId), { type: "insert-column", index: targetIndex, maxRows: ROWS, maxCols: COLS });
+        nextSelection = structuralEdits.adjustSelection(selection, { type: "insert-column", index: targetIndex, maxRows: ROWS, maxCols: COLS });
         label = "Inserted column left of " + columnLabel(targetIndex - 1);
       } else if (action === "insert-after") {
         nextCells = structuralEdits.insertColumn(currentCells, targetIndex + 1);
-        nextSelection = structuralEdits.adjustSelection(selectionForCell(activeCellId), { type: "insert-column", index: targetIndex + 1, maxRows: ROWS, maxCols: COLS });
+        nextSelection = structuralEdits.adjustSelection(selection, { type: "insert-column", index: targetIndex + 1, maxRows: ROWS, maxCols: COLS });
         label = "Inserted column right of " + columnLabel(targetIndex - 1);
       } else {
         nextCells = structuralEdits.deleteColumn(currentCells, targetIndex);
-        nextSelection = structuralEdits.adjustSelection(selectionForCell(activeCellId), { type: "delete-column", index: targetIndex, maxRows: ROWS, maxCols: COLS });
+        nextSelection = structuralEdits.adjustSelection(selection, { type: "delete-column", index: targetIndex, maxRows: ROWS, maxCols: COLS });
         label = "Deleted column " + columnLabel(targetIndex - 1);
       }
     }
 
     replaceWorkbookCells(nextCells);
-    setActiveCell(formatCellId(nextSelection.active));
+    setSelection(nextSelection);
     status.textContent = label;
   }
 
@@ -240,28 +252,235 @@
   }
 
   function handleCellClick(event) {
-    setActiveCell(event.currentTarget.dataset.cellId);
-  }
+    var nextSelection = selectionForCell(event.currentTarget.dataset.cellId);
 
-  function setActiveCell(cellId) {
-    var previous = grid.querySelector(".cell.active");
-    var next = grid.querySelector('[data-cell-id="' + cellId + '"]');
-
-    if (previous) {
-      previous.classList.remove("active");
-      previous.setAttribute("aria-selected", "false");
-    }
-
-    if (!next) {
+    if (event.shiftKey) {
+      setSelection(rangeClipboard.extendRange(selection, nextSelection.active));
       return;
     }
 
-    next.classList.add("active");
-    next.setAttribute("aria-selected", "true");
-    activeCellId = cellId;
-    nameBox.value = cellId;
-    formulaInput.value = workbookState.getCellRaw(cellId);
-    workbookState.setSelectedCell(cellId);
+    clearCutPreview();
+    setSelection(nextSelection);
+  }
+
+  function handlePointerStart(event) {
+    var cell = event.target.closest(".cell");
+    var nextSelection;
+
+    if (!cell) {
+      return;
+    }
+
+    nextSelection = selectionForCell(cell.dataset.cellId);
+    if (event.shiftKey) {
+      setSelection(rangeClipboard.extendRange(selection, nextSelection.active));
+      return;
+    }
+
+    dragAnchor = nextSelection.active;
+    isDragging = true;
+    clearCutPreview();
+    setSelection(nextSelection);
+  }
+
+  function handlePointerMove(event) {
+    var cell;
+
+    if (!isDragging) {
+      return;
+    }
+
+    cell = event.target.closest(".cell");
+    if (!cell) {
+      return;
+    }
+
+    setSelection(rangeClipboard.normalizeRange(dragAnchor, selectionForCell(cell.dataset.cellId).active, selectionForCell(cell.dataset.cellId).active));
+  }
+
+  function handlePointerEnd() {
+    isDragging = false;
+  }
+
+  function handleKeydown(event) {
+    var nextActive;
+
+    if (event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      applyGridCells(rangeClipboard.clearRange(readGridCells(), selection));
+      clearCutPreview();
+      refreshGridValues();
+      status.textContent = "Selection cleared";
+      return;
+    }
+
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown" && event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+
+    event.preventDefault();
+    nextActive = {
+      row: selection.active.row,
+      col: selection.active.col,
+    };
+
+    if (event.key === "ArrowUp") {
+      nextActive.row = rangeClipboard.clamp(selection.active.row - 1, 1, ROWS);
+    } else if (event.key === "ArrowDown") {
+      nextActive.row = rangeClipboard.clamp(selection.active.row + 1, 1, ROWS);
+    } else if (event.key === "ArrowLeft") {
+      nextActive.col = rangeClipboard.clamp(selection.active.col - 1, 1, COLS);
+    } else {
+      nextActive.col = rangeClipboard.clamp(selection.active.col + 1, 1, COLS);
+    }
+
+    clearCutPreview();
+    if (event.shiftKey) {
+      setSelection(rangeClipboard.extendRange(selection, nextActive));
+      return;
+    }
+
+    setSelection(rangeClipboard.normalizeRange(nextActive, nextActive, nextActive));
+  }
+
+  function handleCopy(event) {
+    if (!event.clipboardData) {
+      return;
+    }
+
+    event.preventDefault();
+    clipboardText = rangeClipboard.copyRange(readGridCells(), selection);
+    clipboardRange = selection;
+    event.clipboardData.setData("text/plain", clipboardText);
+    clearCutPreview();
+    refreshSelectionVisuals();
+    status.textContent = "Selection copied";
+  }
+
+  function handleCut(event) {
+    if (!event.clipboardData) {
+      return;
+    }
+
+    event.preventDefault();
+    clipboardText = rangeClipboard.copyRange(readGridCells(), selection);
+    clipboardRange = selection;
+    cutRange = selection;
+    event.clipboardData.setData("text/plain", clipboardText);
+    refreshSelectionVisuals();
+    status.textContent = "Selection cut";
+  }
+
+  function handlePaste(event) {
+    var text;
+    var block;
+    var currentSize;
+    var destination;
+    var isInternalClipboard;
+    var result;
+
+    if (!event.clipboardData) {
+      return;
+    }
+
+    event.preventDefault();
+    text = event.clipboardData.getData("text/plain");
+    if (!text) {
+      return;
+    }
+
+    block = rangeClipboard.parseClipboard(text);
+    currentSize = selectionSize(selection);
+    destination = currentSize.rows === block.length && currentSize.cols === block[0].length
+      ? selection
+      : selectionForCell(activeCellId);
+    isInternalClipboard = text === clipboardText && !!clipboardRange;
+    result = rangeClipboard.pasteBlock(readGridCells(), destination, text, {
+      sourceRange: isInternalClipboard ? clipboardRange : null,
+      cutRange: cutRange,
+    });
+
+    applyGridCells(result.cells);
+    selection = result.range;
+    activeCellId = formatCellId(selection.active);
+    workbookState.setSelectedCell(activeCellId);
+    clearCutPreview();
+    refreshGridValues();
+    status.textContent = "Selection pasted";
+  }
+
+  function selectionSize(currentSelection) {
+    return {
+      rows: currentSelection.end.row - currentSelection.start.row + 1,
+      cols: currentSelection.end.col - currentSelection.start.col + 1,
+    };
+  }
+
+  function setSelection(nextSelection) {
+    selection = nextSelection;
+    activeCellId = formatCellId(nextSelection.active);
+    workbookState.setSelectedCell(activeCellId);
+    nameBox.value = activeCellId;
+    formulaInput.value = workbookState.getCellRaw(activeCellId);
+    refreshSelectionVisuals();
+  }
+
+  function refreshSelectionVisuals() {
+    grid.querySelectorAll(".cell").forEach(function (cell) {
+      var point = parseCellId(cell.dataset.cellId);
+      var inRange = point.row >= selection.start.row && point.row <= selection.end.row && point.col >= selection.start.col && point.col <= selection.end.col;
+      var isActive = point.row === selection.active.row && point.col === selection.active.col;
+      var isCut = !!cutRange
+        && point.row >= cutRange.start.row && point.row <= cutRange.end.row
+        && point.col >= cutRange.start.col && point.col <= cutRange.end.col;
+
+      cell.classList.toggle("in-range", inRange);
+      cell.classList.toggle("active", isActive);
+      cell.classList.toggle("cut-preview", isCut);
+      cell.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+  }
+
+  function readGridCells() {
+    var entries = workbookState.getAllCellEntries();
+    var cells = {};
+
+    Object.keys(entries).forEach(function (cellRef) {
+      var point = parseCellId(cellRef);
+      cells[rangeClipboard.cellKey(point.row, point.col)] = entries[cellRef];
+    });
+
+    return cells;
+  }
+
+  function applyGridCells(nextGridCells) {
+    var existingEntries = workbookState.getAllCellEntries();
+    var nextEntries = {};
+
+    Object.keys(nextGridCells).forEach(function (key) {
+      var parts = key.split(",");
+      nextEntries[formatCellId({ row: Number(parts[0]), col: Number(parts[1]) })] = nextGridCells[key];
+    });
+
+    Object.keys(existingEntries).forEach(function (cellRef) {
+      if (!Object.prototype.hasOwnProperty.call(nextEntries, cellRef)) {
+        workbookState.clearCell(cellRef);
+      }
+    });
+
+    Object.keys(nextEntries).forEach(function (cellRef) {
+      if (existingEntries[cellRef] !== nextEntries[cellRef]) {
+        workbookState.setCellRaw(cellRef, nextEntries[cellRef]);
+      }
+    });
+  }
+
+  function clearCutPreview() {
+    cutRange = null;
   }
 
   function createWorkbookState() {
