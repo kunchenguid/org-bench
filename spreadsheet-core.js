@@ -119,15 +119,17 @@
   }
 
   function parseCellKey(key) {
-    const match = /^([A-Z])(\d+)$/.exec(key);
+    const match = /^(\$?)([A-Z])(\$?)(\d+)$/.exec(key);
 
     if (!match) {
       return null;
     }
 
     return {
-      row: Number(match[2]) - 1,
-      col: match[1].charCodeAt(0) - 65,
+      row: Number(match[4]) - 1,
+      col: match[2].charCodeAt(0) - 65,
+      absoluteRow: match[3] === '$',
+      absoluteCol: match[1] === '$',
     };
   }
 
@@ -331,9 +333,9 @@
         continue;
       }
 
-      if (/[A-Za-z]/.test(char)) {
+      if (/[A-Za-z$]/.test(char)) {
         let end = index + 1;
-        while (end < source.length && /[A-Za-z0-9]/.test(source[end])) {
+        while (end < source.length && /[A-Za-z0-9$]/.test(source[end])) {
           end += 1;
         }
         tokens.push({ type: 'word', value: source.slice(index, end).toUpperCase() });

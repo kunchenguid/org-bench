@@ -174,6 +174,25 @@ test('formula display values support ABS and ROUND', () => {
   assert.equal(getCellDisplayValue(state, 1, 0), '4');
 });
 
+test('formula display values support absolute and mixed references', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '2');
+  state = setCellRaw(state, 1, 0, '3');
+  state = setCellRaw(state, 0, 1, '5');
+  state = setCellRaw(state, 2, 2, '=$A$1+A$2+$B1');
+
+  assert.equal(getCellDisplayValue(state, 2, 2), '10');
+});
+
+test('formula display values support ranges with absolute endpoints', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '2');
+  state = setCellRaw(state, 1, 0, '3');
+  state = setCellRaw(state, 1, 1, '=SUM($A$1:A2)');
+
+  assert.equal(getCellDisplayValue(state, 1, 1), '5');
+});
+
 test('selection bounds normalize inverted anchor and focus coordinates', () => {
   let state = createState();
   state = setSelectionFocus(state, 4, 3, true);
