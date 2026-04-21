@@ -127,3 +127,51 @@ test('pasting into a matching selection fills cell by cell', () => {
   assert.equal(store.getCell(3, 4), '3');
   assert.equal(store.getCell(4, 4), '=D4');
 });
+
+test('supports comparison operators in formulas', () => {
+  const store = createStore();
+  store.setCell(0, 0, '4');
+  store.setCell(0, 1, '4');
+  store.setCell(0, 2, '=A1=A2');
+  store.setCell(1, 2, '=A1<>3');
+  store.setCell(2, 2, '=A1>=A2');
+
+  const sheet = evaluateSheet(store);
+
+  assert.equal(sheet.getDisplay(0, 2), 'TRUE');
+  assert.equal(sheet.getDisplay(1, 2), 'TRUE');
+  assert.equal(sheet.getDisplay(2, 2), 'TRUE');
+});
+
+test('supports string concatenation and CONCAT', () => {
+  const store = createStore();
+  store.setCell(0, 0, '2');
+  store.setCell(0, 1, '3');
+  store.setCell(0, 2, '="Total: "&SUM(A1:A2)');
+  store.setCell(1, 2, '=CONCAT("A", "-", "B")');
+
+  const sheet = evaluateSheet(store);
+
+  assert.equal(sheet.getDisplay(0, 2), 'Total: 5');
+  assert.equal(sheet.getDisplay(1, 2), 'A-B');
+});
+
+test('supports IF and boolean helper functions', () => {
+  const store = createStore();
+  store.setCell(0, 0, '=IF(AND(TRUE, NOT(FALSE)), "ok", "bad")');
+  store.setCell(1, 0, '=OR(FALSE, TRUE)');
+
+  const sheet = evaluateSheet(store);
+
+  assert.equal(sheet.getDisplay(0, 0), 'ok');
+  assert.equal(sheet.getDisplay(1, 0), 'TRUE');
+});
+
+test('treats empty references as zero in numeric formulas', () => {
+  const store = createStore();
+  store.setCell(0, 0, '=B1+2');
+
+  const sheet = evaluateSheet(store);
+
+  assert.equal(sheet.getDisplay(0, 0), '2');
+});

@@ -222,6 +222,37 @@
     return parts;
   }
 
+  function splitTopLevel(text, operator) {
+    const parts = [];
+    let current = '';
+    let depth = 0;
+    let inString = false;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '"') {
+        inString = !inString;
+        current += ch;
+        continue;
+      }
+      if (!inString) {
+        if (ch === '(') {
+          depth += 1;
+        } else if (ch === ')') {
+          depth -= 1;
+        } else if (ch === operator && depth === 0) {
+          parts.push(current.trim());
+          current = '';
+          continue;
+        }
+      }
+      current += ch;
+    }
+    if (parts.length) {
+      parts.push(current.trim());
+    }
+    return parts;
+  }
+
   function replaceComparisons(expr) {
     return expr
       .replace(/<>/g, '!=')
@@ -232,6 +263,12 @@
     const trimmed = expr.trim();
     if (!trimmed) {
       return '';
+    }
+    const concatParts = splitTopLevel(trimmed, '&');
+    if (concatParts.length) {
+      return concatParts.map(function (part) {
+        return toText(evaluateExpression(store, part, cache, trail));
+      }).join('');
     }
     if (/^".*"$/.test(trimmed)) {
       return trimmed.slice(1, -1);
