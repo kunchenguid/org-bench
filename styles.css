@@ -1,0 +1,192 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f5f9;
+  --panel: rgba(255, 255, 255, 0.82);
+  --grid: #d7dce5;
+  --header: #eef2f8;
+  --header-strong: #e4e9f2;
+  --text: #162033;
+  --muted: #647089;
+  --selection: rgba(86, 126, 255, 0.14);
+  --selection-border: #4f76ff;
+  --active-fill: #ffffff;
+  --shadow: 0 24px 70px rgba(18, 30, 58, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(105, 160, 255, 0.15), transparent 30%),
+    linear-gradient(180deg, #f7f9fc 0%, var(--bg) 100%);
+  color: var(--text);
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.app-shell {
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+  margin: 0 auto 16px;
+  max-width: 1400px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 650;
+}
+
+.hint {
+  margin: 0;
+  max-width: 520px;
+  color: var(--muted);
+}
+
+.sheet-frame {
+  margin: 0 auto;
+  max-width: 1400px;
+  background: var(--panel);
+  border: 1px solid rgba(215, 220, 229, 0.95);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.sheet-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 160px);
+}
+
+.sheet {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+}
+
+.sheet th,
+.sheet td {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+}
+
+.corner,
+.col-header,
+.row-header {
+  position: sticky;
+  z-index: 2;
+  background: linear-gradient(180deg, var(--header) 0%, var(--header-strong) 100%);
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+.corner {
+  left: 0;
+  top: 0;
+  z-index: 4;
+  min-width: 56px;
+}
+
+.col-header {
+  top: 0;
+  min-width: 120px;
+  height: 36px;
+}
+
+.row-header {
+  left: 0;
+  z-index: 3;
+  min-width: 56px;
+  width: 56px;
+}
+
+.cell {
+  position: relative;
+  min-width: 120px;
+  width: 120px;
+  height: 34px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.cell-content {
+  width: 100%;
+  height: 100%;
+  padding: 7px 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cell.in-range {
+  background: var(--selection);
+}
+
+.cell.active::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 2px solid var(--selection-border);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+.cell.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), var(--active-fill));
+}
+
+.cell.cut-preview {
+  opacity: 0.55;
+}
+
+.editor {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 7px 10px;
+  font: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .hint {
+    max-width: none;
+  }
+
+  .sheet-scroll {
+    max-height: calc(100vh - 190px);
+  }
+}
