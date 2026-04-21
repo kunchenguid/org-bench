@@ -9,7 +9,6 @@
     selectionToTSV,
     applyPaste,
     parseSelectionRect,
-    forEachCoord,
   } = window.SpreadsheetLib;
 
   const namespace = window.__BENCHMARK_RUN_NAMESPACE__ || 'facebook-sheet';
@@ -23,13 +22,16 @@
 
   const sheet = document.getElementById('sheet');
   const formulaInput = document.getElementById('formula-input');
-  const activeLabel = document.getElementById('active-label');
+  const nameBox = document.getElementById('name-box');
+  const selectionLabel = document.getElementById('selection-label');
+  const headerMenu = document.getElementById('header-menu');
 
   const state = {
     active: loadState().active || 'A1',
     selection: loadState().selection || { start: 'A1', end: 'A1' },
     editing: null,
     dragAnchor: null,
+    headerMenu: null,
   };
 
   renderGrid();
@@ -38,29 +40,22 @@
   syncFormulaBar();
 
   formulaInput.addEventListener('focus', () => beginEdit(state.active, model.getRaw(state.active), true));
-  formulaInput.addEventListener('input', () => {
-    if (state.editing) {
-      state.editing.value = formulaInput.value;
-      const input = document.querySelector(`input[data-coord="${state.editing.coord}"]`);
-      if (input) {
-        input.value = state.editing.value;
-      }
-    }
-  });
-  formulaInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      commitEdit({ rowDelta: 1, colDelta: 0 });
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      cancelEdit();
-    }
-  });
-
+  formulaInput.addEventListener('input', onFormulaInput);
+  formulaInput.addEventListener('keydown', onFormulaKeydown);
+  sheet.addEventListener('contextmenu', onGridContextMenu);
   document.addEventListener('keydown', handleKeydown);
   document.addEventListener('copy', handleCopy);
   document.addEventListener('cut', handleCut);
   document.addEventListener('paste', handlePaste);
+  document.addEventListener('mouseup', () => {
+    state.dragAnchor = null;
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('#header-menu')) {
+      hideHeaderMenu();
+    }
+  });
+  headerMenu.addEventListener('click', onHeaderMenuClick);
 
   function loadState() {
     try {
@@ -121,11 +116,12 @@
   function renderGrid() {
     const headRow = document.createElement('tr');
     const corner = document.createElement('th');
-    corner.className = 'corner row-header';
+    corner.className = 'corner-cell row-header';
     headRow.appendChild(corner);
     for (let col = 0; col < COLS; col += 1) {
       const th = document.createElement('th');
       th.className = 'col-header';
+      th.dataset.colIndex = String(col);
       th.textContent = colToName(col);
       headRow.appendChild(th);
     }
@@ -135,6 +131,7 @@
       const tr = document.createElement('tr');
       const rowHeader = document.createElement('th');
       rowHeader.className = 'row-header';
+      rowHeader.dataset.rowIndex = String(row);
       rowHeader.textContent = String(row + 1);
       tr.appendChild(rowHeader);
 
@@ -145,8 +142,8 @@
         td.dataset.coord = coord;
         td.addEventListener('mousedown', (event) => {
           event.preventDefault();
-          state.dragAnchor = coord;
-          setSelection(coord, coord);
+          state.dragAnchor = event.shiftKey ? state.selection.start : coord;
+          setSelection(state.dragAnchor, coord);
         });
         td.addEventListener('mouseenter', () => {
           if (state.dragAnchor) {
@@ -165,10 +162,6 @@
       }
       sheet.appendChild(tr);
     }
-
-    document.addEventListener('mouseup', () => {
-      state.dragAnchor = null;
-    });
   }
 
   function renderAllCells() {
@@ -184,9 +177,11 @@
     if (!td) {
       return;
     }
-    const button = td.querySelector('button');
     const display = model.getDisplayValue(coord);
+    const computed = model.getComputedValue(coord);
     td.classList.toggle('error', display.startsWith('#'));
+    td.classList.toggle('numeric', typeof computed === 'number');
+    td.classList.toggle('boolean', typeof computed === 'boolean');
     if (!state.editing || state.editing.coord !== coord) {
       td.innerHTML = '';
       const nextButton = document.createElement('button');
@@ -196,13 +191,11 @@
       nextButton.addEventListener('click', () => setSelection(coord, coord));
       nextButton.addEventListener('focus', () => setSelection(coord, coord));
       td.appendChild(nextButton);
-    } else if (button) {
-      button.textContent = display;
     }
   }
 
   function syncFormulaBar() {
-    activeLabel.textContent = state.active;
+    nameBox.textContent = state.active;
     formulaInput.value = state.editing ? state.editing.value : model.getRaw(state.active);
   }
 
@@ -222,10 +215,17 @@
       cell.classList.toggle('in-range', inRange);
       cell.classList.toggle('active', cell.dataset.coord === state.active);
     });
+    selectionLabel.textContent = formatSelectionLabel(rect);
     const activeButton = document.querySelector(`button[data-coord="${state.active}"]`);
     if (activeButton && document.activeElement !== formulaInput) {
       activeButton.focus({ preventScroll: true });
     }
+  }
+
+  function formatSelectionLabel(rect) {
+    const start = toCoord(rect.rowStart, rect.colStart);
+    const end = toCoord(rect.rowEnd, rect.colEnd);
+    return start === end ? start : `${start}:${end}`;
   }
 
   function beginEdit(coord, initialValue, fromFormulaBar) {
@@ -253,7 +253,7 @@
         commitEdit({ rowDelta: 1, colDelta: 0 });
       } else if (event.key === 'Tab') {
         event.preventDefault();
-        commitEdit({ rowDelta: 0, colDelta: 1 });
+        commitEdit({ rowDelta: 0, colDelta: event.shiftKey ? -1 : 1 });
       } else if (event.key === 'Escape') {
         event.preventDefault();
         cancelEdit();
@@ -297,16 +297,33 @@
     syncFormulaBar();
   }
 
-  function updateActiveCell(raw) {
-    pushHistory();
-    model.setCell(state.active, raw);
-    renderAllCells();
-    syncFormulaBar();
-    saveState();
+  function onFormulaInput() {
+    if (state.editing) {
+      state.editing.value = formulaInput.value;
+      const input = document.querySelector(`input[data-coord="${state.editing.coord}"]`);
+      if (input) {
+        input.value = state.editing.value;
+      }
+    }
   }
 
-  function clearSelection() {
-    pushHistory();
+  function onFormulaKeydown(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (!state.editing) {
+        beginEdit(state.active, formulaInput.value, true);
+      }
+      commitEdit({ rowDelta: 1, colDelta: 0 });
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelEdit();
+    }
+  }
+
+  function clearSelection(pushSnapshot) {
+    if (pushSnapshot !== false) {
+      pushHistory();
+    }
     model.clearRect(state.selection.start, state.selection.end);
     renderAllCells();
     syncFormulaBar();
@@ -415,9 +432,107 @@
     pushHistory();
     applyPaste(model, state.active, text, {
       sourceSelection: metadata && metadata.selection ? metadata.selection : null,
+      targetSelection: state.selection,
     });
     renderAllCells();
     syncFormulaBar();
     saveState();
+  }
+
+  function onGridContextMenu(event) {
+    const rowHeader = event.target.closest('th.row-header');
+    const colHeader = event.target.closest('th.col-header');
+    if (!rowHeader && !colHeader) {
+      hideHeaderMenu();
+      return;
+    }
+    event.preventDefault();
+    state.headerMenu = rowHeader
+      ? { axis: 'row', index: Number(rowHeader.dataset.rowIndex) }
+      : { axis: 'col', index: Number(colHeader.dataset.colIndex) };
+    configureHeaderMenu();
+    headerMenu.style.left = `${event.clientX}px`;
+    headerMenu.style.top = `${event.clientY}px`;
+    headerMenu.classList.remove('hidden');
+  }
+
+  function configureHeaderMenu() {
+    const before = headerMenu.querySelector('[data-action="insert-before"]');
+    const after = headerMenu.querySelector('[data-action="insert-after"]');
+    const del = headerMenu.querySelector('[data-action="delete"]');
+    const label = state.headerMenu && state.headerMenu.axis === 'row' ? 'row' : 'column';
+    before.textContent = `Insert ${label} before`;
+    after.textContent = `Insert ${label} after`;
+    del.textContent = `Delete ${label}`;
+  }
+
+  function onHeaderMenuClick(event) {
+    const button = event.target.closest('button[data-action]');
+    if (!button || !state.headerMenu) {
+      return;
+    }
+    pushHistory();
+    const action = button.dataset.action;
+    const axis = state.headerMenu.axis;
+    const index = state.headerMenu.index;
+    if (axis === 'row') {
+      if (action === 'insert-before') {
+        model.insertRow(index);
+        shiftSelectionAfterStructure(axis, 'insert', index);
+      } else if (action === 'insert-after') {
+        model.insertRow(Math.min(index + 1, ROWS - 1));
+        shiftSelectionAfterStructure(axis, 'insert', Math.min(index + 1, ROWS - 1));
+      } else {
+        model.deleteRow(index);
+        shiftSelectionAfterStructure(axis, 'delete', index);
+      }
+    } else if (action === 'insert-before') {
+      model.insertColumn(index);
+      shiftSelectionAfterStructure(axis, 'insert', index);
+    } else if (action === 'insert-after') {
+      model.insertColumn(Math.min(index + 1, COLS - 1));
+      shiftSelectionAfterStructure(axis, 'insert', Math.min(index + 1, COLS - 1));
+    } else {
+      model.deleteColumn(index);
+      shiftSelectionAfterStructure(axis, 'delete', index);
+    }
+    renderAllCells();
+    refreshSelection();
+    syncFormulaBar();
+    saveState();
+    hideHeaderMenu();
+  }
+
+  function hideHeaderMenu() {
+    state.headerMenu = null;
+    headerMenu.classList.add('hidden');
+  }
+
+  function shiftSelectionAfterStructure(axis, mode, index) {
+    state.selection = {
+      start: transformSelectionAddress(state.selection.start, axis, mode, index),
+      end: transformSelectionAddress(state.selection.end, axis, mode, index),
+    };
+    state.active = transformSelectionAddress(state.active, axis, mode, index);
+  }
+
+  function transformSelectionAddress(coord, axis, mode, index) {
+    const parsed = parseCoord(coord);
+    if (axis === 'row') {
+      if (mode === 'insert') {
+        return toCoord(parsed.row >= index ? Math.min(parsed.row + 1, ROWS - 1) : parsed.row, parsed.col);
+      }
+      if (parsed.row === index) {
+        return toCoord(Math.max(0, Math.min(index, ROWS - 1)), parsed.col);
+      }
+      return toCoord(parsed.row > index ? parsed.row - 1 : parsed.row, parsed.col);
+    }
+    if (mode === 'insert') {
+      return toCoord(parsed.row, parsed.col >= index ? Math.min(parsed.col + 1, COLS - 1) : parsed.col);
+    }
+    if (parsed.col === index) {
+      return toCoord(parsed.row, Math.max(0, Math.min(index, COLS - 1)));
+    }
+    return toCoord(parsed.row, parsed.col > index ? parsed.col - 1 : parsed.col);
   }
 }());
