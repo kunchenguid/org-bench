@@ -7,6 +7,9 @@ const {
   getCellDisplay,
   undo,
   redo,
+  serializeSelection,
+  parseClipboardText,
+  applyClipboardMatrix,
 } = require('./spreadsheet.js');
 
 function test(name, fn) {
@@ -85,4 +88,49 @@ test('undo and redo restore dependent formula results', () => {
   redo(sheet);
   assert.equal(getCellDisplay(sheet, 'A1'), '');
   assert.equal(getCellDisplay(sheet, 'B1'), '0');
+});
+
+test('serializes a rectangular selection to tab-delimited clipboard text', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '1');
+  setCell(sheet, 'B1', '=A1*2');
+  setCell(sheet, 'A2', 'hello');
+  setCell(sheet, 'B2', '');
+
+  assert.equal(serializeSelection(sheet, ['A1', 'B1', 'A2', 'B2']), '1\t=A1*2\nhello\t');
+});
+
+test('parses clipboard text into a rectangular matrix', () => {
+  assert.deepEqual(parseClipboardText('1\t2\n3\t4'), [
+    ['1', '2'],
+    ['3', '4'],
+  ]);
+});
+
+test('applies clipboard text at a destination cell', () => {
+  const sheet = createSheet();
+  applyClipboardMatrix(sheet, 'B2', [
+    ['1', '=B2'],
+    ['hello', '4'],
+  ]);
+
+  assert.equal(getCellRaw(sheet, 'B2'), '1');
+  assert.equal(getCellRaw(sheet, 'C2'), '=B2');
+  assert.equal(getCellRaw(sheet, 'B3'), 'hello');
+  assert.equal(getCellRaw(sheet, 'C3'), '4');
+});
+
+test('undo reverses a pasted block as a single action', () => {
+  const sheet = createSheet();
+  applyClipboardMatrix(sheet, 'A1', [
+    ['1', '2'],
+    ['3', '4'],
+  ]);
+
+  undo(sheet);
+
+  assert.equal(getCellRaw(sheet, 'A1'), '');
+  assert.equal(getCellRaw(sheet, 'B1'), '');
+  assert.equal(getCellRaw(sheet, 'A2'), '');
+  assert.equal(getCellRaw(sheet, 'B2'), '');
 });
