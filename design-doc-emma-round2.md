@@ -62,3 +62,10 @@ Use one plain JavaScript file that exports pure spreadsheet-core helpers for Nod
 - Keep history snapshots at the spreadsheet-state level rather than inventing per-operation inverses, because the current grid is small and the benchmark values correctness over memory efficiency.
 - Wire standard undo-redo shortcuts in the browser only after the pure helpers are proven with tests.
 - Measure this slice by explicit counts: one commit undo-redo case, one cut undo-redo case, one paste undo-redo case, and one browser-visible cell-value reversion case.
+
+## Round 10 Extension
+
+- Add structural row and column edit helpers in the pure layer first so the benchmark-risky reference rewrite behavior is proven before any UI controls are added.
+- Rewrite formulas by shifting references that cross inserted structure and converting deleted references to `#REF!` when a referenced row or column is removed.
+- Keep this slice deliberately narrow: implement insert-row, delete-row, insert-column, and delete-column semantics on the stored raw cell map only.
+- Measure this slice by explicit counts: one row-insert rewrite case, one row-delete with `#REF!` case, one column-insert rewrite case, and one column-delete with `#REF!` case.

@@ -111,6 +111,14 @@
     return row + ':' + col;
   }
 
+  function parseCellKey(key) {
+    const parts = key.split(':');
+    return {
+      row: Number(parts[0]),
+      col: Number(parts[1]),
+    };
+  }
+
   function selectCell(state, row, col) {
     const nextSelection = {
       row: clamp(row, 1, ROW_COUNT),
@@ -202,6 +210,116 @@
     return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (token) {
       return shiftReferenceToken(token, rowOffset, colOffset);
     });
+  }
+
+  function rewriteFormulaReferences(raw, rewriteReference) {
+    if (!raw.startsWith('=')) {
+      return raw;
+    }
+    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, rewriteReference);
+  }
+
+  function shiftSelectionForStructure(point, rowTransform, colTransform) {
+    return {
+      row: clamp(rowTransform(point.row), 1, ROW_COUNT),
+      col: clamp(colTransform(point.col), 1, COLUMN_COUNT),
+    };
+  }
+
+  function insertRow(state, index) {
+    const nextCells = {};
+    Object.keys(state.cells).forEach(function (key) {
+      const position = parseCellKey(key);
+      const nextRow = position.row >= index ? position.row + 1 : position.row;
+      const nextRaw = rewriteFormulaReferences(state.cells[key], function (token) {
+        const reference = parseReferenceToken(token);
+        if (reference.row >= index) {
+          reference.row += 1;
+        }
+        return formatReferenceToken(reference);
+      });
+      nextCells[makeCellKey(nextRow, position.col)] = nextRaw;
+    });
+    return {
+      cells: nextCells,
+      selection: shiftSelectionForStructure(state.selection, function (row) { return row >= index ? row + 1 : row; }, function (col) { return col; }),
+      selectionEnd: shiftSelectionForStructure(state.selectionEnd, function (row) { return row >= index ? row + 1 : row; }, function (col) { return col; }),
+    };
+  }
+
+  function deleteRow(state, index) {
+    const nextCells = {};
+    Object.keys(state.cells).forEach(function (key) {
+      const position = parseCellKey(key);
+      if (position.row === index) {
+        return;
+      }
+      const nextRow = position.row > index ? position.row - 1 : position.row;
+      const nextRaw = rewriteFormulaReferences(state.cells[key], function (token) {
+        const reference = parseReferenceToken(token);
+        if (reference.row === index) {
+          return '#REF!';
+        }
+        if (reference.row > index) {
+          reference.row -= 1;
+        }
+        return formatReferenceToken(reference);
+      });
+      nextCells[makeCellKey(nextRow, position.col)] = nextRaw;
+    });
+    return {
+      cells: nextCells,
+      selection: shiftSelectionForStructure(state.selection, function (row) { return row > index ? row - 1 : Math.min(row, ROW_COUNT); }, function (col) { return col; }),
+      selectionEnd: shiftSelectionForStructure(state.selectionEnd, function (row) { return row > index ? row - 1 : Math.min(row, ROW_COUNT); }, function (col) { return col; }),
+    };
+  }
+
+  function insertColumn(state, index) {
+    const nextCells = {};
+    Object.keys(state.cells).forEach(function (key) {
+      const position = parseCellKey(key);
+      const nextCol = position.col >= index ? position.col + 1 : position.col;
+      const nextRaw = rewriteFormulaReferences(state.cells[key], function (token) {
+        const reference = parseReferenceToken(token);
+        if (reference.col >= index) {
+          reference.col += 1;
+        }
+        return formatReferenceToken(reference);
+      });
+      nextCells[makeCellKey(position.row, nextCol)] = nextRaw;
+    });
+    return {
+      cells: nextCells,
+      selection: shiftSelectionForStructure(state.selection, function (row) { return row; }, function (col) { return col >= index ? col + 1 : col; }),
+      selectionEnd: shiftSelectionForStructure(state.selectionEnd, function (row) { return row; }, function (col) { return col >= index ? col + 1 : col; }),
+    };
+  }
+
+  function deleteColumn(state, index) {
+    const nextCells = {};
+    Object.keys(state.cells).forEach(function (key) {
+      const position = parseCellKey(key);
+      if (position.col === index) {
+        return;
+      }
+      const nextCol = position.col > index ? position.col - 1 : position.col;
+      const nextRaw = rewriteFormulaReferences(state.cells[key], function (token) {
+        const reference = parseReferenceToken(token);
+        if (reference.col === index) {
+          return '#REF!';
+        }
+        if (reference.col > index) {
+          reference.col -= 1;
+        }
+        return formatReferenceToken(reference);
+      });
+      nextCells[makeCellKey(position.row, nextCol)] = nextRaw;
+    });
+    return {
+      cells: nextCells,
+      selection: shiftSelectionForStructure(state.selection, function (row) { return row; }, function (col) { return col > index ? col - 1 : Math.min(col, COLUMN_COUNT); }),
+      selectionEnd: shiftSelectionForStructure(state.selectionEnd, function (row) { return row; }, function (col) { return col > index ? col - 1 : Math.min(col, COLUMN_COUNT); }),
+    };
   }
 
   function copySelection(state, start, end) {
@@ -731,6 +849,11 @@
       cache[key] = result;
       return result;
     }
+    if (raw.indexOf('#REF!') >= 0) {
+      const result = { value: '#REF!' };
+      cache[key] = result;
+      return result;
+    }
     const result = {
       value: evaluateFormula(state, raw.slice(1), {
         resolveRef(refRow, refCol) {
@@ -1060,6 +1183,10 @@
     copySelection,
     clearRangeCells,
     pasteSelection,
+    insertRow,
+    deleteRow,
+    insertColumn,
+    deleteColumn,
     evaluateCell,
     formatValue,
     createStorageAdapter,
