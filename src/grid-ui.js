@@ -236,7 +236,17 @@
       return null;
     }
 
+    const shell = {
+      store,
+      controller,
+      view,
+      render: function () {
+        renderGrid(view, store);
+      },
+    };
+
     rootElement.__selectionController = controller;
+    rootElement.__sheetGridUi = shell;
     installKeyboardNavigation(view.cellGrid, controller);
     installHeaderControls(rootElement, view);
     store.subscribe(function () {
@@ -245,11 +255,11 @@
     renderGrid(view, store);
     view.cellGrid.focus();
 
-    return { store, controller, view };
+    return shell;
   }
 
   function boot() {
-    mount(document);
+    root.sheetGridUi = mount(document);
   }
 
   if (typeof document !== 'undefined') {

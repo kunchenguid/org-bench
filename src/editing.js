@@ -2,12 +2,12 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./spreadsheet-store.js'));
+    module.exports = factory(require('./spreadsheet-store.js'), require('./clipboard.js'));
     return;
   }
 
-  root.SpreadsheetEditing = factory(root.SpreadsheetStore);
-})(typeof globalThis !== 'undefined' ? globalThis : window, function (SpreadsheetStore) {
+  root.SpreadsheetEditing = factory(root.SpreadsheetStore, root.SpreadsheetClipboard);
+})(typeof globalThis !== 'undefined' ? globalThis : window, function (SpreadsheetStore, SpreadsheetClipboard) {
   const MAX_ROWS = 100;
   const MAX_COLUMNS = 26;
 
@@ -188,7 +188,13 @@
       options && options.namespace
         ? options.namespace
         : root.__APPLE_BENCH_STORAGE_NS__ || 'spreadsheet';
-    const store = SpreadsheetStore.createSpreadsheetStore({ namespace: namespace });
+    const sharedShell = rootNode.__sheetGridUi || root.sheetGridUi;
+    const store =
+      options && options.store
+        ? options.store
+        : sharedShell && sharedShell.store
+          ? sharedShell.store
+          : SpreadsheetStore.createSpreadsheetStore({ namespace: namespace });
     const controller = createEditingController({ store: store });
     const cells = Array.from(cellGrid.querySelectorAll('.cell'));
     let activeEditor = null;
@@ -343,6 +349,10 @@
         return;
       }
 
+      if (handleClearShortcut(event, { store: store, controller: controller, render: render })) {
+        return;
+      }
+
       if (event.key === 'F2' || event.key === 'Enter') {
         event.preventDefault();
         controller.beginEdit({ source: 'cell' });
@@ -365,6 +375,18 @@
       event.preventDefault();
       controller.moveSelection(move);
       render();
+    });
+
+    document.addEventListener('copy', function (event) {
+      handleClipboardEvent(event, { store: store, controller: controller, render: render, clipboardApi: SpreadsheetClipboard });
+    });
+
+    document.addEventListener('cut', function (event) {
+      handleClipboardEvent(event, { store: store, controller: controller, render: render, clipboardApi: SpreadsheetClipboard });
+    });
+
+    document.addEventListener('paste', function (event) {
+      handleClipboardEvent(event, { store: store, controller: controller, render: render, clipboardApi: SpreadsheetClipboard });
     });
 
     render();
@@ -393,6 +415,77 @@
 
   function isPlainTypingKey(event) {
     return event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey;
+  }
+
+  function handleClipboardEvent(event, options) {
+    const clipboardApi = resolveClipboardApi(options && options.clipboardApi);
+    const controller = options && options.controller;
+    const store = options && options.store;
+    const render = options && options.render;
+
+    if (!clipboardApi || !controller || !store || controller.getViewModel().editing.active) {
+      return false;
+    }
+
+    if (event.type === 'copy' || event.type === 'cut') {
+      const payload = clipboardApi.buildClipboardPayload(
+        store.getSnapshot(),
+        store.getSnapshot().selection,
+        event.type
+      );
+      if (!clipboardApi.writeClipboardData(event.clipboardData, payload)) {
+        return false;
+      }
+      event.preventDefault();
+      if (typeof render === 'function') {
+        render();
+      }
+      return true;
+    }
+
+    if (event.type === 'paste') {
+      const payload = clipboardApi.readClipboardData(event.clipboardData);
+      if (!payload) {
+        return false;
+      }
+      event.preventDefault();
+      const changed = clipboardApi.applyClipboardPaste(store, payload, store.getSnapshot().selection);
+      if (changed && typeof render === 'function') {
+        render();
+      }
+      return changed;
+    }
+
+    return false;
+  }
+
+  function handleClearShortcut(event, options) {
+    const clipboardApi = resolveClipboardApi(options && options.clipboardApi);
+    const controller = options && options.controller;
+    const store = options && options.store;
+    const render = options && options.render;
+
+    if (!clipboardApi || !controller || !store || controller.getViewModel().editing.active) {
+      return false;
+    }
+
+    if (event.key !== 'Delete' && event.key !== 'Backspace') {
+      return false;
+    }
+
+    event.preventDefault();
+    const changed = clipboardApi.clearSelectedRange(store, store.getSnapshot().selection);
+    if (changed && typeof render === 'function') {
+      render();
+    }
+    return changed;
+  }
+
+  function resolveClipboardApi(override) {
+    if (override) {
+      return override;
+    }
+    return SpreadsheetClipboard;
   }
 
   function movePoint(point, direction, maxRows, maxColumns) {
@@ -461,6 +554,8 @@
   const api = {
     createEditingController,
     mountSpreadsheetEditing,
+    handleClipboardEvent,
+    handleClearShortcut,
     pointToCellId,
     cellIdToPoint,
   };

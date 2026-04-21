@@ -1,5 +1,7 @@
 'use strict';
 
+let cachedFormulaEngine = null;
+const CUSTOM_CLIPBOARD_MIME = 'application/x-spreadsheet-cell-range';
 function buildClipboardPayload(snapshot, selection, mode) {
   const bounds = getSelectionBounds(selection);
   const cells = snapshot && snapshot.cells instanceof Map ? snapshot.cells : new Map();
@@ -39,7 +41,7 @@ function applyClipboardPaste(store, payload, selection, options) {
   const targetBounds = resolvePasteBounds(selection, payload);
   const transformCell = options && typeof options.transformCell === 'function'
     ? options.transformCell
-    : identityTransform;
+    : createDefaultTransform();
   const patch = {};
 
   for (let rowOffset = 0; rowOffset < payload.height; rowOffset += 1) {
@@ -70,6 +72,35 @@ function applyClipboardPaste(store, payload, selection, options) {
   }
 
   return store.applyCells(patch, { label: 'paste' });
+}
+
+function writeClipboardData(clipboardData, payload) {
+  if (!clipboardData || !payload) {
+    return false;
+  }
+
+  const serialized = JSON.stringify(payload);
+  clipboardData.setData(CUSTOM_CLIPBOARD_MIME, serialized);
+  clipboardData.setData('text/plain', payloadToPlainText(payload));
+  return true;
+}
+
+function readClipboardData(clipboardData) {
+  if (!clipboardData) {
+    return null;
+  }
+
+  const custom = clipboardData.getData(CUSTOM_CLIPBOARD_MIME);
+  if (custom) {
+    try {
+      return JSON.parse(custom);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  const plainText = clipboardData.getData('text/plain');
+  return plainText ? payloadFromPlainText(plainText) : null;
 }
 
 function resolvePasteBounds(selection, payload) {
@@ -141,8 +172,93 @@ function identityTransform(raw) {
   return raw;
 }
 
-module.exports = {
+function payloadToPlainText(payload) {
+  return payload.rows.map(function (row) {
+    return row.join('\t');
+  }).join('\n');
+}
+
+function payloadFromPlainText(text) {
+  const normalized = String(text || '').replace(/\r\n?/g, '\n');
+  const rows = normalized.split('\n').map(function (row) {
+    return row.split('\t');
+  });
+  const width = rows.reduce(function (max, row) {
+    return Math.max(max, row.length);
+  }, 0);
+  const height = rows.length;
+
+  return {
+    kind: 'cell-range',
+    mode: 'copy',
+    width: width,
+    height: height,
+    source: {
+      anchor: { row: 0, col: 0 },
+      focus: { row: Math.max(height - 1, 0), col: Math.max(width - 1, 0) },
+    },
+    rows,
+  };
+}
+
+function createDefaultTransform() {
+  const formulaEngine = getFormulaEngine();
+
+  if (!formulaEngine || typeof formulaEngine.rebaseFormula !== 'function') {
+    return identityTransform;
+  }
+
+  return function defaultTransform(raw, context) {
+    if (typeof raw !== 'string' || raw.charAt(0) !== '=') {
+      return raw;
+    }
+
+    return formulaEngine.rebaseFormula(
+      raw,
+      formatCellId(context.sourceCell),
+      formatCellId(context.targetCell)
+    );
+  };
+}
+
+function getFormulaEngine() {
+  if (cachedFormulaEngine !== null) {
+    return cachedFormulaEngine;
+  }
+
+  if (typeof globalThis !== 'undefined' && globalThis.FormulaEngine) {
+    cachedFormulaEngine = globalThis.FormulaEngine;
+    return cachedFormulaEngine;
+  }
+
+  if (typeof require === 'function') {
+    try {
+      cachedFormulaEngine = require('../formula-engine.js');
+      return cachedFormulaEngine;
+    } catch (_error) {
+      cachedFormulaEngine = null;
+      return cachedFormulaEngine;
+    }
+  }
+
+  cachedFormulaEngine = null;
+  return cachedFormulaEngine;
+}
+
+const api = {
+  CUSTOM_CLIPBOARD_MIME,
   buildClipboardPayload,
   clearSelectedRange,
   applyClipboardPaste,
+  writeClipboardData,
+  readClipboardData,
+  payloadToPlainText,
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = api;
+}
+
+if (typeof window !== 'undefined') {
+  window.SpreadsheetClipboard = api;
+}
