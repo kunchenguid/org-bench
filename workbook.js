@@ -678,6 +678,16 @@
     });
   }
 
+  function resolveStorageNamespace(root) {
+    const globalRoot = root || {};
+    const doc = globalRoot.document && globalRoot.document.documentElement ? globalRoot.document.documentElement : null;
+    return globalRoot.__RUN_STORAGE_NAMESPACE__
+      || globalRoot.RUN_STORAGE_NAMESPACE
+      || globalRoot.__BENCHMARK_RUN_NAMESPACE__
+      || (doc && typeof doc.getAttribute === 'function' ? doc.getAttribute('data-storage-namespace') : null)
+      || 'facebook-sheet';
+  }
+
   return {
     SpreadsheetModel,
     COLS,
@@ -691,5 +701,6 @@
     applyPaste,
     parseSelectionRect,
     forEachCoord,
+    resolveStorageNamespace,
   };
 }));

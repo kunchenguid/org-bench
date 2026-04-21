@@ -4,6 +4,7 @@ const {
   SpreadsheetModel,
   shiftFormula,
   applyPaste,
+  resolveStorageNamespace,
 } = require('../workbook.js');
 
 function test(name, fn) {
@@ -66,4 +67,12 @@ test('pasting copied formulas shifts references by source-to-target offset', () 
   const model = new SpreadsheetModel();
   applyPaste(model, 'C2', '=$A1+B$1', { sourceSelection: { start: 'A1', end: 'A1' } });
   assert.equal(model.getRaw('C2'), '=$A2+D$1');
+});
+
+test('prefers injected run namespace across supported globals', () => {
+  assert.equal(resolveStorageNamespace({ __RUN_STORAGE_NAMESPACE__: 'run-a' }), 'run-a');
+  assert.equal(resolveStorageNamespace({ RUN_STORAGE_NAMESPACE: 'run-b' }), 'run-b');
+  assert.equal(resolveStorageNamespace({ __BENCHMARK_RUN_NAMESPACE__: 'run-c' }), 'run-c');
+  assert.equal(resolveStorageNamespace({ document: { documentElement: { getAttribute(name) { return name === 'data-storage-namespace' ? 'run-d' : null; } } } }), 'run-d');
+  assert.equal(resolveStorageNamespace({}), 'facebook-sheet');
 });
