@@ -47,11 +47,36 @@
     return state.cut ? null : state;
   }
 
+  function getSelectionAfterStructureChange(selection, operation) {
+    return {
+      anchor: adjustPoint(selection.anchor, operation),
+      focus: adjustPoint(selection.focus, operation),
+    };
+  }
+
+  function adjustPoint(point, operation) {
+    const next = { row: point.row, col: point.col };
+    const key = operation.axis === 'row' ? 'row' : 'col';
+
+    if (operation.kind === 'insert') {
+      if (next[key] >= operation.index) {
+        next[key] += 1;
+      }
+      return next;
+    }
+
+    if (next[key] > operation.index) {
+      next[key] -= 1;
+    }
+    return next;
+  }
+
   return {
     advanceClipboardState,
     beginEditSession,
     commitEditSession,
     createClipboardState,
+    getSelectionAfterStructureChange,
     matchClipboardState,
     resolveStorageNamespace,
     updateEditSession,
