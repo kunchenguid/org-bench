@@ -179,12 +179,15 @@ body {
 }
 
 .grid-scroll {
-  height: calc(100vh - 190px);
+  height: calc(100vh - 186px);
   min-height: 460px;
   overflow: auto;
   border-radius: 18px;
-  border: 1px solid rgba(199, 208, 223, 0.62);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(247, 249, 253, 0.96) 100%);
+  border: 1px solid rgba(215, 223, 236, 0.92);
+  background:
+    linear-gradient(180deg, rgba(247, 249, 252, 0.9) 0%, rgba(241, 245, 251, 0.62) 100%),
+    #f5f7fb;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .sheet-grid {
@@ -193,6 +196,7 @@ body {
   table-layout: fixed;
   width: max-content;
   min-width: 100%;
+  font-size: 13px;
 }
 
 .sheet-grid th,
@@ -208,13 +212,13 @@ body {
 }
 
 .sheet-grid th {
-  background: linear-gradient(180deg, var(--header-bg) 0%, var(--header-bg-strong) 100%);
+  background: var(--header-bg);
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   text-align: center;
   user-select: none;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(18px);
 }
 
 .corner-cell,
@@ -230,6 +234,9 @@ body {
   width: var(--index-width);
   min-width: var(--index-width);
   border-top: 0;
+  background:
+    linear-gradient(135deg, rgba(11, 102, 255, 0.14) 0%, rgba(11, 102, 255, 0) 46%),
+    var(--header-bg-strong);
 }
 
 .column-header {
@@ -240,12 +247,16 @@ body {
   width: var(--cell-width);
   height: var(--header-height);
   border-top: 0;
+  box-shadow: inset 0 -1px 0 rgba(199, 208, 223, 0.95);
 }
 
 .row-header {
   min-width: var(--index-width);
   width: var(--index-width);
-  background: linear-gradient(180deg, rgba(248, 250, 253, 0.98) 0%, rgba(240, 244, 250, 0.98) 100%);
+  background: var(--header-bg);
+  text-align: right;
+  padding-right: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .sheet-grid tr > *:first-child {
@@ -263,56 +274,61 @@ body {
   color: var(--text);
   cursor: cell;
   user-select: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
 .sheet-grid td:hover {
-  background: #fbfdff;
-}
-
-.sheet-grid td.cell-editing {
-  padding: 0;
-}
-
-.cell-editor {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  padding: 0 10px;
-  font: inherit;
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.98);
-  outline: 0;
+  background: #fcfdff;
 }
 
 .cell-range {
-  background: var(--accent-soft) !important;
+  background: linear-gradient(180deg, rgba(11, 102, 255, 0.06) 0%, var(--accent-soft) 100%) !important;
+  box-shadow: inset 0 0 0 1px rgba(11, 102, 255, 0.08);
 }
 
 .cell-active {
   background: rgba(255, 255, 255, 0.98) !important;
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 0 0 1px rgba(255, 255, 255, 0.95),
+    0 10px 18px rgba(11, 102, 255, 0.1);
   z-index: 2;
 }
 
 .cell-active::after {
   content: "";
   position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
+  right: -4px;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
   background: var(--accent);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(11, 102, 255, 0.22);
 }
 
 .header-active,
 .header-range {
-  background: linear-gradient(180deg, #eef4ff 0%, #e8f1ff 100%) !important;
   color: var(--accent-text) !important;
 }
 
 .header-active {
-  box-shadow: inset 0 -2px 0 var(--accent);
+  background: linear-gradient(180deg, #f3f7ff 0%, #e8f0ff 100%) !important;
+  box-shadow:
+    inset 0 -2px 0 var(--accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.header-range {
+  background: linear-gradient(180deg, rgba(236, 243, 255, 0.98) 0%, rgba(230, 239, 255, 0.98) 100%) !important;
+}
+
+.sheet-grid:focus-within .cell-active {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 0 0 1px rgba(255, 255, 255, 0.95),
+    0 12px 22px rgba(11, 102, 255, 0.14);
 }
 
 @media (max-width: 900px) {
@@ -325,6 +341,10 @@ body {
     padding: 14px;
   }
 
+  .brand-lockup h1 {
+    font-size: 22px;
+  }
+
   .formula-bar {
     grid-template-columns: auto 1fr;
   }
@@ -334,6 +354,6 @@ body {
   }
 
   .grid-scroll {
-    height: calc(100vh - 204px);
+    height: calc(100vh - 208px);
   }
 }

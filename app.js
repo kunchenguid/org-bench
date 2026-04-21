@@ -276,13 +276,13 @@
       var address = cell.dataset.address;
       if (state.editing && state.editing.source === 'cell' && state.editing.address === address) {
         cell.textContent = '';
-        cell.classList.add('cell-editing');
+        cell.style.padding = '0';
         if (cellEditor.parentNode !== cell) {
           cell.appendChild(cellEditor);
         }
         cellEditor.value = state.editing.draft;
       } else {
-        cell.classList.remove('cell-editing');
+        cell.style.removeProperty('padding');
         if (cellEditor.parentNode === cell) {
           cell.removeChild(cellEditor);
         }
@@ -317,9 +317,16 @@
 
     var cellEditor = document.createElement('input');
     cellEditor.type = 'text';
-    cellEditor.className = 'cell-editor';
     cellEditor.spellcheck = false;
     cellEditor.autocomplete = 'off';
+    cellEditor.style.width = '100%';
+    cellEditor.style.height = '100%';
+    cellEditor.style.border = '0';
+    cellEditor.style.padding = '0 10px';
+    cellEditor.style.font = 'inherit';
+    cellEditor.style.color = 'inherit';
+    cellEditor.style.background = 'rgba(255, 255, 255, 0.98)';
+    cellEditor.style.outline = '0';
 
     var state = createInitialState();
 
