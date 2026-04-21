@@ -53,6 +53,285 @@
     return String.fromCharCode(65 + cell.column) + String(cell.row + 1);
   }
 
+  function cellFromAddress(address) {
+    var match = String(address || '').match(/^([A-Z]+)(\d+)$/);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      row: Number(match[2]) - 1,
+      column: match[1].charCodeAt(0) - 65,
+    };
+  }
+
+  function cloneCells(cells) {
+    return Object.assign({}, cells || {});
+  }
+
+  function selectionSize(selection) {
+    return {
+      rows: selection.maxRow - selection.minRow + 1,
+      columns: selection.maxColumn - selection.minColumn + 1,
+    };
+  }
+
+  function getSelectionOrigin(selection) {
+    var size = selectionSize(selection);
+    if (size.rows === 1 && size.columns === 1) {
+      return {
+        row: selection.active.row,
+        column: selection.active.column,
+      };
+    }
+
+    return {
+      row: selection.minRow,
+      column: selection.minColumn,
+    };
+  }
+
+  function forEachCellInSelection(selection, callback) {
+    for (var row = selection.minRow; row <= selection.maxRow; row += 1) {
+      for (var column = selection.minColumn; column <= selection.maxColumn; column += 1) {
+        callback({ row: row, column: column }, row - selection.minRow, column - selection.minColumn);
+      }
+    }
+  }
+
+  function clearSelectedCells(cells, selection) {
+    var nextCells = cloneCells(cells);
+    forEachCellInSelection(selection, function (cell) {
+      delete nextCells[addressFromCell(cell)];
+    });
+    return nextCells;
+  }
+
+  function matrixFromSelection(cells, selection) {
+    var rows = [];
+    for (var row = selection.minRow; row <= selection.maxRow; row += 1) {
+      var columns = [];
+      for (var column = selection.minColumn; column <= selection.maxColumn; column += 1) {
+        columns.push((cells && cells[addressFromCell({ row: row, column: column })]) || '');
+      }
+      rows.push(columns);
+    }
+    return rows;
+  }
+
+  function matrixToClipboardText(matrix) {
+    return matrix.map(function (row) {
+      return row.join('\t');
+    }).join('\n');
+  }
+
+  function parseClipboardText(text) {
+    return String(text || '').replace(/\r/g, '').split('\n').map(function (line) {
+      return line.split('\t');
+    });
+  }
+
+  function parseReferenceToken(token) {
+    var match = String(token).match(/^(\$?)([A-Z]+)(\$?)(\d+)$/);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      columnAbsolute: match[1] === '$',
+      column: match[2].charCodeAt(0) - 64,
+      rowAbsolute: match[3] === '$',
+      row: Number(match[4]),
+    };
+  }
+
+  function formatReferenceToken(reference) {
+    return [
+      reference.columnAbsolute ? '$' : '',
+      String.fromCharCode(64 + reference.column),
+      reference.rowAbsolute ? '$' : '',
+      String(reference.row),
+    ].join('');
+  }
+
+  function translateFormulaFallback(rawValue, sourceAddress, targetAddress) {
+    if (typeof rawValue !== 'string' || rawValue.charAt(0) !== '=') {
+      return rawValue;
+    }
+
+    var source = cellFromAddress(sourceAddress);
+    var target = cellFromAddress(targetAddress);
+    if (!source || !target) {
+      return rawValue;
+    }
+
+    var rowOffset = target.row - source.row;
+    var columnOffset = target.column - source.column;
+
+    return '=' + rawValue.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (token) {
+      var reference = parseReferenceToken(token);
+      if (!reference) {
+        return token;
+      }
+
+      var next = {
+        columnAbsolute: reference.columnAbsolute,
+        rowAbsolute: reference.rowAbsolute,
+        column: reference.columnAbsolute ? reference.column : Math.max(1, reference.column + columnOffset),
+        row: reference.rowAbsolute ? reference.row : Math.max(1, reference.row + rowOffset),
+      };
+
+      return formatReferenceToken(next);
+    });
+  }
+
+  function getFormulaTranslator() {
+    if (globalScope.FormulaEngine && typeof globalScope.FormulaEngine.translateFormula === 'function') {
+      return globalScope.FormulaEngine.translateFormula;
+    }
+    return translateFormulaFallback;
+  }
+
+  function copySelection(cells, selection, mode) {
+    var matrix = matrixFromSelection(cells, selection);
+    return {
+      text: matrixToClipboardText(matrix),
+      payload: {
+        mode: mode || 'copy',
+        selection: {
+          minRow: selection.minRow,
+          maxRow: selection.maxRow,
+          minColumn: selection.minColumn,
+          maxColumn: selection.maxColumn,
+        },
+        matrix: matrix,
+      },
+    };
+  }
+
+  function normalizeClipboard(clipboard) {
+    if (!clipboard) {
+      return null;
+    }
+
+    if (clipboard.payload && clipboard.payload.matrix) {
+      return clipboard.payload;
+    }
+
+    if (clipboard.matrix) {
+      return clipboard;
+    }
+
+    return null;
+  }
+
+  function pasteSelection(options) {
+    var clipboard = normalizeClipboard(options.clipboard);
+    if (!clipboard || !clipboard.matrix || !clipboard.matrix.length) {
+      return {
+        cells: cloneCells(options.cells),
+        selection: options.targetSelection,
+        cutCleared: false,
+      };
+    }
+
+    var nextCells = cloneCells(options.cells);
+    var targetOrigin = getSelectionOrigin(options.targetSelection);
+    var blockHeight = clipboard.matrix.length;
+    var blockWidth = clipboard.matrix[0].length;
+    var translateFormula = typeof options.translateFormula === 'function' ? options.translateFormula : getFormulaTranslator();
+
+    if (clipboard.mode === 'cut' && clipboard.selection) {
+      for (var sourceRow = clipboard.selection.minRow; sourceRow <= clipboard.selection.maxRow; sourceRow += 1) {
+        for (var sourceColumn = clipboard.selection.minColumn; sourceColumn <= clipboard.selection.maxColumn; sourceColumn += 1) {
+          delete nextCells[addressFromCell({ row: sourceRow, column: sourceColumn })];
+        }
+      }
+    }
+
+    clipboard.matrix.forEach(function (rowValues, rowOffset) {
+      rowValues.forEach(function (rawValue, columnOffset) {
+        var targetCell = {
+          row: targetOrigin.row + rowOffset,
+          column: targetOrigin.column + columnOffset,
+        };
+        var targetAddress = addressFromCell(targetCell);
+        var sourceAddress = clipboard.selection
+          ? addressFromCell({
+              row: clipboard.selection.minRow + rowOffset,
+              column: clipboard.selection.minColumn + columnOffset,
+            })
+          : targetAddress;
+        var nextValue = rawValue;
+
+        if (typeof rawValue === 'string' && rawValue.charAt(0) === '=') {
+          nextValue = translateFormula(rawValue, sourceAddress, targetAddress);
+        }
+
+        if (nextValue) {
+          nextCells[targetAddress] = nextValue;
+        } else {
+          delete nextCells[targetAddress];
+        }
+      });
+    });
+
+    var nextSelection = selectionFromEndpoints(targetOrigin, {
+      row: targetOrigin.row + blockHeight - 1,
+      column: targetOrigin.column + blockWidth - 1,
+    });
+    nextSelection.active = {
+      row: targetOrigin.row,
+      column: targetOrigin.column,
+    };
+
+    return {
+      cells: nextCells,
+      selection: nextSelection,
+      cutCleared: clipboard.mode === 'cut',
+    };
+  }
+
+  function renderCells(root, cells) {
+    root.querySelectorAll('td').forEach(function (cell) {
+      var address = cell.dataset.address;
+      cell.textContent = (cells && cells[address]) || '';
+    });
+  }
+
+  function syncFormulaBar(formulaInput, cells, selection) {
+    if (!formulaInput) {
+      return;
+    }
+
+    formulaInput.value = (cells && cells[addressFromCell(selection.active)]) || '';
+  }
+
+  function readClipboardPayload(clipboardData) {
+    if (!clipboardData) {
+      return null;
+    }
+
+    var rawPayload = clipboardData.getData('application/x-sheet-selection');
+    if (rawPayload) {
+      try {
+        return JSON.parse(rawPayload);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    var text = clipboardData.getData('text/plain');
+    if (!text) {
+      return null;
+    }
+
+    return {
+      mode: 'copy',
+      matrix: parseClipboardText(text),
+    };
+  }
+
   function buildGrid(tableElement, rowCount, columnCount) {
     var fragment = document.createDocumentFragment();
     var headerRow = document.createElement('tr');
@@ -148,23 +427,35 @@
     }
 
     var table = document.getElementById('sheet-grid');
+    var formulaInput = document.getElementById('formula-input');
     if (!table) {
       return;
     }
 
     buildGrid(table, TOTAL_ROWS, TOTAL_COLUMNS);
+    table.tabIndex = 0;
 
     var state = {
       selection: createInitialSelection(),
       dragAnchor: null,
+      cells: {},
+      clipboard: null,
     };
 
     function setSelection(nextSelection) {
       state.selection = nextSelection;
       applySelectionState(table, state.selection);
+      syncFormulaBar(formulaInput, state.cells, state.selection);
+    }
+
+    function commitCells(nextCells) {
+      state.cells = nextCells;
+      renderCells(table, state.cells);
+      syncFormulaBar(formulaInput, state.cells, state.selection);
     }
 
     setSelection(state.selection);
+    commitCells(state.cells);
 
     table.addEventListener('mousedown', function (event) {
       var cell = event.target.closest('td');
@@ -173,6 +464,7 @@
       }
 
       event.preventDefault();
+      table.focus();
       var anchor = readCellFromDataset(cell);
       state.dragAnchor = event.shiftKey ? state.selection.anchor : anchor;
       setSelection(selectionFromEndpoints(state.dragAnchor, anchor));
@@ -201,6 +493,7 @@
         return;
       }
 
+      table.focus();
       var focus = readCellFromDataset(cell);
       var anchor = event.shiftKey ? state.selection.anchor : focus;
       setSelection(selectionFromEndpoints(anchor, focus));
@@ -223,6 +516,10 @@
       }
 
       if (!delta) {
+        if ((event.key === 'Backspace' || event.key === 'Delete') && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          event.preventDefault();
+          commitCells(clearSelectedCells(state.cells, state.selection));
+        }
         return;
       }
 
@@ -238,6 +535,53 @@
       var nextAnchor = event.shiftKey ? state.selection.anchor : nextFocus;
       setSelection(selectionFromEndpoints(nextAnchor, nextFocus));
     });
+
+    document.addEventListener('copy', function (event) {
+      if (document.activeElement !== table) {
+        return;
+      }
+
+      var clipboard = copySelection(state.cells, state.selection, 'copy');
+      event.preventDefault();
+      event.clipboardData.setData('text/plain', clipboard.text);
+      event.clipboardData.setData('application/x-sheet-selection', JSON.stringify(clipboard.payload));
+      state.clipboard = clipboard.payload;
+    });
+
+    document.addEventListener('cut', function (event) {
+      if (document.activeElement !== table) {
+        return;
+      }
+
+      var clipboard = copySelection(state.cells, state.selection, 'cut');
+      event.preventDefault();
+      event.clipboardData.setData('text/plain', clipboard.text);
+      event.clipboardData.setData('application/x-sheet-selection', JSON.stringify(clipboard.payload));
+      state.clipboard = clipboard.payload;
+    });
+
+    document.addEventListener('paste', function (event) {
+      if (document.activeElement !== table) {
+        return;
+      }
+
+      var clipboard = readClipboardPayload(event.clipboardData) || state.clipboard;
+      if (!clipboard) {
+        return;
+      }
+
+      event.preventDefault();
+      var result = pasteSelection({
+        cells: state.cells,
+        targetSelection: state.selection,
+        clipboard: clipboard,
+      });
+      commitCells(result.cells);
+      setSelection(result.selection);
+      if (result.cutCleared) {
+        state.clipboard = null;
+      }
+    });
   }
 
   var api = {
@@ -246,6 +590,10 @@
     clampCell: clampCell,
     createInitialSelection: createInitialSelection,
     selectionFromEndpoints: selectionFromEndpoints,
+    clearSelectedCells: clearSelectedCells,
+    copySelection: copySelection,
+    pasteSelection: pasteSelection,
+    translateFormulaFallback: translateFormulaFallback,
     initSpreadsheetShell: initSpreadsheetShell,
   };
 
