@@ -110,7 +110,7 @@ test('applyClipboardPaste pastes a copied block from its top-left into the targe
       C5: '1',
       D5: '2',
       C6: '3',
-      D6: '=A1',
+      D6: '=C5',
     }
   );
   assert.equal(store.getSnapshot().history.undo.at(-1).label, 'paste');
@@ -201,4 +201,31 @@ test('applyClipboardPaste clears the source cells for cut payloads and supports 
   assert.equal(store.getRawCell('A1'), '');
   assert.equal(store.getRawCell('B1'), '');
   assert.equal(store.getSnapshot().history.undo.at(-1).label, 'cut-paste');
+});
+
+test('applyClipboardPaste rebases relative formula references for copied formulas by default', () => {
+  const store = createSpreadsheetStore({
+    namespace: 'run-formula-paste',
+    storage: createMemoryStorage(),
+  });
+
+  store.applyCells(
+    {
+      A1: '5',
+      B1: '=A1+$A$1',
+    },
+    { label: 'seed' }
+  );
+
+  const payload = buildClipboardPayload(store.getSnapshot(), {
+    anchor: { row: 0, col: 1 },
+    focus: { row: 0, col: 1 },
+  }, 'copy');
+
+  applyClipboardPaste(store, payload, {
+    anchor: { row: 2, col: 3 },
+    focus: { row: 2, col: 3 },
+  });
+
+  assert.equal(store.getRawCell('D3'), '=C3+$A$1');
 });

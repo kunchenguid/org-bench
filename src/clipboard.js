@@ -1,5 +1,7 @@
 'use strict';
 
+let cachedFormulaEngine = null;
+
 function buildClipboardPayload(snapshot, selection, mode) {
   const bounds = getSelectionBounds(selection);
   const cells = snapshot && snapshot.cells instanceof Map ? snapshot.cells : new Map();
@@ -39,7 +41,7 @@ function applyClipboardPaste(store, payload, selection, options) {
   const targetBounds = resolvePasteBounds(selection, payload);
   const transformCell = options && typeof options.transformCell === 'function'
     ? options.transformCell
-    : identityTransform;
+    : createDefaultTransform();
   const patch = {};
 
   for (let rowOffset = 0; rowOffset < payload.height; rowOffset += 1) {
@@ -139,6 +141,50 @@ function cloneSelection(selection) {
 
 function identityTransform(raw) {
   return raw;
+}
+
+function createDefaultTransform() {
+  const formulaEngine = getFormulaEngine();
+
+  if (!formulaEngine || typeof formulaEngine.rebaseFormula !== 'function') {
+    return identityTransform;
+  }
+
+  return function defaultTransform(raw, context) {
+    if (typeof raw !== 'string' || raw.charAt(0) !== '=') {
+      return raw;
+    }
+
+    return formulaEngine.rebaseFormula(
+      raw,
+      formatCellId(context.sourceCell),
+      formatCellId(context.targetCell)
+    );
+  };
+}
+
+function getFormulaEngine() {
+  if (cachedFormulaEngine !== null) {
+    return cachedFormulaEngine;
+  }
+
+  if (typeof globalThis !== 'undefined' && globalThis.FormulaEngine) {
+    cachedFormulaEngine = globalThis.FormulaEngine;
+    return cachedFormulaEngine;
+  }
+
+  if (typeof require === 'function') {
+    try {
+      cachedFormulaEngine = require('../formula-engine.js');
+      return cachedFormulaEngine;
+    } catch (_error) {
+      cachedFormulaEngine = null;
+      return cachedFormulaEngine;
+    }
+  }
+
+  cachedFormulaEngine = null;
+  return cachedFormulaEngine;
 }
 
 module.exports = {
