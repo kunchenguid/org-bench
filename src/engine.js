@@ -1,4 +1,10 @@
-(function (global) {
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.SpreadsheetEngine = factory();
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
   var COL_COUNT = 26;
@@ -570,11 +576,6 @@
     this.future = [];
   };
 
-  SpreadsheetModel.prototype.mutate = function (callback) {
-    this.recordHistory();
-    callback();
-  };
-
   SpreadsheetModel.prototype.undo = function () {
     if (!this.history.length) {
       return false;
@@ -593,10 +594,6 @@
     return true;
   };
 
-  SpreadsheetModel.prototype.setSelection = function (selection) {
-    this.selection = serializeStateObject(selection);
-  };
-
   SpreadsheetModel.prototype.getRaw = function (cellId) {
     return Object.prototype.hasOwnProperty.call(this.cells, cellId) ? this.cells[cellId] : '';
   };
@@ -611,7 +608,7 @@
       return;
     }
     this.cells[cellId] = value;
-  }
+  };
 
   SpreadsheetModel.prototype.setCells = function (entries, options) {
     if (!(options && options.skipHistory)) {
@@ -676,7 +673,7 @@
     this.cells = nextCells;
     this.selection.anchor.row = clamp(this.selection.anchor.row > rowIndex ? this.selection.anchor.row - 1 : this.selection.anchor.row, 0, ROW_COUNT - 1);
     this.selection.focus.row = clamp(this.selection.focus.row > rowIndex ? this.selection.focus.row - 1 : this.selection.focus.row, 0, ROW_COUNT - 1);
-  }
+  };
 
   SpreadsheetModel.prototype.insertColumn = function (colIndex) {
     this.recordHistory();
@@ -696,7 +693,7 @@
     if (this.selection.focus.col >= colIndex) {
       this.selection.focus.col += 1;
     }
-  }
+  };
 
   SpreadsheetModel.prototype.deleteColumn = function (colIndex) {
     this.recordHistory();
@@ -715,7 +712,7 @@
     this.cells = nextCells;
     this.selection.anchor.col = clamp(this.selection.anchor.col > colIndex ? this.selection.anchor.col - 1 : this.selection.anchor.col, 0, COL_COUNT - 1);
     this.selection.focus.col = clamp(this.selection.focus.col > colIndex ? this.selection.focus.col - 1 : this.selection.focus.col, 0, COL_COUNT - 1);
-  }
+  };
 
   SpreadsheetModel.prototype.getRangeRaw = function (selection) {
     var range = normalizeRange(selection);
@@ -761,10 +758,8 @@
           case 'boolean':
           case 'error':
             return node.value;
-          case 'cell': {
-            var refId = formatCellId(node.ref.col, node.ref.row);
-            return model.evaluateCell(refId, nextStack, cache);
-          }
+          case 'cell':
+            return model.evaluateCell(formatCellId(node.ref.col, node.ref.row), nextStack, cache);
           case 'range': {
             var top = Math.min(node.start.row, node.end.row);
             var bottom = Math.max(node.start.row, node.end.row);
@@ -780,50 +775,34 @@
           }
           case 'unary': {
             var operand = evalNode(node.operand);
-            if (isErrorValue(operand)) {
-              return operand;
-            }
-            return -toNumber(operand);
+            return isErrorValue(operand) ? operand : -toNumber(operand);
           }
           case 'binary': {
             var leftValue = evalNode(node.left);
+            var rightValue = evalNode(node.right);
             if (isErrorValue(leftValue)) {
               return leftValue;
             }
-            var rightValue = evalNode(node.right);
             if (isErrorValue(rightValue)) {
               return rightValue;
             }
             switch (node.operator) {
-              case '+':
-                return toNumber(leftValue) + toNumber(rightValue);
-              case '-':
-                return toNumber(leftValue) - toNumber(rightValue);
-              case '*':
-                return toNumber(leftValue) * toNumber(rightValue);
-              case '/': {
-                var divisor = toNumber(rightValue);
-                if (divisor === 0) {
+              case '+': return toNumber(leftValue) + toNumber(rightValue);
+              case '-': return toNumber(leftValue) - toNumber(rightValue);
+              case '*': return toNumber(leftValue) * toNumber(rightValue);
+              case '/':
+                if (toNumber(rightValue) === 0) {
                   return ERROR.DIV0;
                 }
-                return toNumber(leftValue) / divisor;
-              }
-              case '&':
-                return toText(leftValue) + toText(rightValue);
-              case '=':
-                return toText(leftValue) === toText(rightValue);
-              case '<>':
-                return toText(leftValue) !== toText(rightValue);
-              case '<':
-                return toNumber(leftValue) < toNumber(rightValue);
-              case '<=':
-                return toNumber(leftValue) <= toNumber(rightValue);
-              case '>':
-                return toNumber(leftValue) > toNumber(rightValue);
-              case '>=':
-                return toNumber(leftValue) >= toNumber(rightValue);
-              default:
-                return ERROR.ERR;
+                return toNumber(leftValue) / toNumber(rightValue);
+              case '&': return toText(leftValue) + toText(rightValue);
+              case '=': return toText(leftValue) === toText(rightValue);
+              case '<>': return toText(leftValue) !== toText(rightValue);
+              case '<': return toNumber(leftValue) < toNumber(rightValue);
+              case '<=': return toNumber(leftValue) <= toNumber(rightValue);
+              case '>': return toNumber(leftValue) > toNumber(rightValue);
+              case '>=': return toNumber(leftValue) >= toNumber(rightValue);
+              default: return ERROR.ERR;
             }
           }
           case 'func':
@@ -844,529 +823,33 @@
     return formatDisplayValue(this.evaluateCell(cellId, [], {}));
   };
 
-  SpreadsheetModel.prototype.serialize = function () {
-    return this.snapshot();
-  };
-
-  function getStorageNamespace() {
-    return global.__RUN_STORAGE_NAMESPACE__ || global.__BENCHMARK_RUN_NAMESPACE__ || global.BENCHMARK_RUN_NAMESPACE || 'spreadsheet:';
-  }
-
-  function saveToStorage(model) {
-    if (!global.localStorage) {
-      return;
+  function stepAddress(cellId, direction, maxColumns, maxRows) {
+    var coord = parseCellId(cellId);
+    if (direction === 'left') {
+      coord.col = clamp(coord.col - 1, 0, maxColumns - 1);
+    } else if (direction === 'right') {
+      coord.col = clamp(coord.col + 1, 0, maxColumns - 1);
+    } else if (direction === 'up') {
+      coord.row = clamp(coord.row - 1, 0, maxRows - 1);
+    } else if (direction === 'down') {
+      coord.row = clamp(coord.row + 1, 0, maxRows - 1);
     }
-    global.localStorage.setItem(getStorageNamespace() + 'state', JSON.stringify(model.serialize()));
-  }
-
-  function loadFromStorage() {
-    if (!global.localStorage) {
-      return null;
-    }
-    var value = global.localStorage.getItem(getStorageNamespace() + 'state');
-    if (!value) {
-      return null;
-    }
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function selectionSize(selection) {
-    var range = normalizeRange(selection);
-    return {
-      width: range.right - range.left + 1,
-      height: range.bottom - range.top + 1,
-    };
-  }
-
-  function buildCellText(rows) {
-    return rows.map(function (row) { return row.join('\t'); }).join('\n');
+    return formatCellId(coord.col, coord.row);
   }
 
   function shouldSyncFormulaBar(activeElement, formulaBar, formulaDraft) {
     return activeElement !== formulaBar || formulaDraft === null;
   }
 
-  function createSpreadsheetApp(root) {
-    var model = new SpreadsheetModel(loadFromStorage() || undefined);
-    var table = root.querySelector('[data-grid]');
-    var formulaBar = root.querySelector('[data-formula-input]');
-    var nameBox = root.querySelector('[data-name-box]');
-    var editor = root.querySelector('[data-cell-editor]');
-    var scroller = root.querySelector('[data-grid-scroller]');
-    var menu = root.querySelector('[data-header-menu]');
-    var dragState = null;
-    var internalClipboard = null;
-    var editingCell = null;
-    var formulaDraft = null;
-
-    function activeCellId() {
-      return formatCellId(model.selection.focus.col, model.selection.focus.row);
-    }
-
-    function isInRange(row, col) {
-      var range = normalizeRange(model.selection);
-      return row >= range.top && row <= range.bottom && col >= range.left && col <= range.right;
-    }
-
-    function closeHeaderMenu() {
-      menu.hidden = true;
-      menu.dataset.kind = '';
-      menu.dataset.index = '';
-    }
-
-    function render() {
-      var cells = table.querySelectorAll('td[data-cell]');
-      for (var i = 0; i < cells.length; i += 1) {
-        var cell = cells[i];
-        var row = Number(cell.dataset.row);
-        var col = Number(cell.dataset.col);
-        var cellId = formatCellId(col, row);
-        var raw = model.getRaw(cellId);
-        var display = model.getDisplayValue(cellId);
-        cell.textContent = display;
-        cell.classList.toggle('is-active', row === model.selection.focus.row && col === model.selection.focus.col);
-        cell.classList.toggle('is-in-range', isInRange(row, col));
-        cell.classList.toggle('is-text', raw && raw.charAt(0) !== '=' && !(raw.trim() !== '' && Number.isFinite(Number(raw))));
-        cell.classList.toggle('is-formula', raw && raw.charAt(0) === '=');
-        cell.classList.toggle('is-error', /^#/.test(display));
-      }
-      var headers = table.querySelectorAll('th[data-row], th[data-col]');
-      for (var j = 0; j < headers.length; j += 1) {
-        var header = headers[j];
-        if (header.dataset.row !== undefined && header.dataset.row !== '') {
-          var rowIndex = Number(header.dataset.row);
-          var rowRange = normalizeRange(model.selection);
-          header.classList.toggle('is-highlighted', rowIndex >= rowRange.top && rowIndex <= rowRange.bottom);
-        }
-        if (header.dataset.col !== undefined && header.dataset.col !== '') {
-          var colIndex = Number(header.dataset.col);
-          var colRange = normalizeRange(model.selection);
-          header.classList.toggle('is-highlighted', colIndex >= colRange.left && colIndex <= colRange.right);
-        }
-      }
-      nameBox.value = activeCellId();
-      if (shouldSyncFormulaBar(document.activeElement, formulaBar, formulaDraft)) {
-        formulaBar.value = model.getRaw(activeCellId());
-      }
-      positionEditor();
-      saveToStorage(model);
-    }
-
-    function positionEditor() {
-      if (!editingCell) {
-        editor.hidden = true;
-        return;
-      }
-      var cell = table.querySelector('td[data-cell="' + editingCell + '"]');
-      if (!cell) {
-        editor.hidden = true;
-        return;
-      }
-      var gridRect = scroller.getBoundingClientRect();
-      var rect = cell.getBoundingClientRect();
-      editor.hidden = false;
-      editor.style.left = rect.left - gridRect.left + scroller.scrollLeft + 'px';
-      editor.style.top = rect.top - gridRect.top + scroller.scrollTop + 'px';
-      editor.style.width = rect.width + 1 + 'px';
-      editor.style.height = rect.height + 1 + 'px';
-    }
-
-    function updateSelection(row, col, extend) {
-      row = clamp(row, 0, ROW_COUNT - 1);
-      col = clamp(col, 0, COL_COUNT - 1);
-      if (extend) {
-        model.selection.focus = { row: row, col: col };
-      } else {
-        model.selection = { anchor: { row: row, col: col }, focus: { row: row, col: col } };
-      }
-      render();
-      ensureCellVisible(row, col);
-    }
-
-    function ensureCellVisible(row, col) {
-      var cell = table.querySelector('td[data-cell="' + formatCellId(col, row) + '"]');
-      if (!cell) {
-        return;
-      }
-      cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }
-
-    function commitEdit(nextSelection) {
-      if (!editingCell) {
-        if (document.activeElement === formulaBar && formulaDraft !== null) {
-          model.setCell(activeCellId(), formulaDraft);
-          formulaDraft = null;
-          render();
-        }
-        return;
-      }
-      model.setCell(editingCell, editor.value);
-      editingCell = null;
-      render();
-      if (nextSelection) {
-        updateSelection(nextSelection.row, nextSelection.col, false);
-      }
-    }
-
-    function cancelEdit() {
-      if (editingCell) {
-        editingCell = null;
-        editor.value = '';
-      }
-      formulaDraft = null;
-      formulaBar.value = model.getRaw(activeCellId());
-      render();
-    }
-
-    function beginEdit(value, replace) {
-      editingCell = activeCellId();
-      editor.value = replace ? value : model.getRaw(editingCell);
-      editor.hidden = false;
-      positionEditor();
-      editor.focus();
-      if (!replace) {
-        editor.setSelectionRange(editor.value.length, editor.value.length);
-      }
-    }
-
-    function applyPastedRows(rows, cutSource) {
-      var targetRange = normalizeRange(model.selection);
-      var sourceHeight = rows.length;
-      var sourceWidth = rows[0] ? rows[0].length : 1;
-      var currentSize = selectionSize(model.selection);
-      var baseRow = currentSize.width === sourceWidth && currentSize.height === sourceHeight ? targetRange.top : model.selection.focus.row;
-      var baseCol = currentSize.width === sourceWidth && currentSize.height === sourceHeight ? targetRange.left : model.selection.focus.col;
-      var updates = {};
-      for (var row = 0; row < sourceHeight; row += 1) {
-        for (var col = 0; col < sourceWidth; col += 1) {
-          var raw = rows[row][col] || '';
-          if (internalClipboard && internalClipboard.text === buildCellText(rows)) {
-            raw = shiftFormula(raw, baseCol - internalClipboard.origin.col + col, baseRow - internalClipboard.origin.row + row);
-          }
-          updates[formatCellId(baseCol + col, baseRow + row)] = raw;
-        }
-      }
-      if (cutSource && internalClipboard) {
-        var sourceRange = normalizeRange(internalClipboard.selection);
-        for (var clearRow = sourceRange.top; clearRow <= sourceRange.bottom; clearRow += 1) {
-          for (var clearCol = sourceRange.left; clearCol <= sourceRange.right; clearCol += 1) {
-            updates[formatCellId(clearCol, clearRow)] = '';
-          }
-        }
-      }
-      model.setCells(updates);
-      updateSelection(baseRow, baseCol, false);
-    }
-
-    function handleCopyLike(event, cut) {
-      var rows = model.getRangeRaw(model.selection);
-      var text = buildCellText(rows);
-      if (event.clipboardData) {
-        event.clipboardData.setData('text/plain', text);
-      }
-      internalClipboard = {
-        selection: serializeStateObject(model.selection),
-        origin: { row: normalizeRange(model.selection).top, col: normalizeRange(model.selection).left },
-        rows: rows,
-        text: text,
-        cut: cut,
-      };
-      event.preventDefault();
-    }
-
-    function createGrid() {
-      var thead = document.createElement('thead');
-      var headRow = document.createElement('tr');
-      var corner = document.createElement('th');
-      corner.className = 'corner';
-      headRow.appendChild(corner);
-      for (var col = 0; col < COL_COUNT; col += 1) {
-        var header = document.createElement('th');
-        header.dataset.col = String(col);
-        header.textContent = columnLabelFromIndex(col);
-        headRow.appendChild(header);
-      }
-      thead.appendChild(headRow);
-      var tbody = document.createElement('tbody');
-      for (var row = 0; row < ROW_COUNT; row += 1) {
-        var tr = document.createElement('tr');
-        var rowHeader = document.createElement('th');
-        rowHeader.dataset.row = String(row);
-        rowHeader.textContent = String(row + 1);
-        tr.appendChild(rowHeader);
-        for (col = 0; col < COL_COUNT; col += 1) {
-          var td = document.createElement('td');
-          td.dataset.row = String(row);
-          td.dataset.col = String(col);
-          td.dataset.cell = formatCellId(col, row);
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
-      }
-      table.appendChild(thead);
-      table.appendChild(tbody);
-    }
-
-    createGrid();
-
-    table.addEventListener('mousedown', function (event) {
-      var cell = event.target.closest('td[data-cell]');
-      if (!cell) {
-        return;
-      }
-      closeHeaderMenu();
-      var row = Number(cell.dataset.row);
-      var col = Number(cell.dataset.col);
-      updateSelection(row, col, !!event.shiftKey);
-      dragState = { anchor: { row: model.selection.anchor.row, col: model.selection.anchor.col } };
-      if (editingCell) {
-        commitEdit();
-      }
-      event.preventDefault();
-    });
-
-    table.addEventListener('dblclick', function (event) {
-      var cell = event.target.closest('td[data-cell]');
-      if (!cell) {
-        return;
-      }
-      updateSelection(Number(cell.dataset.row), Number(cell.dataset.col), false);
-      beginEdit(model.getRaw(activeCellId()), false);
-    });
-
-    document.addEventListener('mousemove', function (event) {
-      if (!dragState) {
-        return;
-      }
-      var cell = event.target.closest('td[data-cell]');
-      if (!cell) {
-        return;
-      }
-      model.selection.anchor = serializeStateObject(dragState.anchor);
-      model.selection.focus = { row: Number(cell.dataset.row), col: Number(cell.dataset.col) };
-      render();
-    });
-
-    document.addEventListener('mouseup', function () {
-      dragState = null;
-    });
-
-    table.addEventListener('contextmenu', function (event) {
-      var header = event.target.closest('th[data-row], th[data-col]');
-      if (!header) {
-        return;
-      }
-      event.preventDefault();
-      menu.hidden = false;
-      menu.style.left = event.pageX + 'px';
-      menu.style.top = event.pageY + 'px';
-      menu.dataset.kind = header.dataset.row !== '' && header.dataset.row !== undefined ? 'row' : 'col';
-      menu.dataset.index = header.dataset.row !== '' && header.dataset.row !== undefined ? header.dataset.row : header.dataset.col;
-    });
-
-    document.addEventListener('click', function (event) {
-      if (!menu.contains(event.target)) {
-        closeHeaderMenu();
-      }
-    });
-
-    menu.addEventListener('click', function (event) {
-      var action = event.target.getAttribute('data-action');
-      if (!action) {
-        return;
-      }
-      var index = Number(menu.dataset.index);
-      if (menu.dataset.kind === 'row') {
-        if (action === 'insert-before') {
-          model.insertRow(index);
-        } else if (action === 'insert-after') {
-          model.insertRow(index + 1);
-        } else if (action === 'delete') {
-          model.deleteRow(index);
-        }
-      } else {
-        if (action === 'insert-before') {
-          model.insertColumn(index);
-        } else if (action === 'insert-after') {
-          model.insertColumn(index + 1);
-        } else if (action === 'delete') {
-          model.deleteColumn(index);
-        }
-      }
-      closeHeaderMenu();
-      render();
-    });
-
-    editor.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        commitEdit({ row: Math.min(model.selection.focus.row + 1, ROW_COUNT - 1), col: model.selection.focus.col });
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        commitEdit({ row: model.selection.focus.row, col: Math.min(model.selection.focus.col + 1, COL_COUNT - 1) });
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        cancelEdit();
-      }
-    });
-
-    formulaBar.addEventListener('focus', function () {
-      formulaDraft = model.getRaw(activeCellId());
-      formulaBar.value = formulaDraft;
-    });
-
-    formulaBar.addEventListener('input', function () {
-      formulaDraft = formulaBar.value;
-    });
-
-    formulaBar.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        model.setCell(activeCellId(), formulaBar.value);
-        formulaDraft = null;
-        updateSelection(Math.min(model.selection.focus.row + 1, ROW_COUNT - 1), model.selection.focus.col, false);
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        cancelEdit();
-        formulaBar.blur();
-      }
-    });
-
-    formulaBar.addEventListener('blur', function () {
-      if (formulaDraft !== null) {
-        model.setCell(activeCellId(), formulaBar.value);
-        formulaDraft = null;
-        render();
-      }
-    });
-
-    document.addEventListener('keydown', function (event) {
-      if (document.activeElement === editor) {
-        return;
-      }
-      var meta = event.metaKey || event.ctrlKey;
-      if (meta && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        if (event.shiftKey) {
-          model.redo();
-        } else {
-          model.undo();
-        }
-        render();
-        return;
-      }
-      if (meta && event.key.toLowerCase() === 'y') {
-        event.preventDefault();
-        model.redo();
-        render();
-        return;
-      }
-      if (meta) {
-        return;
-      }
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        event.preventDefault();
-        model.clearRange(model.selection);
-        render();
-        return;
-      }
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        beginEdit(model.getRaw(activeCellId()), false);
-        return;
-      }
-      if (event.key === 'F2') {
-        event.preventDefault();
-        beginEdit(model.getRaw(activeCellId()), false);
-        return;
-      }
-      if (event.key.indexOf('Arrow') === 0) {
-        event.preventDefault();
-        var row = model.selection.focus.row;
-        var col = model.selection.focus.col;
-        if (event.key === 'ArrowUp') {
-          row -= 1;
-        } else if (event.key === 'ArrowDown') {
-          row += 1;
-        } else if (event.key === 'ArrowLeft') {
-          col -= 1;
-        } else if (event.key === 'ArrowRight') {
-          col += 1;
-        }
-        updateSelection(row, col, event.shiftKey);
-        return;
-      }
-      if (event.key.length === 1 && !event.altKey) {
-        event.preventDefault();
-        beginEdit(event.key, true);
-      }
-    });
-
-    document.addEventListener('copy', function (event) {
-      handleCopyLike(event, false);
-    });
-
-    document.addEventListener('cut', function (event) {
-      handleCopyLike(event, true);
-    });
-
-    document.addEventListener('paste', function (event) {
-      if (document.activeElement === editor || document.activeElement === formulaBar) {
-        return;
-      }
-      var text = event.clipboardData ? event.clipboardData.getData('text/plain') : '';
-      if (!text) {
-        return;
-      }
-      var rows = text.split(/\r?\n/).map(function (line) { return line.split('\t'); });
-      applyPastedRows(rows, internalClipboard && internalClipboard.cut && internalClipboard.text === text);
-      if (internalClipboard && internalClipboard.cut && internalClipboard.text === text) {
-        internalClipboard = null;
-      }
-      render();
-      event.preventDefault();
-    });
-
-    global.addEventListener('resize', positionEditor);
-    scroller.addEventListener('scroll', positionEditor);
-    render();
-
-    return {
-      model: model,
-      render: render,
-    };
-  }
-
-  function initSpreadsheetApp() {
-    if (!global.document) {
-      return null;
-    }
-    var root = global.document.querySelector('[data-spreadsheet-app]');
-    if (!root) {
-      return null;
-    }
-    return createSpreadsheetApp(root);
-  }
-
-  if (global.document) {
-    global.addEventListener('DOMContentLoaded', initSpreadsheetApp);
-  }
-
-  var exported = {
+  return {
+    COL_COUNT: COL_COUNT,
+    ROW_COUNT: ROW_COUNT,
     SpreadsheetModel: SpreadsheetModel,
     parseCellId: parseCellId,
     formatCellId: formatCellId,
+    normalizeRange: normalizeRange,
     shiftFormula: shiftFormula,
+    stepAddress: stepAddress,
     shouldSyncFormulaBar: shouldSyncFormulaBar,
-    initSpreadsheetApp: initSpreadsheetApp,
   };
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = exported;
-  }
-  global.SpreadsheetApp = exported;
-})(typeof window !== 'undefined' ? window : globalThis);
+});
