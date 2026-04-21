@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Amazon Spreadsheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="toolbar">
+        <div class="brand">
+          <span class="brand-mark">A</span>
+          <div>
+            <strong>Spreadsheet</strong>
+            <p>Ready for quick calculations.</p>
+          </div>
+        </div>
+        <label class="name-box" aria-label="Selected cell">
+          <span>Name</span>
+          <strong data-selected-cell>A1</strong>
+        </label>
+        <label class="formula-bar">
+          <span>Formula</span>
+          <input data-formula-input type="text" spellcheck="false" autocomplete="off">
+        </label>
+        <div class="status" data-status>Ready</div>
+      </header>
+      <section class="grid-shell">
+        <div class="grid" data-grid></div>
+        <input class="cell-editor" data-cell-editor type="text" hidden spellcheck="false" autocomplete="off">
+      </section>
+    </main>
+    <script src="src/model.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
