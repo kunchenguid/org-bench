@@ -54,19 +54,22 @@
   }
 
   function pushHistory() {
-    history.push(JSON.stringify(store.toJSON()));
+    history.push(core.createHistorySnapshot(store, selection, rangeAnchor));
     if (history.length > 50) {
       history = history.slice(-50);
     }
     future = [];
   }
 
-  function restore(serialized) {
-    const nextStore = core.createStore(JSON.parse(serialized));
+  function restore(snapshot) {
+    const restored = core.restoreHistorySnapshot(snapshot);
+    const nextStore = restored.store;
     store.raw.clear();
     nextStore.raw.forEach(function (value, key) {
       store.raw.set(key, value);
     });
+    selection = restored.selection;
+    rangeAnchor = restored.rangeAnchor;
   }
 
   function applyStructuralChange(action, index) {
@@ -322,7 +325,7 @@
       event.preventDefault();
       if (event.shiftKey) {
         if (future.length) {
-          history.push(JSON.stringify(store.toJSON()));
+          history.push(core.createHistorySnapshot(store, selection, rangeAnchor));
           restore(future.pop());
           save();
           render();
@@ -330,7 +333,7 @@
         return;
       }
       if (history.length) {
-        future.push(JSON.stringify(store.toJSON()));
+        future.push(core.createHistorySnapshot(store, selection, rangeAnchor));
         restore(history.pop());
         save();
         render();
@@ -340,7 +343,7 @@
     if (meta && event.key.toLowerCase() === 'y') {
       event.preventDefault();
       if (future.length) {
-        history.push(JSON.stringify(store.toJSON()));
+        history.push(core.createHistorySnapshot(store, selection, rangeAnchor));
         restore(future.pop());
         save();
         render();

@@ -8,10 +8,12 @@ const {
   deleteRow,
   evaluateCell,
   evaluateSheet,
+  createHistorySnapshot,
   insertColumn,
   insertRow,
   pasteRange,
   parseCellRef,
+  restoreHistorySnapshot,
   shiftFormula,
 } = require('./spreadsheet-core.js');
 
@@ -228,4 +230,18 @@ test('deleting a referenced column produces #REF!', () => {
 
   assert.equal(store.getCell(0, 1), '=#REF!');
   assert.equal(evaluateSheet(store).getDisplay(0, 1), '#REF!');
+});
+
+test('history snapshots preserve selection metadata alongside structural cell changes', () => {
+  const store = createStore();
+  store.setCell(0, 0, '10');
+  store.setCell(0, 2, '20');
+
+  const snapshot = createHistorySnapshot(store, { col: 0, row: 3 }, { col: 0, row: 3 });
+  const restored = restoreHistorySnapshot(snapshot);
+
+  assert.equal(restored.store.getCell(0, 0), '10');
+  assert.equal(restored.store.getCell(0, 2), '20');
+  assert.deepEqual(restored.selection, { col: 0, row: 3 });
+  assert.deepEqual(restored.rangeAnchor, { col: 0, row: 3 });
 });
