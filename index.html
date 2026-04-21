@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Apple Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="formula-panel" aria-label="Formula bar section">
+        <div class="name-box" id="name-box" aria-live="polite">A1</div>
+        <label class="formula-label" for="formula-input">fx</label>
+        <input
+          id="formula-input"
+          class="formula-input"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          aria-label="Formula bar"
+        >
+      </section>
+
+      <section class="grid-panel">
+        <div id="spreadsheet" class="spreadsheet" tabindex="0" aria-label="Spreadsheet grid"></div>
+      </section>
+    </main>
+
+    <script src="src/spreadsheet-controller.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
