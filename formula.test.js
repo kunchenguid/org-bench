@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { createEngine, shiftFormula } = require('./app.js');
+const { createEngine, shiftFormula, createHistoryManager } = require('./app.js');
 
 function run(name, fn) {
   try {
@@ -65,4 +65,34 @@ run('shifts only relative parts when copying formulas', () => {
     shiftFormula('=SUM(A1:B2)+$C$3+C$4+$D5', 1, 2),
     '=SUM(B3:C4)+$C$3+D$4+$D7'
   );
+});
+
+run('undo returns the previous snapshot and redo reapplies it', () => {
+  const history = createHistoryManager(50);
+  const start = { selected: 'A1', cells: { A1: '1' } };
+  const next = { selected: 'A2', cells: { A1: '1', A2: '2' } };
+
+  history.record(start);
+
+  assert.deepEqual(history.undo(next), start);
+  assert.deepEqual(history.redo(start), next);
+});
+
+run('new edits clear the redo stack and enforce the history limit', () => {
+  const history = createHistoryManager(2);
+  const first = { selected: 'A1', cells: { A1: '1' } };
+  const second = { selected: 'A2', cells: { A1: '1', A2: '2' } };
+  const third = { selected: 'A3', cells: { A1: '1', A2: '2', A3: '3' } };
+  const current = { selected: 'A4', cells: { A1: '1', A2: '2', A3: '3', A4: '4' } };
+
+  history.record(first);
+  history.record(second);
+  history.record(third);
+
+  assert.deepEqual(history.undo(current), third);
+  assert.deepEqual(history.undo(third), second);
+  assert.equal(history.undo(second), null);
+
+  history.record(second);
+  assert.equal(history.redo(second), null);
 });
