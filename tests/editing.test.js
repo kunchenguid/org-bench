@@ -117,3 +117,38 @@ test('commit uses provided cell hooks and exposes display values for the grid', 
   assert.equal(controller.getCellDisplayValue('A1'), '3');
   assert.equal(controller.getState().selection.activeCellId, 'A2');
 });
+
+test('applyStructureAction inserts a row and rewrites cells plus selection', () => {
+  const controller = createSpreadsheetEditingController({
+    cells: {
+      A2: '42',
+      B3: '=A2',
+    },
+    activeCellId: 'B3',
+    rowCount: 3,
+  });
+
+  controller.applyStructureAction({ type: 'insert-row', index: 2 });
+
+  assert.equal(controller.getCellRawValue('A3'), '42');
+  assert.equal(controller.getCellRawValue('B4'), '=A3');
+  assert.equal(controller.getState().selection.activeCellId, 'B4');
+  assert.equal(controller.getState().rowCount, 4);
+});
+
+test('applyStructureAction deletes a column and turns deleted references into #REF!', () => {
+  const controller = createSpreadsheetEditingController({
+    cells: {
+      B1: '7',
+      C2: '=B1',
+    },
+    activeCellId: 'C2',
+    columnCount: 3,
+  });
+
+  controller.applyStructureAction({ type: 'delete-column', index: 2 });
+
+  assert.equal(controller.getCellRawValue('B2'), '=#REF!');
+  assert.equal(controller.getState().selection.activeCellId, 'B2');
+  assert.equal(controller.getState().columnCount, 2);
+});
