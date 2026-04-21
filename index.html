@@ -3,30 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grid</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Microsoft Grid</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
-    <header class="topbar">
-      <div class="brand-block">
-        <div class="brand">Grid</div>
-        <div class="subtitle">Quick calculations, no setup.</div>
+    <header class="toolbar">
+      <div class="brand-row">
+        <div class="brand">Microsoft Grid</div>
+        <div class="hint">Double-click a cell or press Enter/F2 to edit. Right-click row or column headers for insert/delete.</div>
       </div>
-      <div class="formula-panel">
-        <label class="name-box" for="formula-input">A1</label>
-        <div class="formula-input-wrap">
-          <span class="formula-sigil">fx</span>
-          <input id="formula-input" class="formula-input" type="text" autocomplete="off" spellcheck="false">
-        </div>
+      <div class="formula-row">
+        <label class="name-box" id="cell-name" for="formula-input">A1</label>
+        <label class="formula-label" for="formula-input">fx</label>
+        <input id="formula-input" type="text" autocomplete="off" spellcheck="false">
       </div>
     </header>
-    <main class="sheet-shell">
-      <div id="sheet-container" class="sheet-container"></div>
+    <main class="grid-shell">
+      <div class="grid-scroll">
+        <table id="grid-table"></table>
+      </div>
     </main>
   </div>
-
-  <script src="src/formula.js"></script>
-  <script src="src/app.js"></script>
+  <div id="header-menu" class="header-menu hidden"></div>
+  <script src="spreadsheet-core.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
