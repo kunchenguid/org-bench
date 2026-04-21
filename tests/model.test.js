@@ -6,6 +6,7 @@ const {
   setCell,
   getCellDisplay,
   getCellRaw,
+  clearRange,
   copyRange,
   pasteRange,
   insertRow,
@@ -50,4 +51,22 @@ test('inserting a row updates dependent formulas to keep pointing at the same da
 
   assert.equal(getCellRaw(sheet, 'B2'), '=SUM(A2:A3)');
   assert.equal(getCellDisplay(sheet, 'B2'), '10');
+});
+
+test('clears every populated cell inside a selected rectangle', () => {
+  const sheet = createSheet();
+
+  setCell(sheet, 'A1', '1');
+  setCell(sheet, 'A2', '2');
+  setCell(sheet, 'B1', '3');
+  setCell(sheet, 'B2', '4');
+  setCell(sheet, 'C1', '5');
+
+  clearRange(sheet, { startRow: 0, startCol: 0, endRow: 1, endCol: 1 });
+
+  assert.equal(getCellRaw(sheet, 'A1'), '');
+  assert.equal(getCellRaw(sheet, 'A2'), '');
+  assert.equal(getCellRaw(sheet, 'B1'), '');
+  assert.equal(getCellRaw(sheet, 'B2'), '');
+  assert.equal(getCellRaw(sheet, 'C1'), '5');
 });

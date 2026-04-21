@@ -3,13 +3,18 @@
   const COLS = 26;
   const engine = window.SpreadsheetEngine;
   const historyApi = window.SpreadsheetHistory;
+  const model = window.SpreadsheetModel;
   const state = {
     cells: {},
     evaluated: {},
     selection: { row: 0, col: 0 },
+    anchor: { row: 0, col: 0 },
+    range: { startRow: 0, startCol: 0, endRow: 0, endCol: 0 },
     editingCell: false,
     draft: '',
     history: historyApi.createHistory(),
+    clipboard: null,
+    mouseExtending: false,
   };
 
   const namespace = resolveStorageNamespace();
@@ -61,6 +66,17 @@
       const rowHeader = document.createElement('th');
       rowHeader.textContent = String(row + 1);
       rowHeader.className = 'row-header';
+      const insertButton = document.createElement('button');
+      insertButton.type = 'button';
+      insertButton.className = 'row-action';
+      insertButton.textContent = '+';
+      insertButton.title = 'Insert row above';
+      insertButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        insertRowAbove(row);
+      });
+      rowHeader.appendChild(insertButton);
       tr.appendChild(rowHeader);
 
       for (let col = 0; col < COLS; col += 1) {
@@ -72,8 +88,13 @@
         input.className = 'cell-input';
         input.spellcheck = false;
         input.tabIndex = -1;
+        input.addEventListener('mousedown', function (event) {
+          state.mouseExtending = !!event.shiftKey;
+          selectCell(row, col, false, event.shiftKey);
+        });
         input.addEventListener('focus', function () {
-          selectCell(row, col, false);
+          selectCell(row, col, false, state.mouseExtending);
+          state.mouseExtending = false;
         });
         input.addEventListener('dblclick', function () {
           beginEdit(false);
@@ -121,25 +142,43 @@
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      moveSelection(-1, 0);
+      moveSelection(-1, 0, event.shiftKey);
       return;
     }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      moveSelection(1, 0);
+      moveSelection(1, 0, event.shiftKey);
       return;
     }
 
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      moveSelection(0, -1);
+      moveSelection(0, -1, event.shiftKey);
       return;
     }
 
     if (event.key === 'ArrowRight') {
       event.preventDefault();
-      moveSelection(0, 1);
+      moveSelection(0, 1, event.shiftKey);
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'c') {
+      event.preventDefault();
+      copySelection(false);
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'x') {
+      event.preventDefault();
+      copySelection(true);
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      pasteSelection();
       return;
     }
 
@@ -167,7 +206,7 @@
 
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      clearActiveCell();
+      clearSelectedRange();
       return;
     }
 
@@ -177,11 +216,27 @@
     }
   }
 
-  function selectCell(row, col, focusCell) {
+  function selectCell(row, col, focusCell, extendRange) {
     state.selection = {
       row: clamp(row, 0, ROWS - 1),
       col: clamp(col, 0, COLS - 1),
     };
+    if (extendRange) {
+      state.range = normalizeRange({
+        startRow: state.anchor.row,
+        startCol: state.anchor.col,
+        endRow: state.selection.row,
+        endCol: state.selection.col,
+      });
+    } else {
+      state.anchor = { row: state.selection.row, col: state.selection.col };
+      state.range = normalizeRange({
+        startRow: state.selection.row,
+        startCol: state.selection.col,
+        endRow: state.selection.row,
+        endCol: state.selection.col,
+      });
+    }
     state.editingCell = false;
     state.draft = currentRawValue();
     render();
@@ -191,8 +246,8 @@
     persist();
   }
 
-  function moveSelection(rowDelta, colDelta) {
-    selectCell(state.selection.row + rowDelta, state.selection.col + colDelta, true);
+  function moveSelection(rowDelta, colDelta, extendRange) {
+    selectCell(state.selection.row + rowDelta, state.selection.col + colDelta, true, extendRange);
   }
 
   function beginEdit(useExistingValue, replacement) {
@@ -245,7 +300,9 @@
       const cellId = engine.toCellId(Number(input.dataset.row), Number(input.dataset.col));
       const evaluated = state.evaluated[cellId];
       const isActive = cellId === selectedId;
+      const isSelected = isInRange(Number(input.dataset.row), Number(input.dataset.col));
       input.parentElement.classList.toggle('is-active', isActive);
+      input.parentElement.classList.toggle('is-selected', isSelected && !isActive);
       input.value = isActive && state.editingCell ? state.draft : (evaluated ? evaluated.display : '');
       input.readOnly = !isActive || !state.editingCell;
       input.classList.toggle('text-value', evaluated && evaluated.type === 'string');
@@ -283,6 +340,13 @@
           row: clamp(parsed.selection.row || 0, 0, ROWS - 1),
           col: clamp(parsed.selection.col || 0, 0, COLS - 1),
         };
+        state.anchor = { row: state.selection.row, col: state.selection.col };
+        state.range = normalizeRange({
+          startRow: state.selection.row,
+          startCol: state.selection.col,
+          endRow: state.selection.row,
+          endCol: state.selection.col,
+        });
       }
       state.draft = currentRawValue();
     } catch (_) {
@@ -326,13 +390,15 @@
     applySnapshot(snapshot);
   }
 
-  function clearActiveCell() {
-    const cellId = activeCellId();
-    if (!state.cells[cellId]) {
+  function clearSelectedRange() {
+    const sheet = model.createSheet(state.cells);
+    const cellIds = getSelectedCellIds();
+    if (!cellIds.some(function (cellId) { return Boolean(state.cells[cellId]); })) {
       return;
     }
 
-    delete state.cells[cellId];
+    model.clearRange(sheet, state.range);
+    state.cells = sheet.cells;
     state.editingCell = false;
     state.draft = '';
     recompute();
@@ -345,6 +411,13 @@
   function applySnapshot(snapshot) {
     state.cells = snapshot.cells;
     state.selection = snapshot.selection;
+    state.anchor = { row: state.selection.row, col: state.selection.col };
+    state.range = normalizeRange({
+      startRow: state.selection.row,
+      startCol: state.selection.col,
+      endRow: state.selection.row,
+      endCol: state.selection.col,
+    });
     state.editingCell = false;
     state.draft = currentRawValue();
     recompute();
@@ -363,5 +436,91 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function normalizeRange(range) {
+    return {
+      startRow: Math.min(range.startRow, range.endRow),
+      startCol: Math.min(range.startCol, range.endCol),
+      endRow: Math.max(range.startRow, range.endRow),
+      endCol: Math.max(range.startCol, range.endCol),
+    };
+  }
+
+  function isInRange(row, col) {
+    return row >= state.range.startRow && row <= state.range.endRow && col >= state.range.startCol && col <= state.range.endCol;
+  }
+
+  function getSelectedCellIds() {
+    const ids = [];
+    for (let row = state.range.startRow; row <= state.range.endRow; row += 1) {
+      for (let col = state.range.startCol; col <= state.range.endCol; col += 1) {
+        ids.push(engine.toCellId(row, col));
+      }
+    }
+    return ids;
+  }
+
+  function copySelection(cut) {
+    const sheet = model.createSheet(state.cells);
+    state.clipboard = {
+      clip: model.copyRange(sheet, state.range, true),
+      cut: cut,
+    };
+  }
+
+  function pasteSelection() {
+    if (!state.clipboard) {
+      return;
+    }
+
+    const sheet = model.createSheet(state.cells);
+    const clip = state.clipboard.clip;
+    const targetRange = rangeMatchesClip(clip) ? state.range : {
+      startRow: state.selection.row,
+      startCol: state.selection.col,
+      endRow: state.selection.row,
+      endCol: state.selection.col,
+    };
+    model.pasteRange(sheet, targetRange, clip);
+    if (state.clipboard.cut && (targetRange.startRow !== clip.sourceRow || targetRange.startCol !== clip.sourceCol)) {
+      model.clearRange(sheet, {
+        startRow: clip.sourceRow,
+        startCol: clip.sourceCol,
+        endRow: clip.sourceRow + clip.height - 1,
+        endCol: clip.sourceCol + clip.width - 1,
+      });
+      state.clipboard = null;
+    }
+    state.cells = sheet.cells;
+    recompute();
+    pushHistory();
+    persist();
+    render();
+    activeInput().focus();
+  }
+
+  function rangeMatchesClip(clip) {
+    return state.range.endRow - state.range.startRow + 1 === clip.height && state.range.endCol - state.range.startCol + 1 === clip.width;
+  }
+
+  function insertRowAbove(rowIndex) {
+    const sheet = model.createSheet(state.cells);
+    model.insertRow(sheet, rowIndex);
+    state.cells = sheet.cells;
+    if (state.selection.row >= rowIndex) {
+      state.selection.row += 1;
+      state.anchor = { row: state.selection.row, col: state.selection.col };
+      state.range = normalizeRange({
+        startRow: state.selection.row,
+        startCol: state.selection.col,
+        endRow: state.selection.row,
+        endCol: state.selection.col,
+      });
+    }
+    recompute();
+    pushHistory();
+    persist();
+    render();
   }
 })();
