@@ -1,0 +1,133 @@
+:root {
+  color-scheme: light;
+  --app-bg: #f5f5f7;
+  --panel-bg: rgba(255, 255, 255, 0.84);
+  --panel-border: rgba(60, 60, 67, 0.16);
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --accent: #0071e3;
+  --shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top, rgba(0, 113, 227, 0.1), transparent 30%),
+    var(--app-bg);
+  color: var(--text-primary);
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+#app {
+  min-height: 100%;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.workspace-shell {
+  min-height: calc(100vh - 40px);
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 12px;
+}
+
+.shell-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px);
+}
+
+.workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.workspace-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.workspace-meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.formula-shell {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.formula-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.formula-input {
+  width: 100%;
+  border: 1px solid rgba(60, 60, 67, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
+  padding: 11px 14px;
+  font: inherit;
+}
+
+.formula-input::placeholder {
+  color: #8e8e93;
+}
+
+.sheet-shell {
+  position: relative;
+  min-height: 480px;
+  overflow: hidden;
+}
+
+.sheet-surface {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-image:
+    linear-gradient(rgba(60, 60, 67, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60, 60, 67, 0.08) 1px, transparent 1px);
+  background-position: 0 0, 0 0;
+  background-size: 28px 28px, 96px 28px;
+}
+
+.sheet-placeholder {
+  padding: 14px 18px;
+  border: 1px solid rgba(0, 113, 227, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.sheet-placeholder strong {
+  color: var(--accent);
+}
