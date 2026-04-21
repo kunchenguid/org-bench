@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gridline</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="formula-bar-shell">
+        <div class="brand">Gridline</div>
+        <label class="name-box" for="formula-input">A1</label>
+        <input id="formula-input" class="formula-input" type="text" spellcheck="false" aria-label="Formula bar">
+      </header>
+      <main class="grid-shell">
+        <table id="spreadsheet" class="spreadsheet" aria-label="Spreadsheet grid"></table>
+      </main>
+    </div>
+    <script src="engine.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

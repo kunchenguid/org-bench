@@ -1,0 +1,183 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f6fb;
+  --panel: #ffffff;
+  --grid: #d7deea;
+  --header: #eef3fb;
+  --header-strong: #dfe8f6;
+  --text: #1c2433;
+  --muted: #60708b;
+  --accent: #2563eb;
+  --accent-soft: #dbeafe;
+  --shadow: 0 18px 48px rgba(37, 99, 235, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+  gap: 14px;
+}
+
+.formula-bar-shell {
+  display: grid;
+  grid-template-columns: 120px 72px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(215, 222, 234, 0.9);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.brand {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.name-box,
+.formula-input {
+  height: 42px;
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.name-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.formula-input {
+  width: 100%;
+  padding: 0 14px;
+  font: inherit;
+  outline: none;
+}
+
+.formula-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.grid-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(215, 222, 234, 0.9);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.spreadsheet {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.spreadsheet th,
+.spreadsheet td {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  min-width: 110px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.spreadsheet th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--header);
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+.spreadsheet .corner,
+.spreadsheet .row-header {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 56px;
+  width: 56px;
+  background: var(--header);
+  color: var(--muted);
+  text-align: center;
+}
+
+.spreadsheet .corner {
+  z-index: 3;
+  background: var(--header-strong);
+}
+
+.spreadsheet td {
+  position: relative;
+  background: var(--panel);
+  cursor: cell;
+}
+
+.spreadsheet td.active {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: #fdfefe;
+}
+
+.spreadsheet td.editing {
+  padding: 0;
+}
+
+.spreadsheet td.error {
+  color: #b42318;
+}
+
+.cell-display {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-editor {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0 10px;
+  font: inherit;
+  outline: none;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .formula-bar-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .brand {
+    display: none;
+  }
+}
