@@ -222,10 +222,17 @@
       return null;
     }
 
+    const sharedShell = root.sheetShell || {};
     const store =
       options && options.store
         ? options.store
-        : SpreadsheetStore.createSpreadsheetStore({ namespace: getStorageNamespace() });
+        : sharedShell.store
+          ? sharedShell.store
+          : SpreadsheetStore.createSpreadsheetStore({
+              namespace: getStorageNamespace(),
+              formulaEngine: root.FormulaEngine,
+              mutationEngine: root.Mutations,
+            });
     const controller = GridSelection.createSelectionController(store, {
       rowCount: ROW_COUNT,
       colCount: COL_COUNT,
@@ -236,17 +243,27 @@
       return null;
     }
 
-    const shell = {
-      store,
-      controller,
-      view,
+    const shell = Object.assign(sharedShell, {
+      store: store,
+      controller: controller,
+      view: view,
       render: function () {
         renderGrid(view, store);
       },
-    };
+      onStructuralAction: function (operation, action) {
+        if (typeof store.applyStructuralChange !== 'function') {
+          return false;
+        }
+
+        return store.applyStructuralChange(operation, {
+          label: action && action.label ? action.label.toLowerCase() : 'structure',
+        });
+      },
+    });
 
     rootElement.__selectionController = controller;
     rootElement.__sheetGridUi = shell;
+    root.sheetShell = shell;
     installKeyboardNavigation(view.cellGrid, controller);
     installHeaderControls(rootElement, view);
     store.subscribe(function () {
