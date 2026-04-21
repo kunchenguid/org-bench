@@ -26,6 +26,9 @@
     if (cell) startEdit(cell.dataset.address, false, '');
   });
   gridWrap.addEventListener('keydown', handleGridKeydown);
+  document.addEventListener('copy', handleClipboardCopy);
+  document.addEventListener('cut', handleClipboardCut);
+  document.addEventListener('paste', handleClipboardPaste);
 
   formulaInput.addEventListener('input', function () {
     if (state.editing !== 'formula') state.editing = 'formula';
@@ -202,12 +205,40 @@
 
   function clearSelectedCells() {
     const addresses = getSelectedAddresses();
-    for (let i = 0; i < addresses.length; i += 1) {
-      core.setCell(sheet, addresses[i], '');
-    }
+    core.applyCellChanges(sheet, addresses.map(function (address) {
+      return { address: address, raw: '' };
+    }));
     persistState();
     updateVisibleCells();
     syncFormulaBar();
+  }
+
+  function handleClipboardCopy(event) {
+    if (state.editing) return;
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', core.serializeSelection(sheet, getSelectedAddresses()));
+  }
+
+  function handleClipboardCut(event) {
+    if (state.editing) return;
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', core.serializeSelection(sheet, getSelectedAddresses()));
+    clearSelectedCells();
+  }
+
+  function handleClipboardPaste(event) {
+    if (state.editing) return;
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    const text = event.clipboardData.getData('text/plain');
+    if (!text) return;
+    core.applyClipboardMatrix(sheet, state.active, core.parseClipboardText(text));
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+    focusActiveCell();
   }
 
   function getSelectedRange() {
