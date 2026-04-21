@@ -255,6 +255,14 @@
     return nextState;
   }
 
+  function clearSelectedRange(state) {
+    return selectCell(
+      clearRangeCells(state, state.selection, state.selectionEnd || state.selection),
+      state.selection.row,
+      state.selection.col
+    );
+  }
+
   function moveSelection(state, rowDelta, colDelta) {
     return selectCell(state, state.selection.row + rowDelta, state.selection.col + colDelta);
   }
@@ -869,7 +877,13 @@
 
     function cutSelectedRange() {
       copySelectedRange();
-      syncHistory(applyHistoryState(history, selectCell(clearRangeCells(state, state.selection, state.selectionEnd), state.selection.row, state.selection.col)));
+      syncHistory(applyHistoryState(history, clearSelectedRange(state)));
+      persist();
+      renderGrid();
+    }
+
+    function clearSelectedCells() {
+      syncHistory(applyHistoryState(history, clearSelectedRange(state)));
       persist();
       renderGrid();
     }
@@ -997,6 +1011,11 @@
         event.preventDefault();
         return;
       }
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        clearSelectedCells();
+        event.preventDefault();
+        return;
+      }
       if (modifier && event.key.toLowerCase() === 'z' && event.shiftKey) {
         syncHistory(redoHistory(history));
         persist();
@@ -1059,6 +1078,7 @@
     getSelectionAfterCommit,
     copySelection,
     clearRangeCells,
+    clearSelectedRange,
     pasteSelection,
     evaluateCell,
     formatValue,

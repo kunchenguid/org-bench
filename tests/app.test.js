@@ -11,6 +11,7 @@ const {
   getSelectionAfterCommit,
   copySelection,
   clearRangeCells,
+  clearSelectedRange,
   pasteSelection,
   createHistory,
   applyHistoryState,
@@ -174,6 +175,25 @@ test('cut clearing removes every cell in a selected range', () => {
   assert.equal(getCellRaw(state, 1, 2), '');
   assert.equal(getCellRaw(state, 2, 1), '');
   assert.equal(getCellRaw(state, 2, 2), '');
+});
+
+test('clearSelectedRange clears the current selection rectangle and preserves the active cell', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 2, 2, '1');
+  state = commitCell(state, 2, 3, '2');
+  state = commitCell(state, 3, 2, '3');
+  state = commitCell(state, 3, 3, '4');
+  state = selectCell(state, 2, 2);
+  state = extendSelection(state, 3, 3);
+
+  state = clearSelectedRange(state);
+
+  assert.equal(getCellRaw(state, 2, 2), '');
+  assert.equal(getCellRaw(state, 2, 3), '');
+  assert.equal(getCellRaw(state, 3, 2), '');
+  assert.equal(getCellRaw(state, 3, 3), '');
+  assert.deepEqual(state.selection, { row: 2, col: 2 });
+  assert.deepEqual(state.selectionEnd, { row: 2, col: 2 });
 });
 
 test('undo and redo restore committed cell edits', () => {
