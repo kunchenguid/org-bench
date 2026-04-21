@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createSpreadsheetModel } = require('../src/model.js');
+const { createSpreadsheetModel, expandRange } = require('../src/model.js');
 
 test('stores raw values and evaluates formulas through references', () => {
   const model = createSpreadsheetModel();
@@ -55,4 +55,25 @@ test('tracks the active selection for persistence', () => {
     cells: {},
     selectedCell: 'C7'
   });
+});
+
+test('clears a batch of cells without disturbing unrelated values', () => {
+  const model = createSpreadsheetModel();
+
+  model.setCell('A1', 'keep');
+  model.setCell('A2', 'remove');
+  model.setCell('B2', '=1+1');
+  model.setCell('C3', 'stay');
+
+  model.clearCells(['A2', 'B2']);
+
+  assert.equal(model.getRawValue('A1'), 'keep');
+  assert.equal(model.getRawValue('A2'), '');
+  assert.equal(model.getRawValue('B2'), '');
+  assert.equal(model.getRawValue('C3'), 'stay');
+});
+
+test('expands rectangular ranges from any corner order', () => {
+  assert.deepEqual(expandRange('B2', 'C3'), ['B2', 'C2', 'B3', 'C3']);
+  assert.deepEqual(expandRange('C3', 'B2'), ['B2', 'C2', 'B3', 'C3']);
 });

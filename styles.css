@@ -156,6 +156,10 @@ body {
   color: #9ca8ba;
 }
 
+.cell.is-in-range {
+  background: #fff3d9;
+}
+
 .cell.is-selected {
   position: relative;
   background: #fffaf2;

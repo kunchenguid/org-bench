@@ -49,6 +49,12 @@
       return formatValue(value);
     }
 
+    function clearCells(addresses) {
+      addresses.forEach(function (address) {
+        cells.delete(normalizeAddress(address));
+      });
+    }
+
     function selectCell(address) {
       selectedCell = normalizeAddress(address);
     }
@@ -96,6 +102,7 @@
 
     return {
       setCell: setCell,
+      clearCells: clearCells,
       getRawValue: getRawValue,
       getCellValue: getCellValue,
       getDisplayValue: getDisplayValue,
@@ -604,6 +611,7 @@
     COLUMN_COUNT: COLUMN_COUNT,
     ROW_COUNT: ROW_COUNT,
     createSpreadsheetModel: createSpreadsheetModel,
+    expandRange: expandRange,
     addressToPoint: addressToPoint,
     pointToAddress: pointToAddress,
     indexToColumnLetters: indexToColumnLetters

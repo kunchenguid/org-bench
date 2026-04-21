@@ -12,10 +12,27 @@
   const state = loadState();
   const model = modelApi.createSpreadsheetModel(state);
   let isEditing = false;
-  let editValue = '';
+  let selectionAnchor = model.getSelectedCell();
+  let selectionFocus = model.getSelectedCell();
+  let isDraggingSelection = false;
 
   buildGrid();
   refresh();
+
+  grid.addEventListener('mousedown', function (event) {
+    const cell = event.target.closest('[data-address]');
+    if (!cell) {
+      return;
+    }
+
+    isDraggingSelection = true;
+    if (event.shiftKey) {
+      updateSelection(cell.dataset.address, true);
+      return;
+    }
+
+    updateSelection(cell.dataset.address, false);
+  });
 
   grid.addEventListener('click', function (event) {
     const cell = event.target.closest('[data-address]');
@@ -23,9 +40,17 @@
       return;
     }
 
-    model.selectCell(cell.dataset.address);
     isEditing = false;
-    refresh();
+    updateSelection(cell.dataset.address, event.shiftKey);
+  });
+
+  grid.addEventListener('mouseover', function (event) {
+    const cell = event.target.closest('[data-address]');
+    if (!cell || !isDraggingSelection) {
+      return;
+    }
+
+    updateSelection(cell.dataset.address, true);
   });
 
   grid.addEventListener('dblclick', function (event) {
@@ -33,8 +58,12 @@
     if (!cell) {
       return;
     }
-    model.selectCell(cell.dataset.address);
+    updateSelection(cell.dataset.address, false);
     beginEdit(model.getRawValue(cell.dataset.address));
+  });
+
+  document.addEventListener('mouseup', function () {
+    isDraggingSelection = false;
   });
 
   document.addEventListener('keydown', function (event) {
@@ -53,6 +82,12 @@
       return;
     }
 
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      clearSelection();
+      return;
+    }
+
     if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
       event.preventDefault();
       beginEdit(event.key);
@@ -65,7 +100,7 @@
     }
 
     event.preventDefault();
-    moveSelection(movement.column, movement.row);
+    moveSelection(movement.column, movement.row, event.shiftKey);
   });
 
   formulaInput.addEventListener('input', function () {
@@ -169,27 +204,47 @@
     persist();
     isEditing = false;
     editor.hidden = true;
-    moveSelection(columnDelta, rowDelta);
+    moveSelection(columnDelta, rowDelta, false);
     refresh();
   }
 
-  function moveSelection(columnDelta, rowDelta) {
+  function moveSelection(columnDelta, rowDelta, extendSelection) {
     const point = modelApi.addressToPoint(model.getSelectedCell());
     const nextColumn = clamp(point.column + columnDelta, 0, columns - 1);
     const nextRow = clamp(point.row + rowDelta, 0, rows - 1);
-    model.selectCell(modelApi.pointToAddress(nextColumn, nextRow));
+    updateSelection(modelApi.pointToAddress(nextColumn, nextRow), extendSelection);
+  }
+
+  function updateSelection(address, extendSelection) {
+    model.selectCell(address);
+    if (!extendSelection) {
+      selectionAnchor = address;
+    }
+    selectionFocus = address;
     persist();
     refresh();
   }
 
+  function clearSelection() {
+    model.clearCells(getSelectedAddresses());
+    persist();
+    refresh();
+  }
+
+  function getSelectedAddresses() {
+    return modelApi.expandRange(selectionAnchor, selectionFocus);
+  }
+
   function refresh() {
     const selectedAddress = model.getSelectedCell();
+    const selectedAddresses = new Set(getSelectedAddresses());
     selectedCellLabel.textContent = selectedAddress;
     formulaInput.value = model.getRawValue(selectedAddress);
-    status.textContent = isEditing ? 'Editing ' + selectedAddress : 'Ready';
+    status.textContent = isEditing ? 'Editing ' + selectedAddress : selectionSummary(selectedAddresses.size);
 
     grid.querySelectorAll('[data-address]').forEach(function (cell) {
       const address = cell.dataset.address;
+      cell.classList.toggle('is-in-range', selectedAddresses.has(address));
       cell.classList.toggle('is-selected', address === selectedAddress);
       cell.textContent = model.getDisplayValue(address);
       cell.classList.toggle('is-empty', cell.textContent === '');
@@ -221,5 +276,13 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function selectionSummary(size) {
+    if (size <= 1) {
+      return 'Ready';
+    }
+
+    return size + ' cells selected';
   }
 })();
