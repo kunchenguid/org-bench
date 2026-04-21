@@ -5,6 +5,9 @@ const {
   setCell,
   getCellRaw,
   getCellDisplay,
+  copyBlock,
+  pasteBlock,
+  clearBlock,
 } = require('./spreadsheet.js');
 
 function test(name, fn) {
@@ -54,4 +57,25 @@ test('detects circular references', () => {
 
   assert.equal(getCellDisplay(sheet, 'D1'), '#CIRC!');
   assert.equal(getCellDisplay(sheet, 'D2'), '#CIRC!');
+});
+
+test('copying and pasting a formula shifts relative references', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A2', '2');
+  setCell(sheet, 'B2', '=A2');
+
+  const block = copyBlock(sheet, 'B2', 'B2');
+  pasteBlock(sheet, 'C3', block);
+
+  assert.equal(getCellRaw(sheet, 'C3'), '=B3');
+  assert.equal(getCellDisplay(sheet, 'C3'), '');
+});
+
+test('clearing a copied block removes the source cells', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '7');
+
+  clearBlock(sheet, 'A1', 'A1');
+
+  assert.equal(getCellRaw(sheet, 'A1'), '');
 });

@@ -1,15 +1,14 @@
 (function () {
   const core = window.SpreadsheetCore;
-  const storageApi = window.EmmaStorage;
   const COLS = 26;
   const ROWS = 100;
   const storageNamespace = resolveStorageNamespace();
+  const storageKey = storageNamespace + ':sheet-state';
   const persisted = loadState();
   const sheet = core.createSheet(persisted.cells);
   const gridWrap = document.querySelector('.grid-wrap');
   const formulaInput = document.querySelector('#formula-input');
-  const nameBox = document.querySelector('#name-box');
-  const state = { active: persisted.active || 'A1', editing: null };
+  const state = { active: persisted.active || 'A1', editing: null, clipboard: null };
 
   renderGrid();
   syncFormulaBar();
@@ -70,6 +69,33 @@
   function handleGridKeydown(event) {
     if (state.editing && state.editing !== 'formula') return;
     if (event.target.classList.contains('cell-input')) return;
+    if (event.metaKey || event.ctrlKey) {
+      const key = event.key.toLowerCase();
+      if (key === 'c') {
+        event.preventDefault();
+        state.clipboard = { block: core.copyBlock(sheet, state.active, state.active), cut: false };
+        return;
+      }
+      if (key === 'x') {
+        event.preventDefault();
+        state.clipboard = { block: core.copyBlock(sheet, state.active, state.active), cut: true };
+        return;
+      }
+      if (key === 'v' && state.clipboard) {
+        event.preventDefault();
+        if (state.clipboard.cut) {
+          const source = core.makeAddress(state.clipboard.block.source.col, state.clipboard.block.source.row);
+          core.clearBlock(sheet, source, source);
+        }
+        core.pasteBlock(sheet, state.active, state.clipboard.block);
+        if (state.clipboard.cut) state.clipboard = null;
+        persistState();
+        updateVisibleCells();
+        syncFormulaBar();
+        focusActiveCell();
+        return;
+      }
+    }
     const movement = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[event.key];
     if (movement) {
       event.preventDefault();
@@ -153,7 +179,6 @@
     }
   }
   function syncFormulaBar() {
-    nameBox.textContent = state.active;
     if (state.editing !== 'formula') formulaInput.value = core.getCellRaw(sheet, state.active);
   }
   function focusActiveCell() {
@@ -164,13 +189,13 @@
     return gridWrap.querySelector('[data-address="' + address + '"]');
   }
   function persistState() {
-    storageApi.savePersistedSheet(localStorage, storageNamespace, { cells: sheet.cells, active: state.active });
+    localStorage.setItem(storageKey, JSON.stringify({ cells: sheet.cells, active: state.active }));
   }
   function loadState() {
-    return storageApi.loadPersistedSheet(localStorage, storageNamespace) || {};
+    try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (error) { return {}; }
   }
   function resolveStorageNamespace() {
-    return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'spreadsheet';
+    return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'sheet';
   }
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 })();

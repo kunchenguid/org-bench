@@ -32,6 +32,47 @@
     return formatValue(evaluateCell(sheet, address, {}));
   }
 
+  function copyBlock(sheet, startAddress, endAddress) {
+    const start = splitAddress(startAddress);
+    const end = splitAddress(endAddress);
+    const top = Math.min(start.row, end.row);
+    const bottom = Math.max(start.row, end.row);
+    const left = Math.min(start.col, end.col);
+    const right = Math.max(start.col, end.col);
+    const cells = [];
+    for (let row = top; row <= bottom; row += 1) {
+      const values = [];
+      for (let col = left; col <= right; col += 1) {
+        values.push(getCellRaw(sheet, makeAddress(col, row)));
+      }
+      cells.push(values);
+    }
+    return { source: { row: top, col: left }, cells: cells };
+  }
+
+  function clearBlock(sheet, startAddress, endAddress) {
+    const start = splitAddress(startAddress);
+    const end = splitAddress(endAddress);
+    for (let row = Math.min(start.row, end.row); row <= Math.max(start.row, end.row); row += 1) {
+      for (let col = Math.min(start.col, end.col); col <= Math.max(start.col, end.col); col += 1) {
+        setCell(sheet, makeAddress(col, row), '');
+      }
+    }
+  }
+
+  function pasteBlock(sheet, targetAddress, block) {
+    const target = splitAddress(targetAddress);
+    const rowDelta = target.row - block.source.row;
+    const colDelta = target.col - block.source.col;
+    for (let row = 0; row < block.cells.length; row += 1) {
+      for (let col = 0; col < block.cells[row].length; col += 1) {
+        const raw = block.cells[row][col];
+        const nextAddress = makeAddress(target.col + col, target.row + row);
+        setCell(sheet, nextAddress, raw && raw[0] === '=' ? shiftFormula(raw, colDelta, rowDelta) : raw);
+      }
+    }
+  }
+
   function evaluateCell(sheet, address, state) {
     if (!state.memo) state.memo = {};
     if (!state.stack) state.stack = [];
@@ -383,6 +424,13 @@
     const split = splitAddress(ref);
     return split ? makeAddress(split.col, split.row) : null;
   }
+  function shiftFormula(formula, colDelta, rowDelta) {
+    return String(formula).replace(/(\$?)([A-Z]+)(\$?)([1-9][0-9]*)/g, function (_, absCol, colLabel, absRow, rowValue) {
+      const nextCol = absCol ? columnToIndex(colLabel) : columnToIndex(colLabel) + colDelta;
+      const nextRow = absRow ? Number(rowValue) : Number(rowValue) + rowDelta;
+      return (absCol || '') + indexToColumn(nextCol) + (absRow || '') + String(nextRow);
+    });
+  }
   function splitAddress(ref) {
     const match = /^\$?([A-Z]+)\$?([1-9][0-9]*)$/.exec(String(ref).toUpperCase());
     return match ? { col: columnToIndex(match[1]), row: Number(match[2]) } : null;
@@ -410,6 +458,9 @@
     setCell: setCell,
     getCellRaw: getCellRaw,
     getCellDisplay: getCellDisplay,
+    copyBlock: copyBlock,
+    clearBlock: clearBlock,
+    pasteBlock: pasteBlock,
     evaluateCell: evaluateCell,
     splitAddress: splitAddress,
     makeAddress: makeAddress,
