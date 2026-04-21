@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   advanceClipboardState,
+  adjustSelectionForStructure,
   beginEditSession,
   commitEditSession,
   createClipboardState,
@@ -50,4 +51,30 @@ test('cut clipboard state clears after the first successful paste', () => {
   const clipboard = createClipboardState('7\t=A1*2', { minRow: 0, maxRow: 0, minCol: 0, maxCol: 1 }, true);
 
   assert.equal(advanceClipboardState(clipboard), null);
+});
+
+test('structural edits keep selection attached to the affected row or column', () => {
+  assert.deepEqual(
+    adjustSelectionForStructure(
+      { anchor: { row: 2, col: 3 }, focus: { row: 2, col: 3 } },
+      { axis: 'row', kind: 'insert', index: 2 }
+    ),
+    { anchor: { row: 3, col: 3 }, focus: { row: 3, col: 3 } }
+  );
+
+  assert.deepEqual(
+    adjustSelectionForStructure(
+      { anchor: { row: 4, col: 1 }, focus: { row: 4, col: 1 } },
+      { axis: 'row', kind: 'delete', index: 4 }
+    ),
+    { anchor: { row: 3, col: 1 }, focus: { row: 3, col: 1 } }
+  );
+
+  assert.deepEqual(
+    adjustSelectionForStructure(
+      { anchor: { row: 1, col: 5 }, focus: { row: 1, col: 5 } },
+      { axis: 'column', kind: 'insert', index: 5 }
+    ),
+    { anchor: { row: 1, col: 6 }, focus: { row: 1, col: 6 } }
+  );
 });

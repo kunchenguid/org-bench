@@ -35,7 +35,7 @@ body {
 
 .topbar {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px minmax(0, 1fr) auto;
   gap: 16px;
   align-items: end;
 }
@@ -88,6 +88,55 @@ h1 {
   outline: 0;
 }
 
+.structure-bar {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--grid);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.structure-title,
+.structure-target {
+  margin: 0;
+}
+
+.structure-title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.structure-target {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.structure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.structure-actions button {
+  border: 1px solid var(--grid);
+  background: var(--panel-strong);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.structure-actions button:hover,
+.structure-actions button:focus-visible {
+  border-color: var(--accent);
+  outline: 0;
+}
+
 .grid-shell {
   min-height: 0;
   overflow: auto;
@@ -121,6 +170,11 @@ th {
   text-align: center;
   font-size: 12px;
   font-weight: 700;
+}
+
+th.active-header {
+  color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 tbody th {

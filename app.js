@@ -5,6 +5,8 @@
   const storageKey = namespace + ':quiet-sheet:v1';
   const sheetEl = document.getElementById('sheet');
   const formulaBar = document.getElementById('formula-bar');
+  const structureBar = document.querySelector('.structure-bar');
+  const structureTarget = document.getElementById('structure-target');
 
   const state = loadState();
   let computed = {};
@@ -52,6 +54,7 @@
     headerRow.appendChild(corner);
     for (let col = 0; col < core.COLUMN_COUNT; col += 1) {
       const th = document.createElement('th');
+      th.dataset.colHeader = String(col);
       th.textContent = core.columnLabel(col);
       headerRow.appendChild(th);
     }
@@ -61,6 +64,7 @@
     for (let row = 0; row < core.ROW_COUNT; row += 1) {
       const tr = document.createElement('tr');
       const rowHeader = document.createElement('th');
+      rowHeader.dataset.rowHeader = String(row);
       rowHeader.textContent = String(row + 1);
       tr.appendChild(rowHeader);
       for (let col = 0; col < core.COLUMN_COUNT; col += 1) {
@@ -86,10 +90,42 @@
     document.addEventListener('copy', onCopy);
     document.addEventListener('cut', onCut);
     document.addEventListener('paste', onPaste);
+    structureBar.addEventListener('click', onStructureAction);
     formulaBar.addEventListener('focus', onFormulaFocus);
     formulaBar.addEventListener('input', onFormulaInput);
     formulaBar.addEventListener('keydown', onFormulaKeyDown);
     formulaBar.addEventListener('blur', onFormulaBlur);
+  }
+
+  function onStructureAction(event) {
+    const button = event.target.closest('button[data-structure-action]');
+    if (!button) return;
+    finishEdit(false);
+
+    const active = state.selection.focus;
+    const operations = {
+      'insert-row': { axis: 'row', kind: 'insert', index: active.row },
+      'delete-row': { axis: 'row', kind: 'delete', index: active.row },
+      'insert-column': { axis: 'column', kind: 'insert', index: active.col },
+      'delete-column': { axis: 'column', kind: 'delete', index: active.col },
+    };
+    const operation = operations[button.dataset.structureAction];
+    if (!operation) return;
+
+    if (operation.axis === 'row') {
+      state.cells = operation.kind === 'insert'
+        ? core.insertRow(state.cells, operation.index)
+        : core.deleteRow(state.cells, operation.index);
+    } else {
+      state.cells = operation.kind === 'insert'
+        ? core.insertColumn(state.cells, operation.index)
+        : core.deleteColumn(state.cells, operation.index);
+    }
+
+    state.selection = appState.adjustSelectionForStructure(state.selection, operation);
+    recalculate();
+    renderSelection();
+    saveState();
   }
 
   function onCellMouseDown(event) {
@@ -386,6 +422,13 @@
       cell.classList.toggle('selected', inSelection);
       cell.classList.toggle('active', cell.dataset.cellId === activeCellId());
     });
+    sheetEl.querySelectorAll('thead th[data-col-header]').forEach(function (header) {
+      header.classList.toggle('active-header', Number(header.dataset.colHeader) === state.selection.focus.col);
+    });
+    sheetEl.querySelectorAll('tbody th[data-row-header]').forEach(function (header) {
+      header.classList.toggle('active-header', Number(header.dataset.rowHeader) === state.selection.focus.row);
+    });
+    structureTarget.textContent = 'Row ' + String(state.selection.focus.row + 1) + ', Column ' + core.columnLabel(state.selection.focus.col);
     syncFormulaBar();
     getCellElement(activeCellId()).scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }

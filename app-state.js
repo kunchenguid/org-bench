@@ -47,8 +47,40 @@
     return state.cut ? null : state;
   }
 
+  function adjustSelectionForStructure(selection, operation) {
+    return {
+      anchor: adjustPosition(selection.anchor, operation),
+      focus: adjustPosition(selection.focus, operation),
+    };
+  }
+
+  function adjustPosition(position, operation) {
+    const next = { row: position.row, col: position.col };
+    const axisKey = operation.axis === 'row' ? 'row' : 'col';
+    const otherKey = axisKey === 'row' ? 'col' : 'row';
+
+    if (operation.kind === 'insert') {
+      if (next[axisKey] >= operation.index) {
+        next[axisKey] += 1;
+      }
+      if (position[axisKey] === operation.index) {
+        next[otherKey] = position[otherKey];
+      }
+      return next;
+    }
+
+    if (next[axisKey] > operation.index) {
+      next[axisKey] -= 1;
+    } else if (next[axisKey] === operation.index) {
+      next[axisKey] = Math.max(0, operation.index - 1);
+    }
+
+    return next;
+  }
+
   return {
     advanceClipboardState,
+    adjustSelectionForStructure,
     beginEditSession,
     commitEditSession,
     createClipboardState,
