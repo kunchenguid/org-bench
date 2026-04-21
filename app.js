@@ -10,6 +10,7 @@
   let rangeAnchor = { col: selection.col, row: selection.row };
   let clipboard = null;
   let isEditing = false;
+  let formulaBuffer = null;
   let history = [];
   let future = [];
 
@@ -216,7 +217,7 @@
   }
 
   function syncFormula() {
-    formulaInput.value = store.getCell(selection.col, selection.row);
+    formulaInput.value = formulaBuffer ? formulaBuffer.draft : store.getCell(selection.col, selection.row);
   }
 
   function moveSelection(dCol, dRow) {
@@ -317,22 +318,28 @@
 
   formulaInput.addEventListener('focus', function () {
     isEditing = true;
+    formulaBuffer = core.createEditBuffer(store.getCell(selection.col, selection.row));
   });
   formulaInput.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
       event.preventDefault();
-      commit(formulaInput.value, 0, 1);
+      const value = core.resolveEditBuffer(formulaBuffer || core.createEditBuffer(formulaInput.value), true);
+      formulaBuffer = null;
+      commit(value, 0, 1);
     } else if (event.key === 'Escape') {
       event.preventDefault();
       isEditing = false;
+      if (formulaBuffer) {
+        formulaInput.value = core.resolveEditBuffer(formulaBuffer, false);
+        formulaBuffer = null;
+      }
       syncFormula();
     }
   });
   formulaInput.addEventListener('input', function () {
     if (isEditing) {
-      store.setCell(selection.col, selection.row, formulaInput.value);
-      save();
-      render();
+      formulaBuffer = formulaBuffer || core.createEditBuffer(store.getCell(selection.col, selection.row));
+      formulaBuffer.draft = formulaInput.value;
     }
   });
 
