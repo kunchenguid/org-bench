@@ -27,6 +27,15 @@ test('html exposes the shell hooks for the formula bar and spreadsheet grid', as
   assert.match(html, /src="src\/header-controls\.js"/i);
 });
 
+test('html loads the formula engine before the editing controller', async () => {
+  const html = await read('index.html');
+
+  assert.match(html, /src="formula-engine\.js"/i);
+  assert.match(html, /src="src\/spreadsheet-store\.js"/i);
+  assert.match(html, /src="src\/editing\.js"/i);
+  assert.equal(html.indexOf('src="formula-engine.js"') < html.indexOf('src="src/editing.js"'), true);
+});
+
 test('styles define the key spreadsheet visual states', async () => {
   const css = await read('styles.css');
 

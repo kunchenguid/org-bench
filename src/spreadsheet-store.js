@@ -2,12 +2,12 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('../formula-engine.js'));
     return;
   }
 
-  root.SpreadsheetStore = factory();
-})(typeof globalThis !== 'undefined' ? globalThis : window, function () {
+  root.SpreadsheetStore = factory(root.FormulaEngine);
+})(typeof globalThis !== 'undefined' ? globalThis : window, function (FormulaEngine) {
   const STORAGE_SUFFIX = 'spreadsheet-state';
 
   function createMemoryStorage() {
@@ -47,7 +47,7 @@
     const persistedState = loadPersistedState(storage, storageKey);
     const state = {
       cells: new Map(Object.entries(persistedState.cells)),
-      computed: new Map(),
+      computed: buildComputedState(new Map(Object.entries(persistedState.cells))),
       activeCell: clonePoint(persistedState.activeCell),
       selection: cloneSelection(persistedState.selection),
       history: {
@@ -84,6 +84,14 @@
       return state.computed.has(cellId) ? state.computed.get(cellId) : null;
     }
 
+    function getDisplayCell(cellId) {
+      const computed = getComputedCell(cellId);
+      if (computed && typeof computed.display === 'string') {
+        return computed.display;
+      }
+      return getRawCell(cellId);
+    }
+
     function setCell(cellId, rawValue, options) {
       return applyCells({ [cellId]: rawValue }, options);
     }
@@ -95,6 +103,7 @@
       }
 
       applyCellObject(state.cells, normalizedChanges.after);
+      recalculateComputed();
       pushHistory({
         type: 'cells',
         label: options && options.label ? options.label : 'edit',
@@ -184,6 +193,11 @@
 
     function applyHistoryEntry(patch) {
       applyCellObject(state.cells, patch);
+      recalculateComputed();
+    }
+
+    function recalculateComputed() {
+      state.computed = buildComputedState(state.cells);
     }
 
     function notify(reason) {
@@ -198,6 +212,7 @@
       getSnapshot,
       getRawCell,
       getComputedCell,
+      getDisplayCell,
       setCell,
       applyCells,
       clearCells,
@@ -261,6 +276,29 @@
     } catch (_error) {
       return getDefaultPersistedState();
     }
+  }
+
+  function buildComputedState(cells) {
+    if (!FormulaEngine || typeof FormulaEngine.createSpreadsheetEngine !== 'function') {
+      return new Map();
+    }
+
+    const engine = FormulaEngine.createSpreadsheetEngine();
+    for (const [cellId, raw] of cells.entries()) {
+      engine.setCell(cellId, raw);
+    }
+
+    const computed = new Map();
+    for (const cellId of cells.keys()) {
+      const payload = engine.getCell(cellId);
+      computed.set(cellId, {
+        kind: payload.type,
+        value: payload.value,
+        display: payload.display,
+        dependencies: payload.dependencies,
+      });
+    }
+    return computed;
   }
 
   function persistState(storage, storageKey, state) {

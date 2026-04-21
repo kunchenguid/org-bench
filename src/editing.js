@@ -216,7 +216,7 @@
           if (activeEditor && activeEditor.parentNode === cell) {
             activeEditor = null;
           }
-          cell.textContent = raw;
+          cell.textContent = store.getDisplayCell(cellId);
         }
       }
     }
