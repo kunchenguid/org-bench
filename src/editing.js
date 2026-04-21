@@ -188,13 +188,17 @@
       options && options.namespace
         ? options.namespace
         : root.__APPLE_BENCH_STORAGE_NS__ || 'spreadsheet';
-    const sharedShell = rootNode.__sheetGridUi || root.sheetGridUi;
+    const sharedShell = rootNode.__sheetGridUi || root.sheetGridUi || root.sheetShell || {};
     const store =
       options && options.store
         ? options.store
-        : sharedShell && sharedShell.store
+        : sharedShell.store
           ? sharedShell.store
-          : SpreadsheetStore.createSpreadsheetStore({ namespace: namespace });
+          : SpreadsheetStore.createSpreadsheetStore({
+              namespace: namespace,
+              formulaEngine: root.FormulaEngine,
+              mutationEngine: root.Mutations,
+            });
     const controller = createEditingController({ store: store });
     const cells = Array.from(cellGrid.querySelectorAll('.cell'));
     let activeEditor = null;
@@ -222,7 +226,7 @@
           if (activeEditor && activeEditor.parentNode === cell) {
             activeEditor = null;
           }
-          cell.textContent = raw;
+          cell.textContent = getDisplayValue(store, cellId, raw);
         }
       }
     }
@@ -285,6 +289,17 @@
         render();
       }
     }
+
+    sharedShell.store = store;
+    sharedShell.editing = {
+      controller: controller,
+      render: render,
+    };
+    root.sheetShell = sharedShell;
+
+    store.subscribe(function () {
+      render();
+    });
 
     for (const cell of cells) {
       cell.addEventListener('click', function () {
@@ -486,6 +501,14 @@
       return override;
     }
     return SpreadsheetClipboard;
+  }
+
+  function getDisplayValue(store, cellId, raw) {
+    const computed = store.getComputedCell(cellId);
+    if (computed && Object.prototype.hasOwnProperty.call(computed, 'display')) {
+      return computed.display;
+    }
+    return raw;
   }
 
   function movePoint(point, direction, maxRows, maxColumns) {
