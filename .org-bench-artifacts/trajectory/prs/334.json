@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 334,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/334",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Refresh single-cell interaction layer",
+  "body": "## Summary\n- carry forward Carol's single-cell editing layer on top of the latest merged shell and runtime\n- remove stale conflict state by reopening the exact same code from a freshly refreshed branch\n- keep the focused interaction tests green on the refreshed branch\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T06:54:16Z"
+    }
+  ],
+  "comments": []
+}
