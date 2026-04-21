@@ -13,15 +13,48 @@
   };
 
   function createSheet(initialCells) {
-    return { cells: Object.assign({}, initialCells || {}) };
+    return {
+      cells: Object.assign({}, initialCells || {}),
+      history: {
+        undoStack: [],
+        redoStack: [],
+      },
+    };
+  }
+
+  function snapshotCells(sheet) {
+    return Object.assign({}, sheet.cells);
+  }
+
+  function recordHistory(sheet) {
+    sheet.history.undoStack.push(snapshotCells(sheet));
+    if (sheet.history.undoStack.length > 50) {
+      sheet.history.undoStack.shift();
+    }
+    sheet.history.redoStack = [];
   }
 
   function setCell(sheet, address, raw) {
+    recordHistory(sheet);
     if (!raw) {
       delete sheet.cells[address];
       return;
     }
     sheet.cells[address] = String(raw);
+  }
+
+  function undo(sheet) {
+    if (!sheet.history.undoStack.length) return false;
+    sheet.history.redoStack.push(snapshotCells(sheet));
+    sheet.cells = sheet.history.undoStack.pop();
+    return true;
+  }
+
+  function redo(sheet) {
+    if (!sheet.history.redoStack.length) return false;
+    sheet.history.undoStack.push(snapshotCells(sheet));
+    sheet.cells = sheet.history.redoStack.pop();
+    return true;
   }
 
   function getCellRaw(sheet, address) {
@@ -408,6 +441,8 @@
     ERROR: ERROR,
     createSheet: createSheet,
     setCell: setCell,
+    undo: undo,
+    redo: redo,
     getCellRaw: getCellRaw,
     getCellDisplay: getCellDisplay,
     evaluateCell: evaluateCell,
