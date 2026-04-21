@@ -509,7 +509,47 @@
   });
 
   document.addEventListener('sheet:selection-change', function (event) {
-    controller.setSelection(event.detail.active);
+    controller.setSelection(event.detail.active, event.detail.range || {
+      start: event.detail.active,
+      end: event.detail.active,
+    });
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+    if (event.target && event.target.classList && event.target.classList.contains('cell-editor')) return;
+
+    const key = event.key.toLowerCase();
+
+    if (key === 'c') {
+      event.preventDefault();
+      controller.copySelection();
+      return;
+    }
+
+    if (key === 'x') {
+      event.preventDefault();
+      controller.cutSelection();
+      return;
+    }
+
+    if (key === 'v') {
+      event.preventDefault();
+      controller.pasteSelection();
+      return;
+    }
+
+    if (key === 'z' && event.shiftKey) {
+      event.preventDefault();
+      controller.redo();
+      return;
+    }
+
+    if (key === 'z') {
+      event.preventDefault();
+      controller.undo();
+      return;
+    }
   });
 
   controller.hydrate();

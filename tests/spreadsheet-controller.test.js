@@ -293,3 +293,97 @@ test('hydrate sends raw formulas and display values separately when the shell su
   ]);
   assert.equal(shell.renders, 1);
 });
+
+test('copy and paste use the current selection and rerender shifted results', () => {
+  const shell = createShellDouble();
+  const operations = [];
+  const modelState = {
+    cells: {
+      A1: '=B1',
+      B1: '2',
+      B2: '=C2',
+      C2: '2',
+    },
+    selection: 'A1',
+  };
+  const copiedPayload = {
+    kind: 'copy',
+    source: { row: 1, col: 1 },
+    width: 1,
+    height: 1,
+    cells: [['=B1']],
+  };
+  const model = {
+    copyRange(range) {
+      operations.push(['copyRange', range]);
+      return copiedPayload;
+    },
+    pasteRange(target, clipboard) {
+      operations.push(['pasteRange', target, clipboard]);
+    },
+    setSelection(address) {
+      modelState.selection = address;
+    },
+    exportState() {
+      return JSON.parse(JSON.stringify(modelState));
+    },
+  };
+  const engine = {
+    cells: new Map(),
+    setCell(cellId, raw) {
+      this.cells.set(cellId, raw);
+    },
+    recalculate() {},
+    getDisplayValue(cellId) {
+      return modelState.cells[cellId] || '';
+    },
+  };
+
+  const controller = createSpreadsheetController({ shell, model, engine });
+
+  controller.setSelection({ col: 0, row: 0 }, { start: { col: 0, row: 0 }, end: { col: 0, row: 0 } });
+  controller.copySelection();
+  controller.setSelection({ col: 1, row: 1 }, { start: { col: 1, row: 1 }, end: { col: 1, row: 1 } });
+  controller.pasteSelection();
+
+  assert.deepEqual(operations, [
+    ['copyRange', { start: 'A1', end: 'A1' }],
+    ['pasteRange', 'B2', copiedPayload],
+  ]);
+  assert.equal(shell.renders, 1);
+});
+
+test('undo and redo delegate to the model and rehydrate when a history entry exists', () => {
+  const shell = createShellDouble();
+  const model = {
+    undoCalls: 0,
+    redoCalls: 0,
+    undo() {
+      this.undoCalls += 1;
+      return true;
+    },
+    redo() {
+      this.redoCalls += 1;
+      return true;
+    },
+    exportState() {
+      return { cells: {}, selection: 'A1' };
+    },
+  };
+  const engine = {
+    cells: new Map(),
+    setCell() {},
+    recalculate() {},
+    getDisplayValue() {
+      return '';
+    },
+  };
+
+  const controller = createSpreadsheetController({ shell, model, engine });
+
+  assert.equal(controller.undo(), true);
+  assert.equal(controller.redo(), true);
+  assert.equal(model.undoCalls, 1);
+  assert.equal(model.redoCalls, 1);
+  assert.equal(shell.renders, 2);
+});

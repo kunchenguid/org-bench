@@ -3,6 +3,8 @@ function createSpreadsheetController(options) {
   const model = options.model;
   const engine = options.engine;
   let hydratedAddresses = [];
+  let selection = { active: { col: 0, row: 0 }, range: { start: { col: 0, row: 0 }, end: { col: 0, row: 0 } } };
+  let clipboard = null;
 
   function clearRemovedAddresses(nextAddresses) {
     const nextSet = new Set(nextAddresses);
@@ -89,9 +91,59 @@ function createSpreadsheetController(options) {
   }
 
   function setSelection(cell) {
+    const range = arguments.length > 1 && arguments[1] ? arguments[1] : { start: cell, end: cell };
+    selection = { active: cell, range: range };
+
     if (typeof model.setSelection === 'function') {
       model.setSelection(coordsToCellId(cell));
     }
+  }
+
+  function copySelection() {
+    if (typeof model.copyRange !== 'function') {
+      return null;
+    }
+
+    clipboard = model.copyRange(rangeToCellIds(selection.range));
+    return clipboard;
+  }
+
+  function cutSelection() {
+    if (typeof model.cutRange !== 'function') {
+      return null;
+    }
+
+    clipboard = model.cutRange(rangeToCellIds(selection.range));
+    hydrate();
+    return clipboard;
+  }
+
+  function pasteSelection() {
+    if (!clipboard || typeof model.pasteRange !== 'function') {
+      return false;
+    }
+
+    model.pasteRange(coordsToCellId(selection.active), clipboard);
+    hydrate();
+    return true;
+  }
+
+  function undo() {
+    if (typeof model.undo !== 'function' || !model.undo()) {
+      return false;
+    }
+
+    hydrate();
+    return true;
+  }
+
+  function redo() {
+    if (typeof model.redo !== 'function' || !model.redo()) {
+      return false;
+    }
+
+    hydrate();
+    return true;
   }
 
   function updateShellCell(cell, raw, display) {
@@ -109,6 +161,11 @@ function createSpreadsheetController(options) {
     clearRange,
     applyStructureChange,
     setSelection,
+    copySelection,
+    cutSelection,
+    pasteSelection,
+    undo,
+    redo,
   };
 }
 
