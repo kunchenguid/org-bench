@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Microsoft Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="formula-bar-wrap">
+        <div class="formula-label">fx</div>
+        <div id="selected-cell" class="selected-cell-label">A1</div>
+        <input id="formula-input" class="formula-input" type="text" spellcheck="false" aria-label="Formula bar">
+      </header>
+      <main class="grid-wrap">
+        <table id="sheet" class="sheet" aria-label="Spreadsheet grid"></table>
+      </main>
+    </div>
+    <script src="spreadsheet-core.js"></script>
+    <script src="app.js"></script>
+  </body>
+  </html>
