@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northstar Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="topbar">
+        <div>
+          <div class="title">Northstar Sheet</div>
+          <div class="hint">Single-page spreadsheet with formulas, persistence, and keyboard editing.</div>
+        </div>
+        <div class="hint">Enter commits down. Tab commits right. F2 edits in place.</div>
+      </section>
+
+      <section class="formula-shell" aria-label="Formula bar">
+        <div class="name-box" data-name-box>A1</div>
+        <div class="formula-prefix">fx</div>
+        <input class="formula-input" data-formula-bar aria-label="Formula bar" spellcheck="false">
+      </section>
+
+      <section class="grid-frame" data-grid-frame>
+        <table class="sheet" aria-label="Spreadsheet grid">
+          <tbody data-grid-body></tbody>
+        </table>
+        <input class="cell-editor" data-cell-editor hidden spellcheck="false" aria-label="Cell editor">
+      </section>
+    </main>
+
+    <script src="src/spreadsheet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
