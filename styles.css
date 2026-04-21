@@ -232,6 +232,10 @@ input {
   z-index: 1;
 }
 
+.grid-cell.in-range {
+  background: linear-gradient(180deg, rgba(0, 113, 227, 0.1), rgba(0, 113, 227, 0.04));
+}
+
 .grid-cell.active::after {
   content: "";
   position: absolute;
