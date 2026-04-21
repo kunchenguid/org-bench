@@ -607,7 +607,7 @@
 
       root.innerHTML = "";
       root.appendChild(table);
-      formulaInput.value = editingKey === "formula" ? draftValue : workbook.getRaw(activeKey);
+      formulaInput.value = editingKey ? draftValue : workbook.getRaw(activeKey);
 
       if (editingKey && editingKey !== "formula") {
         var activeEditor = root.querySelector('[data-editor="' + editingKey + '"]');
@@ -684,6 +684,7 @@
     root.addEventListener("input", function (event) {
       if (event.target.matches(".cell-editor")) {
         draftValue = event.target.value;
+        formulaInput.value = draftValue;
       }
     });
 
@@ -705,7 +706,7 @@
 
     formulaInput.addEventListener("focus", function () {
       editingKey = "formula";
-      draftValue = workbook.getRaw(activeKey);
+      draftValue = editingKey ? draftValue : workbook.getRaw(activeKey);
       formulaInput.value = draftValue;
     });
 

@@ -53,6 +53,28 @@
           }
         }
 
+        function clearSpreadsheetStorage() {
+          localStorage.removeItem("amazon-sheet:cells");
+          localStorage.removeItem("amazon-sheet:active");
+        }
+
+        function mountApp() {
+          clearSpreadsheetStorage();
+          var existing = document.getElementById("app-test-root");
+          if (existing) {
+            existing.remove();
+          }
+          var root = document.createElement("div");
+          root.id = "app-test-root";
+          root.innerHTML = '<input id="formula-input" /><div id="spreadsheet"></div>';
+          document.body.appendChild(root);
+          window.SpreadsheetApp.createApp();
+          return {
+            formulaInput: document.getElementById("formula-input"),
+            spreadsheet: document.getElementById("spreadsheet"),
+          };
+        }
+
         run("createWorkbook exposes raw and display values", function () {
           var workbook = window.SpreadsheetApp.createWorkbook();
           workbook.setCell("A1", "1");
@@ -104,6 +126,22 @@
           workbook.pasteRange("C2");
 
           assertEqual(workbook.getRaw("C2"), "=$A$1+B3", "keeps absolute parts fixed while shifting relative parts");
+        });
+
+        run("formula bar and in-cell editing share one draft", function () {
+          var ui = mountApp();
+          ui.spreadsheet.querySelector('[data-cell="A1"]').click();
+          document.dispatchEvent(new KeyboardEvent("keydown", { key: "1", bubbles: true }));
+
+          var editor = ui.spreadsheet.querySelector('[data-editor="A1"]');
+          editor.value = "123";
+          editor.dispatchEvent(new Event("input", { bubbles: true }));
+
+          assertEqual(ui.formulaInput.value, "123", "formula bar mirrors the in-cell draft");
+
+          ui.formulaInput.focus();
+          ui.formulaInput.dispatchEvent(new FocusEvent("focus"));
+          assertEqual(ui.formulaInput.value, "123", "formula bar keeps the same draft when taking over editing");
         });
 
         document.title = failures ? "FAIL (" + failures + ")" : "PASS";
