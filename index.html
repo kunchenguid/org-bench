@@ -3,35 +3,27 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Amazon Spreadsheet</title>
+    <title>Quiet Sheet</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="app-shell">
-      <header class="toolbar">
-        <div class="brand">
-          <span class="brand-mark">A</span>
-          <div>
-            <strong>Spreadsheet</strong>
-            <p>Ready for quick calculations.</p>
-          </div>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Spreadsheet</p>
+          <h1>Quiet Sheet</h1>
         </div>
-        <label class="name-box" aria-label="Selected cell">
-          <span>Name</span>
-          <strong data-selected-cell>A1</strong>
+        <label class="formula-wrap" for="formula-bar">
+          <span class="formula-label">fx</span>
+          <input id="formula-bar" autocomplete="off" spellcheck="false">
         </label>
-        <label class="formula-bar">
-          <span>Formula</span>
-          <input data-formula-input type="text" spellcheck="false" autocomplete="off">
-        </label>
-        <div class="status" data-status>Ready</div>
       </header>
-      <section class="grid-shell">
-        <div class="grid" data-grid></div>
-        <input class="cell-editor" data-cell-editor type="text" hidden spellcheck="false" autocomplete="off">
-      </section>
-    </main>
-    <script src="src/model.js"></script>
-    <script src="src/app.js"></script>
+      <main class="grid-shell">
+        <table id="sheet" aria-label="Spreadsheet grid"></table>
+      </main>
+    </div>
+    <script src="app-state.js"></script>
+    <script src="spreadsheet-core.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
