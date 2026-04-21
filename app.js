@@ -10,15 +10,27 @@
   const GRID_ROWS = 100;
 
   function columnIndexToLabel(index) {
-    return String.fromCharCode(65 + index);
+    let value = index + 1;
+    let label = '';
+
+    while (value > 0) {
+      const remainder = (value - 1) % 26;
+      label = String.fromCharCode(65 + remainder) + label;
+      value = Math.floor((value - 1) / 26);
+    }
+
+    return label;
   }
 
-  function createSpreadsheetShellModel() {
-    const columns = Array.from({ length: GRID_COLUMNS }, function (_, index) {
+  function createSpreadsheetShellModel(options) {
+    const settings = options || {};
+    const columnCount = settings.columnCount || GRID_COLUMNS;
+    const rowCount = settings.rowCount || GRID_ROWS;
+    const columns = Array.from({ length: columnCount }, function (_, index) {
       return { index, label: columnIndexToLabel(index) };
     });
 
-    const rows = Array.from({ length: GRID_ROWS }, function (_, rowIndex) {
+    const rows = Array.from({ length: rowCount }, function (_, rowIndex) {
       const displayIndex = rowIndex + 1;
 
       return {
@@ -90,7 +102,7 @@
     fragment.appendChild(createCornerCell(doc));
 
     shellModel.columns.forEach(function (column) {
-      fragment.appendChild(createColumnHeader(doc, column.label));
+      fragment.appendChild(createColumnHeader(doc, column.label, column.index + 1));
     });
 
     shellModel.rows.forEach(function (row) {
@@ -113,11 +125,14 @@
     return node;
   }
 
-  function createColumnHeader(doc, label) {
+  function createColumnHeader(doc, label, index) {
     const node = doc.createElement('div');
     node.className = 'column-header';
     node.dataset.column = label;
-    node.textContent = label;
+    node.dataset.structureKind = 'column';
+    node.dataset.structureIndex = String(index);
+    node.appendChild(createHeaderLabel(doc, label));
+    node.appendChild(createHeaderActions(doc, 'column', label));
     return node;
   }
 
@@ -125,8 +140,54 @@
     const node = doc.createElement('div');
     node.className = 'row-header';
     node.dataset.row = String(index);
-    node.textContent = String(index);
+    node.dataset.structureKind = 'row';
+    node.dataset.structureIndex = String(index);
+    node.appendChild(createHeaderLabel(doc, String(index)));
+    node.appendChild(createHeaderActions(doc, 'row', String(index)));
     return node;
+  }
+
+  function createHeaderLabel(doc, value) {
+    const node = doc.createElement('span');
+    node.className = 'header-label';
+    node.textContent = value;
+    return node;
+  }
+
+  function createHeaderActions(doc, kind, label) {
+    const container = doc.createElement('div');
+    container.className = 'header-actions';
+
+    const toggle = doc.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'header-action-toggle';
+    toggle.setAttribute('aria-label', `${capitalize(kind)} ${label} actions`);
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = '...';
+    container.appendChild(toggle);
+
+    const menu = doc.createElement('div');
+    menu.className = 'header-action-menu';
+    menu.hidden = true;
+    menu.appendChild(createStructureActionButton(doc, 'insert-before', kind === 'row' ? 'Insert above' : 'Insert left'));
+    menu.appendChild(createStructureActionButton(doc, 'insert-after', kind === 'row' ? 'Insert below' : 'Insert right'));
+    menu.appendChild(createStructureActionButton(doc, 'delete', kind === 'row' ? 'Delete row' : 'Delete column'));
+    container.appendChild(menu);
+
+    return container;
+  }
+
+  function createStructureActionButton(doc, action, label) {
+    const button = doc.createElement('button');
+    button.type = 'button';
+    button.className = 'structure-action';
+    button.dataset.action = action;
+    button.textContent = label;
+    return button;
+  }
+
+  function capitalize(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
   function createGridCell(doc, cell, shellState) {
