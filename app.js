@@ -1,13 +1,14 @@
 (function () {
   const core = window.SpreadsheetCore;
+  const storageApi = window.EmmaStorage;
   const COLS = 26;
   const ROWS = 100;
   const storageNamespace = resolveStorageNamespace();
-  const storageKey = storageNamespace + ':sheet-state';
   const persisted = loadState();
   const sheet = core.createSheet(persisted.cells);
   const gridWrap = document.querySelector('.grid-wrap');
   const formulaInput = document.querySelector('#formula-input');
+  const nameBox = document.querySelector('#name-box');
   const state = { active: persisted.active || 'A1', editing: null };
 
   renderGrid();
@@ -152,6 +153,7 @@
     }
   }
   function syncFormulaBar() {
+    nameBox.textContent = state.active;
     if (state.editing !== 'formula') formulaInput.value = core.getCellRaw(sheet, state.active);
   }
   function focusActiveCell() {
@@ -162,13 +164,13 @@
     return gridWrap.querySelector('[data-address="' + address + '"]');
   }
   function persistState() {
-    localStorage.setItem(storageKey, JSON.stringify({ cells: sheet.cells, active: state.active }));
+    storageApi.savePersistedSheet(localStorage, storageNamespace, { cells: sheet.cells, active: state.active });
   }
   function loadState() {
-    try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (error) { return {}; }
+    return storageApi.loadPersistedSheet(localStorage, storageNamespace) || {};
   }
   function resolveStorageNamespace() {
-    return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'sheet';
+    return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'spreadsheet';
   }
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 })();
