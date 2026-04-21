@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microsoft Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="toolbar">
+      <div class="brand">Microsoft Sheet</div>
+      <label class="formula-bar" for="formula-input">
+        <span id="active-ref">A1</span>
+        <input id="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="Formula bar">
+      </label>
+    </header>
+    <main class="app">
+      <table id="sheet" aria-label="Spreadsheet grid"></table>
+      <input id="cell-editor" hidden autocomplete="off" spellcheck="false" aria-label="Cell editor">
+      <div id="header-menu" class="header-menu" hidden>
+        <button type="button" data-action="insert-before">Insert before</button>
+        <button type="button" data-action="insert-after">Insert after</button>
+        <button type="button" data-action="delete">Delete</button>
+      </div>
+    </main>
+  </div>
+  <script src="spreadsheet.js"></script>
+  <script>
+    window.SpreadsheetApp.createApp();
+  </script>
+</body>
+</html>
