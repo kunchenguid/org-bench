@@ -9,9 +9,10 @@
     selectionToTSV,
     applyPaste,
     parseSelectionRect,
+    resolveStorageNamespace,
   } = window.SpreadsheetLib;
 
-  const namespace = window.__BENCHMARK_RUN_NAMESPACE__ || 'facebook-sheet';
+  const namespace = resolveStorageNamespace(window);
   const storageKey = `${namespace}:sheet-state`;
   const model = new SpreadsheetModel(loadState());
 

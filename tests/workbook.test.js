@@ -4,6 +4,7 @@ const {
   SpreadsheetModel,
   shiftFormula,
   applyPaste,
+  resolveStorageNamespace,
 } = require('../workbook.js');
 
 function test(name, fn) {
@@ -87,6 +88,14 @@ test('shifting an out-of-bounds range endpoint preserves ref errors', () => {
   applyPaste(model, 'A1', '=A1:B2', { sourceSelection: { start: 'B2', end: 'B2' } });
   assert.equal(model.getRaw('A1'), '=#REF!:A1');
   assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
+
+test('prefers injected run namespace across supported globals', () => {
+  assert.equal(resolveStorageNamespace({ __RUN_STORAGE_NAMESPACE__: 'run-a' }), 'run-a');
+  assert.equal(resolveStorageNamespace({ RUN_STORAGE_NAMESPACE: 'run-b' }), 'run-b');
+  assert.equal(resolveStorageNamespace({ __BENCHMARK_RUN_NAMESPACE__: 'run-c' }), 'run-c');
+  assert.equal(resolveStorageNamespace({ document: { documentElement: { getAttribute(name) { return name === 'data-storage-namespace' ? 'run-d' : null; } } } }), 'run-d');
+  assert.equal(resolveStorageNamespace({}), 'facebook-sheet');
 });
 
 test('pasting into a matching-size selection uses the selection top-left', () => {
