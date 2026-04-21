@@ -17,10 +17,15 @@
   let editingCell = null;
   let editOriginalValue = '';
   let clipboard = null;
+  let isDraggingSelection = false;
 
   buildGrid();
   refreshAllCells();
   updateSelection();
+
+  document.addEventListener('mouseup', function () {
+    isDraggingSelection = false;
+  });
 
   formulaInput.addEventListener('focus', function () {
     formulaInput.select();
@@ -141,8 +146,18 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.address = address;
-        button.addEventListener('click', function () {
-          selectCell(address, false);
+        button.addEventListener('mousedown', function (event) {
+          isDraggingSelection = true;
+          selectCell(address, event.shiftKey);
+        });
+        button.addEventListener('mouseenter', function () {
+          if (isDraggingSelection) {
+            selectCell(address, true);
+          }
+        });
+        button.addEventListener('click', function (event) {
+          selectCell(address, event.shiftKey || isDraggingSelection);
+          isDraggingSelection = false;
         });
         button.addEventListener('dblclick', function () {
           startEditing(address, engine.getCellRaw(sheet, address));
