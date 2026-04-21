@@ -1,5 +1,6 @@
 (function () {
   const core = window.SpreadsheetCore;
+  const keydown = window.SpreadsheetKeydown;
   const namespace = window.__BENCHMARK_RUN_NAMESPACE__ || 'microsoft-sheet';
   const storageKey = namespace + ':spreadsheet';
   const selectionKey = namespace + ':selection';
@@ -316,24 +317,42 @@
     });
   }
 
+  function handleEditingAction(action, editor) {
+    if (!action) {
+      return false;
+    }
+
+    if (action.type === 'commit') {
+      const value = editor ? editor.value : formulaInput.value;
+      commit(value, action.dCol, action.dRow);
+      return true;
+    }
+
+    if (action.type === 'cancel') {
+      isEditing = false;
+      formulaBuffer = null;
+      render();
+      return true;
+    }
+
+    return false;
+  }
+
   formulaInput.addEventListener('focus', function () {
     isEditing = true;
     formulaBuffer = core.createEditBuffer(store.getCell(selection.col, selection.row));
   });
   formulaInput.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter') {
+    const action = keydown.getEditingKeyAction({ key: event.key, targetKind: 'formula' });
+    if (action) {
       event.preventDefault();
-      const value = core.resolveEditBuffer(formulaBuffer || core.createEditBuffer(formulaInput.value), true);
-      formulaBuffer = null;
-      commit(value, 0, 1);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      isEditing = false;
-      if (formulaBuffer) {
+      if (action.type === 'cancel' && formulaBuffer) {
         formulaInput.value = core.resolveEditBuffer(formulaBuffer, false);
-        formulaBuffer = null;
       }
-      syncFormula();
+      formulaBuffer = action.type === 'commit' ? null : formulaBuffer;
+      if (handleEditingAction(action, null) && action.type === 'cancel') {
+        syncFormula();
+      }
     }
   });
   formulaInput.addEventListener('input', function () {
@@ -343,7 +362,19 @@
     }
   });
 
-  document.addEventListener('keydown', function (event) {
+  function handleGlobalKeyEvent(event) {
+    const editor = grid.querySelector('.cell-editor');
+    const editingAction = keydown.getEditingKeyAction({
+      key: event.key,
+      targetKind: event.target === formulaInput ? 'formula' : 'document',
+      hasCellEditor: Boolean(editor),
+    });
+    if (editingAction && editor) {
+      event.preventDefault();
+      handleEditingAction(editingAction, editor);
+      return;
+    }
+
     const meta = event.metaKey || event.ctrlKey;
     if (meta && event.key.toLowerCase() === 'z') {
       event.preventDefault();
@@ -389,8 +420,8 @@
       pasteSelection();
       return;
     }
-    if (event.target === formulaInput || grid.querySelector('.cell-editor')) {
-      if (event.key === 'F2' && !grid.querySelector('.cell-editor')) {
+    if (event.target === formulaInput || editor) {
+      if (event.key === 'F2' && !editor) {
         startEditing();
       }
       return;
@@ -440,7 +471,10 @@
       render();
       startEditing();
     }
-  });
+  }
+
+  document.addEventListener('keydown', handleGlobalKeyEvent);
+  document.addEventListener('keyup', handleGlobalKeyEvent);
 
   render();
   save();
