@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Oracle Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell" aria-label="Spreadsheet application">
+      <header class="formula-panel">
+        <label class="formula-label" for="formula-input">fx</label>
+        <div class="name-box" id="name-box" aria-live="polite">A1</div>
+        <input
+          id="formula-input"
+          class="formula-input"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          aria-label="Formula bar"
+        >
+      </header>
+
+      <section class="sheet-wrap" aria-label="Spreadsheet grid region">
+        <table class="sheet" id="sheet" aria-label="Spreadsheet grid"></table>
+      </section>
+    </main>
+
+    <script src="grid-core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
