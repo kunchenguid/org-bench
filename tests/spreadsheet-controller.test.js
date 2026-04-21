@@ -6,9 +6,11 @@ const { createSpreadsheetController } = require('../spreadsheet-controller');
 function createShellDouble() {
   return {
     cells: [],
+    current: {},
     renders: 0,
     setCellRaw(cell, raw) {
       this.cells.push({ cell, raw });
+      this.current[cell.col + ':' + cell.row] = raw;
     },
     rerender() {
       this.renders += 1;
@@ -49,6 +51,51 @@ test('hydrates display values from model through the formula engine', () => {
     { cell: { col: 0, row: 1 }, raw: '5' },
   ]);
   assert.equal(shell.renders, 1);
+});
+
+test('hydrate clears previously rendered cells that are no longer present in the model snapshot', () => {
+  const shell = createShellDouble();
+  let modelState = {
+    cells: {
+      A1: '2',
+      B1: '3',
+    },
+    selection: 'A1',
+  };
+  const model = {
+    exportState() {
+      return JSON.parse(JSON.stringify(modelState));
+    },
+  };
+  const engine = {
+    cells: new Map(),
+    setCell(cellId, raw) {
+      this.cells.set(cellId, raw);
+    },
+    recalculate() {},
+    getDisplayValue(cellId) {
+      return this.cells.get(cellId);
+    },
+  };
+
+  const controller = createSpreadsheetController({ shell, model, engine });
+
+  controller.hydrate();
+  modelState = {
+    cells: {
+      A1: '2',
+    },
+    selection: 'A1',
+  };
+  shell.cells = [];
+
+  controller.hydrate();
+
+  assert.deepEqual(shell.cells, [
+    { cell: { col: 1, row: 0 }, raw: '' },
+    { cell: { col: 0, row: 0 }, raw: '2' },
+  ]);
+  assert.equal(shell.current['1:0'], '');
 });
 
 test('committing a raw value persists it and rerenders dependents with display values', () => {
@@ -92,4 +139,83 @@ test('committing a raw value persists it and rerenders dependents with display v
     { cell: { col: 1, row: 0 }, raw: '8' },
   ]);
   assert.equal(shell.renders, 1);
+});
+
+test('clearing a range persists it through the model and rerenders empty display cells', () => {
+  const shell = createShellDouble();
+  const cleared = [];
+  const modelState = {
+    cells: {
+      A1: '1',
+      B1: '2',
+    },
+    selection: 'A1',
+  };
+  const model = {
+    clearRange(range) {
+      cleared.push(range);
+      delete modelState.cells.A1;
+      delete modelState.cells.B1;
+    },
+    exportState() {
+      return JSON.parse(JSON.stringify(modelState));
+    },
+  };
+  const engine = {
+    cells: new Map(),
+    setCell(cellId, raw) {
+      this.cells.set(cellId, raw);
+    },
+    recalculate() {},
+    getDisplayValue(cellId) {
+      return this.cells.get(cellId) || '';
+    },
+  };
+
+  const controller = createSpreadsheetController({ shell, model, engine });
+
+  controller.hydrate();
+  shell.cells = [];
+  controller.clearRange({ start: { col: 0, row: 0 }, end: { col: 1, row: 0 } });
+
+  assert.deepEqual(cleared, [{ start: 'A1', end: 'B1' }]);
+  assert.deepEqual(shell.cells, [
+    { cell: { col: 0, row: 0 }, raw: '' },
+    { cell: { col: 1, row: 0 }, raw: '' },
+  ]);
+});
+
+test('structure actions map shell coordinates onto one-based model operations', () => {
+  const shell = createShellDouble();
+  const operations = [];
+  const model = {
+    insertRows(index, count) {
+      operations.push(['insertRows', index, count]);
+    },
+    deleteColumns(index, count) {
+      operations.push(['deleteColumns', index, count]);
+    },
+    exportState() {
+      return { cells: {}, selection: 'A1' };
+    },
+  };
+  const engine = {
+    cells: new Map(),
+    setCell() {},
+    recalculate() {},
+    getDisplayValue() {
+      return '';
+    },
+  };
+
+  const controller = createSpreadsheetController({ shell, model, engine });
+
+  controller.applyStructureChange({ axis: 'row', action: 'insert-after', index: 4 });
+  controller.applyStructureChange({ axis: 'col', action: 'delete', index: 2 });
+
+  assert.deepEqual(operations, [
+    ['insertRows', 6, 1],
+    ['deleteColumns', 3, 1],
+  ]);
+  assert.equal(shell.renders, 2);
 });

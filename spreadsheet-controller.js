@@ -2,11 +2,32 @@ function createSpreadsheetController(options) {
   const shell = options.shell;
   const model = options.model;
   const engine = options.engine;
+  let hydratedAddresses = [];
+
+  function clearRemovedAddresses(nextAddresses) {
+    const nextSet = new Set(nextAddresses);
+
+    for (let index = 0; index < hydratedAddresses.length; index += 1) {
+      const address = hydratedAddresses[index];
+      if (!nextSet.has(address)) {
+        shell.setCellRaw(cellIdToCoords(address), '');
+      }
+    }
+  }
+
+  function resetEngine() {
+    if (engine.cells && typeof engine.cells.clear === 'function') {
+      engine.cells.clear();
+    }
+  }
 
   function hydrate() {
     const snapshot = model.exportState();
     const cells = snapshot && snapshot.cells ? snapshot.cells : {};
     const addresses = Object.keys(cells).sort();
+
+    clearRemovedAddresses(addresses);
+    resetEngine();
 
     for (let index = 0; index < addresses.length; index += 1) {
       const address = addresses[index];
@@ -20,6 +41,7 @@ function createSpreadsheetController(options) {
       shell.setCellRaw(cellIdToCoords(address), stringifyDisplayValue(engine.getDisplayValue(address)));
     }
 
+    hydratedAddresses = addresses;
     shell.rerender();
   }
 
@@ -29,9 +51,47 @@ function createSpreadsheetController(options) {
     hydrate();
   }
 
+  function clearRange(range) {
+    model.clearRange(rangeToCellIds(range));
+    hydrate();
+  }
+
+  function applyStructureChange(detail) {
+    if (detail.axis === 'row') {
+      if (detail.action === 'insert-before') {
+        model.insertRows(detail.index + 1, 1);
+      } else if (detail.action === 'insert-after') {
+        model.insertRows(detail.index + 2, 1);
+      } else if (detail.action === 'delete') {
+        model.deleteRows(detail.index + 1, 1);
+      }
+    }
+
+    if (detail.axis === 'col') {
+      if (detail.action === 'insert-before') {
+        model.insertColumns(detail.index + 1, 1);
+      } else if (detail.action === 'insert-after') {
+        model.insertColumns(detail.index + 2, 1);
+      } else if (detail.action === 'delete') {
+        model.deleteColumns(detail.index + 1, 1);
+      }
+    }
+
+    hydrate();
+  }
+
   return {
     hydrate,
     commitCell,
+    clearRange,
+    applyStructureChange,
+  };
+}
+
+function rangeToCellIds(range) {
+  return {
+    start: coordsToCellId(range.start),
+    end: coordsToCellId(range.end),
   };
 }
 
