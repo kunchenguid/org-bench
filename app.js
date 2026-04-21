@@ -82,6 +82,8 @@
           return node.value;
         case 'boolean':
           return node.value;
+        case 'error':
+          return makeError(node.code);
         case 'unary': {
           const value = evaluateNode(node.value, visiting);
           if (isError(value)) {
@@ -248,6 +250,13 @@
         continue;
       }
 
+      const errorMatch = input.slice(index).match(/^#REF!/);
+      if (errorMatch) {
+        tokens.push({ type: 'error', value: '#REF!' });
+        index += errorMatch[0].length;
+        continue;
+      }
+
       const refMatch = input.slice(index).match(/^\$?[A-Za-z]+\$?\d+/);
       if (refMatch) {
         tokens.push({ type: 'ref', value: refMatch[0].toUpperCase() });
@@ -360,6 +369,9 @@
       }
       if (token.type === 'string') {
         return { type: 'string', value: expect('string').value };
+      }
+      if (token.type === 'error') {
+        return { type: 'error', code: expect('error').value };
       }
       if (token.type === 'ref') {
         const ref = expect('ref').value;
@@ -509,6 +521,125 @@
     return result;
   }
 
+  function applyStructureChange(cells, operation) {
+    const nextCells = {};
+    Object.keys(cells || {}).forEach((cellId) => {
+      const targetCellId = relocateCell(cellId, operation);
+      if (!targetCellId) {
+        return;
+      }
+      nextCells[targetCellId] = rewriteFormulaForStructure(cells[cellId], operation);
+    });
+    return nextCells;
+  }
+
+  function relocateCell(cellId, operation) {
+    const ref = parseCellRef(cellId);
+    if (operation.type === 'insert-row') {
+      if (ref.row >= operation.index && ref.row === ROW_COUNT) {
+        return null;
+      }
+      return toCellId(ref.col, ref.row >= operation.index ? ref.row + 1 : ref.row);
+    }
+    if (operation.type === 'delete-row') {
+      if (ref.row === operation.index) {
+        return null;
+      }
+      return toCellId(ref.col, ref.row > operation.index ? ref.row - 1 : ref.row);
+    }
+    if (operation.type === 'insert-column') {
+      if (ref.col >= operation.index && ref.col === COL_COUNT) {
+        return null;
+      }
+      return toCellId(ref.col >= operation.index ? ref.col + 1 : ref.col, ref.row);
+    }
+    if (operation.type === 'delete-column') {
+      if (ref.col === operation.index) {
+        return null;
+      }
+      return toCellId(ref.col > operation.index ? ref.col - 1 : ref.col, ref.row);
+    }
+    return cellId;
+  }
+
+  function rewriteFormulaForStructure(raw, operation) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    let result = '=';
+    let index = 1;
+    let inString = false;
+
+    while (index < raw.length) {
+      const char = raw[index];
+      if (char === '"') {
+        inString = !inString;
+        result += char;
+        index += 1;
+        continue;
+      }
+
+      if (!inString) {
+        const errorMatch = raw.slice(index).match(/^#REF!/);
+        if (errorMatch) {
+          result += errorMatch[0];
+          index += errorMatch[0].length;
+          continue;
+        }
+        const refMatch = raw.slice(index).match(/^\$?[A-Za-z]+\$?\d+/);
+        if (refMatch) {
+          const previous = index > 0 ? raw[index - 1] : '';
+          if (!/[A-Za-z0-9_]/.test(previous)) {
+            result += rewriteReferenceForStructure(refMatch[0].toUpperCase(), operation);
+            index += refMatch[0].length;
+            continue;
+          }
+        }
+      }
+
+      result += char;
+      index += 1;
+    }
+
+    return result;
+  }
+
+  function rewriteReferenceForStructure(cellId, operation) {
+    const ref = parseCellRef(cellId);
+    if (operation.type === 'insert-row') {
+      if (ref.row >= operation.index) {
+        ref.row += 1;
+      }
+      return formatCellRef(ref);
+    }
+    if (operation.type === 'delete-row') {
+      if (ref.row === operation.index) {
+        return '#REF!';
+      }
+      if (ref.row > operation.index) {
+        ref.row -= 1;
+      }
+      return formatCellRef(ref);
+    }
+    if (operation.type === 'insert-column') {
+      if (ref.col >= operation.index) {
+        ref.col += 1;
+      }
+      return formatCellRef(ref);
+    }
+    if (operation.type === 'delete-column') {
+      if (ref.col === operation.index) {
+        return '#REF!';
+      }
+      if (ref.col > operation.index) {
+        ref.col -= 1;
+      }
+      return formatCellRef(ref);
+    }
+    return cellId;
+  }
+
   function lettersToColumn(letters) {
     let value = 0;
     for (let index = 0; index < letters.length; index += 1) {
@@ -655,6 +786,12 @@
       '      <span class="formula-label">fx</span>',
       '      <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">',
       '    </label>',
+      '    <div class="structure-actions">',
+      '      <button type="button" class="structure-button" data-action="insert-row">+ Row</button>',
+      '      <button type="button" class="structure-button" data-action="delete-row">- Row</button>',
+      '      <button type="button" class="structure-button" data-action="insert-column">+ Col</button>',
+      '      <button type="button" class="structure-button" data-action="delete-column">- Col</button>',
+      '    </div>',
       '  </header>',
       '  <div class="grid-wrap">',
       '    <table class="sheet" id="sheet"></table>',
@@ -665,9 +802,16 @@
     const selectionPill = rootNode.querySelector('#selection-pill');
     const formulaInput = rootNode.querySelector('#formula-input');
     const sheet = rootNode.querySelector('#sheet');
+    const structureButtons = rootNode.querySelectorAll('[data-action]');
 
     buildTable(sheet);
     refreshAll();
+
+    structureButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        applyStructuralAction(button.dataset.action);
+      });
+    });
 
     sheet.addEventListener('click', (event) => {
       const cell = event.target.closest('[data-cell-id]');
@@ -1114,6 +1258,25 @@
       persist();
     }
 
+    function applyStructuralAction(type) {
+      const ref = parseCellRef(state.selected);
+      recordHistory();
+      engine.replaceCells(applyStructureChange(engine.getCells(), {
+        type: type,
+        index: type.indexOf('row') >= 0 ? ref.row : ref.col
+      }));
+      if (type === 'delete-row') {
+        state.selected = toCellId(ref.col, Math.min(ref.row, ROW_COUNT));
+      } else if (type === 'delete-column') {
+        state.selected = toCellId(Math.min(ref.col, COL_COUNT), ref.row);
+      }
+      state.rangeAnchor = state.selected;
+      state.rangeFocus = state.selected;
+      refreshAll();
+      persist();
+      focusSelectedCell();
+    }
+
     function createSnapshot() {
       return {
         selected: state.selected,
@@ -1264,6 +1427,7 @@
   return {
     createEngine: createEngine,
     createApp: createApp,
+    applyStructureChange: applyStructureChange,
     createHistoryManager: createHistoryManager,
     shiftFormula: shiftFormula,
     COL_COUNT: COL_COUNT,

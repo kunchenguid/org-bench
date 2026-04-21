@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { createEngine, shiftFormula, createHistoryManager } = require('./app.js');
+const { createEngine, shiftFormula, createHistoryManager, applyStructureChange } = require('./app.js');
 
 function run(name, fn) {
   try {
@@ -95,4 +95,43 @@ run('new edits clear the redo stack and enforce the history limit', () => {
 
   history.record(second);
   assert.equal(history.redo(second), null);
+});
+
+run('inserting a row shifts cells and rewrites formula references', () => {
+  const result = applyStructureChange(
+    {
+      A1: '1',
+      A2: '2',
+      B1: '=A2',
+      B2: '=SUM(A1:A2)',
+      C2: '=$A$2'
+    },
+    { type: 'insert-row', index: 2 }
+  );
+
+  assert.deepEqual(result, {
+    A1: '1',
+    A3: '2',
+    B1: '=A3',
+    B3: '=SUM(A1:A3)',
+    C3: '=$A$3'
+  });
+});
+
+run('deleting a column invalidates references into the deleted cells', () => {
+  const result = applyStructureChange(
+    {
+      A1: '1',
+      B1: '=A1',
+      C1: '=$B$1',
+      D1: '=SUM(A1:B1)'
+    },
+    { type: 'delete-column', index: 1 }
+  );
+
+  assert.deepEqual(result, {
+    A1: '=#REF!',
+    B1: '=$A$1',
+    C1: '=SUM(#REF!:A1)'
+  });
 });

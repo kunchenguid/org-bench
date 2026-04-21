@@ -35,7 +35,7 @@ body {
 
 .toolbar {
   display: grid;
-  grid-template-columns: 96px 96px minmax(0, 1fr);
+  grid-template-columns: 96px 96px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
 }
@@ -66,6 +66,32 @@ body {
   grid-template-columns: 44px minmax(0, 1fr);
   align-items: center;
   overflow: hidden;
+}
+
+.structure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.structure-button {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(187, 200, 216, 0.9);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+}
+
+.structure-button:hover,
+.structure-button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .formula-label {
@@ -173,6 +199,15 @@ body {
   .toolbar {
     grid-template-columns: 72px 72px minmax(0, 1fr);
     gap: 8px;
+  }
+
+  .structure-actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .structure-button {
+    flex: 1 1 calc(50% - 4px);
   }
 
   .sheet th,
