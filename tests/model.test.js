@@ -8,6 +8,7 @@ const {
   getCellRaw,
   clearRange,
   copyRange,
+  moveRange,
   pasteRange,
   insertRow,
 } = require('../src/model.js');
@@ -69,4 +70,20 @@ test('clears every populated cell inside a selected rectangle', () => {
   assert.equal(getCellRaw(sheet, 'B1'), '');
   assert.equal(getCellRaw(sheet, 'B2'), '');
   assert.equal(getCellRaw(sheet, 'C1'), '5');
+});
+
+test('moving a cut range preserves cells when source and target overlap', () => {
+  const sheet = createSheet();
+
+  setCell(sheet, 'A1', '1');
+  setCell(sheet, 'B1', '=A1');
+
+  moveRange(
+    sheet,
+    { startRow: 0, startCol: 1, endRow: 0, endCol: 1 },
+    { startRow: 0, startCol: 2, endRow: 0, endCol: 2 }
+  );
+
+  assert.equal(getCellRaw(sheet, 'B1'), '');
+  assert.equal(getCellRaw(sheet, 'C1'), '=B1');
 });

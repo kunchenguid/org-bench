@@ -482,15 +482,16 @@
       endRow: state.selection.row,
       endCol: state.selection.col,
     };
-    model.pasteRange(sheet, targetRange, clip);
     if (state.clipboard.cut && (targetRange.startRow !== clip.sourceRow || targetRange.startCol !== clip.sourceCol)) {
-      model.clearRange(sheet, {
+      model.moveRange(sheet, {
         startRow: clip.sourceRow,
         startCol: clip.sourceCol,
         endRow: clip.sourceRow + clip.height - 1,
         endCol: clip.sourceCol + clip.width - 1,
-      });
+      }, targetRange);
       state.clipboard = null;
+    } else {
+      model.pasteRange(sheet, targetRange, clip);
     }
     state.cells = sheet.cells;
     recompute();
