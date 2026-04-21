@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell" aria-label="Spreadsheet shell">
+      <header class="formula-bar-panel">
+        <div class="formula-bar-chrome">
+          <div class="name-box" aria-label="Selected cell">A1</div>
+          <label class="formula-field" aria-label="Formula bar">
+            <span class="formula-field__symbol">fx</span>
+            <input
+              class="formula-input"
+              data-formula-input
+              type="text"
+              spellcheck="false"
+              placeholder="Select a cell to edit its raw contents"
+              aria-label="Formula bar input"
+            >
+          </label>
+        </div>
+        <p class="formula-bar-hint">Enter to commit, Tab to move across, double-click or F2 to edit.</p>
+      </header>
+
+      <section class="sheet-frame" aria-label="Spreadsheet grid">
+        <div class="sheet-surface">
+          <div class="sheet-grid" role="presentation">
+            <div class="sheet-corner" data-grid-corner aria-hidden="true"></div>
+            <div class="column-headers" data-column-headers role="row"></div>
+            <div class="row-headers" data-row-headers></div>
+            <div class="cell-grid" data-cell-grid role="grid" aria-label="Cells" tabindex="0"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="sheet-context-menu" data-sheet-context-menu hidden aria-hidden="true">
+        <p class="sheet-context-menu__label" data-sheet-context-label>Row actions</p>
+        <div class="sheet-context-menu__actions" data-sheet-context-actions></div>
+        <div class="sheet-context-menu__divider" role="separator"></div>
+        <p class="sheet-context-menu__footnote">Control-click a header or use the more button for row and column actions.</p>
+      </div>
+    </main>
+
+    <script src="src/spreadsheet-store.js"></script>
+    <script src="src/header-controls.js"></script>
+    <script src="src/grid-selection.js"></script>
+    <script src="src/grid-ui.js"></script>
+    <script src="src/editing.js"></script>
+  </body>
+</html>
