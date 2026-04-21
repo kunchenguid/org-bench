@@ -40,6 +40,16 @@ test('copy-paste shifts relative references', () => {
   assert.equal(model.getCellRaw('C1'), '=B1+B2');
 });
 
+test('copy-paste preserves absolute and mixed references', () => {
+  const model = new SpreadsheetModel();
+  model.setCellRaw('D4', '=$A1+A$2+$B$1+B2');
+
+  model.copyRange({ startRow: 3, endRow: 3, startCol: 3, endCol: 3 }, false);
+  model.pasteRange({ startRow: 5, endRow: 5, startCol: 5, endCol: 5 });
+
+  assert.equal(model.getCellRaw('F6'), '=$A3+C$2+$B$1+D4');
+});
+
 test('inserting a row keeps references pointing at the same data', () => {
   const model = new SpreadsheetModel();
   model.setCellRaw('A1', '10');
@@ -50,6 +60,40 @@ test('inserting a row keeps references pointing at the same data', () => {
 
   assert.equal(model.getCellRaw('B2'), '=SUM(A2:A3)');
   assert.equal(model.getDisplayValue('B2'), '30');
+});
+
+test('inserting a column rewrites absolute references to keep pointing at the same data', () => {
+  const model = new SpreadsheetModel();
+  model.setCellRaw('A1', '10');
+  model.setCellRaw('B1', '=$A$1');
+
+  model.insertCol(0);
+
+  assert.equal(model.getCellRaw('C1'), '=$B$1');
+  assert.equal(model.getDisplayValue('C1'), '10');
+});
+
+test('deleting a referenced row rewrites the formula to #REF!', () => {
+  const model = new SpreadsheetModel();
+  model.setCellRaw('A1', '10');
+  model.setCellRaw('B2', '=A1');
+
+  model.deleteRow(0);
+
+  assert.equal(model.getCellRaw('B1'), '=#REF!');
+  assert.equal(model.getDisplayValue('B1'), '#REF!');
+});
+
+test('deleting a referenced column rewrites only the affected references', () => {
+  const model = new SpreadsheetModel();
+  model.setCellRaw('A1', '10');
+  model.setCellRaw('B1', '20');
+  model.setCellRaw('C1', '=A1+B1');
+
+  model.deleteCol(0);
+
+  assert.equal(model.getCellRaw('B1'), '=#REF!+A1');
+  assert.equal(model.getDisplayValue('B1'), '#REF!');
 });
 
 test('undo and redo restore prior cell state', () => {
