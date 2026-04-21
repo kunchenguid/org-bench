@@ -6,9 +6,16 @@ const {
   commitCell,
   getCellRaw,
   moveSelection,
+  extendSelection,
+  getSelectionRect,
   getSelectionAfterCommit,
   copySelection,
+  clearRangeCells,
   pasteSelection,
+  createHistory,
+  applyHistoryState,
+  undoHistory,
+  redoHistory,
   evaluateCell,
   formatValue,
   createStorageAdapter,
@@ -54,10 +61,27 @@ test('moves selection with clamping at grid edges', () => {
   let state = createEmptyState();
   state = moveSelection(state, -1, -1);
   assert.deepEqual(state.selection, { row: 1, col: 1 });
+   assert.deepEqual(state.selectionEnd, { row: 1, col: 1 });
 
   state = selectCell(state, 100, 26);
   state = moveSelection(state, 1, 1);
   assert.deepEqual(state.selection, { row: 100, col: 26 });
+  assert.deepEqual(state.selectionEnd, { row: 100, col: 26 });
+});
+
+test('extends selection into a rectangular range', () => {
+  let state = createEmptyState();
+  state = selectCell(state, 2, 2);
+  state = extendSelection(state, 4, 5);
+
+  assert.deepEqual(state.selection, { row: 2, col: 2 });
+  assert.deepEqual(state.selectionEnd, { row: 4, col: 5 });
+  assert.deepEqual(getSelectionRect(state), {
+    startRow: 2,
+    endRow: 4,
+    startCol: 2,
+    endCol: 5,
+  });
 });
 
 test('computes commit navigation for enter and tab', () => {
@@ -137,6 +161,76 @@ test('pasting a rectangular block writes cell-by-cell and shifts formulas from t
   assert.equal(formatValue(evaluateCell(state, 4, 4).value), '3');
 });
 
+test('cut clearing removes every cell in a selected range', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '1');
+  state = commitCell(state, 1, 2, '2');
+  state = commitCell(state, 2, 1, '3');
+  state = commitCell(state, 2, 2, '4');
+
+  state = clearRangeCells(state, { row: 1, col: 1 }, { row: 2, col: 2 });
+
+  assert.equal(getCellRaw(state, 1, 1), '');
+  assert.equal(getCellRaw(state, 1, 2), '');
+  assert.equal(getCellRaw(state, 2, 1), '');
+  assert.equal(getCellRaw(state, 2, 2), '');
+});
+
+test('undo and redo restore committed cell edits', () => {
+  let history = createHistory(createEmptyState());
+  let state = commitCell(history.present, 1, 1, '7');
+  history = applyHistoryState(history, state);
+
+  assert.equal(getCellRaw(history.present, 1, 1), '7');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '7');
+});
+
+test('undo and redo restore cut ranges', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '1');
+  state = commitCell(state, 1, 2, '2');
+
+  let history = createHistory(state);
+  history = applyHistoryState(history, clearRangeCells(history.present, { row: 1, col: 1 }, { row: 1, col: 2 }));
+
+  assert.equal(getCellRaw(history.present, 1, 1), '');
+  assert.equal(getCellRaw(history.present, 1, 2), '');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '1');
+  assert.equal(getCellRaw(history.present, 1, 2), '2');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '');
+  assert.equal(getCellRaw(history.present, 1, 2), '');
+});
+
+test('undo and redo restore pasted ranges', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 1, '4');
+  state = commitCell(state, 1, 2, '=A1+1');
+  const clipboard = copySelection(state, { row: 1, col: 1 }, { row: 1, col: 2 });
+
+  let history = createHistory(state);
+  history = applyHistoryState(history, pasteSelection(history.present, clipboard, { row: 2, col: 1 }));
+
+  assert.equal(getCellRaw(history.present, 2, 1), '4');
+  assert.equal(getCellRaw(history.present, 2, 2), '=A2+1');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 2, 1), '');
+  assert.equal(getCellRaw(history.present, 2, 2), '');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 2, 1), '4');
+  assert.equal(getCellRaw(history.present, 2, 2), '=A2+1');
+});
+
 test('detects circular references', () => {
   let state = createEmptyState();
   state = commitCell(state, 1, 1, '=B1');
@@ -165,4 +259,25 @@ test('persists namespaced raw contents and selection', () => {
   assert.equal(getCellRaw(restored, 4, 2), '=1+1');
   assert.deepEqual(restored.selection, { row: 4, col: 2 });
   assert.ok(backing.has('bench-2:spreadsheet-state'));
+});
+
+test('preserves raw formulas across error persistence', () => {
+  const backing = new Map();
+  const storage = createStorageAdapter({
+    getItem(key) {
+      return backing.has(key) ? backing.get(key) : null;
+    },
+    setItem(key, value) {
+      backing.set(key, value);
+    },
+  }, 'bench-3');
+
+  let state = createEmptyState();
+  state = commitCell(state, 3, 3, '=1/0');
+  state = selectCell(state, 3, 3);
+  saveState(storage, state);
+
+  const restored = loadState(storage);
+  assert.equal(getCellRaw(restored, 3, 3), '=1/0');
+  assert.equal(formatValue(evaluateCell(restored, 3, 3).value), '#DIV/0!');
 });
