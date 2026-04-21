@@ -2,6 +2,7 @@
   const core = window.GridCore;
   const state = Object.assign(core.buildInitialState(), {
     cells: {},
+    displayCells: {},
     draft: '',
     dragAnchor: null,
     pointerDown: false,
@@ -15,6 +16,13 @@
     return state.cells[core.cellKey(cell)] || '';
   }
 
+  function getCellDisplayValue(cell) {
+    const key = core.cellKey(cell);
+    return Object.prototype.hasOwnProperty.call(state.displayCells, key)
+      ? state.displayCells[key]
+      : getCellValue(cell);
+  }
+
   function setCellValue(cell, value) {
     const key = core.cellKey(cell);
 
@@ -24,6 +32,22 @@
     }
 
     delete state.cells[key];
+  }
+
+  function setCellDisplayValue(cell, value) {
+    const key = core.cellKey(cell);
+
+    if (value) {
+      state.displayCells[key] = value;
+      return;
+    }
+
+    delete state.displayCells[key];
+  }
+
+  function setCellData(cell, raw, display) {
+    setCellValue(cell, raw);
+    setCellDisplayValue(cell, display);
   }
 
   function emit(type, detail) {
@@ -222,7 +246,7 @@
 
   function renderCell(cell) {
     const element = getCellElement(cell);
-    const value = getCellValue(cell);
+    const value = getCellDisplayValue(cell);
     const active = cell.col === state.active.col && cell.row === state.active.row;
     const inRange = isInRange(cell, state.range);
 
@@ -236,7 +260,7 @@
     if (currentEditor) currentEditor.remove();
 
     const display = element.querySelector('.cell-display');
-    display.textContent = active && state.editing ? '' : value;
+          display.textContent = active && state.editing ? '' : value;
 
     if (active && state.editing) {
       const input = document.createElement('input');
@@ -273,7 +297,7 @@
 
     for (let row = range.start.row; row <= range.end.row; row += 1) {
       for (let col = range.start.col; col <= range.end.col; col += 1) {
-        setCellValue({ col, row }, '');
+          setCellData({ col, row }, '', '');
       }
     }
 
@@ -430,16 +454,63 @@
   });
 
   buildSheet();
-  render();
+
+  function resolveStorageNamespace() {
+    const injected = window.__BENCHMARK_STORAGE_NAMESPACE__
+      || window.__OPENCODE_STORAGE_NAMESPACE__
+      || window.__STORAGE_NAMESPACE__
+      || document.documentElement.getAttribute('data-storage-namespace');
+
+    return injected ? String(injected) : 'oracle-sheet:';
+  }
 
   window.spreadsheetShell = {
     getState: function () {
       return JSON.parse(JSON.stringify(state));
     },
     setCellRaw: function (cell, raw) {
-      setCellValue(cell, raw);
+      setCellData(cell, raw, raw);
+    },
+    setCellData: function (cell, raw, display) {
+      setCellData(cell, raw, display);
+    },
+    setActiveCell: function (cell) {
+      state.active = core.clampCell(cell);
+      state.anchor = null;
+      state.range = null;
+      state.editing = false;
+      state.draft = '';
       render();
     },
     rerender: render,
   };
+
+  const model = window.createDocumentModel({
+    storage: window.localStorage,
+    namespace: resolveStorageNamespace(),
+  });
+  const engine = new window.SpreadsheetFormulaEngine.SpreadsheetEngine();
+  const controller = window.SpreadsheetController.createSpreadsheetController({
+    shell: window.spreadsheetShell,
+    model: model,
+    engine: engine,
+  });
+
+  document.addEventListener('sheet:cell-commit', function (event) {
+    controller.commitCell(event.detail.cell, event.detail.raw);
+  });
+
+  document.addEventListener('sheet:clear-range', function (event) {
+    controller.clearRange(event.detail.range);
+  });
+
+  document.addEventListener('sheet:structure-request', function (event) {
+    controller.applyStructureChange(event.detail);
+  });
+
+  document.addEventListener('sheet:selection-change', function (event) {
+    controller.setSelection(event.detail.active);
+  });
+
+  controller.hydrate();
 })();

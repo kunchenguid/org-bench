@@ -8,9 +8,13 @@ function createShellDouble() {
     cells: [],
     current: {},
     renders: 0,
+    activeCell: null,
     setCellRaw(cell, raw) {
       this.cells.push({ cell, raw });
       this.current[cell.col + ':' + cell.row] = raw;
+    },
+    setActiveCell(cell) {
+      this.activeCell = cell;
     },
     rerender() {
       this.renders += 1;
@@ -50,6 +54,7 @@ test('hydrates display values from model through the formula engine', () => {
     { cell: { col: 0, row: 0 }, raw: '2' },
     { cell: { col: 0, row: 1 }, raw: '5' },
   ]);
+  assert.deepEqual(shell.activeCell, { col: 0, row: 1 });
   assert.equal(shell.renders, 1);
 });
 
@@ -218,4 +223,73 @@ test('structure actions map shell coordinates onto one-based model operations', 
     ['deleteColumns', 3, 1],
   ]);
   assert.equal(shell.renders, 2);
+});
+
+test('selection updates are persisted back to the model as A1-style addresses', () => {
+  const shell = createShellDouble();
+  const selections = [];
+  const model = {
+    setSelection(cellId) {
+      selections.push(cellId);
+    },
+    exportState() {
+      return { cells: {}, selection: 'A1' };
+    },
+  };
+  const engine = {
+    cells: new Map(),
+    setCell() {},
+    recalculate() {},
+    getDisplayValue() {
+      return '';
+    },
+  };
+
+  const controller = createSpreadsheetController({ shell, model, engine });
+
+  controller.setSelection({ col: 2, row: 4 });
+
+  assert.deepEqual(selections, ['C5']);
+});
+
+test('hydrate sends raw formulas and display values separately when the shell supports cell data updates', () => {
+  const calls = [];
+  const shell = {
+    renders: 0,
+    setCellData(cell, raw, display) {
+      calls.push({ cell, raw, display });
+    },
+    rerender() {
+      this.renders += 1;
+    },
+  };
+  const model = {
+    exportState() {
+      return {
+        cells: {
+          A1: '=1+2',
+        },
+        selection: 'A1',
+      };
+    },
+  };
+  const engine = {
+    cells: new Map(),
+    setCell(cellId, raw) {
+      this.cells.set(cellId, raw);
+    },
+    recalculate() {},
+    getDisplayValue() {
+      return 3;
+    },
+  };
+
+  const controller = createSpreadsheetController({ shell, model, engine });
+
+  controller.hydrate();
+
+  assert.deepEqual(calls, [
+    { cell: { col: 0, row: 0 }, raw: '=1+2', display: '3' },
+  ]);
+  assert.equal(shell.renders, 1);
 });

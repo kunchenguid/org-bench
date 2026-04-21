@@ -10,7 +10,7 @@ function createSpreadsheetController(options) {
     for (let index = 0; index < hydratedAddresses.length; index += 1) {
       const address = hydratedAddresses[index];
       if (!nextSet.has(address)) {
-        shell.setCellRaw(cellIdToCoords(address), '');
+        updateShellCell(cellIdToCoords(address), '', '');
       }
     }
   }
@@ -38,7 +38,15 @@ function createSpreadsheetController(options) {
 
     for (let index = 0; index < addresses.length; index += 1) {
       const address = addresses[index];
-      shell.setCellRaw(cellIdToCoords(address), stringifyDisplayValue(engine.getDisplayValue(address)));
+      updateShellCell(
+        cellIdToCoords(address),
+        cells[address],
+        stringifyDisplayValue(engine.getDisplayValue(address))
+      );
+    }
+
+    if (snapshot && snapshot.selection && typeof shell.setActiveCell === 'function') {
+      shell.setActiveCell(cellIdToCoords(snapshot.selection));
     }
 
     hydratedAddresses = addresses;
@@ -80,11 +88,27 @@ function createSpreadsheetController(options) {
     hydrate();
   }
 
+  function setSelection(cell) {
+    if (typeof model.setSelection === 'function') {
+      model.setSelection(coordsToCellId(cell));
+    }
+  }
+
+  function updateShellCell(cell, raw, display) {
+    if (typeof shell.setCellData === 'function') {
+      shell.setCellData(cell, raw, display);
+      return;
+    }
+
+    shell.setCellRaw(cell, display);
+  }
+
   return {
     hydrate,
     commitCell,
     clearRange,
     applyStructureChange,
+    setSelection,
   };
 }
 
