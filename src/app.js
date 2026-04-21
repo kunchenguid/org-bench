@@ -107,6 +107,11 @@
     status.textContent = 'Editing ' + model.getSelectedCell();
   });
 
+  editor.addEventListener('input', function () {
+    formulaInput.value = editor.value;
+    status.textContent = 'Editing ' + model.getSelectedCell();
+  });
+
   formulaInput.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -167,6 +172,7 @@
 
     editor.hidden = false;
     editor.value = initialValue;
+    formulaInput.value = initialValue;
     editor.style.left = (rect.left - hostRect.left + grid.scrollLeft) + 'px';
     editor.style.top = (rect.top - hostRect.top + grid.scrollTop) + 'px';
     editor.style.width = rect.width + 'px';

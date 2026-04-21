@@ -77,3 +77,13 @@ test('expands rectangular ranges from any corner order', () => {
   assert.deepEqual(expandRange('B2', 'C3'), ['B2', 'C2', 'B3', 'C3']);
   assert.deepEqual(expandRange('C3', 'B2'), ['B2', 'C2', 'B3', 'C3']);
 });
+
+test('shows reference errors instead of silently clamping invalid addresses', () => {
+  const model = createSpreadsheetModel();
+
+  model.setCell('A1', '=AA1');
+  model.setCell('A2', '=A101');
+
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+  assert.equal(model.getDisplayValue('A2'), '#REF!');
+});

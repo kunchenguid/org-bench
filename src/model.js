@@ -330,7 +330,11 @@
         return '';
       }
       index += match[0].length;
-      return normalizeAddress(match[0].toUpperCase());
+      try {
+        return normalizeAddress(match[0].toUpperCase());
+      } catch (error) {
+        throw errorValue('#REF!');
+      }
     }
 
     function callFunction(name, args) {
@@ -426,8 +430,11 @@
     if (!match) {
       throw new Error('Invalid cell address: ' + address);
     }
-    const row = Math.max(1, Math.min(ROW_COUNT, Number(match[2])));
-    const columnIndex = Math.max(0, Math.min(COLUMN_COUNT - 1, lettersToColumnIndex(match[1])));
+    const row = Number(match[2]);
+    const columnIndex = lettersToColumnIndex(match[1]);
+    if (row < 1 || row > ROW_COUNT || columnIndex < 0 || columnIndex >= COLUMN_COUNT) {
+      throw new Error('Out of bounds cell address: ' + address);
+    }
     return indexToColumnLetters(columnIndex) + String(row);
   }
 
