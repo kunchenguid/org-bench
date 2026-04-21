@@ -158,6 +158,10 @@
       } else if (event.key === 'Enter' || event.key === 'F2') {
         event.preventDefault();
         startEditing(row, column, getRaw(row, column), false);
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        commitToCell(row, column, '');
+        render();
       } else if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
         event.preventDefault();
         startEditing(row, column, event.key, true);
