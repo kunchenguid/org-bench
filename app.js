@@ -390,9 +390,7 @@
 
     function applySheetMutation(createNextState) {
       const nextState = createNextState();
-      if (!nextState) {
-        return;
-      }
+      if (!nextState) return;
 
       if (nextState.cells) {
         state.cells = nextState.cells;
