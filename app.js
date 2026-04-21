@@ -4,6 +4,7 @@
   const formulaInput = document.getElementById('formula-input');
   const sheet = document.getElementById('sheet');
   const nameBox = document.getElementById('name-box');
+  const selectionSize = document.getElementById('selection-size');
   const engine = window.SpreadsheetFormula.createEngine({
     getCellRaw(address) {
       return state.cells[address] || '';
@@ -21,6 +22,7 @@
 
   function bindEvents() {
     sheet.addEventListener('click', onCellClick);
+    sheet.addEventListener('mousedown', onCellMouseDown);
     sheet.addEventListener('dblclick', function (event) {
       const cell = getCellElement(event.target);
       if (!cell) return;
@@ -93,7 +95,29 @@
   function onCellClick(event) {
     const cell = getCellElement(event.target);
     if (!cell) return;
-    select(cell.dataset.address);
+    select(cell.dataset.address, event.shiftKey ? state.anchor : cell.dataset.address);
+  }
+
+  function onCellMouseDown(event) {
+    const cell = getCellElement(event.target);
+    if (!cell || event.button !== 0) return;
+    const anchor = event.shiftKey ? state.anchor : cell.dataset.address;
+    select(cell.dataset.address, anchor);
+
+    function onMove(moveEvent) {
+      const nextCell = getCellElement(moveEvent.target);
+      if (!nextCell) return;
+      select(nextCell.dataset.address, anchor, true);
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      saveState();
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 
   function onKeyDown(event) {
@@ -110,7 +134,7 @@
     const movement = keyToMovement(event.key);
     if (movement) {
       event.preventDefault();
-      moveSelection(movement.rowDelta, movement.colDelta);
+      moveSelection(movement.rowDelta, movement.colDelta, event.shiftKey);
       return;
     }
 
@@ -197,18 +221,20 @@
     }
   }
 
-  function select(address) {
+  function select(address, anchorAddress, skipSave) {
     state.selected = address;
+    state.anchor = anchorAddress || address;
     formulaDraft = null;
-    saveState();
+    if (!skipSave) saveState();
     refresh();
   }
 
-  function moveSelection(rowDelta, colDelta) {
+  function moveSelection(rowDelta, colDelta, extendRange) {
     const decoded = window.SpreadsheetFormula.decodeAddress(state.selected);
     const nextRow = clamp(decoded.row + rowDelta, 0, ROWS - 1);
     const nextCol = clamp(decoded.col + colDelta, 0, COLS - 1);
-    select(window.SpreadsheetFormula.encodeColumn(nextCol) + String(nextRow + 1));
+    const nextAddress = window.SpreadsheetFormula.encodeColumn(nextCol) + String(nextRow + 1);
+    select(nextAddress, extendRange ? state.anchor : nextAddress);
     const selected = findCell(state.selected);
     if (selected) {
       selected.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -216,6 +242,7 @@
   }
 
   function refresh() {
+    const range = window.SpreadsheetSelection.createSelection(state.anchor, state.selected);
     const cells = sheet.querySelectorAll('td[data-address]');
     cells.forEach(function (td) {
       const address = td.dataset.address;
@@ -225,12 +252,28 @@
       cell.className = 'cell';
       if (display.type === 'number') cell.classList.add('numeric');
       if (display.type === 'error') cell.classList.add('error');
+      const inRange = window.SpreadsheetSelection.isInRange(range, address);
+      td.classList.toggle('in-range', inRange && address !== state.selected);
       td.classList.toggle('selected', address === state.selected);
     });
+    highlightHeaders(range);
     nameBox.textContent = state.selected;
+    selectionSize.textContent = String(range.endRow - range.startRow + 1) + ' x ' + String(range.endCol - range.startCol + 1);
     if (document.activeElement !== formulaInput || formulaDraft === null) {
       formulaInput.value = state.cells[state.selected] || '';
     }
+  }
+
+  function highlightHeaders(range) {
+    const columnHeaders = sheet.querySelectorAll('thead th.col-header');
+    columnHeaders.forEach(function (header, index) {
+      header.classList.toggle('highlighted', index >= range.startCol && index <= range.endCol);
+    });
+
+    const rowHeaders = sheet.querySelectorAll('tbody th.row-header');
+    rowHeaders.forEach(function (header, index) {
+      header.classList.toggle('highlighted', index >= range.startRow && index <= range.endRow);
+    });
   }
 
   function getCellElement(target) {
@@ -250,7 +293,7 @@
   }
 
   function loadState() {
-    const fallback = { cells: {}, selected: 'A1' };
+    const fallback = { cells: {}, selected: 'A1', anchor: 'A1' };
     try {
       const stored = localStorage.getItem(storageKey());
       if (!stored) return fallback;
@@ -258,6 +301,7 @@
       return {
         cells: parsed.cells || {},
         selected: parsed.selected || 'A1',
+        anchor: parsed.anchor || parsed.selected || 'A1',
       };
     } catch (error) {
       return fallback;
@@ -268,6 +312,7 @@
     localStorage.setItem(storageKey(), JSON.stringify({
       cells: state.cells,
       selected: state.selected,
+      anchor: state.anchor,
     }));
   }
 

@@ -8,6 +8,7 @@
   --muted: #69707d;
   --accent: #0071e3;
   --accent-soft: rgba(0, 113, 227, 0.14);
+  --accent-glow: rgba(0, 113, 227, 0.3);
   --header: #f1f4f8;
   --shadow: 0 20px 60px rgba(17, 24, 39, 0.08);
 }
@@ -54,6 +55,12 @@ body {
   padding: 18px 22px;
 }
 
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: var(--muted);
@@ -73,16 +80,21 @@ h1 {
   min-width: 72px;
   padding: 10px 14px;
   border-radius: 12px;
-  background: rgba(0, 113, 227, 0.08);
-  color: var(--accent);
+  background: rgba(107, 114, 128, 0.08);
+  color: var(--muted);
   text-align: center;
   font-size: 14px;
   font-weight: 700;
 }
 
+.selection-pill.active {
+  background: rgba(0, 113, 227, 0.08);
+  color: var(--accent);
+}
+
 .formula-panel {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
@@ -108,6 +120,13 @@ h1 {
 .formula-input:focus {
   border-color: rgba(0, 113, 227, 0.25);
   box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+}
+
+.shortcut-hint {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .grid-shell {
@@ -152,6 +171,11 @@ h1 {
   text-align: center;
 }
 
+.sheet th.highlighted {
+  background: linear-gradient(#edf5ff, #dfeeff);
+  color: var(--accent);
+}
+
 .sheet .corner {
   left: 0;
   z-index: 3;
@@ -189,11 +213,22 @@ h1 {
 
 .cell.error {
   color: #c2334d;
+  font-weight: 600;
+}
+
+.cell.error::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 0;
+  height: 0;
+  border-top: 8px solid #e0516a;
+  border-right: 8px solid transparent;
 }
 
 td.selected {
   box-shadow: inset 0 0 0 2px var(--accent);
-  z-index: 1;
+  z-index: 2;
 }
 
 td.selected::after {
@@ -201,6 +236,28 @@ td.selected::after {
   position: absolute;
   inset: 0;
   background: var(--accent-soft);
+  pointer-events: none;
+}
+
+td.selected::before {
+  content: "";
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+td.in-range::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 113, 227, 0.08);
+  box-shadow: inset 0 0 0 1px var(--accent-glow);
   pointer-events: none;
 }
 
@@ -227,7 +284,23 @@ td.editing {
   }
 
   .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
     padding: 16px;
+  }
+
+  .topbar-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .formula-panel {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .shortcut-hint {
+    grid-column: 1 / -1;
   }
 
   h1 {

@@ -13,12 +13,16 @@
         <p class="eyebrow">Apple</p>
         <h1>Sheet</h1>
       </div>
-      <div class="selection-pill" id="name-box">A1</div>
+      <div class="topbar-meta">
+        <div class="selection-pill" id="selection-size">1 x 1</div>
+        <div class="selection-pill active" id="name-box">A1</div>
+      </div>
     </header>
 
     <section class="formula-panel">
       <label class="formula-label" for="formula-input">fx</label>
       <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+      <div class="shortcut-hint">Enter edits. Shift plus arrows extends selection.</div>
     </section>
 
     <main class="grid-shell">
@@ -29,6 +33,7 @@
   </div>
 
   <script src="formula.js"></script>
+  <script src="selection.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
