@@ -5,6 +5,8 @@ const {
   clampCell,
   createInitialSelection,
   selectionFromEndpoints,
+  selectionFromRuntimeSelection,
+  handleHistoryHotkey,
 } = require('../app.js');
 
 function test(name, fn) {
@@ -62,6 +64,64 @@ test('createInitialSelection starts on A1 with a single-cell range', () => {
     maxColumn: 0,
     active: { row: 0, column: 0 },
   });
+});
+
+test('selectionFromRuntimeSelection clamps restored runtime selection into the grid', () => {
+  assert.deepEqual(
+    selectionFromRuntimeSelection({ row: 120, col: -4 }, 100, 26),
+    {
+      anchor: { row: 99, column: 0 },
+      focus: { row: 99, column: 0 },
+      minRow: 99,
+      maxRow: 99,
+      minColumn: 0,
+      maxColumn: 0,
+      active: { row: 99, column: 0 },
+    }
+  );
+});
+
+test('handleHistoryHotkey routes undo and redo shortcuts through runtime', () => {
+  const calls = [];
+  const runtime = {
+    undo() {
+      calls.push('undo');
+      return { selection: { row: 3, col: 2 } };
+    },
+    redo() {
+      calls.push('redo');
+      return { selection: { row: 4, col: 5 } };
+    },
+  };
+
+  const undoEvent = {
+    key: 'z',
+    metaKey: true,
+    ctrlKey: false,
+    shiftKey: false,
+    preventDefaultCalled: false,
+    preventDefault() {
+      this.preventDefaultCalled = true;
+    },
+  };
+
+  const redoEvent = {
+    key: 'Z',
+    metaKey: true,
+    ctrlKey: false,
+    shiftKey: true,
+    preventDefaultCalled: false,
+    preventDefault() {
+      this.preventDefaultCalled = true;
+    },
+  };
+
+  assert.deepEqual(handleHistoryHotkey(undoEvent, runtime), { selection: { row: 3, col: 2 } });
+  assert.equal(undoEvent.preventDefaultCalled, true);
+
+  assert.deepEqual(handleHistoryHotkey(redoEvent, runtime), { selection: { row: 4, col: 5 } });
+  assert.equal(redoEvent.preventDefaultCalled, true);
+  assert.deepEqual(calls, ['undo', 'redo']);
 });
 
 if (process.exitCode) {

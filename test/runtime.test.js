@@ -86,6 +86,39 @@ test('applyStructuralEdit rewrites cells and records the new state', () => {
   });
 });
 
+test('updateSelection persists the active cell without consuming undo history', () => {
+  const storage = createMemoryStorage();
+  const persistence = createPersistence({
+    storage,
+    namespace: 'run-selection',
+    defaultState: {
+      cells: { A1: '42' },
+      selection: { row: 1, col: 1 },
+    },
+  });
+  persistence.save({
+    cells: { A1: '42' },
+    selection: { row: 1, col: 1 },
+  });
+
+  const history = createHistory({
+    initialState: persistence.load(),
+  });
+  const runtime = createRuntime({ history, persistence });
+
+  runtime.updateSelection({ row: 5, col: 3 }, 'shell:selection');
+
+  assert.deepEqual(runtime.getState(), {
+    cells: { A1: '42' },
+    selection: { row: 5, col: 3 },
+  });
+  assert.deepEqual(runtime.undo(), null);
+  assert.deepEqual(JSON.parse(storage.getItem('run-selection:spreadsheet-state')), {
+    cells: { A1: '42' },
+    selection: { row: 5, col: 3 },
+  });
+});
+
 test('registerModule starts modules with a shared store and bus', () => {
   const runtime = createRuntime();
   const events = [];

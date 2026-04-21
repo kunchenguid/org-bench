@@ -63,6 +63,30 @@
     return selectionFromEndpoints(clamped, clamped);
   }
 
+  function handleHistoryHotkey(event, runtime) {
+    if (!runtime || (!event.metaKey && !event.ctrlKey) || event.altKey) {
+      return null;
+    }
+
+    var key = String(event.key || '').toLowerCase();
+    if (key === 'z' && event.shiftKey) {
+      event.preventDefault();
+      return runtime.redo();
+    }
+
+    if (key === 'z') {
+      event.preventDefault();
+      return runtime.undo();
+    }
+
+    if (key === 'y') {
+      event.preventDefault();
+      return runtime.redo();
+    }
+
+    return null;
+  }
+
   function addressFromCell(cell) {
     return String.fromCharCode(65 + cell.column) + String(cell.row + 1);
   }
@@ -439,9 +463,21 @@
     }
 
     function applyRuntimeState(nextRuntimeState) {
+      if (!nextRuntimeState) {
+        return;
+      }
+
       state.cells = Object.assign({}, nextRuntimeState.cells);
       state.selection = selectionFromRuntimeSelection(nextRuntimeState.selection, TOTAL_ROWS, TOTAL_COLUMNS);
       render();
+    }
+
+    function setSelection(nextSelection, options) {
+      state.selection = nextSelection;
+      render();
+      if (runtime && !(options && options.skipRuntime)) {
+        runtime.updateSelection(selectionToRuntimeSelection(state.selection), options && options.source ? options.source : 'shell:selection');
+      }
     }
 
     function commitRuntime(nextState, source) {
@@ -483,14 +519,8 @@
     }
 
     if (runtime) {
-      runtime.store.subscribe(function (nextRuntimeState, metadata) {
-        if (metadata && metadata.source === 'shell:selection') {
-          state.cells = Object.assign({}, nextRuntimeState.cells);
-          render();
-          return;
-        }
-
-        applyRuntimeState(nextRuntimeState);
+      runtime.bus.on('state:change', function (payload) {
+        applyRuntimeState(payload && payload.state);
       });
     }
 
@@ -625,6 +655,12 @@
         return;
       }
 
+      var historyState = handleHistoryHotkey(event, runtime);
+      if (historyState) {
+        applyRuntimeState(historyState);
+        return;
+      }
+
       var delta = null;
       if (event.key === 'ArrowUp') {
         delta = { row: -1, column: 0 };
@@ -664,6 +700,8 @@
     moveActiveCell: moveActiveCell,
     moveSelection: moveSelection,
     selectCell: selectCell,
+    selectionFromRuntimeSelection: selectionFromRuntimeSelection,
+    handleHistoryHotkey: handleHistoryHotkey,
     initSpreadsheetShell: initSpreadsheetShell,
   };
 
