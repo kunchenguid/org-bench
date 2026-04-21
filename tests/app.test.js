@@ -371,3 +371,49 @@ test('preserves raw formulas across error persistence', () => {
   assert.equal(getCellRaw(restored, 3, 3), '=1/0');
   assert.equal(formatValue(evaluateCell(restored, 3, 3).value), '#DIV/0!');
 });
+
+test('inserting a row shifts stored cells and dependent references', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 2, 1, '5');
+  state = commitCell(state, 3, 1, '=A2');
+
+  state = insertRow(state, 2);
+
+  assert.equal(getCellRaw(state, 3, 1), '5');
+  assert.equal(getCellRaw(state, 4, 1), '=A3');
+  assert.equal(formatValue(evaluateCell(state, 4, 1).value), '5');
+});
+
+test('deleting a row emits #REF! for references into the deleted row', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 2, 1, '5');
+  state = commitCell(state, 3, 1, '=A2');
+
+  state = deleteRow(state, 2);
+
+  assert.equal(getCellRaw(state, 2, 1), '=#REF!');
+  assert.equal(formatValue(evaluateCell(state, 2, 1).value), '#REF!');
+});
+
+test('inserting a column shifts stored cells and dependent references', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 2, '5');
+  state = commitCell(state, 1, 3, '=B1');
+
+  state = insertColumn(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 3), '5');
+  assert.equal(getCellRaw(state, 1, 4), '=C1');
+  assert.equal(formatValue(evaluateCell(state, 1, 4).value), '5');
+});
+
+test('deleting a column emits #REF! for references into the deleted column', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 2, '5');
+  state = commitCell(state, 1, 3, '=B1');
+
+  state = deleteColumn(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 2), '=#REF!');
+  assert.equal(formatValue(evaluateCell(state, 1, 2).value), '#REF!');
+});

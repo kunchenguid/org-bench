@@ -166,6 +166,106 @@
     return state.cells[makeCellKey(row, col)] || '';
   }
 
+  function rewriteFormulaReferences(raw, axis, index, mode) {
+    if (!raw.startsWith('=')) {
+      return raw;
+    }
+
+    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (token) {
+      const reference = parseReferenceToken(token);
+
+      if (axis === 'row' && !reference.rowAbsolute) {
+        if (mode === 'insert' && reference.row >= index) {
+          reference.row += 1;
+        } else if (mode === 'delete') {
+          if (reference.row === index) {
+            return '#REF!';
+          }
+          if (reference.row > index) {
+            reference.row -= 1;
+          }
+        }
+      }
+
+      if (axis === 'col' && !reference.colAbsolute) {
+        if (mode === 'insert' && reference.col >= index) {
+          reference.col += 1;
+        } else if (mode === 'delete') {
+          if (reference.col === index) {
+            return '#REF!';
+          }
+          if (reference.col > index) {
+            reference.col -= 1;
+          }
+        }
+      }
+
+      return formatReferenceToken(reference);
+    });
+  }
+
+  function remapCells(state, axis, index, mode) {
+    const nextState = createEmptyState();
+    nextState.selection = { ...state.selection };
+    nextState.selectionEnd = { ...state.selectionEnd };
+
+    Object.keys(state.cells).forEach(function (key) {
+      const parts = key.split(':').map(Number);
+      let row = parts[0];
+      let col = parts[1];
+
+      if (axis === 'row') {
+        if (mode === 'insert' && row >= index) {
+          row += 1;
+        } else if (mode === 'delete') {
+          if (row === index) {
+            return;
+          }
+          if (row > index) {
+            row -= 1;
+          }
+        }
+      }
+
+      if (axis === 'col') {
+        if (mode === 'insert' && col >= index) {
+          col += 1;
+        } else if (mode === 'delete') {
+          if (col === index) {
+            return;
+          }
+          if (col > index) {
+            col -= 1;
+          }
+        }
+      }
+
+      if (row < 1 || row > ROW_COUNT || col < 1 || col > COLUMN_COUNT) {
+        return;
+      }
+
+      nextState.cells[makeCellKey(row, col)] = rewriteFormulaReferences(state.cells[key], axis, index, mode);
+    });
+
+    return nextState;
+  }
+
+  function insertRow(state, row) {
+    return remapCells(state, 'row', row, 'insert');
+  }
+
+  function deleteRow(state, row) {
+    return remapCells(state, 'row', row, 'delete');
+  }
+
+  function insertColumn(state, col) {
+    return remapCells(state, 'col', col, 'insert');
+  }
+
+  function deleteColumn(state, col) {
+    return remapCells(state, 'col', col, 'delete');
+  }
+
   function normalizeRect(start, end) {
     return {
       startRow: Math.min(start.row, end.row),
@@ -852,6 +952,11 @@
       return { value: '#CIRC!' };
     }
     const raw = getCellRaw(state, row, col);
+    if (raw === '=#REF!') {
+      const refResult = { value: '#REF!' };
+      cache[key] = refResult;
+      return refResult;
+    }
     if (!raw.startsWith('=')) {
       const result = { value: parseLiteral(raw) };
       cache[key] = result;
@@ -940,10 +1045,37 @@
       const corner = document.createElement('div');
       corner.className = 'corner-cell';
       columnHeaders.appendChild(corner);
-      gridModel.columns.forEach(function (column) {
+      gridModel.columns.forEach(function (column, index) {
         const node = document.createElement('div');
         node.className = 'column-header';
-        node.textContent = column;
+        const label = document.createElement('span');
+        label.className = 'header-label';
+        label.textContent = column;
+        const insert = document.createElement('button');
+        insert.type = 'button';
+        insert.className = 'header-action';
+        insert.textContent = '+';
+        insert.setAttribute('aria-label', 'Insert column ' + column);
+        insert.addEventListener('click', function (event) {
+          event.stopPropagation();
+          syncHistory(applyHistoryState(history, insertColumn(state, index + 1)));
+          persist();
+          renderGrid();
+        });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'header-action header-action-danger';
+        remove.textContent = '-';
+        remove.setAttribute('aria-label', 'Delete column ' + column);
+        remove.addEventListener('click', function (event) {
+          event.stopPropagation();
+          syncHistory(applyHistoryState(history, deleteColumn(state, index + 1)));
+          persist();
+          renderGrid();
+        });
+        node.appendChild(label);
+        node.appendChild(insert);
+        node.appendChild(remove);
         columnHeaders.appendChild(node);
       });
     }
@@ -958,7 +1090,34 @@
 
         const rowHeader = document.createElement('div');
         rowHeader.className = 'row-header';
-        rowHeader.textContent = row;
+        const rowLabel = document.createElement('span');
+        rowLabel.className = 'header-label';
+        rowLabel.textContent = row;
+        const insert = document.createElement('button');
+        insert.type = 'button';
+        insert.className = 'header-action';
+        insert.textContent = '+';
+        insert.setAttribute('aria-label', 'Insert row ' + row);
+        insert.addEventListener('click', function (event) {
+          event.stopPropagation();
+          syncHistory(applyHistoryState(history, insertRow(state, row)));
+          persist();
+          renderGrid();
+        });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'header-action header-action-danger';
+        remove.textContent = '-';
+        remove.setAttribute('aria-label', 'Delete row ' + row);
+        remove.addEventListener('click', function (event) {
+          event.stopPropagation();
+          syncHistory(applyHistoryState(history, deleteRow(state, row)));
+          persist();
+          renderGrid();
+        });
+        rowHeader.appendChild(rowLabel);
+        rowHeader.appendChild(insert);
+        rowHeader.appendChild(remove);
         rowEl.appendChild(rowHeader);
 
         for (let col = 1; col <= COLUMN_COUNT; col += 1) {

@@ -191,6 +191,35 @@ body {
   font-weight: 600;
 }
 
+.column-header,
+.row-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.header-label {
+  min-width: 1ch;
+}
+
+.header-action {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #dbe7ff;
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.header-action-danger {
+  background: #fde2e8;
+  color: #be123c;
+}
+
 .grid-cell {
   font: inherit;
   border-top: 0;
