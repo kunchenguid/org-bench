@@ -8,6 +8,8 @@ const {
   moveSelection,
   beginEdit,
   inputText,
+  shouldIgnoreDocumentKeydown,
+  handleDocumentEditingKey,
 } = require('../app.js');
 
 function test(name, fn) {
@@ -111,4 +113,21 @@ test('arrow navigation clamps at the sheet edges', () => {
   state = moveSelection(state, 'down');
 
   assert.deepEqual(state.selection.active, { row: 99, column: 25 });
+});
+
+test('document keydown helper commits enter for an active edit session', () => {
+  const state = inputText(createInitialState(), '2');
+  const action = handleDocumentEditingKey(state, { key: 'Enter', shiftKey: false });
+
+  assert.equal(action.mode, 'commit');
+  assert.equal(action.source, 'shell:document-enter');
+  assert.equal(getCellContent(action.nextState, 0, 0), '2');
+  assert.deepEqual(action.nextState.selection.active, { row: 1, column: 0 });
+  assert.equal(action.nextState.editing, null);
+});
+
+test('document keydown ignore helper only suppresses events for focused editors', () => {
+  assert.equal(shouldIgnoreDocumentKeydown(createInitialState(), {}, null, null), false);
+  const editor = {};
+  assert.equal(shouldIgnoreDocumentKeydown(createInitialState(), editor, null, editor), true);
 });

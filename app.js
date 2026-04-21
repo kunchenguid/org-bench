@@ -454,6 +454,42 @@
     input.setSelectionRange(length, length);
   }
 
+  function shouldIgnoreDocumentKeydown(state, activeElement, formulaInput, cellEditor) {
+    return activeElement === formulaInput || activeElement === cellEditor;
+  }
+
+  function handleDocumentEditingKey(state, event) {
+    if (!state || !state.editing || !event) {
+      return null;
+    }
+
+    if (event.key === 'Enter') {
+      return {
+        nextState: commitActiveEdit(state, 'down'),
+        mode: 'commit',
+        source: 'shell:document-enter',
+      };
+    }
+
+    if (event.key === 'Tab') {
+      return {
+        nextState: commitActiveEdit(state, event.shiftKey ? 'left' : 'right'),
+        mode: 'commit',
+        source: 'shell:document-tab',
+      };
+    }
+
+    if (event.key === 'Escape') {
+      return {
+        nextState: cancelActiveEdit(state),
+        mode: 'cancel',
+        source: 'shell:document-escape',
+      };
+    }
+
+    return null;
+  }
+
   function initSpreadsheetShell() {
     if (typeof document === 'undefined') {
       return;
@@ -592,9 +628,44 @@
       setEditing(beginCellEdit(state, replacementText, preserveExisting, source));
       if (source === 'cell') {
         focusEditor(cellEditor);
+        globalScope.requestAnimationFrame(function () {
+          focusEditor(cellEditor);
+        });
       } else if (formulaInput) {
         focusEditor(formulaInput);
+        globalScope.requestAnimationFrame(function () {
+          focusEditor(formulaInput);
+        });
       }
+    }
+
+    function handleInlineEditorKey(event, sourcePrefix) {
+      if (!state.editing) {
+        return false;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        commitRuntime(commitActiveEdit(state, 'down'), sourcePrefix + ':enter');
+        return true;
+      }
+
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        event.stopPropagation();
+        commitRuntime(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'), sourcePrefix + ':tab');
+        return true;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setEditing(cancelActiveEdit(state));
+        return true;
+      }
+
+      return false;
     }
 
     if (runtime) {
@@ -675,20 +746,12 @@
         setEditing(applyEditDraft(state, event.target.value));
       });
 
-      formulaInput.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          commitRuntime(commitActiveEdit(state, 'down'), 'shell:formula-enter');
-          formulaInput.blur();
-        } else if (event.key === 'Tab') {
-          event.preventDefault();
-          commitRuntime(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'), 'shell:formula-tab');
-          formulaInput.blur();
-        } else if (event.key === 'Escape') {
-          event.preventDefault();
-          setEditing(cancelActiveEdit(state));
-          formulaInput.blur();
-        }
+      ['keydown', 'keypress', 'keyup'].forEach(function (eventName) {
+        formulaInput.addEventListener(eventName, function (event) {
+          if (handleInlineEditorKey(event, 'shell:formula')) {
+            formulaInput.blur();
+          }
+        });
       });
     }
 
@@ -696,23 +759,27 @@
       setEditing(applyEditDraft(state, event.target.value));
     });
 
-    cellEditor.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        commitRuntime(commitActiveEdit(state, 'down'), 'shell:cell-enter');
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        commitRuntime(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'), 'shell:cell-tab');
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        setEditing(cancelActiveEdit(state));
-      }
+    ['keydown', 'keypress', 'keyup'].forEach(function (eventName) {
+      cellEditor.addEventListener(eventName, function (event) {
+        handleInlineEditorKey(event, 'shell:cell');
+      });
     });
 
-    document.addEventListener('keydown', function (event) {
+    function handleDocumentKeyEvent(event) {
       var activeElement = document.activeElement;
-      var isTypingIntoEditor = activeElement === formulaInput || activeElement === cellEditor;
-      if (isTypingIntoEditor) {
+      var editingAction = handleDocumentEditingKey(state, event);
+      if (editingAction) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (editingAction.mode === 'commit') {
+          commitRuntime(editingAction.nextState, editingAction.source);
+        } else {
+          setEditing(editingAction.nextState);
+        }
+        return;
+      }
+
+      if (shouldIgnoreDocumentKeydown(state, activeElement, formulaInput, cellEditor)) {
         return;
       }
 
@@ -757,7 +824,11 @@
 
       event.preventDefault();
       setSelection(moveActiveCell(state, delta, event.shiftKey).selection, 'shell:selection');
-    });
+    }
+
+    document.addEventListener('keydown', handleDocumentKeyEvent, true);
+    document.addEventListener('keypress', handleDocumentKeyEvent, true);
+    document.addEventListener('keyup', handleDocumentKeyEvent, true);
   }
 
   var api = {
@@ -781,6 +852,8 @@
     moveActiveCell: moveActiveCell,
     moveSelection: moveSelection,
     selectCell: selectCell,
+    shouldIgnoreDocumentKeydown: shouldIgnoreDocumentKeydown,
+    handleDocumentEditingKey: handleDocumentEditingKey,
     selectionFromRuntimeSelection: selectionFromRuntimeSelection,
     handleHistoryHotkey: handleHistoryHotkey,
     initSpreadsheetShell: initSpreadsheetShell,
