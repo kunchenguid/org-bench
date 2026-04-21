@@ -3,7 +3,11 @@ const assert = require('node:assert/strict');
 
 const {
   copyRange,
+  deleteColumn,
+  deleteRow,
   evaluateSpreadsheet,
+  insertColumn,
+  insertRow,
   pasteRange,
   shiftFormula,
 } = require('../spreadsheet-core.js');
@@ -138,4 +142,78 @@ test('cut-paste moves source contents and clears the original range', () => {
     A2: '7',
     B2: '=A2*2',
   });
+});
+
+test('inserting a row rewrites moved formulas to keep pointing at the same data', () => {
+  const next = insertRow(
+    {
+      A1: '10',
+      B1: '=A1',
+      A2: '20',
+      B2: '=A2',
+    },
+    0
+  );
+
+  assert.deepEqual(next, {
+    A2: '10',
+    B2: '=A2',
+    A3: '20',
+    B3: '=A3',
+  });
+});
+
+test('deleting a row turns references to deleted cells into #REF! while preserving other data', () => {
+  const next = deleteRow(
+    {
+      A1: '10',
+      A2: '20',
+      B3: '=A2',
+      C3: '=A1',
+    },
+    1
+  );
+
+  assert.deepEqual(next, {
+    A1: '10',
+    B2: '=#REF!',
+    C2: '=A1',
+  });
+  assert.equal(evaluateSpreadsheet(next).B2.display, '#REF!');
+});
+
+test('inserting a column rewrites formulas and shifts moved cells', () => {
+  const next = insertColumn(
+    {
+      A1: '10',
+      B1: '=A1',
+      C1: '=B1',
+    },
+    0
+  );
+
+  assert.deepEqual(next, {
+    B1: '10',
+    C1: '=B1',
+    D1: '=C1',
+  });
+});
+
+test('deleting a column rewrites references to deleted cells as #REF!', () => {
+  const next = deleteColumn(
+    {
+      A1: '10',
+      B1: '20',
+      C1: '=B1',
+      D1: '=A1',
+    },
+    1
+  );
+
+  assert.deepEqual(next, {
+    A1: '10',
+    B1: '=#REF!',
+    C1: '=A1',
+  });
+  assert.equal(evaluateSpreadsheet(next).B1.display, '#REF!');
 });
