@@ -60,6 +60,17 @@ test('continued typing updates the draft before enter commits', () => {
   assert.equal(store.getSelection().activeCellId, 'A2');
 });
 
+test('text input data can start and extend the draft before enter commits', () => {
+  const { controller, store } = createController();
+
+  controller.handleTextInput('5');
+  controller.handleTextInput('2');
+  controller.handleEditorKeyDown({ key: 'Enter' });
+
+  assert.equal(store.getCell('A1').raw, '52');
+  assert.equal(store.getSelection().activeCellId, 'A2');
+});
+
 test('formula bar edit starts from the active raw value and stays in sync with the draft', () => {
   const { controller, store } = createController();
   store.commitCell(1, 1, '=A2');
