@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 257,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/257",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add first spreadsheet grid and formula engine",
+  "body": "## Summary\n- build the first polished spreadsheet surface with a 26x100 grid, formula bar, keyboard-driven selection, in-cell editing, clipboard, undo/redo, and local persistence\n- add a standalone spreadsheet engine for literal values, formulas, ranges, core functions, circular detection, and relative reference shifting during paste\n- cover the engine with node tests for arithmetic, dependency recomputation, booleans, circular references, and formula shifting\n\n## Verification\n- node --test test/spreadsheet.test.js\n- node --check app.js\n- node --check spreadsheet.js\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T23:58:29Z"
+    }
+  ],
+  "comments": []
+}

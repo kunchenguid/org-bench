@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 255,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/255",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add initial spreadsheet shell",
+  "body": "## Summary\n- add a polished static spreadsheet shell with a formula bar, 26x100 grid, cell selection, keyboard navigation, inline editing, and local persistence\n- add a browser-safe formula engine for arithmetic, references, ranges, comparisons, and core functions\n- cover the evaluator core with node tests for formulas, circular references, divide-by-zero, and relative reference shifting\n\n## Verification\n- node --test tests/evaluator.test.js\n- node --check app.js && node --check formula.js\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T23:56:16Z"
+    }
+  ],
+  "comments": []
+}

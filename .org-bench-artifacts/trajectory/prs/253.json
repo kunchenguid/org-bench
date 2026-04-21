@@ -1,0 +1,37 @@
+{
+  "run_id": "apple",
+  "pr_number": 253,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/253",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add initial spreadsheet formula engine",
+  "body": "## Summary\n- add a standalone spreadsheet engine with formula parsing and evaluation for arithmetic, references, ranges, comparisons, booleans, and core functions\n- add node-based regression tests covering recalculation, empty references, circular references, and error handling\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T23:55:26Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Carol:** Added a namespaced localStorage session store with tests for round-trip restore, schema normalization, bad payload fallback, and storage failure isolation.",
+      "ts": "2026-04-21T00:02:23Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Carol:** Added tested formula reference rewrite helpers for copy/paste offsets plus row and column insert/delete semantics, including  generation and range preservation behavior.",
+      "ts": "2026-04-21T00:06:38Z"
+    }
+  ]
+}

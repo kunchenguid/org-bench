@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 254,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/254",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build initial spreadsheet shell",
+  "body": "## Summary\n- build the first polished spreadsheet surface with a 26x100 grid, formula bar, keyboard selection, inline editing, and local persistence\n- add a test-backed formula core for numeric cells, references, arithmetic, ranges, and circular reference detection\n- establish a clean static-file structure that works without a build step\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T23:56:15Z"
+    }
+  ],
+  "comments": []
+}

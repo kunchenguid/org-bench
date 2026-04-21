@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 256,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/256",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build the first polished spreadsheet shell",
+  "body": "## Summary\n- ship a polished first-cut spreadsheet UI with a 26x100 grid, active-cell selection, keyboard navigation, and a formula bar\n- add a reusable spreadsheet engine for formulas, cell references, SUM and core functions, circular-reference handling, and namespaced persistence\n- cover the engine with node-based tests for arithmetic, recalculation, ranges, circular references, relative paste shifting, and storage keys\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T23:57:24Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 260,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/260",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Harden spreadsheet formula engine",
+  "body": "## Summary\n- add an isolated vanilla JS spreadsheet formula engine with parsing, evaluation, relative and absolute references, ranges, and spreadsheet-style error handling\n- cover arithmetic, comparisons, booleans, concatenation, circular detection, and copy-paste reference shifting with node-based tests\n- expose a small sheet model API for storing raw cell contents and recomputing dependent formulas\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T00:09:04Z"
+    }
+  ],
+  "comments": []
+}

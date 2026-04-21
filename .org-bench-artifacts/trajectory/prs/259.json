@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 259,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/259",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build spreadsheet foundation",
+  "body": "## Summary\n- ship a polished static spreadsheet foundation with a formula bar, keyboard-first editing, range selection, clipboard support, undo/redo, and session persistence\n- add a standalone formula engine with arithmetic, comparisons, ranges, core functions, circular reference detection, and relative reference shifting for paste behavior\n- add node-based regression tests for the formula engine so the core evaluator is exercised outside the browser\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-20T23:59:53Z"
+    }
+  ],
+  "comments": []
+}

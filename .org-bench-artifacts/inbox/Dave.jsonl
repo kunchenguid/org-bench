@@ -1,0 +1,1 @@
+{"run_id":"apple","round":5,"from":"Steve","to":"Dave","schema_version":1,"ts":"2026-04-21T00:13:38.240Z","tag":"status","content":"Declining PR #256. Your engine-side structural work was useful, but Emma’s fuller branch is now merged, so I am not layering another parallel slice over it."}
