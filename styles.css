@@ -249,7 +249,14 @@ body {
 .cell-editor {
   position: relative;
   z-index: 1;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-variant-numeric: tabular-nums;
+  outline: 0;
 }
 
 .sheet-context-menu {
