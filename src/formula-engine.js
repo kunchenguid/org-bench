@@ -267,28 +267,38 @@
         return parseString();
       }
 
+      const cellReferenceMatch = source.slice(index).match(/^\$?[A-Za-z]+\$?\d+/);
+      if (cellReferenceMatch) {
+        index += cellReferenceMatch[0].length;
+        skipWhitespace();
+
+        if (source.charAt(index) === ':') {
+          index += 1;
+          skipWhitespace();
+          const endReferenceMatch = source.slice(index).match(/^\$?[A-Za-z]+\$?\d+/);
+
+          if (!endReferenceMatch) {
+            throw '#ERR!';
+          }
+
+          index += endReferenceMatch[0].length;
+          return resolvers.resolveRange(normalizeAddress(cellReferenceMatch[0]), normalizeAddress(endReferenceMatch[0]));
+        }
+
+        return resolvers.resolveReference(normalizeAddress(cellReferenceMatch[0]));
+      }
+
+      const errorMatch = source.slice(index).match(/^#(?:REF!|ERR!|DIV\/0!|CIRC!)/);
+      if (errorMatch) {
+        index += errorMatch[0].length;
+        return errorMatch[0].toUpperCase();
+      }
+
       const identifierMatch = source.slice(index).match(/^[A-Za-z_][A-Za-z0-9_]*/);
       if (identifierMatch) {
         const identifier = identifierMatch[0].toUpperCase();
         index += identifierMatch[0].length;
         skipWhitespace();
-
-        if (/^[A-Z]+\d+$/.test(identifier)) {
-          if (source.charAt(index) === ':') {
-            index += 1;
-            skipWhitespace();
-            const endReferenceMatch = source.slice(index).match(/^[A-Za-z]+\d+/);
-
-            if (!endReferenceMatch) {
-              throw '#ERR!';
-            }
-
-            index += endReferenceMatch[0].length;
-            return resolvers.resolveRange(normalizeAddress(identifier), normalizeAddress(endReferenceMatch[0]));
-          }
-
-          return resolvers.resolveReference(normalizeAddress(identifier));
-        }
 
         if (identifier === 'TRUE') {
           return true;
@@ -301,12 +311,6 @@
         if (source.charAt(index) === '(') {
           return parseFunctionCall(identifier);
         }
-      }
-
-      const referenceMatch = source.slice(index).match(/^[A-Za-z]+\d+/);
-      if (referenceMatch) {
-        index += referenceMatch[0].length;
-        return resolvers.resolveReference(normalizeAddress(referenceMatch[0]));
       }
 
       throw '#ERR!';
@@ -486,7 +490,7 @@
   }
 
   function asBoolean(value) {
-    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+    if (isSpreadsheetError(value)) {
       throw value;
     }
 
@@ -536,7 +540,7 @@
   }
 
   function toDisplayText(value) {
-    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+    if (isSpreadsheetError(value)) {
       throw value;
     }
 
@@ -606,7 +610,7 @@
   }
 
   function asNumber(value) {
-    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+    if (isSpreadsheetError(value)) {
       throw value;
     }
 
@@ -631,7 +635,11 @@
   }
 
   function normalizeAddress(address) {
-    return String(address).trim().toUpperCase();
+    return String(address).trim().replace(/\$/g, '').toUpperCase();
+  }
+
+  function isSpreadsheetError(value) {
+    return value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!' || value === '#REF!';
   }
 
   return {

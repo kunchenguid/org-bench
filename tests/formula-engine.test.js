@@ -101,3 +101,27 @@ test('surfaces circular references and spreadsheet-style errors', () => {
   assert.equal(engine.getDisplayValue('C1'), '#DIV/0!');
   assert.equal(engine.getDisplayValue('D1'), '#ERR!');
 });
+
+test('parses absolute references as valid cell and range references', () => {
+  const engine = createFormulaEngine({
+    A1: '2',
+    A2: '5',
+    B1: '3',
+    B2: '7',
+    C1: '=$A$1+A$2+$B1',
+    C2: '=SUM($A$1:$B$2)',
+  });
+
+  assert.equal(engine.getDisplayValue('C1'), 10);
+  assert.equal(engine.getDisplayValue('C2'), 17);
+});
+
+test('preserves #REF! markers instead of collapsing them to #ERR!', () => {
+  const engine = createFormulaEngine({
+    A1: '=#REF!',
+    A2: '=SUM(#REF!, 1)',
+  });
+
+  assert.equal(engine.getDisplayValue('A1'), '#REF!');
+  assert.equal(engine.getDisplayValue('A2'), '#REF!');
+});
