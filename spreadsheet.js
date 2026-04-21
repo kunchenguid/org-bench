@@ -151,6 +151,10 @@
     return { type: 'error', value: code };
   }
 
+  function classifyFormulaError(raw) {
+    return raw && raw.indexOf('#REF!') >= 0 ? errorValue('#REF!') : errorValue('#ERR!');
+  }
+
   function isError(value) {
     return value && value.type === 'error';
   }
@@ -543,7 +547,7 @@
       cache[ref] = value;
       return value;
     } catch (error) {
-      return errorValue('#ERR!');
+      return classifyFormulaError(raw);
     }
   };
 

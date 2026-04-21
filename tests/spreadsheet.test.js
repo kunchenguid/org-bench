@@ -52,6 +52,18 @@ test('inserting a row keeps references pointing at the same data', () => {
   assert.equal(model.getDisplayValue('B2'), '30');
 });
 
+test('deleting part of a referenced range yields #REF! instead of a generic error', () => {
+  const model = new SpreadsheetModel();
+  model.setCellRaw('A1', '10');
+  model.setCellRaw('A2', '20');
+  model.setCellRaw('B3', '=SUM(A1:A2)');
+
+  model.deleteRow(0);
+
+  assert.equal(model.getCellRaw('B2'), '=SUM(#REF!:A1)');
+  assert.equal(model.getDisplayValue('B2'), '#REF!');
+});
+
 test('undo and redo restore prior cell state', () => {
   const model = new SpreadsheetModel();
   model.applyEdit({ startRow: 0, endRow: 0, startCol: 0, endCol: 0 }, [[{ raw: '7' }]]);
