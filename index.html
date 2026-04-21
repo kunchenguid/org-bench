@@ -1,34 +1,48 @@
 <!doctype html>
-<html lang="en" data-storage-namespace="spreadsheet">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Spreadsheet</title>
+    <title>Apple Sheet</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="app-shell">
-      <section class="topbar">
-        <div class="brand">Spreadsheet</div>
-        <div class="spacer"></div>
-        <div class="hint">Click to select. Type to replace. Enter saves and moves down.</div>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <div class="product-name">Apple Sheet</div>
+          <div class="product-hint">Formula bar, multi-cell selection, clipboard, undo, structural edits</div>
+          <div class="structure-toolbar" aria-label="Structure controls">
+            <button type="button" class="structure-button" data-structure-action="insert-row-above">+ Row Above</button>
+            <button type="button" class="structure-button" data-structure-action="insert-row-below">+ Row Below</button>
+            <button type="button" class="structure-button is-danger" data-structure-action="delete-row">Delete Row</button>
+            <button type="button" class="structure-button" data-structure-action="insert-col-left">+ Col Left</button>
+            <button type="button" class="structure-button" data-structure-action="insert-col-right">+ Col Right</button>
+            <button type="button" class="structure-button is-danger" data-structure-action="delete-col">Delete Col</button>
+          </div>
+        </div>
+        <div class="selection-chip">
+          <span id="selectionLabel">A1</span>
+        </div>
+      </header>
+
+      <section class="formula-panel">
+        <label class="formula-label" for="formulaInput">fx</label>
+        <input id="formulaInput" class="formula-input" type="text" spellcheck="false" autocomplete="off">
       </section>
 
-      <section class="formula-bar" aria-label="Formula bar">
-        <input class="name-box" data-name-box value="A1" readonly aria-label="Selected cell">
-        <div class="formula-label">fx</div>
-        <input class="formula-input" data-formula-input spellcheck="false" aria-label="Cell formula">
-      </section>
+      <main class="grid-shell">
+        <div id="gridScroller" class="grid-scroller">
+          <table id="sheetTable" class="sheet-table"></table>
+          <input id="cellEditor" class="cell-editor" type="text" spellcheck="false" autocomplete="off">
+        </div>
+      </main>
+    </div>
 
-      <section class="grid-shell" data-grid aria-label="Spreadsheet grid"></section>
+    <div id="headerMenu" class="menu hidden"></div>
 
-      <section class="statusbar">
-        <div data-status>Ready</div>
-        <div>26 columns x 100 rows</div>
-      </section>
-    </main>
-
-    <script src="spreadsheet.js"></script>
+    <script src="engine.js"></script>
+    <script src="history.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
