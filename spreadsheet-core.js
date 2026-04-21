@@ -142,6 +142,42 @@
         continue;
       }
 
+      if (char === '<' || char === '>') {
+        if (source[index + 1] === '=' || (char === '<' && source[index + 1] === '>')) {
+          tokens.push({ type: 'operator', value: source.slice(index, index + 2) });
+          index += 2;
+        } else {
+          tokens.push({ type: 'operator', value: char });
+          index += 1;
+        }
+        continue;
+      }
+
+      if (char === '=') {
+        tokens.push({ type: 'operator', value: '=' });
+        index += 1;
+        continue;
+      }
+
+      if (char === '&') {
+        tokens.push({ type: 'operator', value: '&' });
+        index += 1;
+        continue;
+      }
+
+      if (char === '"') {
+        let end = index + 1;
+        while (end < source.length && source[end] !== '"') {
+          end += 1;
+        }
+        if (end >= source.length) {
+          throw new Error('Unterminated string');
+        }
+        tokens.push({ type: 'string', value: source.slice(index + 1, end) });
+        index = end + 1;
+        continue;
+      }
+
       if ('+-*/(),:'.includes(char)) {
         tokens.push({ type: char, value: char });
         index += 1;
@@ -173,7 +209,29 @@
     }
 
     function parseExpression() {
-      return parseAdditive();
+      return parseComparison();
+    }
+
+    function parseComparison() {
+      let node = parseConcatenation();
+
+      while (peek('operator') && ['=', '<>', '<', '<=', '>', '>='].indexOf(tokens[index].value) !== -1) {
+        const operator = consume('operator').value;
+        node = { type: 'binary', operator, left: node, right: parseConcatenation() };
+      }
+
+      return node;
+    }
+
+    function parseConcatenation() {
+      let node = parseAdditive();
+
+      while (peek('operator') && tokens[index].value === '&') {
+        consume('operator');
+        node = { type: 'binary', operator: '&', left: node, right: parseAdditive() };
+      }
+
+      return node;
     }
 
     function parseAdditive() {
@@ -212,6 +270,10 @@
         return { type: 'number', value: Number(consume('number').value) };
       }
 
+      if (peek('string')) {
+        return { type: 'string', value: consume('string').value };
+      }
+
       if (peek('word')) {
         const word = consume('word').value;
 
@@ -233,6 +295,10 @@
         }
 
         const cell = parseCellKey(word);
+        if (!cell && (word === 'TRUE' || word === 'FALSE')) {
+          return { type: 'boolean', value: word === 'TRUE' };
+        }
+
         if (!cell) {
           throw new Error('Unknown identifier');
         }
@@ -281,13 +347,24 @@
       return node.value;
     }
 
+    if (node.type === 'string') {
+      return node.value;
+    }
+
+    if (node.type === 'boolean') {
+      return node.value;
+    }
+
     if (node.type === 'unary') {
-      return -toNumber(evaluateNode(state, node.value, trail, cache));
+      const value = toNumber(evaluateNode(state, node.value, trail, cache));
+      return typeof value === 'number' ? -value : value;
     }
 
     if (node.type === 'binary') {
-      const left = toNumber(evaluateNode(state, node.left, trail, cache));
-      const right = toNumber(evaluateNode(state, node.right, trail, cache));
+      const leftValue = evaluateNode(state, node.left, trail, cache);
+      const rightValue = evaluateNode(state, node.right, trail, cache);
+      const left = toNumber(leftValue);
+      const right = toNumber(rightValue);
 
       if (left === '#CIRC!' || right === '#CIRC!') {
         return '#CIRC!';
@@ -310,6 +387,27 @@
       }
       if (node.operator === '/') {
         return right === 0 ? '#DIV/0!' : left / right;
+      }
+      if (node.operator === '&') {
+        return toText(leftValue) + toText(rightValue);
+      }
+      if (node.operator === '=') {
+        return compareValues(leftValue, rightValue) === 0;
+      }
+      if (node.operator === '<>') {
+        return compareValues(leftValue, rightValue) !== 0;
+      }
+      if (node.operator === '<') {
+        return compareValues(leftValue, rightValue) < 0;
+      }
+      if (node.operator === '<=') {
+        return compareValues(leftValue, rightValue) <= 0;
+      }
+      if (node.operator === '>') {
+        return compareValues(leftValue, rightValue) > 0;
+      }
+      if (node.operator === '>=') {
+        return compareValues(leftValue, rightValue) >= 0;
       }
     }
 
@@ -395,6 +493,27 @@
     if (node.name === 'COUNT') {
       return numbers.filter(function (value) { return typeof value === 'number' && !Number.isNaN(value); }).length;
     }
+    if (node.name === 'IF') {
+      return isTruthy(args[0]) ? args[1] : args[2];
+    }
+    if (node.name === 'AND') {
+      return args.every(isTruthy);
+    }
+    if (node.name === 'OR') {
+      return args.some(isTruthy);
+    }
+    if (node.name === 'NOT') {
+      return !isTruthy(args[0]);
+    }
+    if (node.name === 'ABS') {
+      return Math.abs(numbers[0] || 0);
+    }
+    if (node.name === 'ROUND') {
+      return Math.round(numbers[0] || 0);
+    }
+    if (node.name === 'CONCAT') {
+      return args.map(toText).join('');
+    }
 
     return '#ERR!';
   }
@@ -443,6 +562,9 @@
     if (typeof value === 'number') {
       return value;
     }
+    if (typeof value === 'boolean') {
+      return value ? 1 : 0;
+    }
     if (typeof value === 'string' && isNumeric(value)) {
       return Number(value);
     }
@@ -453,10 +575,66 @@
     if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
       return value;
     }
+    if (typeof value === 'boolean') {
+      return value ? 'TRUE' : 'FALSE';
+    }
     if (typeof value === 'number') {
       return String(Number.isInteger(value) ? value : Number(value.toFixed(6)));
     }
     return String(value);
+  }
+
+  function toText(value) {
+    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+      return value;
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'TRUE' : 'FALSE';
+    }
+    if (typeof value === 'number') {
+      return formatDisplayValue(value);
+    }
+    return value == null ? '' : String(value);
+  }
+
+  function isTruthy(value) {
+    if (value === '#CIRC!' || value === '#ERR!' || value === '#DIV/0!') {
+      return false;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return value !== 0;
+    }
+    if (typeof value === 'string') {
+      if (value === 'TRUE') {
+        return true;
+      }
+      if (value === 'FALSE' || value === '') {
+        return false;
+      }
+      return true;
+    }
+    return Boolean(value);
+  }
+
+  function compareValues(left, right) {
+    if (typeof left === 'string' || typeof right === 'string') {
+      const leftText = toText(left);
+      const rightText = toText(right);
+      if (leftText === rightText) {
+        return 0;
+      }
+      return leftText < rightText ? -1 : 1;
+    }
+
+    const leftNumber = toNumber(left);
+    const rightNumber = toNumber(right);
+    if (leftNumber === rightNumber) {
+      return 0;
+    }
+    return leftNumber < rightNumber ? -1 : 1;
   }
 
   function getCellDisplayValue(state, row, col) {

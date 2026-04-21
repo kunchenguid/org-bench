@@ -112,3 +112,54 @@ test('circular references surface a clear error marker', () => {
   assert.equal(getCellDisplayValue(state, 0, 0), '#CIRC!');
   assert.equal(getCellDisplayValue(state, 0, 1), '#CIRC!');
 });
+
+test('formula display values support comparisons and boolean literals', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '2');
+  state = setCellRaw(state, 1, 0, '5');
+  state = setCellRaw(state, 2, 0, '=A1<A2');
+  state = setCellRaw(state, 3, 0, '=A2<>A1');
+  state = setCellRaw(state, 4, 0, '=TRUE');
+  state = setCellRaw(state, 5, 0, '=FALSE');
+
+  assert.equal(getCellDisplayValue(state, 2, 0), 'TRUE');
+  assert.equal(getCellDisplayValue(state, 3, 0), 'TRUE');
+  assert.equal(getCellDisplayValue(state, 4, 0), 'TRUE');
+  assert.equal(getCellDisplayValue(state, 5, 0), 'FALSE');
+});
+
+test('formula display values support concatenation and conditional functions', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '2');
+  state = setCellRaw(state, 1, 0, '3');
+  state = setCellRaw(state, 2, 0, 'done');
+  state = setCellRaw(state, 3, 0, 'pending');
+  state = setCellRaw(state, 4, 0, '="Total: "&SUM(A1:A2)');
+  state = setCellRaw(state, 5, 0, '=IF(A1<A2,A3,A4)');
+  state = setCellRaw(state, 6, 0, '=CONCAT(A3,"/",A4)');
+
+  assert.equal(getCellDisplayValue(state, 4, 0), 'Total: 5');
+  assert.equal(getCellDisplayValue(state, 5, 0), 'done');
+  assert.equal(getCellDisplayValue(state, 6, 0), 'done/pending');
+});
+
+test('formula display values support boolean helper functions', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '3');
+  state = setCellRaw(state, 1, 0, '=AND(TRUE,A1>0)');
+  state = setCellRaw(state, 2, 0, '=OR(FALSE,A1<0,A1=3)');
+  state = setCellRaw(state, 3, 0, '=NOT(A1<0)');
+
+  assert.equal(getCellDisplayValue(state, 1, 0), 'TRUE');
+  assert.equal(getCellDisplayValue(state, 2, 0), 'TRUE');
+  assert.equal(getCellDisplayValue(state, 3, 0), 'TRUE');
+});
+
+test('formula display values support ABS and ROUND', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '=ABS(-3)');
+  state = setCellRaw(state, 1, 0, '=ROUND(3.6)');
+
+  assert.equal(getCellDisplayValue(state, 0, 0), '3');
+  assert.equal(getCellDisplayValue(state, 1, 0), '4');
+});
