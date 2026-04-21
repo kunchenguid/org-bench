@@ -87,7 +87,8 @@ body {
 }
 
 #formula:focus,
-.cell-input:focus {
+.cell-input:focus,
+.row-action:focus {
   outline: 2px solid #2563eb;
   outline-offset: 0;
 }
@@ -141,6 +142,24 @@ body {
 .row-header {
   left: 0;
   min-width: 52px;
+  padding: 0 6px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.row-action {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #2563eb;
+  font: inherit;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
 }
 
 .sheet tr:first-child th:first-child {
@@ -175,6 +194,10 @@ body {
 td.is-active {
   position: relative;
   background: rgba(37, 99, 235, 0.08);
+}
+
+td.is-selected {
+  background: rgba(37, 99, 235, 0.14);
 }
 
 td.is-active::after {
