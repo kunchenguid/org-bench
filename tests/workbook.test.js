@@ -69,6 +69,27 @@ test('pasting copied formulas shifts references by source-to-target offset', () 
   assert.equal(model.getRaw('C2'), '=$A2+D$1');
 });
 
+test('does not shift cell-like text inside quoted strings', () => {
+  assert.equal(shiftFormula('="A1 -> "&A1', 1, 1), '="A1 -> "&B2');
+});
+
+test('shifting a reference outside the grid produces ref errors', () => {
+  assert.equal(shiftFormula('=A1', -1, 0), '=#REF!');
+});
+
+test('ref error literals render as ref errors when evaluated', () => {
+  const model = new SpreadsheetModel();
+  model.setCell('A1', '=#REF!');
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
+
+test('shifting an out-of-bounds range endpoint preserves ref errors', () => {
+  const model = new SpreadsheetModel();
+  applyPaste(model, 'A1', '=A1:B2', { sourceSelection: { start: 'B2', end: 'B2' } });
+  assert.equal(model.getRaw('A1'), '=#REF!:A1');
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
+
 test('prefers injected run namespace across supported globals', () => {
   assert.equal(resolveStorageNamespace({ __RUN_STORAGE_NAMESPACE__: 'run-a' }), 'run-a');
   assert.equal(resolveStorageNamespace({ RUN_STORAGE_NAMESPACE: 'run-b' }), 'run-b');

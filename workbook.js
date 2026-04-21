@@ -189,6 +189,12 @@
         i += 2;
         continue;
       }
+      const errorMatch = /^#(?:REF!|DIV\/0!|ERR!|CIRC!)/.exec(formula.slice(i).toUpperCase());
+      if (errorMatch) {
+        tokens.push({ type: 'error', value: errorMatch[0] });
+        i += errorMatch[0].length;
+        continue;
+      }
       if ('+-*/(),:&=<>' .includes(ch)) {
         tokens.push({ type: 'op', value: ch });
         i += 1;
@@ -295,15 +301,27 @@
         consume();
         return { type: 'literal', value: token.value };
       }
+      if (token.type === 'error') {
+        const start = consume().value;
+        if (peek() && peek().value === ':') {
+          consume(':');
+          const endToken = consume();
+          if (!endToken || !['ref', 'error'].includes(endToken.type)) {
+            throw new Error('Expected range endpoint');
+          }
+          return { type: 'range', start, end: endToken.value };
+        }
+        return { type: 'error', value: makeError(start) };
+      }
       if (token.type === 'ref') {
         const start = consume().value;
         if (peek() && peek().value === ':') {
           consume(':');
-          const end = consume().value;
-          if (!end || tokens[index - 1].type !== 'ref') {
+          const endToken = consume();
+          if (!endToken || !['ref', 'error'].includes(endToken.type)) {
             throw new Error('Expected range ref');
           }
-          return { type: 'range', start, end };
+          return { type: 'range', start, end: endToken.value };
         }
         return { type: 'ref', ref: start };
       }
@@ -596,6 +614,9 @@
       if (node.type === 'literal') {
         return node.value;
       }
+      if (node.type === 'error') {
+        return node.value;
+      }
       if (node.type === 'unary') {
         const value = this.evaluateAst(node.expr, cache, visiting);
         if (isError(value)) {
@@ -624,6 +645,12 @@
     }
 
     evaluateRange(startRef, endRef, cache, visiting) {
+      if (String(startRef).startsWith('#')) {
+        return makeError(startRef);
+      }
+      if (String(endRef).startsWith('#')) {
+        return makeError(endRef);
+      }
       const start = normalizeRef(startRef);
       const end = normalizeRef(endRef);
       if (isError(start)) {
@@ -672,8 +699,11 @@
     const parts = parseRefParts(ref);
     const col = parts.absCol ? nameToCol(parts.colName) : nameToCol(parts.colName) + colOffset;
     const row = parts.absRow ? parts.rowNumber - 1 : parts.rowNumber - 1 + rowOffset;
-    const nextCol = clamp(col, 0, COLS - 1);
-    const nextRow = clamp(row, 0, ROWS - 1);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) {
+      return '#REF!';
+    }
+    const nextCol = col;
+    const nextRow = row;
     return `${parts.absCol ? '$' : ''}${colToName(nextCol)}${parts.absRow ? '$' : ''}${nextRow + 1}`;
   }
 
