@@ -14,6 +14,9 @@ const {
   pasteClipboard,
   cutSelection,
   shiftFormulaReferences,
+  pushHistory,
+  undoHistory,
+  redoHistory,
   setCellRaw,
   getCellRaw,
   getCellDisplayValue,
@@ -261,4 +264,40 @@ test('cut returns TSV and clears the selected source cells', () => {
   assert.equal(result.text, '1\t2');
   assert.equal(getCellRaw(result.state, 0, 0), '');
   assert.equal(getCellRaw(result.state, 0, 1), '');
+});
+
+test('undo and redo restore a single committed edit', () => {
+  let state = createState();
+  state = pushHistory(state);
+  state = setCellRaw(state, 0, 0, '5');
+
+  state = undoHistory(state);
+  assert.equal(getCellRaw(state, 0, 0), '');
+
+  state = redoHistory(state);
+  assert.equal(getCellRaw(state, 0, 0), '5');
+});
+
+test('history captures a multi-cell delete as one action', () => {
+  let state = createState();
+  state = setCellRaw(state, 0, 0, '1');
+  state = setCellRaw(state, 0, 1, '2');
+  state = setSelectionFocus(state, 0, 1, true);
+  state = pushHistory(state);
+  state = clearSelection(state);
+
+  state = undoHistory(state);
+  assert.equal(getCellRaw(state, 0, 0), '1');
+  assert.equal(getCellRaw(state, 0, 1), '2');
+});
+
+test('history depth is capped at the latest 50 actions', () => {
+  let state = createState();
+
+  for (let index = 0; index < 55; index += 1) {
+    state = pushHistory(state);
+    state = setCellRaw(state, index % 100, 0, String(index));
+  }
+
+  assert.equal(state.history.undo.length, 50);
 });

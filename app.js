@@ -14,6 +14,15 @@
     window.localStorage.setItem(storageKey, core.serializeState(state));
   }
 
+  function applyUserAction(mutator) {
+    const nextState = mutator(core.pushHistory(state));
+    if (nextState) {
+      state = nextState;
+    }
+    saveState();
+    render();
+  }
+
   function beginEdit(row, col, seedValue) {
     editing = {
       row,
@@ -34,14 +43,18 @@
       return;
     }
 
-    state = core.setCellRaw(state, editing.row, editing.col, editing.value);
-    state = core.setActiveCell(state, editing.row, editing.col);
+    const nextValue = editing.value;
+    const editRow = editing.row;
+    const editCol = editing.col;
     editing = null;
-    if (nextRowOffset || nextColOffset) {
-      state = core.moveSelection(state, { row: nextRowOffset, col: nextColOffset });
-    }
-    saveState();
-    render();
+    applyUserAction(function (draft) {
+      let next = core.setCellRaw(draft, editRow, editCol, nextValue);
+      next = core.setActiveCell(next, editRow, editCol);
+      if (nextRowOffset || nextColOffset) {
+        next = core.moveSelection(next, { row: nextRowOffset, col: nextColOffset });
+      }
+      return next;
+    });
   }
 
   function cancelEdit() {
@@ -126,10 +139,11 @@
     }
 
     const target = getPasteTarget(payload.text);
-    state = core.pasteClipboard(state, target.row, target.col, payload);
-    state = core.setActiveCell(state, target.row, target.col);
-    saveState();
-    render();
+    applyUserAction(function (draft) {
+      let next = core.pasteClipboard(draft, target.row, target.col, payload);
+      next = core.setActiveCell(next, target.row, target.col);
+      return next;
+    });
   }
 
   function render() {
@@ -264,9 +278,9 @@
       event.preventDefault();
     }
     writeClipboardText(payload.text);
-    state = result.state;
-    saveState();
-    render();
+    applyUserAction(function () {
+      return result.state;
+    });
   });
 
   document.addEventListener('paste', function (event) {
@@ -301,6 +315,16 @@
             : { text: text || (clipboardStore.__sheetClipboard && clipboardStore.__sheetClipboard.text) || '' };
           applyPaste(payload);
         });
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        state = event.shiftKey ? core.redoHistory(state) : core.undoHistory(state);
+        saveState();
+        render();
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y') {
+        event.preventDefault();
+        state = core.redoHistory(state);
+        saveState();
+        render();
       }
       return;
     }
@@ -327,7 +351,10 @@
         : core.moveSelection(state, { row: 0, col: 1 });
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
-      state = core.clearSelection(state);
+      applyUserAction(function (draft) {
+        return core.clearSelection(draft);
+      });
+      return;
     } else if (event.key === 'Enter' || event.key === 'F2') {
       event.preventDefault();
       beginEdit(state.active.row, state.active.col);

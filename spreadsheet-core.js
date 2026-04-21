@@ -9,6 +9,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const COL_COUNT = 26;
   const ROW_COUNT = 100;
+  const HISTORY_LIMIT = 50;
 
   function columnLabel(index) {
     return String.fromCharCode(65 + index);
@@ -24,6 +25,7 @@
         cells: savedState.cells && typeof savedState.cells === 'object' ? { ...savedState.cells } : {},
         active: normalizeSelection(savedState.active),
         selection: normalizeSelectionRange(savedState.selection, savedState.active),
+        history: normalizeHistory(savedState.history),
       };
     }
 
@@ -31,7 +33,70 @@
       cells: {},
       active: { row: 0, col: 0 },
       selection: { anchor: { row: 0, col: 0 }, focus: { row: 0, col: 0 } },
+      history: { undo: [], redo: [] },
     };
+  }
+
+  function normalizeHistory(history) {
+    return {
+      undo: Array.isArray(history && history.undo) ? history.undo.slice(-HISTORY_LIMIT) : [],
+      redo: Array.isArray(history && history.redo) ? history.redo.slice(-HISTORY_LIMIT) : [],
+    };
+  }
+
+  function createSnapshot(state) {
+    return {
+      cells: { ...state.cells },
+      active: { ...state.active },
+      selection: {
+        anchor: { ...state.selection.anchor },
+        focus: { ...state.selection.focus },
+      },
+    };
+  }
+
+  function restoreSnapshot(state, snapshot, redoStack) {
+    return {
+      cells: { ...snapshot.cells },
+      active: normalizeSelection(snapshot.active),
+      selection: normalizeSelectionRange(snapshot.selection, snapshot.active),
+      history: {
+        undo: state.history.undo.slice(-HISTORY_LIMIT),
+        redo: redoStack.slice(-HISTORY_LIMIT),
+      },
+    };
+  }
+
+  function pushHistory(state) {
+    const undo = state.history.undo.concat(createSnapshot(state)).slice(-HISTORY_LIMIT);
+    return {
+      cells: state.cells,
+      active: state.active,
+      selection: state.selection,
+      history: { undo, redo: [] },
+    };
+  }
+
+  function undoHistory(state) {
+    if (!state.history.undo.length) {
+      return state;
+    }
+
+    const snapshot = state.history.undo[state.history.undo.length - 1];
+    const undo = state.history.undo.slice(0, -1);
+    const redo = state.history.redo.concat(createSnapshot(state));
+    return restoreSnapshot({ ...state, history: { undo, redo: state.history.redo } }, snapshot, redo);
+  }
+
+  function redoHistory(state) {
+    if (!state.history.redo.length) {
+      return state;
+    }
+
+    const snapshot = state.history.redo[state.history.redo.length - 1];
+    const redo = state.history.redo.slice(0, -1);
+    const undo = state.history.undo.concat(createSnapshot(state));
+    return restoreSnapshot({ ...state, history: { undo, redo } }, snapshot, redo);
   }
 
   function normalizeSelectionRange(selection, active) {
@@ -83,6 +148,7 @@
       cells: state.cells,
       active: nextActive,
       selection: { anchor: nextActive, focus: nextActive },
+      history: state.history,
     };
   }
 
@@ -92,6 +158,7 @@
       cells: state.cells,
       active,
       selection: { anchor: active, focus: active },
+      history: state.history,
     };
   }
 
@@ -103,6 +170,7 @@
       cells: state.cells,
       active: focus,
       selection: { anchor, focus },
+      history: state.history,
     };
   }
 
@@ -129,6 +197,7 @@
       cells: nextCells,
       active: state.active,
       selection: state.selection,
+      history: state.history,
     };
   }
 
@@ -146,6 +215,7 @@
       cells: nextCells,
       active: state.active,
       selection: state.selection,
+      history: state.history,
     };
   }
 
@@ -789,6 +859,7 @@
       cells: state.cells,
       active: state.active,
       selection: state.selection,
+      history: state.history,
     });
   }
 
@@ -827,6 +898,9 @@
     cellKey,
     parseCellKey,
     createState,
+    pushHistory,
+    undoHistory,
+    redoHistory,
     moveSelection,
     setActiveCell,
     setSelectionFocus,
