@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell" aria-label="Spreadsheet shell">
+      <header class="formula-bar-panel">
+        <div class="formula-bar-chrome">
+          <div class="name-box" aria-label="Selected cell">A1</div>
+          <label class="formula-field" aria-label="Formula bar">
+            <span class="formula-field__symbol">fx</span>
+            <input
+              class="formula-input"
+              data-formula-input
+              type="text"
+              spellcheck="false"
+              placeholder="Select a cell to edit its raw contents"
+              aria-label="Formula bar input"
+            >
+          </label>
+        </div>
+        <p class="formula-bar-hint">Enter to commit, Tab to move across, double-click or F2 to edit.</p>
+      </header>
+
+      <section class="sheet-frame" aria-label="Spreadsheet grid">
+        <div class="sheet-surface">
+          <div class="sheet-grid" role="presentation">
+            <div class="sheet-corner" data-grid-corner aria-hidden="true"></div>
+            <div class="column-headers" data-column-headers role="row"></div>
+            <div class="row-headers" data-row-headers></div>
+            <div class="cell-grid" data-cell-grid role="grid" aria-label="Cells"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="sheet-context-menu" hidden aria-hidden="true">
+        <button class="sheet-context-menu__item" type="button">Insert row above</button>
+        <button class="sheet-context-menu__item" type="button">Insert row below</button>
+        <button class="sheet-context-menu__item" type="button">Delete row</button>
+        <div class="sheet-context-menu__divider" role="separator"></div>
+        <button class="sheet-context-menu__item" type="button">Insert column left</button>
+        <button class="sheet-context-menu__item" type="button">Insert column right</button>
+        <button class="sheet-context-menu__item sheet-context-menu__item--danger" type="button">Delete column</button>
+      </div>
+    </main>
+
+    <script>
+      (function renderShell() {
+        const rows = 100;
+        const columns = 26;
+        const columnHeaders = document.querySelector('[data-column-headers]');
+        const rowHeaders = document.querySelector('[data-row-headers]');
+        const cellGrid = document.querySelector('[data-cell-grid]');
+
+        const alphabet = Array.from({ length: columns }, (_, index) =>
+          String.fromCharCode(65 + index)
+        );
+
+        for (const columnName of alphabet) {
+          const header = document.createElement('div');
+          header.className = 'column-header';
+          header.dataset.column = columnName;
+          header.textContent = columnName;
+          columnHeaders.appendChild(header);
+        }
+
+        for (let row = 1; row <= rows; row += 1) {
+          const rowHeader = document.createElement('div');
+          rowHeader.className = 'row-header';
+          rowHeader.dataset.row = String(row);
+          rowHeader.textContent = String(row);
+          rowHeaders.appendChild(rowHeader);
+
+          for (const columnName of alphabet) {
+            const cell = document.createElement('div');
+            const inPreviewRange = row <= 3 && alphabet.indexOf(columnName) <= 2;
+            cell.className = 'cell';
+            cell.dataset.cell = columnName + row;
+            cell.dataset.column = columnName;
+            cell.dataset.row = String(row);
+            cell.role = 'gridcell';
+            cell.setAttribute('aria-label', columnName + row);
+
+            if (inPreviewRange) {
+              cell.classList.add('is-in-range');
+            }
+
+            if (columnName === 'A' && row === 1) {
+              cell.classList.add('is-active');
+              cell.classList.add('is-editing');
+              cell.innerHTML = '<span class="cell-editor">123</span>';
+            }
+
+            cellGrid.appendChild(cell);
+          }
+        }
+      }());
+    </script>
+  </body>
+</html>
