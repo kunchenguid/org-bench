@@ -1,0 +1,167 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", sans-serif;
+  background: #f3f6fb;
+  color: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #eef3fb 100%);
+}
+
+#app {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: calc(100vh - 40px);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.name-box,
+.formula-wrap {
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+}
+
+.name-box {
+  padding: 12px 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.formula-wrap {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  overflow: hidden;
+}
+
+.formula-wrap span {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #64748b;
+  border-right: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.formula-input,
+.cell-editor {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+.formula-input {
+  padding: 12px 14px;
+}
+
+.grid-wrap {
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.09);
+}
+
+.grid-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+}
+
+.grid-table th,
+.grid-table td {
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  min-width: 108px;
+  height: 34px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.corner,
+.column-header,
+.row-header {
+  position: sticky;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  z-index: 1;
+}
+
+.corner {
+  left: 0;
+  top: 0;
+  z-index: 3;
+}
+
+.column-header {
+  top: 0;
+  text-align: center;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.row-header {
+  left: 0;
+  min-width: 58px;
+  text-align: right;
+  padding-right: 12px;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.grid-cell {
+  background: #ffffff;
+  cursor: cell;
+}
+
+.grid-cell.is-selected {
+  position: relative;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 2px #2563eb;
+}
+
+.cell-editor {
+  height: 100%;
+  padding: 0;
+}
+
+@media (max-width: 720px) {
+  #app {
+    padding: 12px;
+  }
+
+  .toolbar {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .grid-table th,
+  .grid-table td {
+    min-width: 96px;
+  }
+}
