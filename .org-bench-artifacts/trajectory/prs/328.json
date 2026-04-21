@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 328,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/328",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build single-cell spreadsheet interactions",
+  "body": "## Summary\n- add a minimal spreadsheet shell with a visible formula bar and a 26x100 grid\n- implement single-cell selection, keyboard navigation, and edit-mode commit/cancel behavior for cells and the formula bar\n- cover the interaction state machine with node-based tests for the delegated behavior only\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T06:11:40Z"
+    }
+  ],
+  "comments": []
+}
