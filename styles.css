@@ -1,16 +1,18 @@
 :root {
   color-scheme: light;
-  --bg: #f6f8fb;
+  --bg: #edf3fb;
   --panel: rgba(255, 255, 255, 0.92);
   --panel-strong: #ffffff;
   --text: #162033;
-  --muted: #65708a;
-  --grid: #d5dcec;
-  --header: #eef2f9;
+  --muted: #5b6f87;
+  --grid: #d7e1ee;
+  --header: linear-gradient(180deg, #f8fbff 0%, #eef3f8 100%);
   --active: #1877f2;
   --range: rgba(24, 119, 242, 0.12);
+  --range-strong: rgba(24, 119, 242, 0.18);
   --error: #d93025;
-  --shadow: 0 18px 48px rgba(22, 32, 51, 0.14);
+  --error-bg: #fef3f2;
+  --shadow: 0 20px 52px rgba(19, 32, 51, 0.14);
 }
 
 * {
@@ -20,8 +22,10 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 45%, #e9eef8 100%);
   color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(24, 119, 242, 0.14), transparent 28%),
+    radial-gradient(circle at top, #ffffff 0%, var(--bg) 45%, #e9eef8 100%);
 }
 
 .app-shell {
@@ -45,8 +49,9 @@ body {
 }
 
 .product-name {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
 }
 
 .product-hint {
@@ -64,7 +69,7 @@ body {
   border-radius: 12px;
   padding: 10px 12px;
   font-weight: 600;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
 .formula-bar-wrap {
@@ -80,7 +85,6 @@ body {
   background: var(--panel);
   border: 1px solid rgba(101, 112, 138, 0.16);
   border-radius: 12px;
-  box-shadow: var(--shadow);
 }
 
 .formula-prefix {
@@ -88,6 +92,7 @@ body {
   text-align: center;
   font-weight: 700;
   color: var(--active);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
 .formula-input {
@@ -95,6 +100,8 @@ body {
   padding: 12px 14px;
   font: inherit;
   color: var(--text);
+  background: white;
+  box-shadow: inset 0 1px 2px rgba(19, 32, 51, 0.04);
 }
 
 .formula-input:focus {
@@ -162,6 +169,7 @@ body {
 .cell {
   background: #fff;
   cursor: cell;
+  transition: background-color 120ms ease;
 }
 
 .cell button,
@@ -180,6 +188,10 @@ body {
   cursor: cell;
 }
 
+.cell button:hover {
+  background: rgba(24, 119, 242, 0.03);
+}
+
 .cell button:focus,
 .cell input:focus {
   outline: none;
@@ -196,10 +208,21 @@ body {
 .cell.error input {
   color: var(--error);
   font-weight: 600;
+  background: linear-gradient(180deg, var(--error-bg) 0%, white 100%);
+}
+
+.cell.active {
+  background: linear-gradient(180deg, rgba(24, 119, 242, 0.08) 0%, rgba(24, 119, 242, 0.04) 100%);
+  box-shadow: inset 0 0 0 2px var(--active), 0 0 0 1px rgba(24, 119, 242, 0.1);
+  z-index: 1;
 }
 
 .cell.in-range {
   background: var(--range);
+}
+
+.cell.in-range.active {
+  background: linear-gradient(180deg, var(--range-strong) 0%, rgba(24, 119, 242, 0.08) 100%);
 }
 
 .cell.active::after {
