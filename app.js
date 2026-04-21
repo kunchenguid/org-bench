@@ -218,6 +218,22 @@
     return event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey;
   }
 
+  function shouldHandleShellInput(shell, activeElement) {
+    if (!shell || !activeElement) {
+      return false;
+    }
+
+    if (activeElement === shell) {
+      return true;
+    }
+
+    if (typeof shell.contains === 'function' && shell.contains(activeElement)) {
+      return true;
+    }
+
+    return activeElement.tagName === 'BODY';
+  }
+
   function createEditController(options) {
     const store = options.store;
     const state = {
@@ -707,7 +723,7 @@
     }
 
     function handleBeforeInput(event) {
-      if (document.activeElement !== shell) {
+      if (!shouldHandleShellInput(shell, document.activeElement)) {
         return;
       }
 
@@ -796,6 +812,8 @@
     shell.addEventListener('mousedown', handleMouseDown);
     shell.addEventListener('keydown', handleKeyDown);
     shell.addEventListener('beforeinput', handleBeforeInput);
+    document.addEventListener('keydown', handleDocumentKeyDown);
+    document.addEventListener('beforeinput', handleDocumentBeforeInput);
     document.addEventListener('copy', handleCopy);
     document.addEventListener('cut', handleCut);
     document.addEventListener('paste', handlePaste);
@@ -811,6 +829,8 @@
         shell.removeEventListener('mousedown', handleMouseDown);
         shell.removeEventListener('keydown', handleKeyDown);
         shell.removeEventListener('beforeinput', handleBeforeInput);
+        document.removeEventListener('keydown', handleDocumentKeyDown);
+        document.removeEventListener('beforeinput', handleDocumentBeforeInput);
         document.removeEventListener('copy', handleCopy);
         document.removeEventListener('cut', handleCut);
         document.removeEventListener('paste', handlePaste);
@@ -834,6 +854,7 @@
     parseClipboardText,
     renderSpreadsheet,
     selectionToBounds,
+    shouldHandleShellInput,
     serializeClipboardMatrix,
     shiftClipboardMatrix,
   };
@@ -844,3 +865,16 @@
 
   return api;
 });
+    function handleDocumentKeyDown(event) {
+      if (event.defaultPrevented || !shouldHandleShellInput(shell, document.activeElement)) {
+        return;
+      }
+      handleKeyDown(event);
+    }
+
+    function handleDocumentBeforeInput(event) {
+      if (event.defaultPrevented || !shouldHandleShellInput(shell, document.activeElement)) {
+        return;
+      }
+      handleBeforeInput(event);
+    }
