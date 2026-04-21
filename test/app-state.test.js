@@ -6,6 +6,7 @@ const {
   beginEditSession,
   commitEditSession,
   createClipboardState,
+  getSelectionAfterStructureChange,
   matchClipboardState,
   resolveStorageNamespace,
   updateEditSession,
@@ -50,4 +51,36 @@ test('cut clipboard state clears after the first successful paste', () => {
   const clipboard = createClipboardState('7\t=A1*2', { minRow: 0, maxRow: 0, minCol: 0, maxCol: 1 }, true);
 
   assert.equal(advanceClipboardState(clipboard), null);
+});
+
+test('inserting above the active row keeps the selection on the same underlying data', () => {
+  assert.deepEqual(
+    getSelectionAfterStructureChange(
+      {
+        anchor: { row: 4, col: 2 },
+        focus: { row: 4, col: 2 },
+      },
+      { axis: 'row', kind: 'insert', index: 2 }
+    ),
+    {
+      anchor: { row: 5, col: 2 },
+      focus: { row: 5, col: 2 },
+    }
+  );
+});
+
+test('deleting the active column keeps selection on the replacement column when possible', () => {
+  assert.deepEqual(
+    getSelectionAfterStructureChange(
+      {
+        anchor: { row: 3, col: 4 },
+        focus: { row: 3, col: 4 },
+      },
+      { axis: 'col', kind: 'delete', index: 4 }
+    ),
+    {
+      anchor: { row: 3, col: 4 },
+      focus: { row: 3, col: 4 },
+    }
+  );
 });
