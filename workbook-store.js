@@ -12,6 +12,12 @@ function createWorkbookStore(options) {
   const maxHistory = settings.maxHistory || DEFAULT_HISTORY_LIMIT;
   const storage = settings.storage || null;
   const storageKey = createStorageKey(settings.namespace);
+  const formulaHelpers = settings.formulaHelpers || {};
+  const shiftFormula = typeof formulaHelpers.shiftFormula === 'function'
+    ? formulaHelpers.shiftFormula
+    : function passthroughFormula(raw) {
+      return raw;
+    };
 
   let state = loadState(storage, storageKey, rows, columns);
   let undoStack = [];
@@ -31,13 +37,14 @@ function createWorkbookStore(options) {
   }
 
   function selectCell(row, col) {
-    state.selection = createSelection(row, col, row, col, row, col, rows, columns);
+    state.selection = createSelection(row, col, row, col, row, col, rows, columns, { row, col });
     persist();
     return getSelection();
   }
 
-  function selectRange(start, end, active) {
+  function selectRange(start, end, active, anchor) {
     const activePoint = active || end;
+    const anchorPoint = anchor || state.selection.anchor || start;
     state.selection = createSelection(
       activePoint.row,
       activePoint.col,
@@ -46,7 +53,8 @@ function createWorkbookStore(options) {
       end.row,
       end.col,
       rows,
-      columns
+      columns,
+      anchorPoint
     );
     persist();
     return getSelection();
@@ -56,7 +64,7 @@ function createWorkbookStore(options) {
     const cellId = coordsToCellId(row, col);
     const nextState = cloneState(state);
     applyRawValue(nextState.cells, cellId, raw);
-    nextState.selection = createSelection(row, col, row, col, row, col, rows, columns);
+    nextState.selection = createSelection(row, col, row, col, row, col, rows, columns, { row, col });
     recordAction('commit', { cellId }, nextState);
     return getCell(cellId);
   }
@@ -65,18 +73,37 @@ function createWorkbookStore(options) {
     const nextState = cloneState(state);
     const rowCount = Array.isArray(matrix) ? matrix.length : 0;
     let maxCol = startCol;
+    let maxRow = startRow;
+    let wroteCell = false;
 
     for (let rowOffset = 0; rowOffset < rowCount; rowOffset += 1) {
       const rowValues = Array.isArray(matrix[rowOffset]) ? matrix[rowOffset] : [];
-      maxCol = Math.max(maxCol, startCol + rowValues.length - 1);
       for (let colOffset = 0; colOffset < rowValues.length; colOffset += 1) {
-        const cellId = coordsToCellId(startRow + rowOffset, startCol + colOffset);
+        const targetRow = startRow + rowOffset;
+        const targetCol = startCol + colOffset;
+        if (targetRow < 1 || targetRow > rows || targetCol < 1 || targetCol > columns) {
+          continue;
+        }
+
+        const cellId = coordsToCellId(targetRow, targetCol);
         applyRawValue(nextState.cells, cellId, rowValues[colOffset]);
+        maxRow = Math.max(maxRow, targetRow);
+        maxCol = Math.max(maxCol, targetCol);
+        wroteCell = true;
       }
     }
 
-    const endRow = Math.max(startRow, startRow + rowCount - 1);
-    nextState.selection = createSelection(startRow, startCol, startRow, startCol, endRow, maxCol, rows, columns);
+    nextState.selection = createSelection(
+      startRow,
+      startCol,
+      startRow,
+      startCol,
+      wroteCell ? maxRow : startRow,
+      wroteCell ? maxCol : startCol,
+      rows,
+      columns,
+      { row: startRow, col: startCol }
+    );
     recordAction('paste', { startRow, startCol }, nextState);
   }
 
@@ -93,13 +120,27 @@ function createWorkbookStore(options) {
     const bounds = normalizeBounds(range.start, range.end, rows, columns);
     const nextState = cloneState(state);
     const snapshot = [];
+    const rowOffset = destination.row - bounds.start.row;
+    const colOffset = destination.col - bounds.start.col;
+    let maxRow = destination.row;
+    let maxCol = destination.col;
+    let wroteCell = false;
 
     forEachCellInBounds(bounds, function capture(row, col) {
       const sourceCellId = coordsToCellId(row, col);
       const targetRow = destination.row + (row - bounds.start.row);
       const targetCol = destination.col + (col - bounds.start.col);
-      const targetCellId = coordsToCellId(targetRow, targetCol);
-      snapshot.push({ targetCellId, raw: nextState.cells[sourceCellId] ? nextState.cells[sourceCellId].raw : '' });
+      if (targetRow >= 1 && targetRow <= rows && targetCol >= 1 && targetCol <= columns) {
+        const targetCellId = coordsToCellId(targetRow, targetCol);
+        const sourceRaw = nextState.cells[sourceCellId] ? nextState.cells[sourceCellId].raw : '';
+        snapshot.push({
+          targetCellId,
+          raw: sourceRaw && sourceRaw[0] === '=' ? shiftFormula(sourceRaw, rowOffset, colOffset) : sourceRaw,
+        });
+        maxRow = Math.max(maxRow, targetRow);
+        maxCol = Math.max(maxCol, targetCol);
+        wroteCell = true;
+      }
       delete nextState.cells[sourceCellId];
     });
 
@@ -107,9 +148,17 @@ function createWorkbookStore(options) {
       applyRawValue(nextState.cells, snapshot[index].targetCellId, snapshot[index].raw);
     }
 
-    const endRow = destination.row + (bounds.end.row - bounds.start.row);
-    const endCol = destination.col + (bounds.end.col - bounds.start.col);
-    nextState.selection = createSelection(destination.row, destination.col, destination.row, destination.col, endRow, endCol, rows, columns);
+    nextState.selection = createSelection(
+      destination.row,
+      destination.col,
+      destination.row,
+      destination.col,
+      wroteCell ? maxRow : destination.row,
+      wroteCell ? maxCol : destination.col,
+      rows,
+      columns,
+      { row: destination.row, col: destination.col }
+    );
     recordAction('cut', { range: bounds, destination }, nextState);
   }
 
@@ -258,7 +307,7 @@ function loadState(storage, storageKey, rows, columns) {
   if (!storage || typeof storage.getItem !== 'function') {
     return {
       cells: Object.create(null),
-      selection: createSelection(1, 1, 1, 1, 1, 1, rows, columns),
+      selection: createSelection(1, 1, 1, 1, 1, 1, rows, columns, { row: 1, col: 1 }),
     };
   }
 
@@ -272,17 +321,18 @@ function loadState(storage, storageKey, rows, columns) {
     const cells = sanitizeCells(parsed.cells);
     const selection = parsed.selection || {};
     const active = selection.active || { row: 1, col: 1 };
+    const anchor = selection.anchor || active;
     const start = selection.range && selection.range.start ? selection.range.start : active;
     const end = selection.range && selection.range.end ? selection.range.end : active;
 
     return {
       cells,
-      selection: createSelection(active.row, active.col, start.row, start.col, end.row, end.col, rows, columns),
+      selection: createSelection(active.row, active.col, start.row, start.col, end.row, end.col, rows, columns, anchor),
     };
   } catch (error) {
     return {
       cells: Object.create(null),
-      selection: createSelection(1, 1, 1, 1, 1, 1, rows, columns),
+      selection: createSelection(1, 1, 1, 1, 1, 1, rows, columns, { row: 1, col: 1 }),
     };
   }
 }
@@ -345,7 +395,7 @@ function applyRawValue(cells, cellId, raw) {
   cells[cellId] = { raw: String(raw) };
 }
 
-function createSelection(activeRow, activeCol, startRow, startCol, endRow, endCol, maxRows, maxCols) {
+function createSelection(activeRow, activeCol, startRow, startCol, endRow, endCol, maxRows, maxCols, anchorPoint) {
   const bounds = normalizeBounds(
     { row: startRow, col: startCol },
     { row: endRow, col: endCol },
@@ -353,10 +403,11 @@ function createSelection(activeRow, activeCol, startRow, startCol, endRow, endCo
     maxCols
   );
   const active = clampPoint({ row: activeRow, col: activeCol }, maxRows, maxCols);
+  const anchor = clampPoint(anchorPoint || active, maxRows, maxCols);
 
   return {
     active,
-    anchor: { row: bounds.start.row, col: bounds.start.col },
+    anchor: { row: anchor.row, col: anchor.col },
     range: bounds,
     activeCellId: coordsToCellId(active.row, active.col),
   };
