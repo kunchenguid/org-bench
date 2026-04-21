@@ -51,3 +51,35 @@ test('round-trips serializable sheet state', () => {
   assert.equal(copy.getRaw('C7'), '=ROUND(10/3, 2)');
   assert.equal(copy.getDisplayValue('C7'), '3.33');
 });
+
+test('evaluates comparison, boolean, and text formulas through the integrated engine', () => {
+  const sheet = new SpreadsheetModel();
+  sheet.setCellRaw('A1', '9');
+  sheet.setCellRaw('A2', '3');
+  sheet.setCellRaw('B1', '=A1>A2');
+  sheet.setCellRaw('B2', '=IF(A1>A2, "high", "low")');
+  sheet.setCellRaw('B3', '=AND(TRUE, A2<5)');
+  sheet.setCellRaw('B4', '=NOT(FALSE)');
+  sheet.setCellRaw('B5', '=CONCAT("Total: ", A1)');
+  sheet.setCellRaw('B6', '=MIN(A1:A2)');
+  sheet.setCellRaw('B7', '=MAX(A1:A2)');
+  sheet.setCellRaw('B8', '=COUNT(A1:A2)');
+
+  assert.equal(sheet.getDisplayValue('B1'), 'TRUE');
+  assert.equal(sheet.getDisplayValue('B2'), 'high');
+  assert.equal(sheet.getDisplayValue('B3'), 'TRUE');
+  assert.equal(sheet.getDisplayValue('B4'), 'TRUE');
+  assert.equal(sheet.getDisplayValue('B5'), 'Total: 9');
+  assert.equal(sheet.getDisplayValue('B6'), '3');
+  assert.equal(sheet.getDisplayValue('B7'), '9');
+  assert.equal(sheet.getDisplayValue('B8'), '2');
+});
+
+test('surfaces spreadsheet-style divide-by-zero errors', () => {
+  const sheet = new SpreadsheetModel();
+  sheet.setCellRaw('A1', '10');
+  sheet.setCellRaw('A2', '0');
+  sheet.setCellRaw('B1', '=A1/A2');
+
+  assert.equal(sheet.getDisplayValue('B1'), '#DIV/0!');
+});
