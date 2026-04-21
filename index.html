@@ -1,16 +1,43 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Spreadsheet</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sheet</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <p class="eyebrow">Spreadsheet</p>
+            <h1>Sheet</h1>
+          </div>
+        </div>
+        <div class="formula-bar" aria-label="Formula bar container">
+          <label class="formula-label" for="formula-input">fx</label>
+          <div class="name-box" id="name-box" aria-live="polite">A1</div>
+          <input
+            id="formula-input"
+            class="formula-input"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="Select a cell to inspect its contents"
+            readonly
+          />
+        </div>
+      </header>
+
+      <main class="grid-frame">
+        <div class="grid-scroll" id="grid-scroll">
+          <table class="sheet-grid" id="sheet-grid" aria-label="Spreadsheet grid"></table>
+        </div>
+      </main>
+    </div>
+
     <script src="app.js"></script>
-    <script>
-      window.SpreadsheetApp.createApp(document.getElementById('app'));
-    </script>
   </body>
-  </html>
+</html>

@@ -1,317 +1,504 @@
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
+(function (globalScope) {
+  'use strict';
 
-function cellKey(row, col) {
-  return `${row},${col}`;
-}
+  var TOTAL_ROWS = 100;
+  var TOTAL_COLUMNS = 26;
 
-function cloneState(state) {
-  return {
-    rows: state.rows,
-    cols: state.cols,
-    cells: { ...state.cells },
-    active: { ...state.active },
-    editing: state.editing ? { ...state.editing } : null,
-  };
-}
-
-function createInitialState(options = {}) {
-  return {
-    rows: 100,
-    cols: 26,
-    cells: { ...(options.cells || {}) },
-    active: options.active ? { ...options.active } : { row: 0, col: 0 },
-    editing: null,
-  };
-}
-
-function getCellContent(state, row, col) {
-  return state.cells[cellKey(row, col)] || '';
-}
-
-function setCellContent(state, row, col, value) {
-  const next = cloneState(state);
-  const key = cellKey(row, col);
-  if (value === '') {
-    delete next.cells[key];
-  } else {
-    next.cells[key] = value;
+  function createColumnLabels(count) {
+    return Array.from({ length: count }, function (_, index) {
+      return String.fromCharCode(65 + index);
+    });
   }
-  return next;
-}
 
-function beginEdit(state, mode) {
-  const next = cloneState(state);
-  const original = getCellContent(next, next.active.row, next.active.col);
-  next.editing = {
-    mode,
-    original,
-    draft: original,
-  };
-  return next;
-}
+  function createGridRows(rowCount, columnCount) {
+    var labels = createColumnLabels(columnCount);
+    return Array.from({ length: rowCount }, function (_, rowIndex) {
+      return {
+        index: rowIndex + 1,
+        cells: labels.map(function (label, columnIndex) {
+          return {
+            address: label + String(rowIndex + 1),
+            row: rowIndex,
+            column: columnIndex,
+          };
+        }),
+      };
+    });
+  }
 
-function inputText(state, text) {
-  const next = cloneState(state);
-  if (!next.editing) {
-    next.editing = {
-      mode: 'cell',
-      original: getCellContent(next, next.active.row, next.active.col),
-      draft: '',
+  function clampCell(cell, rowCount, columnCount) {
+    return {
+      row: Math.min(Math.max(cell.row, 0), rowCount - 1),
+      column: Math.min(Math.max(cell.column, 0), columnCount - 1),
     };
   }
-  next.editing.draft = text;
-  return next;
-}
 
-function moveSelection(state, direction) {
-  const next = cloneState(state);
-  const delta = {
-    up: [-1, 0],
-    down: [1, 0],
-    left: [0, -1],
-    right: [0, 1],
-    stay: [0, 0],
-  }[direction] || [0, 0];
-
-  next.active.row = clamp(next.active.row + delta[0], 0, next.rows - 1);
-  next.active.col = clamp(next.active.col + delta[1], 0, next.cols - 1);
-  return next;
-}
-
-function commitEdit(state, direction) {
-  if (!state.editing) {
-    return moveSelection(state, direction);
+  function selectionFromEndpoints(anchor, focus) {
+    return {
+      anchor: { row: anchor.row, column: anchor.column },
+      focus: { row: focus.row, column: focus.column },
+      minRow: Math.min(anchor.row, focus.row),
+      maxRow: Math.max(anchor.row, focus.row),
+      minColumn: Math.min(anchor.column, focus.column),
+      maxColumn: Math.max(anchor.column, focus.column),
+      active: { row: focus.row, column: focus.column },
+    };
   }
 
-  const withValue = setCellContent(state, state.active.row, state.active.col, state.editing.draft);
-  const cleared = cloneState(withValue);
-  cleared.editing = null;
-  return moveSelection(cleared, direction);
-}
+  function createInitialSelection() {
+    return selectionFromEndpoints({ row: 0, column: 0 }, { row: 0, column: 0 });
+  }
 
-function cancelEdit(state) {
-  const next = cloneState(state);
-  next.editing = null;
-  return next;
-}
+  function addressFromCell(cell) {
+    return String.fromCharCode(65 + cell.column) + String(cell.row + 1);
+  }
 
-function columnName(index) {
-  return String.fromCharCode(65 + index);
-}
+  function selectCell(selection, focus, keepAnchor) {
+    var anchor = keepAnchor && selection ? selection.anchor : focus;
+    return selectionFromEndpoints(anchor, focus);
+  }
 
-function displayValue(raw) {
-  return raw;
-}
+  function createInitialState(options) {
+    options = options || {};
+    return {
+      selection: options.selection || createInitialSelection(),
+      cells: Object.assign({}, options.cells),
+      editing: options.editing || null,
+    };
+  }
 
-function createApp(root) {
-  let state = createInitialState();
-  let gridBody;
-  let formulaInput;
-  let cellInput;
+  function cloneEditing(editing) {
+    if (!editing) {
+      return null;
+    }
 
-  function render() {
-    formulaInput.value = state.editing && state.editing.mode === 'formula'
-      ? state.editing.draft
-      : getCellContent(state, state.active.row, state.active.col);
+    return {
+      address: editing.address,
+      draft: editing.draft,
+      original: editing.original,
+      source: editing.source,
+    };
+  }
 
-    Array.from(gridBody.querySelectorAll('.cell')).forEach((cell) => {
-      const row = Number(cell.dataset.row);
-      const col = Number(cell.dataset.col);
-      const active = row === state.active.row && col === state.active.col;
-      const raw = getCellContent(state, row, col);
+  function cloneState(state) {
+    return {
+      selection: selectionFromEndpoints(state.selection.anchor, state.selection.focus),
+      cells: Object.assign({}, state.cells),
+      editing: cloneEditing(state.editing),
+    };
+  }
 
-      cell.classList.toggle('is-active', active);
-      cell.textContent = active && state.editing && state.editing.mode === 'cell' ? '' : displayValue(raw);
+  function readCellValue(state, cell) {
+    return state.cells[addressFromCell(cell)] || '';
+  }
+
+  function writeCellValue(state, cell, value) {
+    var nextState = cloneState(state);
+    var address = addressFromCell(cell);
+    if (value === '') {
+      delete nextState.cells[address];
+    } else {
+      nextState.cells[address] = value;
+    }
+    return nextState;
+  }
+
+  function beginCellEdit(state, replacementText, preserveExisting, source) {
+    var nextState = cloneState(state);
+    var active = nextState.selection.active;
+    var original = readCellValue(nextState, active);
+    nextState.editing = {
+      address: addressFromCell(active),
+      draft: preserveExisting ? original : replacementText || '',
+      original: original,
+      source: source || 'cell',
+    };
+    return nextState;
+  }
+
+  function applyEditDraft(state, draft) {
+    if (!state.editing) {
+      return state;
+    }
+
+    var nextState = cloneState(state);
+    nextState.editing.draft = draft;
+    return nextState;
+  }
+
+  function moveActiveCell(state, delta, keepAnchor) {
+    if (state.editing) {
+      return state;
+    }
+
+    var active = state.selection.active;
+    var nextFocus = clampCell(
+      {
+        row: active.row + delta.row,
+        column: active.column + delta.column,
+      },
+      TOTAL_ROWS,
+      TOTAL_COLUMNS
+    );
+
+    var nextState = cloneState(state);
+    nextState.selection = selectCell(nextState.selection, nextFocus, keepAnchor);
+    return nextState;
+  }
+
+  function commitActiveEdit(state, direction) {
+    direction = direction || 'stay';
+    if (!state.editing) {
+      return state;
+    }
+
+    var active = state.selection.active;
+    var nextState = writeCellValue(state, active, state.editing.draft);
+    nextState.editing = null;
+
+    if (direction === 'down') {
+      return moveActiveCell(nextState, { row: 1, column: 0 }, false);
+    }
+    if (direction === 'up') {
+      return moveActiveCell(nextState, { row: -1, column: 0 }, false);
+    }
+    if (direction === 'left') {
+      return moveActiveCell(nextState, { row: 0, column: -1 }, false);
+    }
+    if (direction === 'right') {
+      return moveActiveCell(nextState, { row: 0, column: 1 }, false);
+    }
+
+    return nextState;
+  }
+
+  function cancelActiveEdit(state) {
+    if (!state.editing) {
+      return state;
+    }
+
+    var nextState = cloneState(state);
+    nextState.editing = null;
+    return nextState;
+  }
+
+  function buildGrid(tableElement, rowCount, columnCount) {
+    var fragment = document.createDocumentFragment();
+    var headerRow = document.createElement('tr');
+    var corner = document.createElement('th');
+    corner.className = 'corner-cell';
+    corner.scope = 'col';
+    headerRow.appendChild(corner);
+
+    createColumnLabels(columnCount).forEach(function (label, columnIndex) {
+      var th = document.createElement('th');
+      th.className = 'column-header';
+      th.scope = 'col';
+      th.dataset.column = String(columnIndex);
+      th.textContent = label;
+      headerRow.appendChild(th);
     });
 
-    const activeCell = gridBody.querySelector(`.cell[data-row="${state.active.row}"][data-col="${state.active.col}"]`);
-    if (!activeCell) {
-      return;
-    }
+    fragment.appendChild(headerRow);
 
-    if (state.editing && state.editing.mode === 'cell') {
-      cellInput.value = state.editing.draft;
-      activeCell.appendChild(cellInput);
-      requestAnimationFrame(() => {
-        cellInput.focus();
-        cellInput.setSelectionRange(cellInput.value.length, cellInput.value.length);
-      });
-    }
-  }
-
-  function setState(next) {
-    state = next;
-    render();
-  }
-
-  function startEdit(mode) {
-    setState(beginEdit(state, mode));
-    if (mode === 'formula') {
-      requestAnimationFrame(() => {
-        formulaInput.focus();
-        formulaInput.setSelectionRange(formulaInput.value.length, formulaInput.value.length);
-      });
-    }
-  }
-
-  function buildGrid() {
-    const fragment = document.createDocumentFragment();
-    const headerCorner = document.createElement('div');
-    headerCorner.className = 'corner';
-    fragment.appendChild(headerCorner);
-
-    for (let col = 0; col < state.cols; col += 1) {
-      const header = document.createElement('div');
-      header.className = 'col-header';
-      header.textContent = columnName(col);
-      fragment.appendChild(header);
-    }
-
-    for (let row = 0; row < state.rows; row += 1) {
-      const rowHeader = document.createElement('div');
+    createGridRows(rowCount, columnCount).forEach(function (rowData, rowIndex) {
+      var row = document.createElement('tr');
+      var rowHeader = document.createElement('th');
       rowHeader.className = 'row-header';
-      rowHeader.textContent = String(row + 1);
-      fragment.appendChild(rowHeader);
+      rowHeader.scope = 'row';
+      rowHeader.dataset.row = String(rowIndex);
+      rowHeader.textContent = String(rowData.index);
+      row.appendChild(rowHeader);
 
-      for (let col = 0; col < state.cols; col += 1) {
-        const cell = document.createElement('button');
-        cell.type = 'button';
-        cell.className = 'cell';
-        cell.dataset.row = String(row);
-        cell.dataset.col = String(col);
-        cell.addEventListener('click', () => {
-          setState({ ...state, active: { row, col }, editing: null });
-        });
-        cell.addEventListener('dblclick', () => {
-          setState({ ...state, active: { row, col }, editing: null });
-          startEdit('cell');
-        });
-        fragment.appendChild(cell);
+      rowData.cells.forEach(function (cellData) {
+        var cell = document.createElement('td');
+        cell.dataset.row = String(cellData.row);
+        cell.dataset.column = String(cellData.column);
+        cell.dataset.address = cellData.address;
+        cell.setAttribute('aria-label', cellData.address);
+        row.appendChild(cell);
+      });
+
+      fragment.appendChild(row);
+    });
+
+    tableElement.replaceChildren(fragment);
+  }
+
+  function applySelectionState(root, selection) {
+    root.querySelectorAll('.cell-active, .cell-range, .header-active, .header-range').forEach(function (node) {
+      node.classList.remove('cell-active', 'cell-range', 'header-active', 'header-range');
+    });
+
+    for (var row = selection.minRow; row <= selection.maxRow; row += 1) {
+      var rowHeader = root.querySelector('.row-header[data-row="' + row + '"]');
+      if (rowHeader) {
+        rowHeader.classList.add(selection.minRow === selection.maxRow ? 'header-active' : 'header-range');
+      }
+
+      for (var column = selection.minColumn; column <= selection.maxColumn; column += 1) {
+        var cell = root.querySelector('td[data-row="' + row + '"][data-column="' + column + '"]');
+        if (cell) {
+          cell.classList.add('cell-range');
+        }
       }
     }
 
-    gridBody.appendChild(fragment);
+    for (var headerColumn = selection.minColumn; headerColumn <= selection.maxColumn; headerColumn += 1) {
+      var columnHeader = root.querySelector('.column-header[data-column="' + headerColumn + '"]');
+      if (columnHeader) {
+        columnHeader.classList.add(selection.minColumn === selection.maxColumn ? 'header-active' : 'header-range');
+      }
+    }
+
+    var activeCell = root.querySelector('td[data-row="' + selection.active.row + '"][data-column="' + selection.active.column + '"]');
+    if (activeCell) {
+      activeCell.classList.remove('cell-range');
+      activeCell.classList.add('cell-active');
+      activeCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    var nameBox = document.getElementById('name-box');
+    if (nameBox) {
+      nameBox.textContent = addressFromCell(selection.active);
+    }
   }
 
-  function handleNavigation(key) {
-    const direction = {
-      ArrowUp: 'up',
-      ArrowDown: 'down',
-      ArrowLeft: 'left',
-      ArrowRight: 'right',
-    }[key];
-    if (!direction) {
-      return false;
-    }
-    setState(moveSelection(state, direction));
-    return true;
+  function readCellFromDataset(target) {
+    return {
+      row: Number(target.dataset.row),
+      column: Number(target.dataset.column),
+    };
   }
 
-  root.innerHTML = `
-    <div class="app-shell">
-      <div class="formula-bar">
-        <div class="formula-label">fx</div>
-        <input class="formula-input" type="text" spellcheck="false" aria-label="Formula bar">
-      </div>
-      <div class="grid-wrap">
-        <div class="grid" role="grid" aria-label="Spreadsheet"></div>
-      </div>
-    </div>
-  `;
+  function renderGridValues(table, state, cellEditor) {
+    table.querySelectorAll('td[data-address]').forEach(function (cell) {
+      var address = cell.dataset.address;
+      if (state.editing && state.editing.source === 'cell' && state.editing.address === address) {
+        cell.textContent = '';
+        cell.classList.add('cell-editing');
+        if (cellEditor.parentNode !== cell) {
+          cell.appendChild(cellEditor);
+        }
+        cellEditor.value = state.editing.draft;
+      } else {
+        cell.classList.remove('cell-editing');
+        if (cellEditor.parentNode === cell) {
+          cell.removeChild(cellEditor);
+        }
+        cell.textContent = state.cells[address] || '';
+      }
+    });
+  }
 
-  gridBody = root.querySelector('.grid');
-  formulaInput = root.querySelector('.formula-input');
-  cellInput = document.createElement('input');
-  cellInput.type = 'text';
-  cellInput.className = 'cell-editor';
-  cellInput.spellcheck = false;
-
-  formulaInput.addEventListener('focus', () => {
-    if (!state.editing || state.editing.mode !== 'formula') {
-      startEdit('formula');
-    }
-  });
-  formulaInput.addEventListener('input', (event) => {
-    setState(inputText(state, event.target.value));
-  });
-  formulaInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      setState(commitEdit(state, 'down'));
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      setState(cancelEdit(state));
-      formulaInput.blur();
-    } else if (event.key === 'Tab') {
-      event.preventDefault();
-      setState(commitEdit(state, event.shiftKey ? 'left' : 'right'));
-    }
-  });
-
-  cellInput.addEventListener('input', (event) => {
-    setState(inputText(state, event.target.value));
-  });
-  cellInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      setState(commitEdit(state, 'down'));
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      setState(cancelEdit(state));
-    } else if (event.key === 'Tab') {
-      event.preventDefault();
-      setState(commitEdit(state, event.shiftKey ? 'left' : 'right'));
-    }
-  });
-
-  document.addEventListener('keydown', (event) => {
-    const typingKey = event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey;
-    if (document.activeElement === formulaInput || document.activeElement === cellInput) {
+  function focusEditor(input) {
+    if (!input) {
       return;
     }
 
-    if (event.key === 'F2' || event.key === 'Enter') {
-      event.preventDefault();
-      startEdit('cell');
+    input.focus();
+    var length = input.value.length;
+    input.setSelectionRange(length, length);
+  }
+
+  function initSpreadsheetShell() {
+    if (typeof document === 'undefined') {
       return;
     }
 
-    if (handleNavigation(event.key)) {
-      event.preventDefault();
+    var table = document.getElementById('sheet-grid');
+    var formulaInput = document.getElementById('formula-input');
+    if (!table || !formulaInput) {
       return;
     }
 
-    if (typingKey) {
-      event.preventDefault();
-      setState(inputText({ ...state, editing: null }, event.key));
+    buildGrid(table, TOTAL_ROWS, TOTAL_COLUMNS);
+    formulaInput.readOnly = false;
+
+    var cellEditor = document.createElement('input');
+    cellEditor.type = 'text';
+    cellEditor.className = 'cell-editor';
+    cellEditor.spellcheck = false;
+    cellEditor.autocomplete = 'off';
+
+    var state = createInitialState();
+
+    function render() {
+      applySelectionState(table, state.selection);
+      renderGridValues(table, state, cellEditor);
+
+      if (state.editing && state.editing.source === 'formula') {
+        formulaInput.value = state.editing.draft;
+      } else {
+        formulaInput.value = readCellValue(state, state.selection.active);
+      }
     }
-  });
 
-  buildGrid();
-  render();
+    function setState(nextState) {
+      state = nextState;
+      render();
+    }
 
-  return {
-    getState: () => state,
+    function startEditing(source, replacementText, preserveExisting) {
+      setState(beginCellEdit(state, replacementText, preserveExisting, source));
+      if (source === 'cell') {
+        focusEditor(cellEditor);
+      } else {
+        focusEditor(formulaInput);
+      }
+    }
+
+    render();
+
+    table.addEventListener('mousedown', function (event) {
+      var cell = event.target.closest('td');
+      if (!cell || state.editing) {
+        return;
+      }
+
+      event.preventDefault();
+      setState(createInitialState({ cells: state.cells, selection: selectCell(state.selection, readCellFromDataset(cell)) }));
+    });
+
+    table.addEventListener('dblclick', function (event) {
+      var cell = event.target.closest('td');
+      if (!cell) {
+        return;
+      }
+
+      setState(createInitialState({ cells: state.cells, selection: selectCell(state.selection, readCellFromDataset(cell)) }));
+      startEditing('cell', null, true);
+    });
+
+    table.addEventListener('click', function (event) {
+      var cell = event.target.closest('td');
+      if (!cell || state.editing) {
+        return;
+      }
+
+      setState(createInitialState({ cells: state.cells, selection: selectCell(state.selection, readCellFromDataset(cell)) }));
+    });
+
+    formulaInput.addEventListener('focus', function () {
+      if (!state.editing) {
+        startEditing('formula', null, true);
+      }
+    });
+
+    formulaInput.addEventListener('input', function (event) {
+      if (!state.editing) {
+        setState(beginCellEdit(state, event.target.value, false, 'formula'));
+        return;
+      }
+
+      setState(applyEditDraft(state, event.target.value));
+    });
+
+    formulaInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        setState(commitActiveEdit(state, 'down'));
+        formulaInput.blur();
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        setState(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'));
+        formulaInput.blur();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        setState(cancelActiveEdit(state));
+        formulaInput.blur();
+      }
+    });
+
+    cellEditor.addEventListener('input', function (event) {
+      setState(applyEditDraft(state, event.target.value));
+    });
+
+    cellEditor.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        setState(commitActiveEdit(state, 'down'));
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        setState(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'));
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        setState(cancelActiveEdit(state));
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      var activeElement = document.activeElement;
+      var isTypingIntoEditor = activeElement === formulaInput || activeElement === cellEditor;
+      if (isTypingIntoEditor) {
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        startEditing('cell', null, true);
+        return;
+      }
+
+      if (event.key === 'F2') {
+        event.preventDefault();
+        startEditing('cell', null, true);
+        return;
+      }
+
+      if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        startEditing('cell', event.key, false);
+        return;
+      }
+
+      var delta = null;
+      if (event.key === 'ArrowUp') {
+        delta = { row: -1, column: 0 };
+      } else if (event.key === 'ArrowDown') {
+        delta = { row: 1, column: 0 };
+      } else if (event.key === 'ArrowLeft') {
+        delta = { row: 0, column: -1 };
+      } else if (event.key === 'ArrowRight') {
+        delta = { row: 0, column: 1 };
+      }
+
+      if (!delta) {
+        return;
+      }
+
+      event.preventDefault();
+      setState(moveActiveCell(state, delta, event.shiftKey));
+    });
+  }
+
+  var api = {
+    createColumnLabels: createColumnLabels,
+    createGridRows: createGridRows,
+    clampCell: clampCell,
+    createInitialSelection: createInitialSelection,
+    selectionFromEndpoints: selectionFromEndpoints,
+    createInitialState: createInitialState,
+    beginCellEdit: beginCellEdit,
+    applyEditDraft: applyEditDraft,
+    commitActiveEdit: commitActiveEdit,
+    cancelActiveEdit: cancelActiveEdit,
+    moveActiveCell: moveActiveCell,
+    selectCell: selectCell,
+    initSpreadsheetShell: initSpreadsheetShell,
   };
-}
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    createInitialState,
-    getCellContent,
-    commitEdit,
-    cancelEdit,
-    moveSelection,
-    beginEdit,
-    inputText,
-    createApp,
-  };
-}
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
 
-if (typeof window !== 'undefined') {
-  window.SpreadsheetApp = {
-    createApp,
-  };
-}
+  globalScope.SpreadsheetShell = api;
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSpreadsheetShell);
+    } else {
+      initSpreadsheetShell();
+    }
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : window);
