@@ -665,6 +665,17 @@
   };
 
   SpreadsheetModel.prototype.evaluateFunction = function (name, args, cache, path) {
+    if (name === 'IF') {
+      var conditionValue = this.evaluateAst(args[0], cache, path);
+      if (isError(conditionValue)) {
+        return conditionValue;
+      }
+      if (toBoolean(conditionValue)) {
+        return args.length > 1 ? this.evaluateAst(args[1], cache, path) : createValue('blank', '');
+      }
+      return args.length > 2 ? this.evaluateAst(args[2], cache, path) : createValue('blank', '');
+    }
+
     var evaluated = [];
     for (var i = 0; i < args.length; i += 1) {
       var value = this.evaluateAst(args[i], cache, path);
@@ -715,9 +726,6 @@
         }
       }
       return createValue('number', count);
-    }
-    if (name === 'IF') {
-      return toBoolean(evaluated[0]) ? evaluated[1] : (evaluated[2] || createValue('blank', ''));
     }
     if (name === 'AND') {
       for (i = 0; i < evaluated.length; i += 1) {
