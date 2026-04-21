@@ -47,6 +47,7 @@
     return {
       cells: {},
       selection: { row: 1, col: 1 },
+      selectionEnd: { row: 1, col: 1 },
     };
   }
 
@@ -55,13 +56,30 @@
   }
 
   function selectCell(state, row, col) {
+    const nextSelection = {
+      row: clamp(row, 1, ROW_COUNT),
+      col: clamp(col, 1, COLUMN_COUNT),
+    };
     return {
       cells: { ...state.cells },
-      selection: {
+      selection: nextSelection,
+      selectionEnd: { ...nextSelection },
+    };
+  }
+
+  function extendSelection(state, row, col) {
+    return {
+      cells: { ...state.cells },
+      selection: { ...state.selection },
+      selectionEnd: {
         row: clamp(row, 1, ROW_COUNT),
         col: clamp(col, 1, COLUMN_COUNT),
       },
     };
+  }
+
+  function getSelectionRect(state) {
+    return normalizeRect(state.selection, state.selectionEnd || state.selection);
   }
 
   function commitCell(state, row, col, raw) {
@@ -76,6 +94,7 @@
     return {
       cells: nextCells,
       selection: { ...state.selection },
+      selectionEnd: { ...state.selectionEnd },
     };
   }
 
@@ -169,6 +188,17 @@
     return nextState;
   }
 
+  function clearRangeCells(state, start, end) {
+    const rect = normalizeRect(start, end);
+    let nextState = state;
+    for (let row = rect.startRow; row <= rect.endRow; row += 1) {
+      for (let col = rect.startCol; col <= rect.endCol; col += 1) {
+        nextState = commitCell(nextState, row, col, '');
+      }
+    }
+    return nextState;
+  }
+
   function moveSelection(state, rowDelta, colDelta) {
     return selectCell(state, state.selection.row + rowDelta, state.selection.col + colDelta);
   }
@@ -211,6 +241,13 @@
       return {
         cells: parsed && parsed.cells ? parsed.cells : {},
         selection: parsed && parsed.selection ? {
+          row: clamp(Number(parsed.selection.row) || 1, 1, ROW_COUNT),
+          col: clamp(Number(parsed.selection.col) || 1, 1, COLUMN_COUNT),
+        } : { row: 1, col: 1 },
+        selectionEnd: parsed && parsed.selectionEnd ? {
+          row: clamp(Number(parsed.selectionEnd.row) || 1, 1, ROW_COUNT),
+          col: clamp(Number(parsed.selectionEnd.col) || 1, 1, COLUMN_COUNT),
+        } : parsed && parsed.selection ? {
           row: clamp(Number(parsed.selection.row) || 1, 1, ROW_COUNT),
           col: clamp(Number(parsed.selection.col) || 1, 1, COLUMN_COUNT),
         } : { row: 1, col: 1 },
@@ -684,6 +721,8 @@
     const gridBody = document.querySelector('[data-grid-body]');
     const storage = createStorageAdapter(window.localStorage, getStorageNamespace());
     let state = loadState(storage);
+    let clipboard = null;
+    let dragAnchor = null;
 
     function persist() {
       saveState(storage, state);
@@ -693,7 +732,10 @@
       const raw = getCellRaw(state, state.selection.row, state.selection.col);
       formulaBar.value = raw;
       editor.value = raw;
-      selectedCellLabel.textContent = columnNumberToName(state.selection.col) + state.selection.row;
+      const rect = getSelectionRect(state);
+      const startLabel = columnNumberToName(rect.startCol) + rect.startRow;
+      const endLabel = columnNumberToName(rect.endCol) + rect.endRow;
+      selectedCellLabel.textContent = startLabel === endLabel ? startLabel : startLabel + ':' + endLabel;
     }
 
     function renderHeaders() {
@@ -711,6 +753,7 @@
 
     function renderGrid() {
       const memo = {};
+      const rect = getSelectionRect(state);
       gridBody.innerHTML = '';
       gridModel.rows.forEach(function (row) {
         const rowEl = document.createElement('div');
@@ -725,8 +768,9 @@
           const button = document.createElement('button');
           const result = evaluateCell(state, row, col, memo, []);
           const selected = state.selection.row === row && state.selection.col === col;
+          const inRange = row >= rect.startRow && row <= rect.endRow && col >= rect.startCol && col <= rect.endCol;
           button.type = 'button';
-          button.className = 'grid-cell' + (selected ? ' is-selected' : '');
+          button.className = 'grid-cell' + (inRange ? ' is-in-range' : '') + (selected ? ' is-selected' : '');
           button.dataset.row = String(row);
           button.dataset.col = String(col);
           button.textContent = formatValue(result.value);
@@ -740,6 +784,7 @@
 
     function commitSelected(value) {
       state = commitCell(state, state.selection.row, state.selection.col, value);
+      state = selectCell(state, state.selection.row, state.selection.col);
       persist();
       renderGrid();
     }
@@ -758,6 +803,27 @@
       renderGrid();
     }
 
+    function copySelectedRange() {
+      clipboard = copySelection(state, state.selection, state.selectionEnd);
+    }
+
+    function cutSelectedRange() {
+      copySelectedRange();
+      state = clearRangeCells(state, state.selection, state.selectionEnd);
+      state = selectCell(state, state.selection.row, state.selection.col);
+      persist();
+      renderGrid();
+    }
+
+    function pasteSelectedRange() {
+      if (!clipboard) {
+        return;
+      }
+      state = pasteSelection(state, clipboard, state.selection);
+      persist();
+      renderGrid();
+    }
+
     renderHeaders();
     renderGrid();
 
@@ -766,9 +832,41 @@
       if (!button) {
         return;
       }
-      state = selectCell(state, Number(button.dataset.row), Number(button.dataset.col));
+      if (event.shiftKey) {
+        state = extendSelection(state, Number(button.dataset.row), Number(button.dataset.col));
+      } else {
+        state = selectCell(state, Number(button.dataset.row), Number(button.dataset.col));
+      }
       persist();
       renderGrid();
+    });
+
+    gridBody.addEventListener('mousedown', function (event) {
+      const button = event.target.closest('.grid-cell');
+      if (!button) {
+        return;
+      }
+      dragAnchor = {
+        row: Number(button.dataset.row),
+        col: Number(button.dataset.col),
+      };
+      state = selectCell(state, dragAnchor.row, dragAnchor.col);
+      persist();
+      renderGrid();
+    });
+
+    gridBody.addEventListener('mouseover', function (event) {
+      const button = event.target.closest('.grid-cell');
+      if (!button || !dragAnchor || (event.buttons & 1) !== 1) {
+        return;
+      }
+      state = extendSelection(state, Number(button.dataset.row), Number(button.dataset.col));
+      persist();
+      renderGrid();
+    });
+
+    document.addEventListener('mouseup', function () {
+      dragAnchor = null;
     });
 
     formulaBar.addEventListener('input', function () {
@@ -797,6 +895,22 @@
 
     document.addEventListener('keydown', function (event) {
       if (event.target === formulaBar || event.target === editor) {
+        return;
+      }
+      const modifier = event.metaKey || event.ctrlKey;
+      if (modifier && event.key.toLowerCase() === 'c') {
+        copySelectedRange();
+        event.preventDefault();
+        return;
+      }
+      if (modifier && event.key.toLowerCase() === 'x') {
+        cutSelectedRange();
+        event.preventDefault();
+        return;
+      }
+      if (modifier && event.key.toLowerCase() === 'v') {
+        pasteSelectedRange();
+        event.preventDefault();
         return;
       }
       if (event.key === 'ArrowUp') applySelectionMove(-1, 0);
@@ -829,11 +943,14 @@
     createGridModel,
     createEmptyState,
     selectCell,
+    extendSelection,
+    getSelectionRect,
     commitCell,
     getCellRaw,
     moveSelection,
     getSelectionAfterCommit,
     copySelection,
+    clearRangeCells,
     pasteSelection,
     evaluateCell,
     formatValue,

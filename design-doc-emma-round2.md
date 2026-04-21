@@ -48,3 +48,10 @@ Use one plain JavaScript file that exports pure spreadsheet-core helpers for Nod
 - Implement range references for function arguments so formulas like `SUM(A1:B2)` can be evaluated without adding broader parser complexity.
 - Add clipboard-core helpers in the pure layer first so relative and absolute references can be shifted and tested before wiring browser clipboard events.
 - Measure this slice by explicit counts: one range-function case, one non-IF boolean/comparison reuse case, one single-cell relative-vs-absolute paste case, and one rectangular 2 by 2 paste case.
+
+## Round 7 Extension
+
+- Add rectangular selection state to the pure layer so browser interactions can render a visible selected block instead of a single active cell only.
+- Wire keyboard copy, cut, and paste in the browser against the existing pure clipboard helpers first, using an internal clipboard buffer so the feature works from `file://` without extra platform setup.
+- Keep raw formulas authoritative in error states by proving a `#DIV/0!` cell still reloads with the original formula in storage.
+- Measure this slice by explicit counts: one rectangular-selection helper case, one cut-clears-range case, one raw-formula error persistence case, and one browser-verified visible multi-cell selection case.
