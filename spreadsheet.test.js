@@ -7,6 +7,9 @@ const {
   moveSelection,
   serializeState,
   deserializeState,
+  applyCellEdit,
+  undo,
+  redo,
 } = require('./spreadsheet-core.js');
 
 test('starts with A1 selected and an empty sheet', () => {
@@ -64,4 +67,37 @@ test('serializes and restores only namespaced spreadsheet state', () => {
     display: 'hello',
     kind: 'text',
   });
+});
+
+test('undo reverts the latest cell edit and redo reapplies it', () => {
+  const state = createSpreadsheetState();
+
+  applyCellEdit(state, 0, 0, '12');
+  applyCellEdit(state, 0, 0, '34');
+
+  assert.equal(state.cells.get('A1').raw, '34');
+
+  undo(state);
+  assert.equal(state.cells.get('A1').raw, '12');
+
+  redo(state);
+  assert.equal(state.cells.get('A1').raw, '34');
+});
+
+test('undo restores a cleared cell and keeps history bounded', () => {
+  const state = createSpreadsheetState();
+
+  applyCellEdit(state, 1, 1, 'kept');
+  applyCellEdit(state, 1, 1, '');
+
+  assert.equal(state.cells.has('B2'), false);
+
+  undo(state);
+  assert.equal(state.cells.get('B2').raw, 'kept');
+
+  for (let index = 0; index < 60; index += 1) {
+    applyCellEdit(state, 0, 0, String(index));
+  }
+
+  assert.equal(state.history.past.length, 50);
 });

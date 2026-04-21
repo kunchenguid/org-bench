@@ -38,6 +38,11 @@
       cols: COLS,
       selection: { row: 0, col: 0 },
       cells: new Map(),
+      history: {
+        past: [],
+        future: [],
+        limit: 50,
+      },
     };
   }
 
@@ -63,6 +68,69 @@
     };
 
     return state.selection;
+  }
+
+  function snapshotState(state) {
+    const snapshot = {
+      selection: { ...state.selection },
+      cells: {},
+    };
+
+    for (const [key, cell] of state.cells.entries()) {
+      snapshot.cells[key] = cell.raw;
+    }
+
+    return snapshot;
+  }
+
+  function restoreSnapshot(state, snapshot) {
+    state.selection = { ...snapshot.selection };
+    state.cells.clear();
+
+    for (const [key, raw] of Object.entries(snapshot.cells)) {
+      const position = decodeCellKey(key);
+      if (!position) {
+        continue;
+      }
+
+      commitCell(state, position.row, position.col, raw);
+    }
+  }
+
+  function pushHistory(history, snapshot) {
+    history.past.push(snapshot);
+    if (history.past.length > history.limit) {
+      history.past.shift();
+    }
+    history.future.length = 0;
+  }
+
+  function applyCellEdit(state, row, col, raw) {
+    pushHistory(state.history, snapshotState(state));
+    state.selection = { row, col };
+    commitCell(state, row, col, raw);
+  }
+
+  function undo(state) {
+    const previous = state.history.past.pop();
+    if (!previous) {
+      return false;
+    }
+
+    state.history.future.push(snapshotState(state));
+    restoreSnapshot(state, previous);
+    return true;
+  }
+
+  function redo(state) {
+    const next = state.history.future.pop();
+    if (!next) {
+      return false;
+    }
+
+    state.history.past.push(snapshotState(state));
+    restoreSnapshot(state, next);
+    return true;
   }
 
   function serializeState(state, namespace) {
@@ -125,6 +193,9 @@
     createSpreadsheetState,
     commitCell,
     moveSelection,
+    applyCellEdit,
+    undo,
+    redo,
     serializeState,
     deserializeState,
   };

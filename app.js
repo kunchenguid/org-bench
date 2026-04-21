@@ -161,6 +161,22 @@
       return;
     }
 
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        redoChange();
+      } else {
+        undoChange();
+      }
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      redoChange();
+      return;
+    }
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       moveSelection(1, 0);
@@ -257,9 +273,31 @@
   }
 
   function commitToSelection(raw) {
-    core.commitCell(state, state.selection.row, state.selection.col, raw);
+    core.applyCellEdit(state, state.selection.row, state.selection.col, raw);
     renderCells();
     renderSelection();
+  }
+
+  function undoChange() {
+    if (editSession) {
+      cancelEdit();
+    }
+
+    if (core.undo(state)) {
+      renderCells();
+      renderSelection();
+    }
+  }
+
+  function redoChange() {
+    if (editSession) {
+      cancelEdit();
+    }
+
+    if (core.redo(state)) {
+      renderCells();
+      renderSelection();
+    }
   }
 
   function beginFormulaEdit() {
