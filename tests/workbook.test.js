@@ -67,3 +67,17 @@ test('pasting copied formulas shifts references by source-to-target offset', () 
   applyPaste(model, 'C2', '=$A1+B$1', { sourceSelection: { start: 'A1', end: 'A1' } });
   assert.equal(model.getRaw('C2'), '=$A2+D$1');
 });
+
+test('does not shift cell-like text inside quoted strings', () => {
+  assert.equal(shiftFormula('="A1 -> "&A1', 1, 1), '="A1 -> "&B2');
+});
+
+test('shifting a reference outside the grid produces ref errors', () => {
+  assert.equal(shiftFormula('=A1', -1, 0), '=#REF!');
+});
+
+test('ref error literals render as ref errors when evaluated', () => {
+  const model = new SpreadsheetModel();
+  model.setCell('A1', '=#REF!');
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
