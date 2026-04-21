@@ -995,11 +995,18 @@
     return new SpreadsheetModel(data);
   };
 
+  function resolveStorageNamespace(scope) {
+    if (!scope) {
+      return 'spreadsheet';
+    }
+    return scope.__BENCHMARK_NAMESPACE__ || scope.__BENCHMARK_STORAGE_NAMESPACE__ || scope.__RUN_STORAGE_NAMESPACE__ || scope.__STORAGE_NAMESPACE__ || 'spreadsheet';
+  }
+
   function getStorageNamespace() {
     if (typeof window === 'undefined') {
       return 'spreadsheet';
     }
-    return window.__BENCHMARK_STORAGE_NAMESPACE__ || window.__RUN_STORAGE_NAMESPACE__ || window.__STORAGE_NAMESPACE__ || 'spreadsheet';
+    return resolveStorageNamespace(window);
   }
 
   function createApp() {
@@ -1410,6 +1417,7 @@
     SpreadsheetModel: SpreadsheetModel,
     coordsToRef: coordsToRef,
     parseFormula: parseFormula,
+    resolveStorageNamespace: resolveStorageNamespace,
     createApp: createApp,
   };
 
