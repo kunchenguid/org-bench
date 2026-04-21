@@ -28,6 +28,9 @@
     if (cell) startEdit(cell.dataset.address, false, '');
   });
   gridWrap.addEventListener('keydown', handleGridKeydown);
+  document.addEventListener('copy', handleClipboardCopy);
+  document.addEventListener('cut', handleClipboardCut);
+  document.addEventListener('paste', handleClipboardPaste);
 
   formulaInput.addEventListener('input', function () {
     if (state.editing !== 'formula') state.editing = 'formula';
@@ -190,12 +193,51 @@
   function clearSelectedCells() {
     const addresses = getSelectedAddresses();
     history = historyApi.recordSnapshot(history, nextClearSnapshot(addresses));
-    for (let index = 0; index < addresses.length; index += 1) {
-      core.setCell(sheet, addresses[index], '');
-    }
+    core.applyCellChanges(sheet, addresses.map(function (address) {
+      return { address: address, raw: '' };
+    }));
     persistState();
     updateVisibleCells();
     syncFormulaBar();
+  }
+
+  function handleClipboardCopy(event) {
+    if (state.editing) return;
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', core.serializeSelection(sheet, getSelectedAddresses()));
+    event.clipboardData.setData('application/x-spreadsheet-origin', getSelectionOrigin());
+  }
+
+  function handleClipboardCut(event) {
+    if (state.editing) return;
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', core.serializeSelection(sheet, getSelectedAddresses()));
+    event.clipboardData.setData('application/x-spreadsheet-origin', getSelectionOrigin());
+    clearSelectedCells();
+  }
+
+  function handleClipboardPaste(event) {
+    if (state.editing) return;
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    const text = event.clipboardData.getData('text/plain');
+    if (!text) return;
+    const sourceOrigin = event.clipboardData.getData('application/x-spreadsheet-origin') || 'A1';
+    const matrix = core.parseClipboardText(text);
+    history = historyApi.recordSnapshot(history, nextPasteSnapshot(state.active, matrix, sourceOrigin));
+    core.applyClipboardMatrix(sheet, state.active, matrix, sourceOrigin);
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+    focusActiveCell();
+  }
+
+  function getSelectionOrigin() {
+    const range = getSelectedRange();
+    if (!range) return state.active;
+    return core.makeAddress(range.startCol, range.startRow);
   }
 
   function getSelectedRange() {
@@ -286,6 +328,26 @@
     const cells = Object.assign({}, sheet.cells);
     for (let index = 0; index < addresses.length; index += 1) {
       delete cells[addresses[index]];
+    }
+    return {
+      cells: cells,
+      active: state.active,
+      rangeAnchor: state.rangeAnchor ? { col: state.rangeAnchor.col, row: state.rangeAnchor.row } : null,
+    };
+  }
+
+  function nextPasteSnapshot(originAddress, matrix, sourceOrigin) {
+    const cells = Object.assign({}, sheet.cells);
+    const origin = core.splitAddress(originAddress);
+    const source = core.splitAddress(sourceOrigin || 'A1');
+    for (let row = 0; row < matrix.length; row += 1) {
+      for (let col = 0; col < matrix[row].length; col += 1) {
+        const targetAddress = core.makeAddress(origin.col + col, origin.row + row);
+        const sourceAddress = source ? core.makeAddress(source.col + col, source.row + row) : targetAddress;
+        const shifted = core.shiftFormulaReferences(matrix[row][col], sourceAddress, targetAddress);
+        if (shifted) cells[targetAddress] = shifted;
+        else delete cells[targetAddress];
+      }
     }
     return {
       cells: cells,

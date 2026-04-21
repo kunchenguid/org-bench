@@ -42,11 +42,24 @@
 
   function setCell(sheet, address, raw) {
     recordHistory(sheet);
+    applyRawValue(sheet, address, raw);
+  }
+
+  function applyRawValue(sheet, address, raw) {
     if (!raw) {
       delete sheet.cells[address];
       return;
     }
     sheet.cells[address] = String(raw);
+  }
+
+  function applyCellChanges(sheet, changes) {
+    if (!changes || !changes.length) return [];
+    recordHistory(sheet);
+    for (let index = 0; index < changes.length; index += 1) {
+      applyRawValue(sheet, changes[index].address, changes[index].raw);
+    }
+    return changes.map(function (change) { return change.address; });
   }
 
   function undo(sheet) {
@@ -84,6 +97,42 @@
 
   function getCellDisplay(sheet, address) {
     return formatValue(evaluateCell(sheet, address, {}));
+  }
+
+  function serializeSelection(sheet, addresses) {
+    if (!addresses || !addresses.length) return '';
+    const positions = addresses.map(splitAddress).filter(Boolean);
+    const bounds = getBounds(positions);
+    const rows = [];
+
+    for (let row = bounds.startRow; row <= bounds.endRow; row += 1) {
+      const cells = [];
+      for (let col = bounds.startCol; col <= bounds.endCol; col += 1) {
+        cells.push(getCellRaw(sheet, makeAddress(col, row)));
+      }
+      rows.push(cells.join('\t'));
+    }
+
+    return rows.join('\n');
+  }
+
+  function parseClipboardText(text) {
+    return String(text || '').replace(/\r/g, '').split('\n').map(function (line) {
+      return line.split('\t');
+    });
+  }
+
+  function applyClipboardMatrix(sheet, originAddress, matrix) {
+    const origin = splitAddress(originAddress);
+    if (!origin) return [];
+    const changes = [];
+    for (let row = 0; row < matrix.length; row += 1) {
+      for (let col = 0; col < matrix[row].length; col += 1) {
+        const address = makeAddress(origin.col + col, origin.row + row);
+        changes.push({ address: address, raw: matrix[row][col] });
+      }
+    }
+    return applyCellChanges(sheet, changes);
   }
 
   function evaluateCell(sheet, address, state) {
@@ -433,6 +482,24 @@
 
   function makeError(code) { return { __error: true, code: code || ERROR.ERR }; }
   function isError(value) { return !!(value && value.__error); }
+  function getBounds(positions) {
+    return positions.reduce(function (bounds, position) {
+      if (!bounds) {
+        return {
+          startCol: position.col,
+          endCol: position.col,
+          startRow: position.row,
+          endRow: position.row,
+        };
+      }
+      bounds.startCol = Math.min(bounds.startCol, position.col);
+      bounds.endCol = Math.max(bounds.endCol, position.col);
+      bounds.startRow = Math.min(bounds.startRow, position.row);
+      bounds.endRow = Math.max(bounds.endRow, position.row);
+      return bounds;
+    }, null);
+  }
+
   function normalizeReference(ref) {
     const split = splitAddress(ref);
     return split ? makeAddress(split.col, split.row) : null;
@@ -467,6 +534,10 @@
     runAction: runAction,
     getCellRaw: getCellRaw,
     getCellDisplay: getCellDisplay,
+    applyCellChanges: applyCellChanges,
+    serializeSelection: serializeSelection,
+    parseClipboardText: parseClipboardText,
+    applyClipboardMatrix: applyClipboardMatrix,
     evaluateCell: evaluateCell,
     splitAddress: splitAddress,
     makeAddress: makeAddress,
