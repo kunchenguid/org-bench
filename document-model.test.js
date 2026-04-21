@@ -127,3 +127,22 @@ test('plain script execution exposes createDocumentModel without CommonJS global
   });
   assert.equal(typeof context.window.createDocumentModel, 'function');
 });
+
+test('loading persisted cells ignores prototype-polluting keys', () => {
+  const storage = createMemoryStorage();
+  storage.setItem('oracle:test:spreadsheet-document', JSON.stringify({
+    cells: {
+      ['__proto__']: 'pollute',
+      A1: '42',
+    },
+    selection: 'A1',
+  }));
+
+  const model = createDocumentModel({ storage, namespace: 'oracle:test:' });
+  const exported = model.exportState();
+
+  assert.equal(model.getCell('A1'), '42');
+  assert.equal(model.getCell('__proto__'), '');
+  assert.equal(exported.cells.__proto__, undefined);
+  assert.equal(Object.getPrototypeOf(exported.cells), null);
+});

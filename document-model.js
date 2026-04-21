@@ -183,40 +183,40 @@ function createDocumentModel(options) {
 
 function loadState(storage, storageKey) {
   if (!storage) {
-    return { cells: {}, selection: 'A1' };
+    return { cells: createCellStore(), selection: 'A1' };
   }
 
   const raw = storage.getItem(storageKey);
   if (!raw) {
-    return { cells: {}, selection: 'A1' };
+    return { cells: createCellStore(), selection: 'A1' };
   }
 
   try {
     const parsed = JSON.parse(raw);
     return {
-      cells: parsed && parsed.cells ? parsed.cells : {},
+      cells: sanitizeCells(parsed && parsed.cells),
       selection: parsed && parsed.selection ? parsed.selection : 'A1',
     };
   } catch (_error) {
-    return { cells: {}, selection: 'A1' };
+    return { cells: createCellStore(), selection: 'A1' };
   }
 }
 
 function cloneState(state) {
   return {
-    cells: Object.assign({}, state.cells),
+    cells: sanitizeCells(state.cells),
     selection: state.selection,
   };
 }
 
 function compactState(state) {
-  const cells = {};
+  const cells = createCellStore();
   const addresses = Object.keys(state.cells);
 
   for (let index = 0; index < addresses.length; index += 1) {
     const address = addresses[index];
     const value = state.cells[address];
-    if (value !== '') {
+    if (value !== '' && isSafeCellAddress(address)) {
       cells[address] = value;
     }
   }
@@ -225,6 +225,33 @@ function compactState(state) {
     cells: cells,
     selection: state.selection || 'A1',
   };
+}
+
+function createCellStore() {
+  return Object.create(null);
+}
+
+function sanitizeCells(rawCells) {
+  const cells = createCellStore();
+  if (!rawCells || typeof rawCells !== 'object') {
+    return cells;
+  }
+
+  const addresses = Object.keys(rawCells);
+  for (let index = 0; index < addresses.length; index += 1) {
+    const address = addresses[index];
+    if (!isSafeCellAddress(address)) {
+      continue;
+    }
+
+    cells[address] = String(rawCells[address]);
+  }
+
+  return cells;
+}
+
+function isSafeCellAddress(address) {
+  return /^[A-Z]+\d+$/.test(address);
 }
 
 function buildClipboard(state, range, isCut) {

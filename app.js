@@ -1,4 +1,5 @@
 (function () {
+  const a11y = window.CellAccessibility;
   const core = window.GridCore;
   const state = Object.assign(core.buildInitialState(), {
     cells: {},
@@ -151,7 +152,7 @@
     td.dataset.row = String(cell.row);
     td.dataset.cell = core.cellId(cell);
     td.setAttribute('role', 'gridcell');
-    td.setAttribute('aria-label', core.cellId(cell));
+    td.setAttribute('aria-label', a11y.buildCellAriaLabel(core.cellId(cell), ''));
 
     const display = document.createElement('span');
     display.className = 'cell-display';
@@ -260,7 +261,9 @@
     if (currentEditor) currentEditor.remove();
 
     const display = element.querySelector('.cell-display');
-          display.textContent = active && state.editing ? '' : value;
+    const renderedValue = active && state.editing ? '' : value;
+    display.textContent = renderedValue;
+    element.setAttribute('aria-label', a11y.buildCellAriaLabel(core.cellId(cell), renderedValue));
 
     if (active && state.editing) {
       const input = document.createElement('input');
