@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Apple Sheets</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <p class="eyebrow">Apple Team Prototype</p>
+            <h1>Apple Sheets</h1>
+          </div>
+        </div>
+        <div class="status-pill" id="app-status">Ready</div>
+      </header>
+
+      <section class="formula-panel" aria-label="Formula bar">
+        <label class="name-box-label" for="name-box">Cell</label>
+        <input id="name-box" class="name-box" type="text" value="A1" readonly>
+        <label class="formula-label" for="formula-input">Formula</label>
+        <input
+          id="formula-input"
+          class="formula-input"
+          type="text"
+          value=""
+          placeholder="Select a cell to inspect its raw contents"
+          readonly
+        >
+      </section>
+
+      <main class="grid-frame" aria-label="Spreadsheet grid">
+        <div class="corner-cell" aria-hidden="true"></div>
+        <div id="column-headers" class="column-headers" aria-hidden="true"></div>
+        <div id="row-headers" class="row-headers" aria-hidden="true"></div>
+        <div id="grid" class="grid" role="grid" aria-label="Spreadsheet cells"></div>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
