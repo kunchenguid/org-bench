@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northsheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="formula-panel">
+        <div class="name-box" id="name-box">A1</div>
+        <label class="formula-label" for="formula-input">fx</label>
+        <input id="formula-input" class="formula-input" autocomplete="off" spellcheck="false">
+      </header>
+      <main class="grid-shell">
+        <div id="grid" class="grid" aria-label="Spreadsheet"></div>
+      </main>
+    </div>
+    <script src="spreadsheet-core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
