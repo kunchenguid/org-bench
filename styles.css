@@ -1,0 +1,228 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --grid: #d5dce5;
+  --header: #eef2f7;
+  --header-strong: #dde5f0;
+  --text: #132238;
+  --muted: #5b6b80;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --selection: rgba(37, 99, 235, 0.16);
+  --cell-width: 120px;
+  --row-height: 32px;
+  --header-width: 56px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  padding: 16px;
+  gap: 12px;
+}
+
+.formula-panel {
+  display: grid;
+  grid-template-columns: 44px 88px 1fr;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid rgba(19, 34, 56, 0.08);
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 12px 40px rgba(19, 34, 56, 0.08);
+}
+
+.formula-label,
+.name-box {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--grid);
+  background: var(--header);
+  font-weight: 600;
+}
+
+.formula-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+}
+
+.formula-input:focus,
+.cell-editor:focus,
+.header-action:focus-visible,
+.grid-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sheet-wrap {
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid rgba(19, 34, 56, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 20px 45px rgba(19, 34, 56, 0.08);
+}
+
+.sheet {
+  border-collapse: collapse;
+  min-width: max-content;
+}
+
+.sheet th,
+.sheet td {
+  border: 1px solid var(--grid);
+}
+
+.corner-cell,
+.col-header,
+.row-header {
+  position: sticky;
+  z-index: 2;
+  background: var(--header);
+}
+
+.corner-cell {
+  top: 0;
+  left: 0;
+  z-index: 4;
+  width: var(--header-width);
+  min-width: var(--header-width);
+}
+
+.col-header {
+  top: 0;
+  min-width: var(--cell-width);
+  height: var(--row-height);
+}
+
+.row-header {
+  left: 0;
+  z-index: 3;
+  width: var(--header-width);
+  min-width: var(--header-width);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 6px;
+  min-height: var(--row-height);
+}
+
+.header-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.header-action {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.header-action:hover {
+  background: var(--header-strong);
+  color: var(--text);
+}
+
+.grid-cell {
+  position: relative;
+  width: var(--cell-width);
+  min-width: var(--cell-width);
+  height: var(--row-height);
+  padding: 0 10px;
+  background: #fff;
+  cursor: cell;
+  user-select: none;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.cell-display,
+.cell-editor {
+  display: block;
+  width: 100%;
+  height: calc(var(--row-height) - 2px);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: calc(var(--row-height) - 2px);
+  text-align: left;
+}
+
+.cell-display {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.grid-cell.active {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  z-index: 1;
+}
+
+.grid-cell.in-range {
+  background: var(--selection);
+}
+
+.grid-cell.active.in-range {
+  background: color-mix(in srgb, var(--selection) 75%, #fff);
+}
+
+.grid-cell.editing {
+  padding: 0 8px;
+}
+
+.grid-cell.editing .cell-display {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .formula-panel {
+    grid-template-columns: 38px 64px 1fr;
+  }
+
+  :root {
+    --cell-width: 104px;
+  }
+}
