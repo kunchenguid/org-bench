@@ -1401,6 +1401,7 @@
   var api = {
     SpreadsheetModel: SpreadsheetModel,
     coordsToRef: coordsToRef,
+    remapFormula: remapFormula,
     parseFormula: parseFormula,
     createApp: createApp,
   };
