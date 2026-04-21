@@ -147,3 +147,71 @@ test('pasteBlock clears a cut source after writing the destination block', () =>
     }
   );
 });
+
+test('pasteBlock shifts relative references when a copied formula moves', () => {
+  assert.deepEqual(
+    pasteBlock(
+      {
+        '2,2': '=A1+B$2+$C3+$D$4',
+      },
+      {
+        start: { row: 5, col: 4 },
+        end: { row: 5, col: 4 },
+        active: { row: 5, col: 4 },
+      },
+      '=A1+B$2+$C3+$D$4',
+      {
+        sourceRange: {
+          start: { row: 2, col: 2 },
+          end: { row: 2, col: 2 },
+          active: { row: 2, col: 2 },
+        },
+      }
+    ),
+    {
+      cells: {
+        '2,2': '=A1+B$2+$C3+$D$4',
+        '5,4': '=C4+D$2+$C6+$D$4',
+      },
+      range: {
+        start: { row: 5, col: 4 },
+        end: { row: 5, col: 4 },
+        active: { row: 5, col: 4 },
+      },
+    }
+  );
+});
+
+test('pasteBlock shifts formulas across a copied range cell-by-cell', () => {
+  assert.deepEqual(
+    pasteBlock(
+      {},
+      {
+        start: { row: 4, col: 5 },
+        end: { row: 5, col: 6 },
+        active: { row: 4, col: 5 },
+      },
+      '=SUM(A1:B2)\t=A$1\n=$A2\t=SUM($A$1:B$2)',
+      {
+        sourceRange: {
+          start: { row: 1, col: 1 },
+          end: { row: 2, col: 2 },
+          active: { row: 1, col: 1 },
+        },
+      }
+    ),
+    {
+      cells: {
+        '4,5': '=SUM(E4:F5)',
+        '4,6': '=E$1',
+        '5,5': '=$A5',
+        '5,6': '=SUM($A$1:F$2)',
+      },
+      range: {
+        start: { row: 4, col: 5 },
+        end: { row: 5, col: 6 },
+        active: { row: 4, col: 5 },
+      },
+    }
+  );
+});

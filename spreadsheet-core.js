@@ -2,6 +2,25 @@ function cellKey(row, col) {
   return row + ',' + col;
 }
 
+function columnLabel(index) {
+  let value = index;
+  let label = '';
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+  return label;
+}
+
+function columnNumber(label) {
+  let value = 0;
+  for (let index = 0; index < label.length; index += 1) {
+    value = (value * 26) + (label.charCodeAt(index) - 64);
+  }
+  return value;
+}
+
 function normalizeRange(anchor, focus, active) {
   return {
     start: {
@@ -66,6 +85,19 @@ function parseClipboard(text) {
     .map((line) => line.split('\t'));
 }
 
+function shiftReference(reference, rowDelta, colDelta) {
+  return reference.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, (match, colFixed, colLabel, rowFixed, rowNumber) => {
+    const nextCol = colFixed ? columnNumber(colLabel) : columnNumber(colLabel) + colDelta;
+    const nextRow = rowFixed ? Number(rowNumber) : Number(rowNumber) + rowDelta;
+    return (
+      (colFixed || '') +
+      columnLabel(Math.max(1, nextCol)) +
+      (rowFixed || '') +
+      String(Math.max(1, nextRow))
+    );
+  });
+}
+
 function pasteBlock(cells, destinationRange, text, options) {
   const settings = options || {};
   const nextCells = settings.cutRange ? clearRange(cells, settings.cutRange) : { ...cells };
@@ -74,7 +106,15 @@ function pasteBlock(cells, destinationRange, text, options) {
 
   for (let rowOffset = 0; rowOffset < block.length; rowOffset += 1) {
     for (let colOffset = 0; colOffset < block[rowOffset].length; colOffset += 1) {
-      const value = block[rowOffset][colOffset];
+      const sourceRow = settings.sourceRange ? settings.sourceRange.start.row + rowOffset : target.row + rowOffset;
+      const sourceCol = settings.sourceRange ? settings.sourceRange.start.col + colOffset : target.col + colOffset;
+      const value = block[rowOffset][colOffset].charAt(0) === '='
+        ? shiftReference(
+            block[rowOffset][colOffset],
+            (target.row + rowOffset) - sourceRow,
+            (target.col + colOffset) - sourceCol
+          )
+        : block[rowOffset][colOffset];
       const key = cellKey(target.row + rowOffset, target.col + colOffset);
       if (value) {
         nextCells[key] = value;
@@ -104,6 +144,7 @@ const api = {
   clearRange,
   copyRange,
   parseClipboard,
+  shiftReference,
   pasteBlock,
 };
 
