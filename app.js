@@ -1,20 +1,19 @@
 (function () {
   var ROWS = 100;
   var COLS = 26;
-  var STORAGE_NAMESPACE = window.__APPLE_RUN_STORAGE_NAMESPACE__ || window.__RUN_STORAGE_NAMESPACE__ || "apple-run";
-  var STORAGE_KEY = STORAGE_NAMESPACE + ":bootstrap-selection";
   var columnHeaders = document.getElementById("column-headers");
   var rowHeaders = document.getElementById("row-headers");
   var grid = document.getElementById("grid");
   var nameBox = document.getElementById("name-box");
   var formulaInput = document.getElementById("formula-input");
   var status = document.getElementById("app-status");
-  var activeCellId = restoreSelection() || "A1";
+  var workbookState = createWorkbookState();
+  var activeCellId = workbookState.getSelectedCell();
 
   renderHeaders();
   renderGrid();
   setActiveCell(activeCellId);
-  status.textContent = "Bootstrap ready";
+  status.textContent = "Workbook state ready";
 
   function renderHeaders() {
     for (var col = 0; col < COLS; col += 1) {
@@ -76,23 +75,35 @@
     next.setAttribute("aria-selected", "true");
     activeCellId = cellId;
     nameBox.value = cellId;
-    formulaInput.value = "";
-    persistSelection(cellId);
+    formulaInput.value = workbookState.getCellRaw(cellId);
+    workbookState.setSelectedCell(cellId);
   }
 
-  function persistSelection(cellId) {
+  function createWorkbookState() {
     try {
-      window.localStorage.setItem(STORAGE_KEY, cellId);
+      return window.WorkbookState.createWorkbookState();
     } catch (error) {
       status.textContent = "Storage unavailable";
+      return window.WorkbookState.createWorkbookState({
+        namespace: "apple-fallback",
+        storage: createMemoryStorage(),
+      });
     }
   }
 
-  function restoreSelection() {
-    try {
-      return window.localStorage.getItem(STORAGE_KEY);
-    } catch (error) {
-      return null;
-    }
+  function createMemoryStorage() {
+    var values = {};
+
+    return {
+      getItem: function (key) {
+        return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null;
+      },
+      setItem: function (key, value) {
+        values[key] = String(value);
+      },
+      removeItem: function (key) {
+        delete values[key];
+      },
+    };
   }
 })();
