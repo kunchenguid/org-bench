@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Northstar Sheet</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Microsoft Division E</p>
+          <h1>Northstar Sheet</h1>
+        </div>
+        <div class="selection-chip" id="selection-chip">A1</div>
+      </header>
+      <section class="formula-panel">
+        <label for="formula-input">Formula</label>
+        <input id="formula-input" type="text" spellcheck="false" autocomplete="off">
+      </section>
+      <main class="grid-shell">
+        <table id="sheet-grid" class="sheet-grid"></table>
+      </main>
+    </div>
+    <script src="spreadsheet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
