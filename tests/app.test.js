@@ -17,6 +17,10 @@ const {
   applyHistoryState,
   undoHistory,
   redoHistory,
+  insertRow,
+  deleteRow,
+  insertColumn,
+  deleteColumn,
   evaluateCell,
   formatValue,
   createStorageAdapter,
@@ -249,6 +253,72 @@ test('undo and redo restore pasted ranges', () => {
   history = redoHistory(history);
   assert.equal(getCellRaw(history.present, 2, 1), '4');
   assert.equal(getCellRaw(history.present, 2, 2), '=A2+1');
+});
+
+test('inserting a row shifts formulas that point below the insertion point', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 3, 1, '9');
+  state = commitCell(state, 1, 1, '=A3');
+
+  state = insertRow(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 1), '=A4');
+  assert.equal(getCellRaw(state, 4, 1), '9');
+  assert.equal(formatValue(evaluateCell(state, 1, 1).value), '9');
+});
+
+test('deleting a referenced row rewrites the formula to #REF!', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 2, 1, '7');
+  state = commitCell(state, 1, 1, '=A2');
+
+  state = deleteRow(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 1), '=#REF!');
+  assert.equal(formatValue(evaluateCell(state, 1, 1).value), '#REF!');
+});
+
+test('inserting a column shifts formulas that point right of the insertion point', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 3, '5');
+  state = commitCell(state, 1, 1, '=C1');
+
+  state = insertColumn(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 1), '=D1');
+  assert.equal(getCellRaw(state, 1, 4), '5');
+  assert.equal(formatValue(evaluateCell(state, 1, 1).value), '5');
+});
+
+test('deleting a referenced column rewrites the formula to #REF!', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 1, 2, '3');
+  state = commitCell(state, 1, 1, '=B1');
+
+  state = deleteColumn(state, 2);
+
+  assert.equal(getCellRaw(state, 1, 1), '=#REF!');
+  assert.equal(formatValue(evaluateCell(state, 1, 1).value), '#REF!');
+});
+
+test('undo and redo restore structural row inserts', () => {
+  let state = createEmptyState();
+  state = commitCell(state, 3, 1, '9');
+  state = commitCell(state, 1, 1, '=A3');
+
+  let history = createHistory(state);
+  history = applyHistoryState(history, insertRow(history.present, 2));
+
+  assert.equal(getCellRaw(history.present, 1, 1), '=A4');
+  assert.equal(getCellRaw(history.present, 4, 1), '9');
+
+  history = undoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '=A3');
+  assert.equal(getCellRaw(history.present, 3, 1), '9');
+
+  history = redoHistory(history);
+  assert.equal(getCellRaw(history.present, 1, 1), '=A4');
+  assert.equal(getCellRaw(history.present, 4, 1), '9');
 });
 
 test('detects circular references', () => {
