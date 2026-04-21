@@ -2,9 +2,10 @@
   'use strict';
 
   var engine = window.FormulaEngine;
+  var storage = window.GridStorage;
   var COLUMN_COUNT = engine.COLUMN_COUNT;
   var ROW_COUNT = engine.ROW_COUNT;
-  var STORAGE_KEY = ((window.__RUN_STORAGE_NAMESPACE__ || 'spreadsheet:run') + ':grid');
+  var STORAGE_KEY = storage.getStorageKey(window);
 
   var state = {
     sheet: engine.createSheet(loadPersisted().cells),
