@@ -762,8 +762,12 @@
   }
 
   function applyPaste(model, targetCoord, text, options) {
-    const target = parseCoord(targetCoord);
     const matrix = parseTSV(text);
+    const targetSelection = options && options.targetSelection ? parseSelectionRect(options.targetSelection) : null;
+    const target = targetSelection && matrix.length === (targetSelection.rowEnd - targetSelection.rowStart + 1)
+      && matrix[0] && matrix[0].length === (targetSelection.colEnd - targetSelection.colStart + 1)
+      ? { row: targetSelection.rowStart, col: targetSelection.colStart }
+      : parseCoord(targetCoord);
     const sourceTopLeft = options && options.sourceSelection ? parseCoord(options.sourceSelection.start) : null;
     matrix.forEach((rowValues, rowIndex) => {
       rowValues.forEach((raw, colIndex) => {
