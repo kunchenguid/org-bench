@@ -5,6 +5,7 @@
   const storageKey = namespace + ':quiet-sheet:v1';
   const sheetEl = document.getElementById('sheet');
   const formulaBar = document.getElementById('formula-bar');
+  const structureButtons = document.querySelectorAll('[data-structure-action]');
 
   const state = loadState();
   let computed = {};
@@ -90,6 +91,24 @@
     formulaBar.addEventListener('input', onFormulaInput);
     formulaBar.addEventListener('keydown', onFormulaKeyDown);
     formulaBar.addEventListener('blur', onFormulaBlur);
+    structureButtons.forEach(function (button) {
+      button.addEventListener('click', onStructureActionClick);
+    });
+  }
+
+  function onStructureActionClick(event) {
+    const active = state.selection.focus;
+    const operation = {
+      'insert-row-above': { axis: 'row', kind: 'insert', index: active.row },
+      'insert-row-below': { axis: 'row', kind: 'insert', index: active.row + 1 },
+      'delete-row': { axis: 'row', kind: 'delete', index: active.row },
+      'insert-col-left': { axis: 'col', kind: 'insert', index: active.col },
+      'insert-col-right': { axis: 'col', kind: 'insert', index: active.col + 1 },
+      'delete-col': { axis: 'col', kind: 'delete', index: active.col },
+    }[event.currentTarget.dataset.structureAction];
+
+    if (!operation) return;
+    applyStructureChange(operation);
   }
 
   function onCellMouseDown(event) {
@@ -414,5 +433,26 @@
 
   function getCellElement(cellId) {
     return sheetEl.querySelector('td[data-cell-id="' + cellId + '"]');
+  }
+
+  function applyStructureChange(operation) {
+    finishEdit(false);
+    state.cells = applyCellStructureChange(operation);
+    state.selection = appState.getSelectionAfterStructureChange(state.selection, operation);
+    recalculate();
+    renderSelection();
+    saveState();
+  }
+
+  function applyCellStructureChange(operation) {
+    if (operation.axis === 'row') {
+      return operation.kind === 'insert'
+        ? core.insertRow(state.cells, operation.index)
+        : core.deleteRow(state.cells, operation.index);
+    }
+
+    return operation.kind === 'insert'
+      ? core.insertColumn(state.cells, operation.index)
+      : core.deleteColumn(state.cells, operation.index);
   }
 })();

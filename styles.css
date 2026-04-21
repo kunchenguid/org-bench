@@ -35,9 +35,35 @@ body {
 
 .topbar {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px auto minmax(280px, 1fr);
   gap: 16px;
   align-items: end;
+}
+
+.structure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.structure-actions button {
+  border: 1px solid var(--grid);
+  background: var(--panel);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.structure-actions button:hover,
+.structure-actions button:focus-visible {
+  outline: 0;
+  border-color: var(--accent);
+  background: white;
 }
 
 .eyebrow {
