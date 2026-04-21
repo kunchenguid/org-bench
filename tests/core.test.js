@@ -8,6 +8,10 @@ const {
   movePosition,
   cellKey,
   columnLabel,
+  createWorkbook,
+  setCell,
+  getCellDisplay,
+  evaluateFormula,
   storageKey,
 } = require('../core.js');
 
@@ -40,4 +44,43 @@ test('columnLabel supports the visible brief range', () => {
 test('storageKey prefixes persisted data with the run namespace', () => {
   assert.equal(storageKey('google-run:', 'sheet-state'), 'google-run:sheet-state');
   assert.equal(storageKey('', 'sheet-state'), 'sheet-state');
+});
+
+test('evaluateFormula handles arithmetic precedence and parentheses', () => {
+  const workbook = createWorkbook();
+
+  assert.equal(evaluateFormula(workbook, '=1+2*3'), 7);
+  assert.equal(evaluateFormula(workbook, '=(1+2)*3'), 9);
+  assert.equal(evaluateFormula(workbook, '=-5+2'), -3);
+});
+
+test('evaluateFormula resolves booleans and comparison operators', () => {
+  const workbook = createWorkbook();
+
+  assert.equal(evaluateFormula(workbook, '=TRUE'), true);
+  assert.equal(evaluateFormula(workbook, '=FALSE'), false);
+  assert.equal(evaluateFormula(workbook, '=3>2'), true);
+  assert.equal(evaluateFormula(workbook, '=3<=2'), false);
+  assert.equal(evaluateFormula(workbook, '=3<>2'), true);
+});
+
+test('evaluateFormula resolves direct cell references and empty cells as zero', () => {
+  const workbook = createWorkbook();
+
+  setCell(workbook, { col: 0, row: 0 }, '7');
+  setCell(workbook, { col: 0, row: 1 }, '5');
+
+  assert.equal(evaluateFormula(workbook, '=A1+A2'), 12);
+  assert.equal(evaluateFormula(workbook, '=B1+2'), 2);
+});
+
+test('setCell keeps formulas raw and stores evaluated display values', () => {
+  const workbook = createWorkbook();
+
+  setCell(workbook, { col: 0, row: 0 }, '10');
+  setCell(workbook, { col: 0, row: 1 }, '2');
+  setCell(workbook, { col: 1, row: 0 }, '=A1+A2');
+
+  assert.equal(workbook.cells.B1.raw, '=A1+A2');
+  assert.equal(getCellDisplay(workbook, { col: 1, row: 0 }), '12');
 });
