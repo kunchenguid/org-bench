@@ -1,525 +1,588 @@
-(function (root, factory) {
-  if (typeof module !== 'undefined' && module.exports) {
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
     module.exports = factory();
-  } else {
-    root.SpreadsheetEngine = factory();
+    return;
   }
+
+  root.SpreadsheetEngine = factory();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const CIRCULAR = { type: 'error', code: '#CIRC!' };
+  const CELL_REF_RE = /^\$?([A-Z]+)\$?(\d+)$/;
+  const STORAGE_KEY = 'sheet-state';
 
-  function createEmptySheet(initialCells) {
-    return {
-      cells: Object.assign({}, initialCells || {}),
-    };
+  function createStorageKey(namespace, key) {
+    return namespace + ':' + key;
   }
 
-  function setCell(sheet, address, raw) {
-    const value = raw == null ? '' : String(raw);
-    if (value === '') {
-      delete sheet.cells[address];
-      return;
+  function evaluateCellMap(rawCells) {
+    const cache = new Map();
+    const evaluating = new Set();
+    const results = {};
+    const keys = Object.keys(rawCells);
+
+    function resolveCell(cellId) {
+      if (cache.has(cellId)) {
+        return cache.get(cellId);
+      }
+
+      if (evaluating.has(cellId)) {
+        const circular = makeError('#CIRC!');
+        cache.set(cellId, circular);
+        return circular;
+      }
+
+      evaluating.add(cellId);
+      const raw = rawCells[cellId] || '';
+      let value;
+
+      if (!raw) {
+        value = makeBlank();
+      } else if (raw[0] === '=') {
+        try {
+          const parser = createParser(raw.slice(1));
+          const ast = parser.parseExpression();
+          parser.expectEnd();
+          value = evaluateAst(ast, resolveCell);
+        } catch (error) {
+          value = makeError(error && error.code ? error.code : '#ERR!');
+        }
+      } else {
+        value = parseLiteral(raw);
+      }
+
+      evaluating.delete(cellId);
+      cache.set(cellId, value);
+      return value;
     }
-    sheet.cells[address] = value;
+
+    for (const cellId of keys) {
+      const value = resolveCell(cellId);
+      results[cellId] = {
+        raw: rawCells[cellId],
+        value: value.value,
+        type: value.type,
+        display: formatValue(value),
+      };
+    }
+
+    return results;
   }
 
-  function getCellRaw(sheet, address) {
-    return sheet.cells[address] || '';
+  function makeBlank() {
+    return { type: 'blank', value: '' };
   }
 
-  function getCellValue(sheet, address) {
-    const result = evaluateCell(sheet, address, []);
-    if (result && result.type === 'error') {
-      return result.code;
-    }
-    return result;
+  function makeError(code) {
+    return { type: 'error', value: code };
   }
 
-  function getDisplayValue(sheet, address) {
-    const value = getCellValue(sheet, address);
-    if (value == null) {
-      return '';
-    }
-    if (value === true) {
-      return 'TRUE';
-    }
-    if (value === false) {
-      return 'FALSE';
-    }
-    return String(value);
-  }
-
-  function evaluateCell(sheet, address, stack) {
-    if (stack.indexOf(address) !== -1) {
-      return CIRCULAR;
-    }
-
-    const raw = getCellRaw(sheet, address);
-    if (!raw) {
-      return '';
-    }
-
-    if (raw.charAt(0) !== '=') {
-      return parseLiteral(raw);
-    }
-
-    try {
-      const parser = new Parser(tokenize(raw.slice(1)));
-      const ast = parser.parseExpression();
-      parser.expectEnd();
-      return evaluateAst(ast, sheet, stack.concat(address));
-    } catch (error) {
-      return error && error.type === 'error' ? error : { type: 'error', code: '#ERR!' };
-    }
+  function makeScalar(type, value) {
+    return { type, value };
   }
 
   function parseLiteral(raw) {
-    const trimmed = raw.trim();
-    if (trimmed === '') {
-      return '';
+    if (/^TRUE$/i.test(raw)) {
+      return makeScalar('boolean', true);
     }
-    if (/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(trimmed)) {
-      return Number(trimmed);
+
+    if (/^FALSE$/i.test(raw)) {
+      return makeScalar('boolean', false);
     }
-    if (trimmed.toUpperCase() === 'TRUE') {
-      return true;
+
+    const number = Number(raw);
+    if (raw.trim() !== '' && Number.isFinite(number)) {
+      return makeScalar('number', number);
     }
-    if (trimmed.toUpperCase() === 'FALSE') {
-      return false;
-    }
-    return raw;
+
+    return makeScalar('string', raw);
   }
 
-  function tokenize(source) {
+  function formatValue(value) {
+    if (value.type === 'error') {
+      return value.value;
+    }
+
+    if (value.type === 'blank') {
+      return '';
+    }
+
+    if (value.type === 'boolean') {
+      return value.value ? 'TRUE' : 'FALSE';
+    }
+
+    return String(value.value);
+  }
+
+  function evaluateAst(node, resolveCell) {
+    switch (node.type) {
+      case 'number':
+        return makeScalar('number', node.value);
+      case 'string':
+        return makeScalar('string', node.value);
+      case 'boolean':
+        return makeScalar('boolean', node.value);
+      case 'cell':
+        return normalizeReferenceValue(resolveCell(node.value));
+      case 'unary':
+        return evaluateUnary(node, resolveCell);
+      case 'binary':
+        return evaluateBinary(node, resolveCell);
+      case 'function':
+        return evaluateFunction(node, resolveCell);
+      case 'range':
+        return flattenRange(node.start, node.end, resolveCell);
+      default:
+        throw { code: '#ERR!' };
+    }
+  }
+
+  function normalizeReferenceValue(value) {
+    if (!value || value.type === 'blank') {
+      return makeBlank();
+    }
+
+    return value;
+  }
+
+  function evaluateUnary(node, resolveCell) {
+    const value = evaluateAst(node.argument, resolveCell);
+    if (value.type === 'error') {
+      return value;
+    }
+
+    if (node.operator === '-') {
+      return makeScalar('number', -toNumber(value));
+    }
+
+    throw { code: '#ERR!' };
+  }
+
+  function evaluateBinary(node, resolveCell) {
+    const left = evaluateAst(node.left, resolveCell);
+    const right = evaluateAst(node.right, resolveCell);
+
+    if (left.type === 'error') {
+      return left;
+    }
+
+    if (right.type === 'error') {
+      return right;
+    }
+
+    if (node.operator === '&') {
+      return makeScalar('string', toStringValue(left) + toStringValue(right));
+    }
+
+    if (['=', '<>', '<', '<=', '>', '>='].includes(node.operator)) {
+      return makeScalar('boolean', compareValues(left, right, node.operator));
+    }
+
+    const leftNumber = toNumber(left);
+    const rightNumber = toNumber(right);
+
+    switch (node.operator) {
+      case '+':
+        return makeScalar('number', leftNumber + rightNumber);
+      case '-':
+        return makeScalar('number', leftNumber - rightNumber);
+      case '*':
+        return makeScalar('number', leftNumber * rightNumber);
+      case '/':
+        if (rightNumber === 0) {
+          return makeError('#DIV/0!');
+        }
+
+        return makeScalar('number', leftNumber / rightNumber);
+      default:
+        throw { code: '#ERR!' };
+    }
+  }
+
+  function evaluateFunction(node, resolveCell) {
+    const name = node.name.toUpperCase();
+    const args = node.args.map(function (arg) {
+      if (arg.type === 'range') {
+        return evaluateAst(arg, resolveCell);
+      }
+
+      return evaluateAst(arg, resolveCell);
+    });
+
+    for (const arg of args) {
+      if (arg && arg.type === 'error') {
+        return arg;
+      }
+    }
+
+    const flattened = args.flatMap(function (arg) {
+      return Array.isArray(arg) ? arg : [arg];
+    });
+
+    switch (name) {
+      case 'SUM':
+        return makeScalar('number', flattened.reduce(function (sum, value) {
+          return sum + toNumber(value);
+        }, 0));
+      case 'AVERAGE':
+        if (!flattened.length) {
+          return makeScalar('number', 0);
+        }
+
+        return makeScalar('number', flattened.reduce(function (sum, value) {
+          return sum + toNumber(value);
+        }, 0) / flattened.length);
+      case 'COUNT':
+        return makeScalar('number', flattened.filter(function (value) {
+          return value.type !== 'blank' && value.type !== 'error';
+        }).length);
+      case 'MIN':
+        return makeScalar('number', Math.min.apply(null, flattened.map(toNumber)));
+      case 'MAX':
+        return makeScalar('number', Math.max.apply(null, flattened.map(toNumber)));
+      case 'ABS':
+        return makeScalar('number', Math.abs(toNumber(flattened[0] || makeBlank())));
+      case 'ROUND':
+        return roundValue(flattened);
+      case 'IF':
+        return toBoolean(flattened[0]) ? (flattened[1] || makeBlank()) : (flattened[2] || makeBlank());
+      case 'AND':
+        return makeScalar('boolean', flattened.every(toBoolean));
+      case 'OR':
+        return makeScalar('boolean', flattened.some(toBoolean));
+      case 'NOT':
+        return makeScalar('boolean', !toBoolean(flattened[0] || makeBlank()));
+      case 'CONCAT':
+        return makeScalar('string', flattened.map(toStringValue).join(''));
+      default:
+        return makeError('#ERR!');
+    }
+  }
+
+  function roundValue(args) {
+    const number = toNumber(args[0] || makeBlank());
+    const digits = args.length > 1 ? toNumber(args[1]) : 0;
+    const factor = Math.pow(10, digits);
+    return makeScalar('number', Math.round(number * factor) / factor);
+  }
+
+  function compareValues(left, right, operator) {
+    const leftValue = left.type === 'string' || right.type === 'string' ? toStringValue(left) : toNumber(left);
+    const rightValue = left.type === 'string' || right.type === 'string' ? toStringValue(right) : toNumber(right);
+
+    switch (operator) {
+      case '=':
+        return leftValue === rightValue;
+      case '<>':
+        return leftValue !== rightValue;
+      case '<':
+        return leftValue < rightValue;
+      case '<=':
+        return leftValue <= rightValue;
+      case '>':
+        return leftValue > rightValue;
+      case '>=':
+        return leftValue >= rightValue;
+      default:
+        return false;
+    }
+  }
+
+  function flattenRange(start, end, resolveCell) {
+    const startRef = parseCellId(start);
+    const endRef = parseCellId(end);
+    const minRow = Math.min(startRef.row, endRef.row);
+    const maxRow = Math.max(startRef.row, endRef.row);
+    const minCol = Math.min(startRef.col, endRef.col);
+    const maxCol = Math.max(startRef.col, endRef.col);
+    const values = [];
+
+    for (let row = minRow; row <= maxRow; row += 1) {
+      for (let col = minCol; col <= maxCol; col += 1) {
+        values.push(normalizeReferenceValue(resolveCell(toCellId(row, col))));
+      }
+    }
+
+    return values;
+  }
+
+  function toNumber(value) {
+    if (!value || value.type === 'blank') {
+      return 0;
+    }
+
+    if (value.type === 'number') {
+      return value.value;
+    }
+
+    if (value.type === 'boolean') {
+      return value.value ? 1 : 0;
+    }
+
+    const parsed = Number(value.value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function toStringValue(value) {
+    if (!value || value.type === 'blank') {
+      return '';
+    }
+
+    if (value.type === 'boolean') {
+      return value.value ? 'TRUE' : 'FALSE';
+    }
+
+    return String(value.value);
+  }
+
+  function toBoolean(value) {
+    if (!value || value.type === 'blank') {
+      return false;
+    }
+
+    if (value.type === 'boolean') {
+      return value.value;
+    }
+
+    if (value.type === 'string') {
+      return value.value !== '';
+    }
+
+    return toNumber(value) !== 0;
+  }
+
+  function createParser(input) {
+    const tokens = tokenize(input);
+    let index = 0;
+
+    function current() {
+      return tokens[index];
+    }
+
+    function consume(type, value) {
+      const token = current();
+      if (!token || token.type !== type || (value && token.value !== value)) {
+        return null;
+      }
+
+      index += 1;
+      return token;
+    }
+
+    function expect(type, value) {
+      const token = consume(type, value);
+      if (!token) {
+        throw { code: '#ERR!' };
+      }
+
+      return token;
+    }
+
+    function parsePrimary() {
+      const token = current();
+      if (!token) {
+        throw { code: '#ERR!' };
+      }
+
+      if (consume('operator', '(')) {
+        const expression = parseComparison();
+        expect('operator', ')');
+        return expression;
+      }
+
+      if (consume('operator', '-')) {
+        return { type: 'unary', operator: '-', argument: parsePrimary() };
+      }
+
+      if (token.type === 'number') {
+        index += 1;
+        return { type: 'number', value: Number(token.value) };
+      }
+
+      if (token.type === 'string') {
+        index += 1;
+        return { type: 'string', value: token.value };
+      }
+
+      if (token.type === 'identifier') {
+        index += 1;
+        const name = token.value.toUpperCase();
+        if (name === 'TRUE' || name === 'FALSE') {
+          return { type: 'boolean', value: name === 'TRUE' };
+        }
+
+        if (consume('operator', '(')) {
+          const args = [];
+          if (!consume('operator', ')')) {
+            do {
+              args.push(parseComparison());
+            } while (consume('operator', ','));
+            expect('operator', ')');
+          }
+
+          return { type: 'function', name: name, args: args };
+        }
+
+        if (consume('operator', ':')) {
+          const end = expect('identifier').value.toUpperCase();
+          return { type: 'range', start: name, end: end };
+        }
+
+        if (CELL_REF_RE.test(name)) {
+          return { type: 'cell', value: name };
+        }
+      }
+
+      throw { code: '#ERR!' };
+    }
+
+    function parseMultiplication() {
+      let node = parsePrimary();
+      while (true) {
+        const token = current();
+        if (!token || token.type !== 'operator' || (token.value !== '*' && token.value !== '/')) {
+          return node;
+        }
+
+        index += 1;
+        node = { type: 'binary', operator: token.value, left: node, right: parsePrimary() };
+      }
+    }
+
+    function parseAddition() {
+      let node = parseMultiplication();
+      while (true) {
+        const token = current();
+        if (!token || token.type !== 'operator' || !['+', '-', '&'].includes(token.value)) {
+          return node;
+        }
+
+        index += 1;
+        node = { type: 'binary', operator: token.value, left: node, right: parseMultiplication() };
+      }
+    }
+
+    function parseComparison() {
+      let node = parseAddition();
+      while (true) {
+        const token = current();
+        if (!token || token.type !== 'operator' || !['=', '<>', '<', '<=', '>', '>='].includes(token.value)) {
+          return node;
+        }
+
+        index += 1;
+        node = { type: 'binary', operator: token.value, left: node, right: parseAddition() };
+      }
+    }
+
+    return {
+      parseExpression: parseComparison,
+      expectEnd: function () {
+        if (index !== tokens.length) {
+          throw { code: '#ERR!' };
+        }
+      },
+    };
+  }
+
+  function tokenize(input) {
     const tokens = [];
     let index = 0;
-    while (index < source.length) {
-      const char = source.charAt(index);
+
+    while (index < input.length) {
+      const char = input[index];
       if (/\s/.test(char)) {
         index += 1;
         continue;
       }
-      const two = source.slice(index, index + 2);
-      if (two === '<=' || two === '>=' || two === '<>') {
-        tokens.push({ type: 'op', value: two });
+
+      const twoChar = input.slice(index, index + 2);
+      if (['<=', '>=', '<>'].includes(twoChar)) {
+        tokens.push({ type: 'operator', value: twoChar });
         index += 2;
         continue;
       }
-      if ('+-*/&=<>():,'.indexOf(char) !== -1) {
-        tokens.push({ type: char === '(' || char === ')' || char === ',' || char === ':' ? char : 'op', value: char });
+
+      if ('+-*/&(),:=<>'.includes(char)) {
+        tokens.push({ type: 'operator', value: char });
         index += 1;
         continue;
       }
+
       if (char === '"') {
         let end = index + 1;
         let value = '';
-        while (end < source.length && source.charAt(end) !== '"') {
-          value += source.charAt(end);
+        while (end < input.length && input[end] !== '"') {
+          value += input[end];
           end += 1;
         }
-        if (source.charAt(end) !== '"') {
-          throw { type: 'error', code: '#ERR!' };
+        if (end >= input.length) {
+          throw { code: '#ERR!' };
         }
         tokens.push({ type: 'string', value: value });
         index = end + 1;
         continue;
       }
-      const numberMatch = source.slice(index).match(/^(?:\d+\.?\d*|\.\d+)/);
+
+      const numberMatch = input.slice(index).match(/^\d+(?:\.\d+)?/);
       if (numberMatch) {
-        tokens.push({ type: 'number', value: Number(numberMatch[0]) });
+        tokens.push({ type: 'number', value: numberMatch[0] });
         index += numberMatch[0].length;
         continue;
       }
-      const identifierMatch = source.slice(index).match(/^\$?[A-Za-z]+\$?\d+|^[A-Za-z_]+/);
+
+      const identifierMatch = input.slice(index).match(/^[A-Za-z$][A-Za-z0-9$]*/);
       if (identifierMatch) {
-        const value = identifierMatch[0];
-        if (/^\$?[A-Za-z]+\$?\d+$/.test(value)) {
-          tokens.push({ type: 'ref', value: value.toUpperCase() });
-        } else {
-          tokens.push({ type: 'ident', value: value.toUpperCase() });
-        }
-        index += value.length;
+        tokens.push({ type: 'identifier', value: identifierMatch[0] });
+        index += identifierMatch[0].length;
         continue;
       }
-      throw { type: 'error', code: '#ERR!' };
+
+      throw { code: '#ERR!' };
     }
+
     return tokens;
   }
 
-  function Parser(tokens) {
-    this.tokens = tokens;
-    this.index = 0;
-  }
-
-  Parser.prototype.peek = function () {
-    return this.tokens[this.index];
-  };
-
-  Parser.prototype.consume = function () {
-    const token = this.tokens[this.index];
-    this.index += 1;
-    return token;
-  };
-
-  Parser.prototype.expectEnd = function () {
-    if (this.peek()) {
-      throw { type: 'error', code: '#ERR!' };
-    }
-  };
-
-  Parser.prototype.parseExpression = function () {
-    return this.parseComparison();
-  };
-
-  Parser.prototype.parseComparison = function () {
-    let left = this.parseConcat();
-    while (this.peek() && this.peek().type === 'op' && ['=', '<>', '<', '<=', '>', '>='].indexOf(this.peek().value) !== -1) {
-      const operator = this.consume().value;
-      left = { type: 'binary', operator: operator, left: left, right: this.parseConcat() };
-    }
-    return left;
-  };
-
-  Parser.prototype.parseConcat = function () {
-    let left = this.parseAdditive();
-    while (this.peek() && this.peek().type === 'op' && this.peek().value === '&') {
-      this.consume();
-      left = { type: 'binary', operator: '&', left: left, right: this.parseAdditive() };
-    }
-    return left;
-  };
-
-  Parser.prototype.parseAdditive = function () {
-    let left = this.parseMultiplicative();
-    while (this.peek() && this.peek().type === 'op' && (this.peek().value === '+' || this.peek().value === '-')) {
-      const operator = this.consume().value;
-      left = { type: 'binary', operator: operator, left: left, right: this.parseMultiplicative() };
-    }
-    return left;
-  };
-
-  Parser.prototype.parseMultiplicative = function () {
-    let left = this.parseUnary();
-    while (this.peek() && this.peek().type === 'op' && (this.peek().value === '*' || this.peek().value === '/')) {
-      const operator = this.consume().value;
-      left = { type: 'binary', operator: operator, left: left, right: this.parseUnary() };
-    }
-    return left;
-  };
-
-  Parser.prototype.parseUnary = function () {
-    if (this.peek() && this.peek().type === 'op' && this.peek().value === '-') {
-      this.consume();
-      return { type: 'unary', operator: '-', value: this.parseUnary() };
-    }
-    return this.parsePrimary();
-  };
-
-  Parser.prototype.parsePrimary = function () {
-    const token = this.peek();
-    if (!token) {
-      throw { type: 'error', code: '#ERR!' };
-    }
-    if (token.type === 'number') {
-      this.consume();
-      return { type: 'number', value: token.value };
-    }
-    if (token.type === 'string') {
-      this.consume();
-      return { type: 'string', value: token.value };
-    }
-    if (token.type === 'ref') {
-      this.consume();
-      if (this.peek() && this.peek().type === ':') {
-        this.consume();
-        const end = this.consume();
-        if (!end || end.type !== 'ref') {
-          throw { type: 'error', code: '#ERR!' };
-        }
-        return { type: 'range', start: token.value, end: end.value };
-      }
-      return { type: 'ref', value: token.value };
-    }
-    if (token.type === 'ident') {
-      this.consume();
-      if (token.value === 'TRUE' || token.value === 'FALSE') {
-        return { type: 'boolean', value: token.value === 'TRUE' };
-      }
-      if (!this.peek() || this.peek().type !== '(') {
-        throw { type: 'error', code: '#ERR!' };
-      }
-      this.consume();
-      const args = [];
-      if (!this.peek() || this.peek().type !== ')') {
-        do {
-          args.push(this.parseExpression());
-          if (!this.peek() || this.peek().type !== ',') {
-            break;
-          }
-          this.consume();
-        } while (true);
-      }
-      if (!this.peek() || this.peek().type !== ')') {
-        throw { type: 'error', code: '#ERR!' };
-      }
-      this.consume();
-      return { type: 'call', name: token.value, args: args };
-    }
-    if (token.type === '(') {
-      this.consume();
-      const expression = this.parseExpression();
-      if (!this.peek() || this.peek().type !== ')') {
-        throw { type: 'error', code: '#ERR!' };
-      }
-      this.consume();
-      return expression;
-    }
-    throw { type: 'error', code: '#ERR!' };
-  };
-
-  function evaluateAst(node, sheet, stack) {
-    switch (node.type) {
-      case 'number':
-      case 'string':
-      case 'boolean':
-        return node.value;
-      case 'ref':
-        return evaluateCell(sheet, normalizeAddress(node.value), stack);
-      case 'range':
-        return expandRange(node.start, node.end).map(function (address) {
-          return evaluateCell(sheet, address, stack);
-        });
-      case 'unary':
-        return -toNumber(evaluateAst(node.value, sheet, stack));
-      case 'binary':
-        return evaluateBinary(node, sheet, stack);
-      case 'call':
-        return evaluateCall(node, sheet, stack);
-      default:
-        throw { type: 'error', code: '#ERR!' };
-    }
-  }
-
-  function evaluateBinary(node, sheet, stack) {
-    const left = evaluateAst(node.left, sheet, stack);
-    const right = evaluateAst(node.right, sheet, stack);
-    if (isError(left)) {
-      return left;
-    }
-    if (isError(right)) {
-      return right;
-    }
-    switch (node.operator) {
-      case '+': return toNumber(left) + toNumber(right);
-      case '-': return toNumber(left) - toNumber(right);
-      case '*': return toNumber(left) * toNumber(right);
-      case '/':
-        if (toNumber(right) === 0) {
-          return { type: 'error', code: '#DIV/0!' };
-        }
-        return toNumber(left) / toNumber(right);
-      case '&': return toText(left) + toText(right);
-      case '=': return compareValues(left, right) === 0;
-      case '<>': return compareValues(left, right) !== 0;
-      case '<': return compareValues(left, right) < 0;
-      case '<=': return compareValues(left, right) <= 0;
-      case '>': return compareValues(left, right) > 0;
-      case '>=': return compareValues(left, right) >= 0;
-      default:
-        throw { type: 'error', code: '#ERR!' };
-    }
-  }
-
-  function evaluateCall(node, sheet, stack) {
-    const evaluatedArgs = node.args.map(function (arg) {
-      return evaluateAst(arg, sheet, stack);
-    });
-    for (let i = 0; i < evaluatedArgs.length; i += 1) {
-      if (isError(evaluatedArgs[i])) {
-        return evaluatedArgs[i];
-      }
-    }
-    switch (node.name) {
-      case 'SUM':
-        return flattenValues(evaluatedArgs).reduce(function (total, value) {
-          return total + toNumber(value);
-        }, 0);
-      case 'AVERAGE': {
-        const averageValues = flattenValues(evaluatedArgs);
-        return averageValues.length ? averageValues.reduce(function (total, value) {
-          return total + toNumber(value);
-        }, 0) / averageValues.length : 0;
-      }
-      case 'MIN':
-        return Math.min.apply(Math, flattenValues(evaluatedArgs).map(toNumber));
-      case 'MAX':
-        return Math.max.apply(Math, flattenValues(evaluatedArgs).map(toNumber));
-      case 'COUNT':
-        return flattenValues(evaluatedArgs).filter(function (value) { return value !== ''; }).length;
-      case 'IF':
-        return evaluatedArgs[0] ? evaluatedArgs[1] : evaluatedArgs[2];
-      case 'AND':
-        return flattenValues(evaluatedArgs).every(Boolean);
-      case 'OR':
-        return flattenValues(evaluatedArgs).some(Boolean);
-      case 'NOT':
-        return !evaluatedArgs[0];
-      case 'ABS':
-        return Math.abs(toNumber(evaluatedArgs[0]));
-      case 'ROUND':
-        return Math.round(toNumber(evaluatedArgs[0]));
-      case 'CONCAT':
-        return flattenValues(evaluatedArgs).map(toText).join('');
-      default:
-        return { type: 'error', code: '#ERR!' };
-    }
-  }
-
-  function flattenValues(values) {
-    return values.reduce(function (all, value) {
-      if (Array.isArray(value)) {
-        return all.concat(flattenValues(value));
-      }
-      all.push(value);
-      return all;
-    }, []);
-  }
-
-  function isError(value) {
-    return value && typeof value === 'object' && value.type === 'error';
-  }
-
-  function toNumber(value) {
-    if (value === '' || value == null) {
-      return 0;
-    }
-    if (value === true) {
-      return 1;
-    }
-    if (value === false) {
-      return 0;
-    }
-    const result = Number(value);
-    if (Number.isNaN(result)) {
-      throw { type: 'error', code: '#ERR!' };
-    }
-    return result;
-  }
-
-  function toText(value) {
-    if (value == null) {
-      return '';
-    }
-    if (value === true) {
-      return 'TRUE';
-    }
-    if (value === false) {
-      return 'FALSE';
-    }
-    return String(value);
-  }
-
-  function compareValues(left, right) {
-    if (typeof left === 'number' || typeof right === 'number') {
-      return toNumber(left) - toNumber(right);
-    }
-    const leftText = toText(left);
-    const rightText = toText(right);
-    if (leftText === rightText) {
-      return 0;
-    }
-    return leftText < rightText ? -1 : 1;
-  }
-
-  function normalizeAddress(address) {
-    return address.replace(/\$/g, '').toUpperCase();
-  }
-
-  function shiftFormulaReferences(raw, rowOffset, columnOffset) {
-    if (!raw || raw.charAt(0) !== '=') {
-      return raw;
-    }
-
-    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?\d+/g, function (reference) {
-      const match = reference.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/);
-      const nextColumn = match[1] ? columnToNumber(match[2]) : columnToNumber(match[2]) + columnOffset;
-      const nextRow = match[3] ? Number(match[4]) : Number(match[4]) + rowOffset;
-      return (match[1] ? '$' : '') + numberToColumn(Math.max(1, nextColumn)) + (match[3] ? '$' : '') + String(Math.max(1, nextRow));
-    });
-  }
-
-  function parseAddress(address) {
-    const normalized = normalizeAddress(address);
-    const match = normalized.match(/^([A-Z]+)(\d+)$/);
+  function parseCellId(cellId) {
+    const match = cellId.toUpperCase().match(CELL_REF_RE);
     if (!match) {
-      throw { type: 'error', code: '#REF!' };
+      throw { code: '#REF!' };
     }
+
     return {
-      column: columnToNumber(match[1]),
-      row: Number(match[2]),
+      col: columnLabelToIndex(match[1]),
+      row: Number(match[2]) - 1,
     };
   }
 
-  function stepAddress(address, direction, maxColumns, maxRows) {
-    const parsed = parseAddress(address);
-    let column = parsed.column;
-    let row = parsed.row;
-
-    if (direction === 'left') {
-      column = Math.max(1, column - 1);
-    } else if (direction === 'right') {
-      column = Math.min(maxColumns, column + 1);
-    } else if (direction === 'up') {
-      row = Math.max(1, row - 1);
-    } else if (direction === 'down') {
-      row = Math.min(maxRows, row + 1);
-    }
-
-    return numberToColumn(column) + row;
+  function toCellId(row, col) {
+    return indexToColumnLabel(col) + String(row + 1);
   }
 
-  function columnToNumber(label) {
-    let total = 0;
+  function columnLabelToIndex(label) {
+    let value = 0;
     for (let index = 0; index < label.length; index += 1) {
-      total = total * 26 + (label.charCodeAt(index) - 64);
+      value = value * 26 + (label.charCodeAt(index) - 64);
     }
-    return total;
+    return value - 1;
   }
 
-  function numberToColumn(number) {
-    let result = '';
-    let current = number;
-    while (current > 0) {
-      const remainder = (current - 1) % 26;
-      result = String.fromCharCode(65 + remainder) + result;
-      current = Math.floor((current - 1) / 26);
+  function indexToColumnLabel(index) {
+    let value = index + 1;
+    let label = '';
+    while (value > 0) {
+      const remainder = (value - 1) % 26;
+      label = String.fromCharCode(65 + remainder) + label;
+      value = Math.floor((value - 1) / 26);
     }
-    return result;
-  }
-
-  function expandRange(start, end) {
-    const startRef = parseAddress(start);
-    const endRef = parseAddress(end);
-    const minColumn = Math.min(startRef.column, endRef.column);
-    const maxColumn = Math.max(startRef.column, endRef.column);
-    const minRow = Math.min(startRef.row, endRef.row);
-    const maxRow = Math.max(startRef.row, endRef.row);
-    const addresses = [];
-    for (let row = minRow; row <= maxRow; row += 1) {
-      for (let column = minColumn; column <= maxColumn; column += 1) {
-        addresses.push(numberToColumn(column) + row);
-      }
-    }
-    return addresses;
+    return label;
   }
 
   return {
-    createEmptySheet: createEmptySheet,
-    setCell: setCell,
-    getCellRaw: getCellRaw,
-    getCellValue: getCellValue,
-    getDisplayValue: getDisplayValue,
-    normalizeAddress: normalizeAddress,
-    shiftFormulaReferences: shiftFormulaReferences,
-    stepAddress: stepAddress,
+    STORAGE_KEY: STORAGE_KEY,
+    createStorageKey: createStorageKey,
+    evaluateCellMap: evaluateCellMap,
+    parseCellId: parseCellId,
+    toCellId: toCellId,
+    indexToColumnLabel: indexToColumnLabel,
   };
 });

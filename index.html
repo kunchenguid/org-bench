@@ -1,35 +1,35 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Amazon Sheet</title>
-    <link rel="stylesheet" href="styles.css">
-  </head>
-  <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="brand">
-          <span class="brand-mark">as</span>
-          <div>
-            <h1>Amazon Sheet</h1>
-            <p>Ready to type. Formulas live in the bar.</p>
-          </div>
+<!DOCTYPE html>
+<html lang="en" data-storage-namespace="amazon-spreadsheet">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amazon Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="toolbar">
+      <div>
+        <p class="eyebrow">Amazon Sheet</p>
+        <h1>Ready to type</h1>
+      </div>
+      <div class="formula-wrap">
+        <label for="formula">Formula</label>
+        <div class="formula-row">
+          <span class="cell-label" data-selection-label>A1</span>
+          <input id="formula" data-formula-input type="text" autocomplete="off" spellcheck="false">
         </div>
-        <div class="formula-panel">
-          <label for="formula-input">Formula</label>
-          <div class="formula-row">
-            <span id="name-box" class="name-box">A1</span>
-            <input id="formula-input" type="text" spellcheck="false" autocomplete="off">
-          </div>
-        </div>
-      </header>
-      <main class="grid-wrap">
-        <table id="sheet-grid" class="sheet-grid" aria-label="Spreadsheet"></table>
-      </main>
-    </div>
-    <script src="src/engine.js"></script>
-    <script src="src/selection.js"></script>
-    <script src="src/app.js"></script>
-  </body>
+      </div>
+    </header>
+
+    <main class="grid-shell">
+      <table class="sheet" data-grid aria-label="Spreadsheet grid"></table>
+    </main>
+  </div>
+
+  <script src="src/engine.js"></script>
+  <script src="src/history.js"></script>
+  <script src="src/model.js"></script>
+  <script src="src/app.js"></script>
+</body>
 </html>
