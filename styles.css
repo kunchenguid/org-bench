@@ -1,14 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f3f6fb;
-  --panel: rgba(255, 255, 255, 0.88);
-  --grid: #d8e0ec;
-  --header: #eef3f8;
-  --header-text: #577086;
+  --bg: #edf3fb;
+  --panel: rgba(255, 255, 255, 0.9);
+  --grid: #d7e1ee;
+  --header: linear-gradient(180deg, #f8fbff 0%, #eef3f8 100%);
+  --header-text: #5b6f87;
   --text: #132033;
   --accent: #1877f2;
-  --range: rgba(24, 119, 242, 0.14);
-  --shadow: 0 16px 40px rgba(19, 32, 51, 0.12);
+  --range: rgba(24, 119, 242, 0.12);
+  --range-strong: rgba(24, 119, 242, 0.18);
+  --error-bg: #fef3f2;
+  --shadow: 0 20px 52px rgba(19, 32, 51, 0.14);
 }
 
 * {
@@ -19,30 +21,58 @@ body {
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 55%);
+  background:
+    radial-gradient(circle at top left, rgba(24, 119, 242, 0.14), transparent 28%),
+    radial-gradient(circle at top, #ffffff 0%, var(--bg) 58%);
 }
 
 .app {
   min-height: 100vh;
-  padding: 16px;
+  padding: 18px;
 }
 
 .toolbar {
   display: grid;
-  grid-template-columns: auto auto 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(220px, auto) auto minmax(260px, 1fr);
+  gap: 14px;
   align-items: center;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid rgba(87, 112, 134, 0.18);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--panel);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
   box-shadow: var(--shadow);
 }
 
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #1877f2 0%, #0f5cc0 100%);
+  color: white;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  box-shadow: 0 12px 28px rgba(24, 119, 242, 0.28);
+}
+
 .brand {
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 24px;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+}
+
+.toolbar-note {
+  margin-top: 2px;
+  color: var(--header-text);
+  font-size: 13px;
 }
 
 .name-box {
@@ -52,6 +82,8 @@ body {
   color: var(--header-text);
   font-size: 14px;
   white-space: nowrap;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
 .formula-input {
@@ -61,6 +93,7 @@ body {
   padding: 11px 14px;
   font: inherit;
   background: white;
+  box-shadow: inset 0 1px 2px rgba(19, 32, 51, 0.04);
 }
 
 .formula-input:focus {
@@ -129,6 +162,7 @@ body {
   height: 32px;
   padding: 0;
   background: white;
+  transition: background-color 120ms ease;
 }
 
 .cell button,
@@ -147,17 +181,27 @@ body {
   cursor: cell;
 }
 
+.cell button:hover {
+  background: rgba(24, 119, 242, 0.03);
+}
+
 .cell input:focus,
 .cell button:focus {
   outline: none;
 }
 
 .cell.active {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  background: linear-gradient(180deg, rgba(24, 119, 242, 0.08) 0%, rgba(24, 119, 242, 0.04) 100%);
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 1px rgba(24, 119, 242, 0.1);
+  z-index: 1;
 }
 
 .cell.in-range {
   background: var(--range);
+}
+
+.cell.in-range.active {
+  background: linear-gradient(180deg, var(--range-strong) 0%, rgba(24, 119, 242, 0.08) 100%);
 }
 
 .cell.active::after {
@@ -174,6 +218,7 @@ body {
 .cell.error button {
   color: #b42318;
   font-weight: 600;
+  background: linear-gradient(180deg, var(--error-bg) 0%, white 100%);
 }
 
 @media (max-width: 720px) {

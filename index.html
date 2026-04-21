@@ -3,13 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sheet</title>
+  <title>Facebook Spreadsheet</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app">
     <header class="toolbar">
-      <div class="brand">Sheet</div>
+      <div class="brand-block">
+        <div class="brand-mark">fb</div>
+        <div>
+          <div class="brand">Spreadsheet</div>
+          <div class="toolbar-note">Ready to type. Formula bar stays in sync with the active cell.</div>
+        </div>
+      </div>
       <label class="name-box" for="formula-input">Cell <span id="active-label">A1</span></label>
       <input id="formula-input" class="formula-input" type="text" spellcheck="false" aria-label="Formula bar">
     </header>
