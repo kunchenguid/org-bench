@@ -5,6 +5,8 @@ const {
   setCell,
   getCellRaw,
   getCellDisplay,
+  undo,
+  redo,
 } = require('./spreadsheet.js');
 
 function test(name, fn) {
@@ -54,4 +56,33 @@ test('detects circular references', () => {
 
   assert.equal(getCellDisplay(sheet, 'D1'), '#CIRC!');
   assert.equal(getCellDisplay(sheet, 'D2'), '#CIRC!');
+});
+
+test('undo and redo restore committed cell values', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '12');
+  setCell(sheet, 'A1', '18');
+
+  undo(sheet);
+  assert.equal(getCellDisplay(sheet, 'A1'), '12');
+
+  redo(sheet);
+  assert.equal(getCellDisplay(sheet, 'A1'), '18');
+});
+
+test('undo and redo restore dependent formula results', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '7');
+  setCell(sheet, 'B1', '=A1*2');
+  setCell(sheet, 'A1', '');
+
+  assert.equal(getCellDisplay(sheet, 'B1'), '0');
+
+  undo(sheet);
+  assert.equal(getCellDisplay(sheet, 'A1'), '7');
+  assert.equal(getCellDisplay(sheet, 'B1'), '14');
+
+  redo(sheet);
+  assert.equal(getCellDisplay(sheet, 'A1'), '');
+  assert.equal(getCellDisplay(sheet, 'B1'), '0');
 });

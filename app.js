@@ -75,6 +75,32 @@
   function handleGridKeydown(event) {
     if (state.editing && state.editing !== 'formula') return;
     if (event.target.classList.contains('cell-input')) return;
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        if (core.redo(sheet)) {
+          persistState();
+          updateVisibleCells();
+          syncFormulaBar();
+        }
+      } else if (core.undo(sheet)) {
+        persistState();
+        updateVisibleCells();
+        syncFormulaBar();
+      }
+      focusActiveCell();
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      if (core.redo(sheet)) {
+        persistState();
+        updateVisibleCells();
+        syncFormulaBar();
+      }
+      focusActiveCell();
+      return;
+    }
     const movement = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[event.key];
     if (movement) {
       event.preventDefault();
