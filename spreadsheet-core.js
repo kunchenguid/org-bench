@@ -150,6 +150,12 @@
         index += numberMatch[1].length;
         continue;
       }
+      const errorMatch = /^(#(?:REF!|DIV\/0!|ERR!|CIRC!))/.exec(formula.slice(index).toUpperCase());
+      if (errorMatch) {
+        tokens.push({ type: 'error', value: errorMatch[1] });
+        index += errorMatch[1].length;
+        continue;
+      }
       const identMatch = /^\$?[A-Z]+\$?\d+|^[A-Z_]+/.exec(formula.slice(index).toUpperCase());
       if (identMatch) {
         tokens.push({ type: 'identifier', value: identMatch[0].toUpperCase() });
@@ -188,6 +194,10 @@
       if (token.type === 'string') {
         consume('string');
         return { type: 'string', value: token.value };
+      }
+      if (token.type === 'error') {
+        consume('error');
+        return { type: 'error', value: token.value };
       }
       if (token.type === 'identifier') {
         consume('identifier');
@@ -371,6 +381,76 @@
     });
   }
 
+  function rewriteFormulaStructure(formula, operation, index) {
+    let deleted = false;
+    const rewritten = String(formula).replace(/\$?[A-Z]+\$?\d+/g, function (match) {
+      const ref = parseMixedRef(match);
+      if (operation.axis === 'row') {
+        if (operation.kind === 'insert') {
+          if (ref.row >= index) ref.row += 1;
+        } else if (ref.row === index) {
+          deleted = true;
+          return '#REF!';
+        } else if (ref.row > index) {
+          ref.row -= 1;
+        }
+      } else if (operation.kind === 'insert') {
+        if (ref.col >= index) ref.col += 1;
+      } else if (ref.col === index) {
+        deleted = true;
+        return '#REF!';
+      } else if (ref.col > index) {
+        ref.col -= 1;
+      }
+      return stringifyMixedRef(ref);
+    });
+    return deleted ? '=#REF!' : rewritten;
+  }
+
+  function rewriteCells(cells, operation, index) {
+    const next = {};
+    Object.keys(cells).forEach(function (cellId) {
+      const position = parseCellId(cellId);
+      if (!position) return;
+
+      if (operation.axis === 'row') {
+        if (operation.kind === 'delete' && position.row === index) {
+          return;
+        }
+        if (position.row >= index) {
+          position.row += operation.kind === 'insert' ? 1 : -1;
+        }
+      } else {
+        if (operation.kind === 'delete' && position.col === index) {
+          return;
+        }
+        if (position.col >= index) {
+          position.col += operation.kind === 'insert' ? 1 : -1;
+        }
+      }
+
+      const raw = normalizeRaw(cells[cellId]);
+      next[cellIdFromPosition(position)] = raw && raw[0] === '=' ? rewriteFormulaStructure(raw, operation, index) : raw;
+    });
+    return next;
+  }
+
+  function insertRow(cells, rowIndex) {
+    return rewriteCells(cells, { axis: 'row', kind: 'insert' }, rowIndex);
+  }
+
+  function deleteRow(cells, rowIndex) {
+    return rewriteCells(cells, { axis: 'row', kind: 'delete' }, rowIndex);
+  }
+
+  function insertColumn(cells, columnIndexValue) {
+    return rewriteCells(cells, { axis: 'col', kind: 'insert' }, columnIndexValue);
+  }
+
+  function deleteColumn(cells, columnIndexValue) {
+    return rewriteCells(cells, { axis: 'col', kind: 'delete' }, columnIndexValue);
+  }
+
   function copyRange(cells, bounds) {
     const rows = [];
     for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
@@ -437,6 +517,7 @@
     if (node.type === 'number') return makeNumber(node.value);
     if (node.type === 'string') return makeText(node.value);
     if (node.type === 'boolean') return makeBoolean(node.value);
+    if (node.type === 'error') return makeError(node.value);
     if (node.type === 'unary') {
       const value = evaluateAst(node.value, context);
       if (isError(value)) return value;
@@ -543,7 +624,11 @@
     parseCellId,
     clampCellPosition,
     copyRange,
+    deleteColumn,
+    deleteRow,
     evaluateSpreadsheet,
+    insertColumn,
+    insertRow,
     pasteRange,
     shiftFormula,
   };
