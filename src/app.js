@@ -55,8 +55,32 @@
     headerRow.appendChild(document.createElement('th'));
     for (let col = 0; col < COLS; col += 1) {
       const header = document.createElement('th');
-      header.textContent = engine.indexToColumnLabel(col);
       header.className = 'col-header';
+      const headerLabel = document.createElement('span');
+      headerLabel.textContent = engine.indexToColumnLabel(col);
+      const insertButton = document.createElement('button');
+      insertButton.type = 'button';
+      insertButton.className = 'col-action';
+      insertButton.textContent = '+';
+      insertButton.title = 'Insert column left';
+      insertButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        insertColumnLeft(col);
+      });
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'col-action col-action-danger';
+      deleteButton.textContent = '-';
+      deleteButton.title = 'Delete column';
+      deleteButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        deleteColumnAt(col);
+      });
+      header.appendChild(headerLabel);
+      header.appendChild(insertButton);
+      header.appendChild(deleteButton);
       headerRow.appendChild(header);
     }
     table.appendChild(headerRow);
@@ -77,6 +101,17 @@
         insertRowAbove(row);
       });
       rowHeader.appendChild(insertButton);
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'row-action row-action-danger';
+      deleteButton.textContent = '-';
+      deleteButton.title = 'Delete row';
+      deleteButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        deleteRowAt(row);
+      });
+      rowHeader.appendChild(deleteButton);
       tr.appendChild(rowHeader);
 
       for (let col = 0; col < COLS; col += 1) {
@@ -518,6 +553,70 @@
         endCol: state.selection.col,
       });
     }
+    recompute();
+    pushHistory();
+    persist();
+    render();
+  }
+
+  function deleteRowAt(rowIndex) {
+    const sheet = model.createSheet(state.cells);
+    model.deleteRow(sheet, rowIndex);
+    state.cells = sheet.cells;
+    if (state.selection.row > rowIndex) {
+      state.selection.row -= 1;
+    } else if (state.selection.row === rowIndex) {
+      state.selection.row = clamp(rowIndex, 0, ROWS - 1);
+    }
+    state.anchor = { row: state.selection.row, col: state.selection.col };
+    state.range = normalizeRange({
+      startRow: state.selection.row,
+      startCol: state.selection.col,
+      endRow: state.selection.row,
+      endCol: state.selection.col,
+    });
+    recompute();
+    pushHistory();
+    persist();
+    render();
+  }
+
+  function insertColumnLeft(colIndex) {
+    const sheet = model.createSheet(state.cells);
+    model.insertColumn(sheet, colIndex);
+    state.cells = sheet.cells;
+    if (state.selection.col >= colIndex) {
+      state.selection.col += 1;
+    }
+    state.anchor = { row: state.selection.row, col: state.selection.col };
+    state.range = normalizeRange({
+      startRow: state.selection.row,
+      startCol: state.selection.col,
+      endRow: state.selection.row,
+      endCol: state.selection.col,
+    });
+    recompute();
+    pushHistory();
+    persist();
+    render();
+  }
+
+  function deleteColumnAt(colIndex) {
+    const sheet = model.createSheet(state.cells);
+    model.deleteColumn(sheet, colIndex);
+    state.cells = sheet.cells;
+    if (state.selection.col > colIndex) {
+      state.selection.col -= 1;
+    } else if (state.selection.col === colIndex) {
+      state.selection.col = clamp(colIndex, 0, COLS - 1);
+    }
+    state.anchor = { row: state.selection.row, col: state.selection.col };
+    state.range = normalizeRange({
+      startRow: state.selection.row,
+      startCol: state.selection.col,
+      endRow: state.selection.row,
+      endCol: state.selection.col,
+    });
     recompute();
     pushHistory();
     persist();

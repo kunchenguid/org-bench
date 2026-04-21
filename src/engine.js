@@ -36,6 +36,8 @@
 
       if (!raw) {
         value = makeBlank();
+      } else if (/^=#(?:REF!|ERR!|DIV\/0!|CIRC!)$/i.test(raw)) {
+        value = makeError(raw.slice(1).toUpperCase());
       } else if (raw[0] === '=') {
         try {
           const parser = createParser(raw.slice(1));

@@ -97,7 +97,60 @@
     }
 
     for (const cellId of Object.keys(nextCells)) {
-      nextCells[cellId] = shiftFormulaForInsertedRow(nextCells[cellId], rowIndex);
+      nextCells[cellId] = shiftReferencesForInsert(nextCells[cellId], 'row', rowIndex);
+    }
+
+    sheet.cells = nextCells;
+  }
+
+  function deleteRow(sheet, rowIndex) {
+    const nextCells = {};
+    for (const cellId of Object.keys(sheet.cells)) {
+      const ref = engine.parseCellId(cellId);
+      if (ref.row === rowIndex) {
+        continue;
+      }
+
+      const nextRow = ref.row > rowIndex ? ref.row - 1 : ref.row;
+      nextCells[engine.toCellId(nextRow, ref.col)] = sheet.cells[cellId];
+    }
+
+    for (const cellId of Object.keys(nextCells)) {
+      nextCells[cellId] = shiftReferencesForDelete(nextCells[cellId], 'row', rowIndex);
+    }
+
+    sheet.cells = nextCells;
+  }
+
+  function insertColumn(sheet, colIndex) {
+    const nextCells = {};
+    for (const cellId of Object.keys(sheet.cells)) {
+      const ref = engine.parseCellId(cellId);
+      const nextCol = ref.col >= colIndex ? ref.col + 1 : ref.col;
+      nextCells[engine.toCellId(ref.row, nextCol)] = sheet.cells[cellId];
+    }
+
+    for (const cellId of Object.keys(nextCells)) {
+      nextCells[cellId] = shiftReferencesForInsert(nextCells[cellId], 'col', colIndex);
+    }
+
+    sheet.cells = nextCells;
+  }
+
+  function deleteColumn(sheet, colIndex) {
+    const nextCells = {};
+    for (const cellId of Object.keys(sheet.cells)) {
+      const ref = engine.parseCellId(cellId);
+      if (ref.col === colIndex) {
+        continue;
+      }
+
+      const nextCol = ref.col > colIndex ? ref.col - 1 : ref.col;
+      nextCells[engine.toCellId(ref.row, nextCol)] = sheet.cells[cellId];
+    }
+
+    for (const cellId of Object.keys(nextCells)) {
+      nextCells[cellId] = shiftReferencesForDelete(nextCells[cellId], 'col', colIndex);
     }
 
     sheet.cells = nextCells;
@@ -112,20 +165,38 @@
     });
   }
 
-  function shiftFormulaForInsertedRow(raw, rowIndex) {
+  function shiftReferencesForInsert(raw, axis, index) {
     if (!raw || raw[0] !== '=') {
       return raw;
     }
 
     return raw.replace(CELL_REF_IN_FORMULA_RE, function (_, absoluteCol, colLabel, absoluteRow, rowNumber) {
-      if (absoluteRow) {
+      const ref = engine.parseCellId(colLabel + rowNumber);
+      const nextCol = axis === 'col' && ref.col >= index ? ref.col + 1 : ref.col;
+      const nextRow = axis === 'row' && ref.row >= index ? ref.row + 1 : ref.row;
+      return (absoluteCol ? '$' : '') + engine.indexToColumnLabel(nextCol) + (absoluteRow ? '$' : '') + String(nextRow + 1);
+    });
+  }
+
+  function shiftReferencesForDelete(raw, axis, index) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    let deletedReference = false;
+    const shifted = raw.replace(CELL_REF_IN_FORMULA_RE, function (_, absoluteCol, colLabel, absoluteRow, rowNumber) {
+      const ref = engine.parseCellId(colLabel + rowNumber);
+      if ((axis === 'row' && ref.row === index) || (axis === 'col' && ref.col === index)) {
+        deletedReference = true;
         return _;
       }
 
-      const ref = engine.parseCellId(colLabel + rowNumber);
-      const nextRow = ref.row >= rowIndex ? ref.row + 1 : ref.row;
-      return (absoluteCol ? '$' : '') + colLabel + String(nextRow + 1);
+      const nextCol = axis === 'col' && ref.col > index ? ref.col - 1 : ref.col;
+      const nextRow = axis === 'row' && ref.row > index ? ref.row - 1 : ref.row;
+      return (absoluteCol ? '$' : '') + engine.indexToColumnLabel(nextCol) + (absoluteRow ? '$' : '') + String(nextRow + 1);
     });
+
+    return deletedReference ? '=#REF!' : shifted;
   }
 
   return {
@@ -137,6 +208,9 @@
     copyRange,
     pasteRange,
     insertRow,
+    deleteRow,
+    insertColumn,
+    deleteColumn,
     shiftFormula,
   };
 });
