@@ -1,0 +1,180 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: #f3f6fb;
+  color: #17202e;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #d7deea;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.formula-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.formula-label {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #eff3f9;
+  color: #516076;
+  font-weight: 700;
+}
+
+#formula-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #c6cfdd;
+  border-radius: 10px;
+  font: inherit;
+  background: #fbfcfe;
+}
+
+#formula-input:focus {
+  outline: 2px solid #8db4ff;
+  border-color: #4f86ff;
+}
+
+.grid-shell {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.sheet-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(23, 32, 46, 0.08);
+}
+
+.sheet-table th,
+.sheet-table td {
+  border-right: 1px solid #dfe5ef;
+  border-bottom: 1px solid #dfe5ef;
+}
+
+.corner,
+.col-header,
+.row-header {
+  position: sticky;
+  background: #f8faff;
+  z-index: 2;
+}
+
+.corner {
+  left: 0;
+  top: 0;
+  z-index: 4;
+  min-width: 48px;
+}
+
+.col-header {
+  top: 0;
+  min-width: 120px;
+  height: 36px;
+  font-size: 12px;
+  color: #516076;
+}
+
+.row-header {
+  left: 0;
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+  color: #516076;
+  z-index: 3;
+}
+
+.cell {
+  min-width: 120px;
+  height: 32px;
+  padding: 0;
+  position: relative;
+  background: #ffffff;
+}
+
+.cell button {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 6px 8px;
+  font: inherit;
+  color: inherit;
+}
+
+.cell button:focus {
+  outline: none;
+}
+
+.cell.active {
+  box-shadow: inset 0 0 0 2px #2f6fed;
+  z-index: 1;
+}
+
+.cell.error button {
+  color: #b42318;
+}
+
+.cell-editor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #2f6fed;
+  padding: 4px 6px;
+  font: inherit;
+  z-index: 6;
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  .col-header,
+  .cell {
+    min-width: 96px;
+  }
+}
