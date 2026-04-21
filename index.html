@@ -55,7 +55,10 @@
         const columnHeaders = document.querySelector('[data-column-headers]');
         const rowHeaders = document.querySelector('[data-row-headers]');
         const cellGrid = document.querySelector('[data-cell-grid]');
-        const alphabet = Array.from({ length: columns }, (_, index) => String.fromCharCode(65 + index));
+
+        const alphabet = Array.from({ length: columns }, (_, index) =>
+          String.fromCharCode(65 + index)
+        );
 
         for (const columnName of alphabet) {
           const header = document.createElement('div');
@@ -74,12 +77,24 @@
 
           for (const columnName of alphabet) {
             const cell = document.createElement('div');
+            const inPreviewRange = row <= 3 && alphabet.indexOf(columnName) <= 2;
             cell.className = 'cell';
             cell.dataset.cell = columnName + row;
             cell.dataset.column = columnName;
             cell.dataset.row = String(row);
             cell.role = 'gridcell';
             cell.setAttribute('aria-label', columnName + row);
+
+            if (inPreviewRange) {
+              cell.classList.add('is-in-range');
+            }
+
+            if (columnName === 'A' && row === 1) {
+              cell.classList.add('is-active');
+              cell.classList.add('is-editing');
+              cell.innerHTML = '<span class="cell-editor">123</span>';
+            }
+
             cellGrid.appendChild(cell);
           }
         }
