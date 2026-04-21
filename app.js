@@ -1,6 +1,7 @@
 (function () {
+  const appState = window.SpreadsheetAppState;
   const core = window.SpreadsheetCore;
-  const namespace = window.__BENCHMARK_STORAGE_NAMESPACE__ || 'spreadsheet';
+  const namespace = appState.resolveStorageNamespace(window);
   const storageKey = namespace + ':quiet-sheet:v1';
   const sheetEl = document.getElementById('sheet');
   const formulaBar = document.getElementById('formula-bar');
@@ -85,9 +86,10 @@
     document.addEventListener('copy', onCopy);
     document.addEventListener('cut', onCut);
     document.addEventListener('paste', onPaste);
-    formulaBar.addEventListener('focus', syncFormulaBar);
+    formulaBar.addEventListener('focus', onFormulaFocus);
     formulaBar.addEventListener('input', onFormulaInput);
     formulaBar.addEventListener('keydown', onFormulaKeyDown);
+    formulaBar.addEventListener('blur', onFormulaBlur);
   }
 
   function onCellMouseDown(event) {
@@ -137,8 +139,8 @@
   }
 
   function onKeyDown(event) {
-    if (editSession) return;
     if (event.target === formulaBar) return;
+    if (editSession) return;
 
     const active = activeCellId();
     if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
@@ -182,20 +184,42 @@
     event.preventDefault();
   }
 
+  function onFormulaFocus() {
+    if (!editSession) {
+      beginFormulaEdit();
+    }
+    syncFormulaBar();
+  }
+
   function onFormulaInput() {
-    const cellId = activeCellId();
-    setCellRaw(cellId, formulaBar.value);
+    if (!editSession) {
+      beginFormulaEdit();
+    }
+    editSession = appState.updateEditSession(editSession, formulaBar.value);
+    syncInlineEditor();
   }
 
   function onFormulaKeyDown(event) {
     if (event.key === 'Enter') {
+      finishEdit(false);
       moveSelection(1, 0);
       formulaBar.blur();
       event.preventDefault();
     } else if (event.key === 'Tab') {
+      finishEdit(false);
       moveSelection(0, 1);
       formulaBar.blur();
       event.preventDefault();
+    } else if (event.key === 'Escape') {
+      finishEdit(true);
+      formulaBar.blur();
+      event.preventDefault();
+    }
+  }
+
+  function onFormulaBlur() {
+    if (editSession && !isInlineEditorFocused()) {
+      finishEdit(false);
     }
   }
 
@@ -230,15 +254,16 @@
     const input = document.createElement('input');
     input.className = 'cell-editor';
     const previous = getRaw(cellId);
-    input.value = seedText !== undefined ? seedText : (replace ? '' : previous);
+    editSession = appState.beginEditSession(cellId, previous, replace, seedText);
+    input.value = editSession.draft;
     cell.textContent = '';
     cell.appendChild(input);
-    editSession = { cellId, previous };
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
-    formulaBar.value = input.value;
+    formulaBar.value = editSession.draft;
     input.addEventListener('input', function () {
-      formulaBar.value = input.value;
+      editSession = appState.updateEditSession(editSession, input.value);
+      formulaBar.value = editSession.draft;
     });
     input.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
@@ -255,17 +280,22 @@
       }
     });
     input.addEventListener('blur', function () {
-      if (editSession) finishEdit(false);
+      if (editSession && document.activeElement !== formulaBar) finishEdit(false);
     });
+  }
+
+  function beginFormulaEdit() {
+    const cellId = activeCellId();
+    if (!editSession) {
+      editSession = appState.beginEditSession(cellId, getRaw(cellId), false);
+    }
   }
 
   function finishEdit(cancel) {
     if (!editSession) return;
     const session = editSession;
-    const input = getCellElement(session.cellId).querySelector('.cell-editor');
-    const nextValue = cancel ? session.previous : input.value;
     editSession = null;
-    setCellRaw(session.cellId, nextValue);
+    setCellRaw(session.cellId, appState.commitEditSession(session, cancel));
   }
 
   function setCellRaw(cellId, raw) {
@@ -305,13 +335,23 @@
   }
 
   function syncFormulaBar() {
-    if (document.activeElement === formulaBar) return;
     if (editSession) {
-      const input = getCellElement(editSession.cellId).querySelector('.cell-editor');
-      formulaBar.value = input ? input.value : getRaw(editSession.cellId);
+      formulaBar.value = editSession.draft;
       return;
     }
     formulaBar.value = getRaw(activeCellId());
+  }
+
+  function syncInlineEditor() {
+    if (!editSession) return;
+    const input = getCellElement(editSession.cellId).querySelector('.cell-editor');
+    if (input && input.value !== editSession.draft) {
+      input.value = editSession.draft;
+    }
+  }
+
+  function isInlineEditorFocused() {
+    return Boolean(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('cell-editor'));
   }
 
   function activeCellId() {
