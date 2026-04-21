@@ -78,7 +78,7 @@
           selectCell(row, col, false, event.shiftKey);
         });
         input.addEventListener('focus', function () {
-          if (!state.editingCell) {
+          if (!state.editingCell && (state.selection.row !== row || state.selection.col !== col)) {
             selectCell(row, col, false, false);
           }
         });
