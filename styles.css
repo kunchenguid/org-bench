@@ -198,6 +198,10 @@ body {
   outline-offset: -2px;
 }
 
+.cell.in-range {
+  background: rgba(37, 99, 235, 0.08);
+}
+
 .cell input {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
