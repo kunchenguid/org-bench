@@ -1,5 +1,10 @@
 'use strict';
 
+const formulaEngineApi = resolveFormulaEngineApi();
+const updateFormulaForStructuralChange = formulaEngineApi.updateFormulaForStructuralChange || function passthrough(formula) {
+  return formula;
+};
+
 const DEFAULT_ROWS = 100;
 const DEFAULT_COLUMNS = 26;
 const DEFAULT_HISTORY_LIMIT = 50;
@@ -115,28 +120,28 @@ function createWorkbookStore(options) {
 
   function insertRows(atRow, count) {
     const nextState = cloneState(state);
-    nextState.cells = shiftRows(nextState.cells, atRow, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'insert-row', index: atRow, count });
     nextState.selection = shiftSelectionRows(nextState.selection, atRow, count, rows + count, columns);
     recordAction('insert-rows', { atRow, count }, nextState);
   }
 
   function deleteRows(atRow, count) {
     const nextState = cloneState(state);
-    nextState.cells = removeRows(nextState.cells, atRow, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'delete-row', index: atRow, count });
     nextState.selection = shiftSelectionRows(nextState.selection, atRow + count, -count, rows, columns);
     recordAction('delete-rows', { atRow, count }, nextState);
   }
 
   function insertColumns(atCol, count) {
     const nextState = cloneState(state);
-    nextState.cells = shiftColumns(nextState.cells, atCol, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'insert-column', index: atCol, count });
     nextState.selection = shiftSelectionColumns(nextState.selection, atCol, count, rows, columns + count);
     recordAction('insert-columns', { atCol, count }, nextState);
   }
 
   function deleteColumns(atCol, count) {
     const nextState = cloneState(state);
-    nextState.cells = removeColumns(nextState.cells, atCol, count);
+    nextState.cells = applyStructuralChange(nextState.cells, { type: 'delete-column', index: atCol, count });
     nextState.selection = shiftSelectionColumns(nextState.selection, atCol + count, -count, rows, columns);
     recordAction('delete-columns', { atCol, count }, nextState);
   }
@@ -400,62 +405,73 @@ function forEachCellInBounds(bounds, callback) {
   }
 }
 
-function shiftRows(cells, atRow, delta) {
+function applyStructuralChange(cells, change) {
   const result = Object.create(null);
   const keys = Object.keys(cells);
-  for (let index = 0; index < keys.length; index += 1) {
-    const cellId = keys[index];
-    const coords = cellIdToCoords(cellId);
-    const nextRow = coords.row >= atRow ? coords.row + delta : coords.row;
-    result[coordsToCellId(nextRow, coords.col)] = { raw: cells[cellId].raw };
-  }
-  return result;
-}
 
-function removeRows(cells, atRow, count) {
-  const result = Object.create(null);
-  const endRow = atRow + count - 1;
-  const keys = Object.keys(cells);
   for (let index = 0; index < keys.length; index += 1) {
     const cellId = keys[index];
     const coords = cellIdToCoords(cellId);
-    if (coords.row >= atRow && coords.row <= endRow) {
+    const nextCoords = shiftCoordsForStructureChange(coords, change);
+
+    if (!nextCoords) {
       continue;
     }
 
-    const nextRow = coords.row > endRow ? coords.row - count : coords.row;
-    result[coordsToCellId(nextRow, coords.col)] = { raw: cells[cellId].raw };
+    result[coordsToCellId(nextCoords.row, nextCoords.col)] = {
+      raw: rewriteRawForStructuralChange(cells[cellId].raw, change),
+    };
   }
+
   return result;
 }
 
-function shiftColumns(cells, atCol, delta) {
-  const result = Object.create(null);
-  const keys = Object.keys(cells);
-  for (let index = 0; index < keys.length; index += 1) {
-    const cellId = keys[index];
-    const coords = cellIdToCoords(cellId);
-    const nextCol = coords.col >= atCol ? coords.col + delta : coords.col;
-    result[coordsToCellId(coords.row, nextCol)] = { raw: cells[cellId].raw };
+function shiftCoordsForStructureChange(coords, change) {
+  if (change.type === 'insert-row') {
+    return {
+      row: coords.row >= change.index ? coords.row + change.count : coords.row,
+      col: coords.col,
+    };
   }
-  return result;
-}
 
-function removeColumns(cells, atCol, count) {
-  const result = Object.create(null);
-  const endCol = atCol + count - 1;
-  const keys = Object.keys(cells);
-  for (let index = 0; index < keys.length; index += 1) {
-    const cellId = keys[index];
-    const coords = cellIdToCoords(cellId);
-    if (coords.col >= atCol && coords.col <= endCol) {
-      continue;
+  if (change.type === 'delete-row') {
+    if (coords.row >= change.index && coords.row < change.index + change.count) {
+      return null;
     }
 
-    const nextCol = coords.col > endCol ? coords.col - count : coords.col;
-    result[coordsToCellId(coords.row, nextCol)] = { raw: cells[cellId].raw };
+    return {
+      row: coords.row >= change.index + change.count ? coords.row - change.count : coords.row,
+      col: coords.col,
+    };
   }
-  return result;
+
+  if (change.type === 'insert-column') {
+    return {
+      row: coords.row,
+      col: coords.col >= change.index ? coords.col + change.count : coords.col,
+    };
+  }
+
+  if (change.type === 'delete-column') {
+    if (coords.col >= change.index && coords.col < change.index + change.count) {
+      return null;
+    }
+
+    return {
+      row: coords.row,
+      col: coords.col >= change.index + change.count ? coords.col - change.count : coords.col,
+    };
+  }
+
+  return coords;
+}
+
+function rewriteRawForStructuralChange(raw, change) {
+  if (typeof raw !== 'string' || raw[0] !== '=') {
+    return raw;
+  }
+
+  return updateFormulaForStructuralChange(raw, change);
 }
 
 function shiftSelectionRows(selection, atRow, delta, maxRows, maxCols) {
@@ -521,6 +537,18 @@ function columnNameToNumber(name) {
   }
 
   return result;
+}
+
+function resolveFormulaEngineApi() {
+  if (typeof module !== 'undefined' && module.exports && typeof require === 'function') {
+    return require('./src/formula-engine.js');
+  }
+
+  if (typeof window !== 'undefined' && window.SpreadsheetFormulaEngine) {
+    return window.SpreadsheetFormulaEngine;
+  }
+
+  return {};
 }
 
 const api = {

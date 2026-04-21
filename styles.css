@@ -151,8 +151,10 @@ body {
   z-index: 3;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   min-height: var(--header-height);
+  gap: 8px;
+  padding: 0 8px;
 }
 
 .row-header {
@@ -161,9 +163,52 @@ body {
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   min-height: var(--row-height);
+  gap: 8px;
+  padding: 0 8px;
   box-shadow: 1px 0 0 rgba(226, 232, 240, 0.96);
+}
+
+.header-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.42;
+  transition: opacity 120ms ease;
+}
+
+.column-header:hover .header-actions,
+.column-header:focus-within .header-actions,
+.row-header:hover .header-actions,
+.row-header:focus-within .header-actions {
+  opacity: 1;
+}
+
+.header-action-button {
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--header-text);
+  font-size: 10px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.header-action-button:hover,
+.header-action-button:focus-visible {
+  border-color: rgba(47, 109, 246, 0.38);
+  color: var(--range-stroke);
+  outline: none;
 }
 
 .grid-cell {
@@ -243,5 +288,15 @@ body {
 
   .formula-placeholder {
     font-size: 13px;
+  }
+
+  .column-header,
+  .row-header {
+    gap: 4px;
+    padding: 0 4px;
+  }
+
+  .header-actions {
+    gap: 2px;
   }
 }
