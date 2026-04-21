@@ -214,6 +214,70 @@
     return transformSheet(sheet, 'delete-column', index);
   }
 
+  function boundsSize(bounds) {
+    return {
+      rows: bounds.bottom - bounds.top + 1,
+      cols: bounds.right - bounds.left + 1,
+    };
+  }
+
+  function pasteMatrix(sheet, matrix, selectionBounds, activePoint, sourceBounds, isCut) {
+    var nextSheet = cloneSheet(sheet);
+    var selectionSize = boundsSize(selectionBounds);
+    var sourceRows = matrix.length;
+    var sourceCols = matrix[0] ? matrix[0].length : 1;
+    var useSelectionSize = selectionSize.rows === sourceRows && selectionSize.cols === sourceCols && (selectionSize.rows > 1 || selectionSize.cols > 1);
+    var targetTop = useSelectionSize ? selectionBounds.top : activePoint.row;
+    var targetLeft = useSelectionSize ? selectionBounds.left : activePoint.col;
+    var sourceTop = sourceBounds ? sourceBounds.top : 1;
+    var sourceLeft = sourceBounds ? sourceBounds.left : 1;
+    var rowIndex;
+    var colIndex;
+
+    for (rowIndex = 0; rowIndex < sourceRows; rowIndex += 1) {
+      for (colIndex = 0; colIndex < sourceCols; colIndex += 1) {
+        var destinationRow = targetTop + rowIndex;
+        var destinationCol = targetLeft + colIndex;
+        if (destinationRow > ROW_COUNT || destinationCol > COLUMN_COUNT) {
+          continue;
+        }
+        var destinationId = indexToCol(destinationCol) + String(destinationRow);
+        var raw = matrix[rowIndex][colIndex] || '';
+        if (sourceBounds && raw.charAt(0) === '=') {
+          raw = moveFormula(raw, destinationRow - (sourceTop + rowIndex), destinationCol - (sourceLeft + colIndex));
+        }
+        if (raw === '') {
+          delete nextSheet.cells[destinationId];
+        } else {
+          nextSheet.cells[destinationId] = raw;
+        }
+      }
+    }
+
+    if (isCut && sourceBounds) {
+      var row;
+      var col;
+      for (row = sourceBounds.top; row <= sourceBounds.bottom; row += 1) {
+        for (col = sourceBounds.left; col <= sourceBounds.right; col += 1) {
+          if (row >= targetTop && row < targetTop + sourceRows && col >= targetLeft && col < targetLeft + sourceCols) {
+            continue;
+          }
+          delete nextSheet.cells[indexToCol(col) + String(row)];
+        }
+      }
+    }
+
+    return {
+      sheet: nextSheet,
+      targetBounds: {
+        top: targetTop,
+        left: targetLeft,
+        bottom: Math.min(ROW_COUNT, targetTop + sourceRows - 1),
+        right: Math.min(COLUMN_COUNT, targetLeft + sourceCols - 1),
+      },
+    };
+  }
+
   function tokenize(input) {
     var tokens = [];
     var index = 0;
@@ -694,6 +758,7 @@
     insertColumn: insertColumn,
     insertRow: insertRow,
     moveFormula: moveFormula,
+    pasteMatrix: pasteMatrix,
     parseCellId: parseCellId,
     indexToCol: indexToCol,
   };

@@ -9,6 +9,7 @@ const {
   insertColumn,
   insertRow,
   moveFormula,
+  pasteMatrix,
 } = require('../src/formula.js');
 
 test('evaluates arithmetic expressions with referenced cells', () => {
@@ -103,4 +104,45 @@ test('inserting a column shifts formulas to the right and preserves totals', () 
   assert.equal(next.cells.C1, '6');
   assert.equal(next.cells.D1, '=SUM(A1:C1)');
   assert.equal(evaluateCell(next, 'D1').display, '10');
+});
+
+test('pasting a copied rectangle shifts relative formulas from the source range', () => {
+  const sheet = createSheet({
+    A1: '4',
+    A2: '6',
+    B1: '=SUM(A1:A2)',
+  });
+
+  const pasted = pasteMatrix(
+    sheet,
+    [['4', '=SUM(A1:A2)']],
+    { top: 3, left: 3, bottom: 3, right: 3 },
+    { row: 3, col: 3 },
+    { top: 1, left: 1, bottom: 1, right: 2 },
+    false
+  );
+
+  assert.equal(pasted.sheet.cells.C3, '4');
+  assert.equal(pasted.sheet.cells.D3, '=SUM(C3:C4)');
+});
+
+test('pasting a cut rectangle clears the original cells outside the destination overlap', () => {
+  const sheet = createSheet({
+    A1: '1',
+    B1: '=A1',
+  });
+
+  const pasted = pasteMatrix(
+    sheet,
+    [['1', '=A1']],
+    { top: 2, left: 2, bottom: 2, right: 2 },
+    { row: 2, col: 2 },
+    { top: 1, left: 1, bottom: 1, right: 2 },
+    true
+  );
+
+  assert.equal(pasted.sheet.cells.A1, undefined);
+  assert.equal(pasted.sheet.cells.B1, undefined);
+  assert.equal(pasted.sheet.cells.B2, '1');
+  assert.equal(pasted.sheet.cells.C2, '=B2');
 });

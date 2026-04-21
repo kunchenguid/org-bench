@@ -255,52 +255,21 @@
   }
 
   function applyMatrix(matrix, sourceBounds) {
-    var selectionSize = boundsSize(selectionBounds());
-    var sourceRows = matrix.length;
-    var sourceCols = matrix[0] ? matrix[0].length : 1;
-    var useSelectionSize = selectionSize.rows === sourceRows && selectionSize.cols === sourceCols && (selectionSize.rows > 1 || selectionSize.cols > 1);
-    var targetTop = useSelectionSize ? selectionBounds().top : state.selection.row;
-    var targetLeft = useSelectionSize ? selectionBounds().left : state.selection.col;
-    var sourceTop = sourceBounds ? sourceBounds.top : 1;
-    var sourceLeft = sourceBounds ? sourceBounds.left : 1;
-    var rowIndex;
-    var colIndex;
+    var result = engine.pasteMatrix(
+      state.sheet,
+      matrix,
+      selectionBounds(),
+      state.selection,
+      sourceBounds,
+      Boolean(state.pendingCut && sourceBounds)
+    );
+    var targetBounds = result.targetBounds;
 
     pushHistory();
-
-    for (rowIndex = 0; rowIndex < sourceRows; rowIndex += 1) {
-      for (colIndex = 0; colIndex < sourceCols; colIndex += 1) {
-        var destination = createPoint(targetTop + rowIndex, targetLeft + colIndex);
-        if (destination.row > ROW_COUNT || destination.col > COLUMN_COUNT) {
-          continue;
-        }
-        var raw = matrix[rowIndex][colIndex] || '';
-        if (sourceBounds && raw.charAt(0) === '=') {
-          raw = engine.moveFormula(raw, destination.row - (sourceTop + rowIndex), destination.col - (sourceLeft + colIndex));
-        }
-        setCellRaw(destination, raw);
-      }
-    }
-
-    if (state.pendingCut && sourceBounds) {
-      var row;
-      var col;
-      for (row = sourceBounds.top; row <= sourceBounds.bottom; row += 1) {
-        for (col = sourceBounds.left; col <= sourceBounds.right; col += 1) {
-          if (row >= targetTop && row < targetTop + sourceRows && col >= targetLeft && col < targetLeft + sourceCols) {
-            continue;
-          }
-          delete state.sheet.cells[engine.indexToCol(col) + String(row)];
-        }
-      }
-      state.pendingCut = null;
-    }
-
-    state.anchor = createPoint(targetTop, targetLeft);
-    state.selection = createPoint(
-      Math.min(ROW_COUNT, targetTop + sourceRows - 1),
-      Math.min(COLUMN_COUNT, targetLeft + sourceCols - 1)
-    );
+    state.sheet = result.sheet;
+    state.pendingCut = null;
+    state.anchor = createPoint(targetBounds.top, targetBounds.left);
+    state.selection = createPoint(targetBounds.bottom, targetBounds.right);
     state.editing = false;
     state.draft = getRaw(state.selection);
     persist();
