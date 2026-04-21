@@ -51,6 +51,19 @@ function copyRange(sheet, range, preserveFormulas) {
   };
 }
 
+function clearRange(sheet, range) {
+  const startRow = Math.min(range.startRow, range.endRow);
+  const endRow = Math.max(range.startRow, range.endRow);
+  const startCol = Math.min(range.startCol, range.endCol);
+  const endCol = Math.max(range.startCol, range.endCol);
+
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let col = startCol; col <= endCol; col += 1) {
+      setCell(sheet, engine.toCellId(row, col), '');
+    }
+  }
+}
+
 function pasteRange(sheet, targetRange, clip) {
   const startRow = Math.min(targetRange.startRow, targetRange.endRow);
   const startCol = Math.min(targetRange.startCol, targetRange.endCol);
@@ -114,6 +127,7 @@ module.exports = {
   setCell,
   getCellDisplay,
   getCellRaw,
+  clearRange,
   copyRange,
   pasteRange,
   insertRow,

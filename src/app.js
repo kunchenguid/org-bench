@@ -7,6 +7,8 @@
     cells: {},
     evaluated: {},
     selection: { row: 0, col: 0 },
+    anchor: { row: 0, col: 0 },
+    range: { startRow: 0, startCol: 0, endRow: 0, endCol: 0 },
     editingCell: false,
     draft: '',
     history: historyApi.createHistory(),
@@ -72,8 +74,13 @@
         input.className = 'cell-input';
         input.spellcheck = false;
         input.tabIndex = -1;
+        input.addEventListener('mousedown', function (event) {
+          selectCell(row, col, false, event.shiftKey);
+        });
         input.addEventListener('focus', function () {
-          selectCell(row, col, false);
+          if (!state.editingCell) {
+            selectCell(row, col, false, false);
+          }
         });
         input.addEventListener('dblclick', function () {
           beginEdit(false);
@@ -121,25 +128,25 @@
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      moveSelection(-1, 0);
+      moveSelection(-1, 0, event.shiftKey);
       return;
     }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      moveSelection(1, 0);
+      moveSelection(1, 0, event.shiftKey);
       return;
     }
 
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      moveSelection(0, -1);
+      moveSelection(0, -1, event.shiftKey);
       return;
     }
 
     if (event.key === 'ArrowRight') {
       event.preventDefault();
-      moveSelection(0, 1);
+      moveSelection(0, 1, event.shiftKey);
       return;
     }
 
@@ -167,7 +174,7 @@
 
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      clearActiveCell();
+      clearSelectedRange();
       return;
     }
 
@@ -177,11 +184,28 @@
     }
   }
 
-  function selectCell(row, col, focusCell) {
-    state.selection = {
+  function selectCell(row, col, focusCell, extendRange) {
+    const nextSelection = {
       row: clamp(row, 0, ROWS - 1),
       col: clamp(col, 0, COLS - 1),
     };
+    state.selection = nextSelection;
+    if (extendRange) {
+      state.range = {
+        startRow: Math.min(state.anchor.row, nextSelection.row),
+        startCol: Math.min(state.anchor.col, nextSelection.col),
+        endRow: Math.max(state.anchor.row, nextSelection.row),
+        endCol: Math.max(state.anchor.col, nextSelection.col),
+      };
+    } else {
+      state.anchor = { row: nextSelection.row, col: nextSelection.col };
+      state.range = {
+        startRow: nextSelection.row,
+        startCol: nextSelection.col,
+        endRow: nextSelection.row,
+        endCol: nextSelection.col,
+      };
+    }
     state.editingCell = false;
     state.draft = currentRawValue();
     render();
@@ -191,8 +215,8 @@
     persist();
   }
 
-  function moveSelection(rowDelta, colDelta) {
-    selectCell(state.selection.row + rowDelta, state.selection.col + colDelta, true);
+  function moveSelection(rowDelta, colDelta, extendRange) {
+    selectCell(state.selection.row + rowDelta, state.selection.col + colDelta, true, extendRange);
   }
 
   function beginEdit(useExistingValue, replacement) {
@@ -245,7 +269,9 @@
       const cellId = engine.toCellId(Number(input.dataset.row), Number(input.dataset.col));
       const evaluated = state.evaluated[cellId];
       const isActive = cellId === selectedId;
+      const inRange = isWithinRange(Number(input.dataset.row), Number(input.dataset.col));
       input.parentElement.classList.toggle('is-active', isActive);
+      input.parentElement.classList.toggle('is-selected', inRange && !isActive);
       input.value = isActive && state.editingCell ? state.draft : (evaluated ? evaluated.display : '');
       input.readOnly = !isActive || !state.editingCell;
       input.classList.toggle('text-value', evaluated && evaluated.type === 'string');
@@ -279,10 +305,17 @@
       const parsed = JSON.parse(saved);
       state.cells = parsed.cells || {};
       if (parsed.selection) {
-        state.selection = {
-          row: clamp(parsed.selection.row || 0, 0, ROWS - 1),
-          col: clamp(parsed.selection.col || 0, 0, COLS - 1),
-        };
+      state.selection = {
+        row: clamp(parsed.selection.row || 0, 0, ROWS - 1),
+        col: clamp(parsed.selection.col || 0, 0, COLS - 1),
+      };
+      state.anchor = { row: state.selection.row, col: state.selection.col };
+      state.range = {
+        startRow: state.selection.row,
+        startCol: state.selection.col,
+        endRow: state.selection.row,
+        endCol: state.selection.col,
+      };
       }
       state.draft = currentRawValue();
     } catch (_) {
@@ -326,13 +359,15 @@
     applySnapshot(snapshot);
   }
 
-  function clearActiveCell() {
-    const cellId = activeCellId();
-    if (!state.cells[cellId]) {
+  function clearSelectedRange() {
+    const cellIds = getSelectedCellIds();
+    if (!cellIds.some(function (cellId) { return Boolean(state.cells[cellId]); })) {
       return;
     }
 
-    delete state.cells[cellId];
+    for (const cellId of cellIds) {
+      delete state.cells[cellId];
+    }
     state.editingCell = false;
     state.draft = '';
     recompute();
@@ -345,6 +380,13 @@
   function applySnapshot(snapshot) {
     state.cells = snapshot.cells;
     state.selection = snapshot.selection;
+    state.anchor = { row: state.selection.row, col: state.selection.col };
+    state.range = {
+      startRow: state.selection.row,
+      startCol: state.selection.col,
+      endRow: state.selection.row,
+      endCol: state.selection.col,
+    };
     state.editingCell = false;
     state.draft = currentRawValue();
     recompute();
@@ -363,5 +405,19 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function isWithinRange(row, col) {
+    return row >= state.range.startRow && row <= state.range.endRow && col >= state.range.startCol && col <= state.range.endCol;
+  }
+
+  function getSelectedCellIds() {
+    const cellIds = [];
+    for (let row = state.range.startRow; row <= state.range.endRow; row += 1) {
+      for (let col = state.range.startCol; col <= state.range.endCol; col += 1) {
+        cellIds.push(engine.toCellId(row, col));
+      }
+    }
+    return cellIds;
   }
 })();

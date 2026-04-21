@@ -177,6 +177,10 @@ td.is-active {
   background: rgba(37, 99, 235, 0.08);
 }
 
+td.is-selected {
+  background: rgba(37, 99, 235, 0.12);
+}
+
 td.is-active::after {
   content: '';
   position: absolute;
