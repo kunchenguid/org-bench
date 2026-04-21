@@ -175,6 +175,17 @@ body {
   font-weight: 600;
 }
 
+.sheet-grid th.col-header,
+.sheet-grid th.row-header {
+  cursor: context-menu;
+}
+
+.sheet-grid th.col-header:hover,
+.sheet-grid th.row-header:hover {
+  background: #eef3ff;
+  color: var(--text);
+}
+
 .sheet-grid th.corner {
   left: 0;
   z-index: 4;
@@ -221,6 +232,34 @@ body {
   border-radius: 0;
   background: white;
   z-index: 10;
+}
+
+.header-menu {
+  position: absolute;
+  min-width: 176px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(188, 196, 211, 0.9);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  z-index: 12;
+}
+
+.header-menu button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+}
+
+.header-menu button:hover {
+  background: #eef3ff;
 }
 
 .hidden {

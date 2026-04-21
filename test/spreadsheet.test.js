@@ -5,6 +5,9 @@ const {
   createSheet,
   setCellRaw,
   getCellComputed,
+  getCellRaw,
+  insertRow,
+  deleteColumn,
   shiftFormula,
 } = require('../spreadsheet.js');
 
@@ -46,4 +49,27 @@ test('detects circular references', () => {
 test('shifts relative references while preserving absolute components', () => {
   assert.equal(shiftFormula('=A1+$B2+C$3+$D$4', 2, 1), '=B3+$B4+D$3+$D$4');
   assert.equal(shiftFormula('=SUM(A1:B2)', 1, 2), '=SUM(C2:D3)');
+});
+
+test('inserting a row moves cells and keeps formulas pointed at the same data', () => {
+  const sheet = createSheet();
+  setCellRaw(sheet, 1, 0, '7');
+  setCellRaw(sheet, 2, 1, '=A2');
+
+  insertRow(sheet, 1);
+
+  assert.equal(getCellRaw(sheet, 2, 0), '7');
+  assert.equal(getCellRaw(sheet, 3, 1), '=A3');
+  assert.equal(getCellComputed(sheet, 3, 1).display, '7');
+});
+
+test('deleting a column rewrites deleted references to #REF!', () => {
+  const sheet = createSheet();
+  setCellRaw(sheet, 0, 0, '4');
+  setCellRaw(sheet, 0, 1, '=A1+1');
+
+  deleteColumn(sheet, 0);
+
+  assert.equal(getCellRaw(sheet, 0, 0), '=#REF!+1');
+  assert.equal(getCellComputed(sheet, 0, 0).display, '#REF!');
 });

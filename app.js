@@ -6,6 +6,7 @@
   const nameBox = document.getElementById('name-box');
   const gridWrap = document.getElementById('grid-wrap');
   const cellEditor = document.getElementById('cell-editor');
+  const headerMenu = document.getElementById('header-menu');
   const storagePrefix = detectStoragePrefix();
   const storageKey = storagePrefix + ':sheet-state';
 
@@ -14,6 +15,7 @@
     selection: makeCellSelection(0, 0),
     editing: null,
     dragAnchor: null,
+    headerMenu: null,
     undoStack: [],
     redoStack: [],
     clipboard: null,
@@ -117,6 +119,40 @@
     state.dragAnchor = null;
   });
 
+  grid.addEventListener('contextmenu', function (event) {
+    const rowHeader = event.target.closest('th.row-header');
+    const colHeader = event.target.closest('th.col-header');
+    if (!rowHeader && !colHeader) {
+      return;
+    }
+    event.preventDefault();
+    if (state.editing) {
+      commitPendingEdit(0, 0);
+    }
+    if (rowHeader) {
+      showHeaderMenu('row', Number(rowHeader.dataset.rowHeader), event.clientX, event.clientY);
+      return;
+    }
+    showHeaderMenu('col', Number(colHeader.dataset.colHeader), event.clientX, event.clientY);
+  });
+
+  headerMenu.addEventListener('click', function (event) {
+    const action = event.target.closest('button[data-action]');
+    if (!action || !state.headerMenu) {
+      return;
+    }
+    applyStructuralAction(state.headerMenu.axis, state.headerMenu.index, action.dataset.action);
+    hideHeaderMenu();
+  });
+
+  document.addEventListener('mousedown', function (event) {
+    if (!event.target.closest('#header-menu')) {
+      hideHeaderMenu();
+    }
+  });
+
+  gridWrap.addEventListener('scroll', hideHeaderMenu);
+
   grid.addEventListener('dblclick', function (event) {
     const cell = event.target.closest('td[data-row]');
     if (!cell) {
@@ -214,6 +250,8 @@
     headRow.appendChild(corner);
     for (let col = 0; col < engine.COLS; col += 1) {
       const header = document.createElement('th');
+      header.className = 'col-header';
+      header.dataset.colHeader = String(col);
       header.textContent = engine.columnToLetters(col);
       headRow.appendChild(header);
     }
@@ -225,6 +263,7 @@
       const tr = document.createElement('tr');
       const rowHeader = document.createElement('th');
       rowHeader.className = 'row-header';
+      rowHeader.dataset.rowHeader = String(row);
       rowHeader.textContent = String(row + 1);
       tr.appendChild(rowHeader);
       for (let col = 0; col < engine.COLS; col += 1) {
@@ -266,6 +305,7 @@
       formulaInput.value = getActiveRaw();
     }
     renderEditor();
+    syncHeaderMenu();
     persist();
   }
 
@@ -414,6 +454,84 @@
         engine.setCellRaw(state.sheet, row, col, '');
       }
     }
+  }
+
+  function applyStructuralAction(axis, index, action) {
+    pushHistory();
+    if (axis === 'row') {
+      if (action === 'insert-before') {
+        engine.insertRow(state.sheet, index);
+        shiftSelectionAfterStructure(axis, index, 'insert');
+      } else if (action === 'insert-after') {
+        engine.insertRow(state.sheet, index + 1);
+        shiftSelectionAfterStructure(axis, index + 1, 'insert');
+      } else {
+        engine.deleteRow(state.sheet, index);
+        shiftSelectionAfterStructure(axis, index, 'delete');
+      }
+    } else {
+      if (action === 'insert-before') {
+        engine.insertColumn(state.sheet, index);
+        shiftSelectionAfterStructure(axis, index, 'insert');
+      } else if (action === 'insert-after') {
+        engine.insertColumn(state.sheet, index + 1);
+        shiftSelectionAfterStructure(axis, index + 1, 'insert');
+      } else {
+        engine.deleteColumn(state.sheet, index);
+        shiftSelectionAfterStructure(axis, index, 'delete');
+      }
+    }
+    state.redoStack = [];
+    render();
+  }
+
+  function shiftSelectionAfterStructure(axis, index, kind) {
+    state.selection = {
+      anchor: remapSelectionPoint(state.selection.anchor, axis, index, kind),
+      focus: remapSelectionPoint(state.selection.focus, axis, index, kind),
+    };
+  }
+
+  function remapSelectionPoint(point, axis, index, kind) {
+    const next = { row: point.row, col: point.col };
+    const key = axis === 'row' ? 'row' : 'col';
+    if (kind === 'insert') {
+      if (next[key] >= index) {
+        next[key] += 1;
+      }
+      return clampCell(next.row, next.col);
+    }
+    if (next[key] > index) {
+      next[key] -= 1;
+    }
+    return clampCell(next.row, next.col);
+  }
+
+  function showHeaderMenu(axis, index, clientX, clientY) {
+    const insertBefore = headerMenu.querySelector('button[data-action="insert-before"]');
+    const insertAfter = headerMenu.querySelector('button[data-action="insert-after"]');
+    const remove = headerMenu.querySelector('button[data-action="delete"]');
+    insertBefore.textContent = axis === 'row' ? 'Insert Row Above' : 'Insert Column Left';
+    insertAfter.textContent = axis === 'row' ? 'Insert Row Below' : 'Insert Column Right';
+    remove.textContent = axis === 'row' ? 'Delete Row' : 'Delete Column';
+    state.headerMenu = { axis, index, clientX, clientY };
+    syncHeaderMenu();
+  }
+
+  function syncHeaderMenu() {
+    if (!state.headerMenu) {
+      headerMenu.classList.add('hidden');
+      return;
+    }
+    const wrapRect = gridWrap.getBoundingClientRect();
+    headerMenu.classList.remove('hidden');
+    headerMenu.style.left = gridWrap.scrollLeft + state.headerMenu.clientX - wrapRect.left + 'px';
+    headerMenu.style.top = gridWrap.scrollTop + state.headerMenu.clientY - wrapRect.top + 'px';
+  }
+
+  function hideHeaderMenu() {
+    state.headerMenu = null;
+    headerMenu.classList.add('hidden');
   }
 
   function handleUndoRedo(event) {

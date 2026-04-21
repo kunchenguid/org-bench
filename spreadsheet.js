@@ -263,6 +263,8 @@
       case 'string':
       case 'boolean':
         return node.value;
+      case 'error':
+        return errorValue(node.code);
       case 'cell':
         return context.getCell(node.ref);
       case 'range':
@@ -435,6 +437,11 @@
         return { type: 'string', value: string };
       }
 
+      const errorToken = readErrorToken();
+      if (errorToken) {
+        return { type: 'error', code: errorToken };
+      }
+
       const number = readNumber();
       if (number != null) {
         return { type: 'number', value: number };
@@ -529,6 +536,16 @@
       return Number(matchResult[0]);
     }
 
+    function readErrorToken() {
+      skipWhitespace();
+      const matchResult = input.slice(index).match(/^#(?:REF!|DIV\/0!|ERR!|CIRC!)/);
+      if (!matchResult) {
+        return null;
+      }
+      index += matchResult[0].length;
+      return matchResult[0];
+    }
+
     function readIdentifier() {
       skipWhitespace();
       const matchResult = input.slice(index).match(/^[A-Za-z_$][A-Za-z0-9_$]*/);
@@ -602,6 +619,121 @@
     });
   }
 
+  function insertRow(sheet, rowIndex) {
+    remapSheet(sheet, function (row, col) {
+      return row >= rowIndex ? { row: row + 1, col } : { row, col };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, { axis: 'row', kind: 'insert', index: rowIndex });
+    });
+  }
+
+  function deleteRow(sheet, rowIndex) {
+    remapSheet(sheet, function (row, col) {
+      if (row === rowIndex) {
+        return null;
+      }
+      return row > rowIndex ? { row: row - 1, col } : { row, col };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, { axis: 'row', kind: 'delete', index: rowIndex });
+    });
+  }
+
+  function insertColumn(sheet, colIndex) {
+    remapSheet(sheet, function (row, col) {
+      return col >= colIndex ? { row, col: col + 1 } : { row, col };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, { axis: 'col', kind: 'insert', index: colIndex });
+    });
+  }
+
+  function deleteColumn(sheet, colIndex) {
+    remapSheet(sheet, function (row, col) {
+      if (col === colIndex) {
+        return null;
+      }
+      return col > colIndex ? { row, col: col - 1 } : { row, col };
+    }, function (raw) {
+      return rewriteFormulaReferences(raw, { axis: 'col', kind: 'delete', index: colIndex });
+    });
+  }
+
+  function remapSheet(sheet, cellMapper, formulaMapper) {
+    const nextCells = Object.create(null);
+    for (const cellKey of Object.keys(sheet.cells)) {
+      const parts = cellKey.split(',');
+      const row = Number(parts[0]);
+      const col = Number(parts[1]);
+      const mapped = cellMapper(row, col);
+      if (!mapped || mapped.row < 0 || mapped.col < 0 || mapped.row >= ROWS || mapped.col >= COLS) {
+        continue;
+      }
+      const raw = formulaMapper(sheet.cells[cellKey]);
+      nextCells[key(mapped.row, mapped.col)] = raw;
+    }
+    sheet.cells = nextCells;
+  }
+
+  function rewriteFormulaReferences(raw, operation) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    const placeholders = [];
+    let formula = raw.slice(1).replace(/(\$?[A-Za-z]+\$?\d+):(\$?[A-Za-z]+\$?\d+)/g, function (_, startRef, endRef) {
+      const nextStart = transformReference(startRef, operation);
+      const nextEnd = transformReference(endRef, operation);
+      const placeholder = '__RANGE_' + placeholders.length + '__';
+      placeholders.push(nextStart === ERR.ref || nextEnd === ERR.ref ? ERR.ref : nextStart + ':' + nextEnd);
+      return placeholder;
+    });
+
+    formula = formula.replace(/(\$?[A-Za-z]+\$?\d+)/g, function (match) {
+      return transformReference(match, operation);
+    });
+
+    return '=' + formula.replace(/__RANGE_(\d+)__/g, function (_, index) {
+      return placeholders[Number(index)];
+    });
+  }
+
+  function transformReference(ref, operation) {
+    const match = normalizeRef(ref).match(/^(\$?)([A-Z]+)(\$?)(\d+)$/);
+    if (!match) {
+      return ref;
+    }
+
+    const absCol = match[1];
+    const colLetters = match[2];
+    const absRow = match[3];
+    const rowDigits = match[4];
+    let col = lettersToColumn(colLetters);
+    let row = Number(rowDigits) - 1;
+
+    if (operation.axis === 'row') {
+      row = transformIndex(row, operation);
+      if (row === null) {
+        return ERR.ref;
+      }
+    } else {
+      col = transformIndex(col, operation);
+      if (col === null) {
+        return ERR.ref;
+      }
+    }
+
+    return absCol + columnToLetters(col) + absRow + String(row + 1);
+  }
+
+  function transformIndex(value, operation) {
+    if (operation.kind === 'insert') {
+      return value >= operation.index ? value + 1 : value;
+    }
+    if (value === operation.index) {
+      return null;
+    }
+    return value > operation.index ? value - 1 : value;
+  }
+
   return {
     COLS,
     ROWS,
@@ -610,6 +742,10 @@
     setCellRaw,
     getCellRaw,
     getCellComputed,
+    insertRow,
+    deleteRow,
+    insertColumn,
+    deleteColumn,
     shiftFormula,
     refToCoords,
     columnToLetters,
