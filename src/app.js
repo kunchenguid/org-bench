@@ -377,11 +377,15 @@
   function parseAddress(address) {
     return selection.parseAddress(address);
   }
-  function labelToColumn(label) {
-    let total = 0;
-    for (let index = 0; index < label.length; index += 1) {
-      total = total * 26 + (label.charCodeAt(index) - 64);
+
+  function columnToLabel(column) {
+    let value = '';
+    let current = column;
+    while (current > 0) {
+      const remainder = (current - 1) % 26;
+      value = String.fromCharCode(65 + remainder) + value;
+      current = Math.floor((current - 1) / 26);
     }
-    return total;
+    return value;
   }
 })();
