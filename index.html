@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oracle Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">Oracle Sheet</div>
+        <div class="hint">Enter to commit, Tab to move, Shift plus arrows to extend, Cmd/Ctrl plus C/V/X/Z for clipboard and history.</div>
+      </div>
+      <div class="toolbar-actions">
+        <button type="button" id="undo-button">Undo</button>
+        <button type="button" id="redo-button">Redo</button>
+      </div>
+    </header>
+
+    <section class="formula-panel">
+      <div class="name-box" id="name-box">A1</div>
+      <label class="formula-label" for="formula-input">fx</label>
+      <input id="formula-input" class="formula-input" autocomplete="off" spellcheck="false">
+      <div class="structure-actions">
+        <button type="button" id="insert-row-button">Insert row above</button>
+        <button type="button" id="delete-row-button">Delete row</button>
+        <button type="button" id="insert-col-button">Insert column left</button>
+        <button type="button" id="delete-col-button">Delete column</button>
+      </div>
+    </section>
+
+    <main class="grid-shell">
+      <table id="sheet-table" class="sheet-table"></table>
+    </main>
+  </div>
+
+  <script src="spreadsheet-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
