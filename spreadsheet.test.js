@@ -175,6 +175,28 @@ test('supports IF and boolean helper functions', () => {
   assert.equal(sheet.getDisplay(1, 0), 'TRUE');
 });
 
+test('supports numeric helper functions beyond SUM', () => {
+  const store = createStore();
+  store.setCell(0, 0, '2');
+  store.setCell(0, 1, '4');
+  store.setCell(0, 2, '8');
+  store.setCell(1, 0, '=AVERAGE(A1:A3)');
+  store.setCell(1, 1, '=MIN(A1:A3)');
+  store.setCell(1, 2, '=MAX(A1:A3)');
+  store.setCell(1, 3, '=COUNT(A1:A3)');
+  store.setCell(1, 4, '=ABS(-9)');
+  store.setCell(1, 5, '=ROUND(3.49)');
+
+  const sheet = evaluateSheet(store);
+
+  assert.equal(sheet.getDisplay(1, 0), '4.666666666666667');
+  assert.equal(sheet.getDisplay(1, 1), '2');
+  assert.equal(sheet.getDisplay(1, 2), '8');
+  assert.equal(sheet.getDisplay(1, 3), '3');
+  assert.equal(sheet.getDisplay(1, 4), '9');
+  assert.equal(sheet.getDisplay(1, 5), '3');
+});
+
 test('treats empty references as zero in numeric formulas', () => {
   const store = createStore();
   store.setCell(0, 0, '=B1+2');
