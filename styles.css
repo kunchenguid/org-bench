@@ -137,6 +137,11 @@ body {
 
 .col-header {
   top: 0;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
 }
 
 .row-header {
@@ -160,6 +165,24 @@ body {
   line-height: 1;
   padding: 0;
   cursor: pointer;
+}
+
+.col-action {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #2563eb;
+  font: inherit;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.row-action-delete,
+.col-action-delete {
+  color: #b91c1c;
 }
 
 .sheet tr:first-child th:first-child {

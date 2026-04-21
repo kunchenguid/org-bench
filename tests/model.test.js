@@ -10,6 +10,9 @@ const {
   copyRange,
   pasteRange,
   insertRow,
+  insertCol,
+  deleteRow,
+  deleteCol,
 } = require('../src/model.js');
 
 test('supports ranges and built-in aggregate functions', () => {
@@ -69,4 +72,43 @@ test('clears every populated cell inside a selected rectangle', () => {
   assert.equal(getCellRaw(sheet, 'B1'), '');
   assert.equal(getCellRaw(sheet, 'B2'), '');
   assert.equal(getCellRaw(sheet, 'C1'), '5');
+});
+
+test('inserting a column shifts formulas to keep pointing at the same cells', () => {
+  const sheet = createSheet();
+
+  setCell(sheet, 'A1', '4');
+  setCell(sheet, 'B1', '6');
+  setCell(sheet, 'C1', '=SUM(A1:B1)');
+
+  insertCol(sheet, 1);
+
+  assert.equal(getCellRaw(sheet, 'D1'), '=SUM(A1:C1)');
+  assert.equal(getCellDisplay(sheet, 'D1'), '10');
+});
+
+test('deleting a row turns references to removed cells into #REF!', () => {
+  const sheet = createSheet();
+
+  setCell(sheet, 'A1', '4');
+  setCell(sheet, 'A2', '6');
+  setCell(sheet, 'B1', '=A2');
+
+  deleteRow(sheet, 1);
+
+  assert.equal(getCellRaw(sheet, 'B1'), '=#REF!');
+  assert.equal(getCellDisplay(sheet, 'B1'), '#REF!');
+});
+
+test('deleting a column turns references to removed cells into #REF!', () => {
+  const sheet = createSheet();
+
+  setCell(sheet, 'A1', '4');
+  setCell(sheet, 'B1', '6');
+  setCell(sheet, 'C1', '=B1');
+
+  deleteCol(sheet, 1);
+
+  assert.equal(getCellRaw(sheet, 'B1'), '=#REF!');
+  assert.equal(getCellDisplay(sheet, 'B1'), '#REF!');
 });

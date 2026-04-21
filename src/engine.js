@@ -36,6 +36,8 @@
 
       if (!raw) {
         value = makeBlank();
+      } else if (raw === '=#REF!') {
+        value = makeError('#REF!');
       } else if (raw[0] === '=') {
         try {
           const parser = createParser(raw.slice(1));

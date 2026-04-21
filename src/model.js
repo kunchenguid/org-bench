@@ -103,6 +103,49 @@
     sheet.cells = nextCells;
   }
 
+  function insertCol(sheet, colIndex) {
+    const nextCells = {};
+    for (const cellId of Object.keys(sheet.cells)) {
+      const ref = engine.parseCellId(cellId);
+      const nextCol = ref.col >= colIndex ? ref.col + 1 : ref.col;
+      nextCells[engine.toCellId(ref.row, nextCol)] = sheet.cells[cellId];
+    }
+
+    for (const cellId of Object.keys(nextCells)) {
+      nextCells[cellId] = shiftFormulaForInsertedCol(nextCells[cellId], colIndex);
+    }
+
+    sheet.cells = nextCells;
+  }
+
+  function deleteRow(sheet, rowIndex) {
+    const nextCells = {};
+    for (const cellId of Object.keys(sheet.cells)) {
+      const ref = engine.parseCellId(cellId);
+      if (ref.row === rowIndex) {
+        continue;
+      }
+      const nextRow = ref.row > rowIndex ? ref.row - 1 : ref.row;
+      nextCells[engine.toCellId(nextRow, ref.col)] = shiftFormulaForDeletedRow(sheet.cells[cellId], rowIndex);
+    }
+
+    sheet.cells = nextCells;
+  }
+
+  function deleteCol(sheet, colIndex) {
+    const nextCells = {};
+    for (const cellId of Object.keys(sheet.cells)) {
+      const ref = engine.parseCellId(cellId);
+      if (ref.col === colIndex) {
+        continue;
+      }
+      const nextCol = ref.col > colIndex ? ref.col - 1 : ref.col;
+      nextCells[engine.toCellId(ref.row, nextCol)] = shiftFormulaForDeletedCol(sheet.cells[cellId], colIndex);
+    }
+
+    sheet.cells = nextCells;
+  }
+
   function shiftFormula(raw, rowDelta, colDelta) {
     return raw.replace(CELL_REF_IN_FORMULA_RE, function (_, absoluteCol, colLabel, absoluteRow, rowNumber) {
       const ref = engine.parseCellId(colLabel + rowNumber);
@@ -128,6 +171,60 @@
     });
   }
 
+  function shiftFormulaForInsertedCol(raw, colIndex) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    return raw.replace(CELL_REF_IN_FORMULA_RE, function (_, absoluteCol, colLabel, absoluteRow, rowNumber) {
+      if (absoluteCol) {
+        return _;
+      }
+
+      const ref = engine.parseCellId(colLabel + rowNumber);
+      const nextCol = ref.col >= colIndex ? ref.col + 1 : ref.col;
+      return engine.indexToColumnLabel(nextCol) + (absoluteRow ? '$' : '') + rowNumber;
+    });
+  }
+
+  function shiftFormulaForDeletedRow(raw, rowIndex) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    let deletedReference = false;
+    const next = raw.replace(CELL_REF_IN_FORMULA_RE, function (_, absoluteCol, colLabel, absoluteRow, rowNumber) {
+      const ref = engine.parseCellId(colLabel + rowNumber);
+      if (ref.row === rowIndex) {
+        deletedReference = true;
+        return '#REF!';
+      }
+      const nextRow = ref.row > rowIndex ? ref.row - 1 : ref.row;
+      return (absoluteCol ? '$' : '') + colLabel + (absoluteRow ? '$' : '') + String(nextRow + 1);
+    });
+
+    return deletedReference ? '=#REF!' : next;
+  }
+
+  function shiftFormulaForDeletedCol(raw, colIndex) {
+    if (!raw || raw[0] !== '=') {
+      return raw;
+    }
+
+    let deletedReference = false;
+    const next = raw.replace(CELL_REF_IN_FORMULA_RE, function (_, absoluteCol, colLabel, absoluteRow, rowNumber) {
+      const ref = engine.parseCellId(colLabel + rowNumber);
+      if (ref.col === colIndex) {
+        deletedReference = true;
+        return '#REF!';
+      }
+      const nextCol = ref.col > colIndex ? ref.col - 1 : ref.col;
+      return (absoluteCol ? '$' : '') + engine.indexToColumnLabel(nextCol) + (absoluteRow ? '$' : '') + rowNumber;
+    });
+
+    return deletedReference ? '=#REF!' : next;
+  }
+
   return {
     createSheet,
     setCell,
@@ -137,6 +234,9 @@
     copyRange,
     pasteRange,
     insertRow,
+    insertCol,
+    deleteRow,
+    deleteCol,
     shiftFormula,
   };
 });

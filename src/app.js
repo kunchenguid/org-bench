@@ -55,8 +55,32 @@
     headerRow.appendChild(document.createElement('th'));
     for (let col = 0; col < COLS; col += 1) {
       const header = document.createElement('th');
-      header.textContent = engine.indexToColumnLabel(col);
       header.className = 'col-header';
+      const label = document.createElement('span');
+      label.textContent = engine.indexToColumnLabel(col);
+      const insertButton = document.createElement('button');
+      insertButton.type = 'button';
+      insertButton.className = 'col-action';
+      insertButton.textContent = '+';
+      insertButton.title = 'Insert column before';
+      insertButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        insertColBefore(col);
+      });
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'col-action col-action-delete';
+      deleteButton.textContent = '-';
+      deleteButton.title = 'Delete column';
+      deleteButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        deleteColAt(col);
+      });
+      header.appendChild(label);
+      header.appendChild(insertButton);
+      header.appendChild(deleteButton);
       headerRow.appendChild(header);
     }
     table.appendChild(headerRow);
@@ -76,7 +100,18 @@
         event.stopPropagation();
         insertRowAbove(row);
       });
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'row-action row-action-delete';
+      deleteButton.textContent = '-';
+      deleteButton.title = 'Delete row';
+      deleteButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        deleteRowAt(row);
+      });
       rowHeader.appendChild(insertButton);
+      rowHeader.appendChild(deleteButton);
       tr.appendChild(rowHeader);
 
       for (let col = 0; col < COLS; col += 1) {
@@ -509,15 +544,53 @@
     model.insertRow(sheet, rowIndex);
     state.cells = sheet.cells;
     if (state.selection.row >= rowIndex) {
-      state.selection.row += 1;
-      state.anchor = { row: state.selection.row, col: state.selection.col };
-      state.range = normalizeRange({
-        startRow: state.selection.row,
-        startCol: state.selection.col,
-        endRow: state.selection.row,
-        endCol: state.selection.col,
-      });
+      state.selection.row = clamp(state.selection.row + 1, 0, ROWS - 1);
     }
+    afterStructuralChange();
+  }
+
+  function deleteRowAt(rowIndex) {
+    const sheet = model.createSheet(state.cells);
+    model.deleteRow(sheet, rowIndex);
+    state.cells = sheet.cells;
+    if (state.selection.row > rowIndex) {
+      state.selection.row -= 1;
+    } else if (state.selection.row === rowIndex) {
+      state.selection.row = clamp(state.selection.row, 0, ROWS - 1);
+    }
+    afterStructuralChange();
+  }
+
+  function insertColBefore(colIndex) {
+    const sheet = model.createSheet(state.cells);
+    model.insertCol(sheet, colIndex);
+    state.cells = sheet.cells;
+    if (state.selection.col >= colIndex) {
+      state.selection.col = clamp(state.selection.col + 1, 0, COLS - 1);
+    }
+    afterStructuralChange();
+  }
+
+  function deleteColAt(colIndex) {
+    const sheet = model.createSheet(state.cells);
+    model.deleteCol(sheet, colIndex);
+    state.cells = sheet.cells;
+    if (state.selection.col > colIndex) {
+      state.selection.col -= 1;
+    } else if (state.selection.col === colIndex) {
+      state.selection.col = clamp(state.selection.col, 0, COLS - 1);
+    }
+    afterStructuralChange();
+  }
+
+  function afterStructuralChange() {
+    state.anchor = { row: state.selection.row, col: state.selection.col };
+    state.range = normalizeRange({
+      startRow: state.selection.row,
+      startCol: state.selection.col,
+      endRow: state.selection.row,
+      endCol: state.selection.col,
+    });
     recompute();
     pushHistory();
     persist();
