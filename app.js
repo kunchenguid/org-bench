@@ -10,6 +10,7 @@
   var state = loadState();
   var activeEditor = null;
   var dragAnchor = null;
+  var pendingCut = null;
 
   renderGrid();
   renderSelection();
@@ -207,43 +208,68 @@
   }
 
   function handleCopy(event) {
+    var clipboardText;
+
     if (!canHandleClipboard(event)) {
       return;
     }
 
-    event.clipboardData.setData('text/plain', selectionApi.serializeClipboardBlock(copySelectedBlock()));
+    clipboardText = selectionApi.serializeClipboardBlock(copySelectedBlock());
+    pendingCut = null;
+    event.clipboardData.setData('text/plain', clipboardText);
     event.preventDefault();
   }
 
   function handleCut(event) {
+    var clipboardText;
+
     if (!canHandleClipboard(event)) {
       return;
     }
 
-    event.clipboardData.setData('text/plain', selectionApi.serializeClipboardBlock(copySelectedBlock()));
-    applyOperations(selectionApi.planClearRange(getCurrentRange()));
+    clipboardText = selectionApi.serializeClipboardBlock(copySelectedBlock());
+    pendingCut = {
+      block: copySelectedBlock(),
+      range: getCurrentRange(),
+      text: clipboardText,
+    };
+    event.clipboardData.setData('text/plain', clipboardText);
     event.preventDefault();
   }
 
   function handlePaste(event) {
     var block;
-    var operations;
+    var clipboardText;
+    var movePlan;
 
     if (!canHandleClipboard(event)) {
       return;
     }
 
-    block = selectionApi.parseClipboardText(event.clipboardData.getData('text/plain'));
+    clipboardText = event.clipboardData.getData('text/plain');
+    block = selectionApi.parseClipboardText(clipboardText);
     if (!block.length) {
+      pendingCut = null;
+      event.preventDefault();
       return;
     }
 
-    operations = selectionApi.planPaste(block, getPasteTarget(block), {
+    if (pendingCut && pendingCut.text === clipboardText) {
+      movePlan = selectionApi.planCutMove(pendingCut.block, pendingCut.range, getPasteTarget(block), {
+        adjustCell: adjustPastedCell,
+      });
+      applyOperations(movePlan.pasteOperations.concat(movePlan.clearOperations));
+      pendingCut = null;
+      event.preventDefault();
+      return;
+    }
+
+    pendingCut = null;
+    applyOperations(selectionApi.planPaste(block, getPasteTarget(block), {
       // Formula shifting belongs to the formula subsystem. For now this keeps
       // paste wiring isolated while exposing a stable hook for relative refs.
       adjustCell: adjustPastedCell,
-    });
-    applyOperations(operations);
+    }));
     event.preventDefault();
   }
 

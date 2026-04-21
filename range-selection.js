@@ -165,6 +165,16 @@
     };
   }
 
+  function planCutMove(block, sourceRange, target, options) {
+    var pasteOperations = planPaste(block, target, options);
+    return {
+      pasteOperations: pasteOperations,
+      clearOperations: isSameRange(sourceRange, rangeFromOperations(pasteOperations))
+        ? []
+        : planClearRange(sourceRange),
+    };
+  }
+
   function serializeClipboardBlock(block) {
     return block.map(function (row) {
       return row.join('\t');
@@ -172,6 +182,10 @@
   }
 
   function parseClipboardText(text) {
+    if (!String(text || '').length) {
+      return [];
+    }
+
     return String(text || '')
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
@@ -179,6 +193,24 @@
       .map(function (row) {
         return row.split('\t');
       });
+  }
+
+  function rangeFromOperations(operations) {
+    var start = operations[0];
+    var end = operations[operations.length - 1];
+    return {
+      startRow: start.row,
+      endRow: end.row,
+      startCol: start.col,
+      endCol: end.col,
+    };
+  }
+
+  function isSameRange(left, right) {
+    return left.startRow === right.startRow
+      && left.endRow === right.endRow
+      && left.startCol === right.startCol
+      && left.endCol === right.endCol;
   }
 
   return {
@@ -189,6 +221,7 @@
     planClearRange: planClearRange,
     planPaste: planPaste,
     planCut: planCut,
+    planCutMove: planCutMove,
     serializeClipboardBlock: serializeClipboardBlock,
     parseClipboardText: parseClipboardText,
   };

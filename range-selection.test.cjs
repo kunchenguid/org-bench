@@ -153,3 +153,43 @@ test('parseClipboardText reads rectangular clipboard text with CRLF line endings
     ]
   );
 });
+
+test('parseClipboardText treats empty clipboard text as no block', () => {
+  assert.deepEqual(selection.parseClipboardText(''), []);
+});
+
+test('planCutMove defers source clearing until paste is applied elsewhere', () => {
+  assert.deepEqual(
+    selection.planCutMove(
+      [['7', '=B2']],
+      { startRow: 2, endRow: 2, startCol: 2, endCol: 3 },
+      { row: 4, col: 5 }
+    ),
+    {
+      pasteOperations: [
+        { row: 4, col: 5, raw: '7' },
+        { row: 4, col: 6, raw: '=B2' },
+      ],
+      clearOperations: [
+        { row: 2, col: 2, raw: '' },
+        { row: 2, col: 3, raw: '' },
+      ],
+    }
+  );
+});
+
+test('planCutMove does not clear when pasting back into the original range', () => {
+  assert.deepEqual(
+    selection.planCutMove(
+      [['7']],
+      { startRow: 2, endRow: 2, startCol: 2, endCol: 2 },
+      { row: 2, col: 2 }
+    ),
+    {
+      pasteOperations: [
+        { row: 2, col: 2, raw: '7' },
+      ],
+      clearOperations: [],
+    }
+  );
+});
