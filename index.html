@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frank Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="toolbar">
+      <div class="badge">Frank Sheet</div>
+      <div class="meta">
+        <span>Cell <strong id="name-box">A1</strong></span>
+        <span>Row <strong id="row-label">1</strong></span>
+        <span>Column <strong id="col-label">A</strong></span>
+        <span>Selection <strong id="status">1 x 1</strong></span>
+      </div>
+      <div class="actions">
+        <button id="insert-row-above" type="button">Insert row above</button>
+        <button id="insert-row-below" type="button">Insert row below</button>
+        <button id="delete-row" type="button">Delete row</button>
+        <button id="insert-col-left" type="button">Insert col left</button>
+        <button id="insert-col-right" type="button">Insert col right</button>
+        <button id="delete-col" type="button">Delete col</button>
+      </div>
+    </header>
+    <section class="formula-bar">
+      <label class="formula-label" for="formula-input">fx</label>
+      <input id="formula-input" autocomplete="off" spellcheck="false">
+    </section>
+    <main id="grid" class="grid-wrap" aria-label="Spreadsheet grid"></main>
+  </div>
+  <script src="spreadsheet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
