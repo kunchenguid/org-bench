@@ -1,6 +1,7 @@
 (function () {
   const core = window.SpreadsheetCore;
   const storageApi = window.EmmaStorage;
+  const historyApi = window.EmmaHistory;
   const COLS = 26;
   const ROWS = 100;
   const storageNamespace = resolveStorageNamespace();
@@ -10,6 +11,7 @@
   const formulaInput = document.querySelector('#formula-input');
   const nameBox = document.querySelector('#name-box');
   const state = { active: persisted.active || 'A1', editing: null };
+  let history = historyApi.createHistory(snapshotState());
 
   renderGrid();
   syncFormulaBar();
@@ -76,6 +78,16 @@
       moveSelection(movement[0], movement[1]);
       return;
     }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      restoreSnapshot(historyApi.undoSnapshot(history));
+      return;
+    }
+    if (((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'z') || ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y')) {
+      event.preventDefault();
+      restoreSnapshot(historyApi.redoSnapshot(history));
+      return;
+    }
     if (event.key === 'Enter' || event.key === 'F2') {
       event.preventDefault();
       startEdit(state.active, false, '');
@@ -123,6 +135,7 @@
     });
   }
   function commitValue(address, value, move) {
+    history = historyApi.recordSnapshot(history, nextSnapshot(address, value));
     core.setCell(sheet, address, value);
     state.editing = null;
     persistState();
@@ -168,6 +181,25 @@
   }
   function loadState() {
     return storageApi.loadPersistedSheet(localStorage, storageNamespace) || {};
+  }
+  function restoreSnapshot(result) {
+    history = result.history;
+    state.active = result.snapshot.active || 'A1';
+    state.editing = null;
+    sheet.cells = Object.assign({}, result.snapshot.cells);
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+    focusActiveCell();
+  }
+  function nextSnapshot(address, value) {
+    const cells = Object.assign({}, sheet.cells);
+    if (value) cells[address] = String(value);
+    else delete cells[address];
+    return { cells: cells, active: address };
+  }
+  function snapshotState() {
+    return { cells: Object.assign({}, sheet.cells), active: state.active };
   }
   function resolveStorageNamespace() {
     return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'spreadsheet';
