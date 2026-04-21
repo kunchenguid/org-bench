@@ -399,8 +399,25 @@
       pasteSelection();
       return;
     }
-    if (event.target === formulaInput || grid.querySelector('.cell-editor')) {
-      if (event.key === 'F2' && !grid.querySelector('.cell-editor')) {
+    const activeEditor = grid.querySelector('.cell-editor');
+    if (activeEditor) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const value = core.resolveEditBuffer(core.createEditBuffer(activeEditor.value), true);
+        commit(value, 0, 1);
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        const value = core.resolveEditBuffer(core.createEditBuffer(activeEditor.value), true);
+        commit(value, 1, 0);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        isEditing = false;
+        render();
+      }
+      return;
+    }
+    if (event.target === formulaInput) {
+      if (event.key === 'F2') {
         startEditing();
       }
       return;
