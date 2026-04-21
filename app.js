@@ -7,6 +7,8 @@
   const formulaInput = document.getElementById('formula-input');
   const store = core.createStore(loadJSON(storageKey));
   let selection = loadJSON(selectionKey) || { col: 0, row: 0 };
+  let rangeAnchor = { col: selection.col, row: selection.row };
+  let clipboard = null;
   let isEditing = false;
   let history = [];
   let future = [];
@@ -23,6 +25,32 @@
   function save() {
     localStorage.setItem(storageKey, JSON.stringify(store.toJSON()));
     localStorage.setItem(selectionKey, JSON.stringify(selection));
+  }
+
+  function getSelectionRange() {
+    return core.normalizeRange({
+      startCol: rangeAnchor.col,
+      startRow: rangeAnchor.row,
+      endCol: selection.col,
+      endRow: selection.row,
+    });
+  }
+
+  function hasRangeSelection() {
+    const range = getSelectionRange();
+    return range.startCol !== range.endCol || range.startRow !== range.endRow;
+  }
+
+  function setSelection(col, row, extend) {
+    selection = {
+      col: Math.max(0, Math.min(core.COLS - 1, col)),
+      row: Math.max(0, Math.min(core.ROWS - 1, row)),
+    };
+    if (!extend) {
+      rangeAnchor = { col: selection.col, row: selection.row };
+    }
+    save();
+    render();
   }
 
   function pushHistory() {
@@ -59,12 +87,16 @@
       rowHeader.textContent = String(row + 1);
       grid.appendChild(rowHeader);
       for (let col = 0; col < core.COLS; col += 1) {
+        const range = getSelectionRange();
         const cellData = sheet.getCell(col, row);
         const cell = document.createElement('div');
         cell.className = 'cell';
         cell.dataset.col = String(col);
         cell.dataset.row = String(row);
         cell.tabIndex = -1;
+        if (col >= range.startCol && col <= range.endCol && row >= range.startRow && row <= range.endRow) {
+          cell.classList.add('selected');
+        }
         if (selection.col === col && selection.row === row) {
           cell.classList.add('active');
         }
@@ -75,14 +107,12 @@
           cell.classList.add('error');
         }
         cell.textContent = cellData.display;
-        cell.addEventListener('click', function () {
-          selection = { col: col, row: row };
+        cell.addEventListener('click', function (event) {
+          setSelection(col, row, event.shiftKey);
           isEditing = false;
-          syncFormula();
-          render();
         });
         cell.addEventListener('dblclick', function () {
-          selection = { col: col, row: row };
+          setSelection(col, row, false);
           startEditing();
         });
         grid.appendChild(cell);
@@ -96,20 +126,66 @@
   }
 
   function moveSelection(dCol, dRow) {
-    selection = {
-      col: Math.max(0, Math.min(core.COLS - 1, selection.col + dCol)),
-      row: Math.max(0, Math.min(core.ROWS - 1, selection.row + dRow)),
-    };
-    save();
-    render();
+    setSelection(selection.col + dCol, selection.row + dRow, false);
+  }
+
+  function extendSelection(dCol, dRow) {
+    setSelection(selection.col + dCol, selection.row + dRow, true);
   }
 
   function commit(value, dCol, dRow) {
     pushHistory();
     store.setCell(selection.col, selection.row, value);
     isEditing = false;
+    rangeAnchor = { col: selection.col, row: selection.row };
     moveSelection(dCol, dRow);
     save();
+  }
+
+  function clearRange() {
+    const range = getSelectionRange();
+    pushHistory();
+    for (let row = range.startRow; row <= range.endRow; row += 1) {
+      for (let col = range.startCol; col <= range.endCol; col += 1) {
+        store.setCell(col, row, '');
+      }
+    }
+    save();
+    render();
+  }
+
+  function writeClipboardText(value) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).catch(function () {});
+    }
+  }
+
+  function copySelection(cut) {
+    const range = getSelectionRange();
+    clipboard = core.copyRange(store, range);
+    writeClipboardText(clipboard.cells.map(function (row) {
+      return row.join('\t');
+    }).join('\n'));
+    if (cut) {
+      clearRange();
+      rangeAnchor = { col: selection.col, row: selection.row };
+    }
+  }
+
+  function pasteSelection() {
+    if (!clipboard) {
+      return;
+    }
+    pushHistory();
+    core.pasteRange(store, clipboard, hasRangeSelection() ? getSelectionRange() : {
+      startCol: selection.col,
+      startRow: selection.row,
+      endCol: selection.col,
+      endRow: selection.row,
+    });
+    rangeAnchor = { col: selection.col, row: selection.row };
+    save();
+    render();
   }
 
   function startEditing() {
@@ -197,6 +273,21 @@
       }
       return;
     }
+    if (meta && event.key.toLowerCase() === 'c') {
+      event.preventDefault();
+      copySelection(false);
+      return;
+    }
+    if (meta && event.key.toLowerCase() === 'x') {
+      event.preventDefault();
+      copySelection(true);
+      return;
+    }
+    if (meta && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      pasteSelection();
+      return;
+    }
     if (event.target === formulaInput || grid.querySelector('.cell-editor')) {
       if (event.key === 'F2' && !grid.querySelector('.cell-editor')) {
         startEditing();
@@ -210,25 +301,39 @@
     }
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      moveSelection(-1, 0);
+      if (event.shiftKey) {
+        extendSelection(-1, 0);
+      } else {
+        moveSelection(-1, 0);
+      }
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
-      moveSelection(1, 0);
+      if (event.shiftKey) {
+        extendSelection(1, 0);
+      } else {
+        moveSelection(1, 0);
+      }
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      moveSelection(0, -1);
+      if (event.shiftKey) {
+        extendSelection(0, -1);
+      } else {
+        moveSelection(0, -1);
+      }
     } else if (event.key === 'ArrowDown') {
       event.preventDefault();
-      moveSelection(0, 1);
+      if (event.shiftKey) {
+        extendSelection(0, 1);
+      } else {
+        moveSelection(0, 1);
+      }
     } else if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      pushHistory();
-      store.setCell(selection.col, selection.row, '');
-      save();
-      render();
+      clearRange();
     } else if (event.key.length === 1 && !meta && !event.altKey) {
       event.preventDefault();
       pushHistory();
+      rangeAnchor = { col: selection.col, row: selection.row };
       store.setCell(selection.col, selection.row, event.key);
       save();
       render();

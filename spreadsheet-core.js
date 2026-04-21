@@ -91,6 +91,53 @@
     };
   }
 
+  function normalizeRange(range) {
+    return {
+      startCol: Math.min(range.startCol, range.endCol),
+      startRow: Math.min(range.startRow, range.endRow),
+      endCol: Math.max(range.startCol, range.endCol),
+      endRow: Math.max(range.startRow, range.endRow),
+    };
+  }
+
+  function copyRange(store, range) {
+    const rect = normalizeRange(range);
+    const cells = [];
+    for (let row = rect.startRow; row <= rect.endRow; row += 1) {
+      const rowCells = [];
+      for (let col = rect.startCol; col <= rect.endCol; col += 1) {
+        rowCells.push(store.getCell(col, row));
+      }
+      cells.push(rowCells);
+    }
+    return {
+      startCol: rect.startCol,
+      startRow: rect.startRow,
+      width: rect.endCol - rect.startCol + 1,
+      height: rect.endRow - rect.startRow + 1,
+      cells: cells,
+    };
+  }
+
+  function pasteRange(store, clipboard, targetRange) {
+    const target = normalizeRange(targetRange);
+    const targetWidth = target.endCol - target.startCol + 1;
+    const targetHeight = target.endRow - target.startRow + 1;
+    const fillWidth = targetWidth === clipboard.width ? clipboard.width : clipboard.width;
+    const fillHeight = targetHeight === clipboard.height ? clipboard.height : clipboard.height;
+
+    for (let rowOffset = 0; rowOffset < fillHeight; rowOffset += 1) {
+      for (let colOffset = 0; colOffset < fillWidth; colOffset += 1) {
+        const sourceValue = clipboard.cells[rowOffset % clipboard.height][colOffset % clipboard.width] || '';
+        const targetCol = target.startCol + colOffset;
+        const targetRow = target.startRow + rowOffset;
+        const dCol = targetCol - (clipboard.startCol + colOffset % clipboard.width);
+        const dRow = targetRow - (clipboard.startRow + rowOffset % clipboard.height);
+        store.setCell(targetCol, targetRow, shiftFormula(sourceValue, dCol, dRow));
+      }
+    }
+  }
+
   function isNumeric(value) {
     return typeof value === 'number' && Number.isFinite(value);
   }
@@ -340,10 +387,13 @@
     COLS,
     ROWS,
     colToName,
+    copyRange,
     createStore,
     evaluateCell,
     evaluateSheet,
+    pasteRange,
     parseCellRef,
+    normalizeRange,
     shiftFormula,
   };
 });

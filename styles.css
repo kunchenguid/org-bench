@@ -135,6 +135,14 @@ body {
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
+.cell.selected {
+  background: var(--accent-soft);
+}
+
+.cell.selected.active {
+  background: linear-gradient(180deg, #eef5ff 0%, #dbeafe 100%);
+}
+
 .cell.error {
   color: #b91c1c;
   background: #fff5f5;
