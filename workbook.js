@@ -137,6 +137,29 @@
     return String(value);
   }
 
+  function mapFormulaRefs(formula, mapper) {
+    let inString = false;
+    let result = '';
+    for (let i = 0; i < formula.length; i += 1) {
+      const ch = formula[i];
+      if (ch === '"') {
+        inString = !inString;
+        result += ch;
+        continue;
+      }
+      if (!inString) {
+        const match = /^\$?[A-Z]+\$?\d+/.exec(formula.slice(i).toUpperCase());
+        if (match) {
+          result += mapper(match[0]);
+          i += match[0].length - 1;
+          continue;
+        }
+      }
+      result += ch;
+    }
+    return result;
+  }
+
   function tokenize(formula) {
     const tokens = [];
     let i = 0;
@@ -495,6 +518,34 @@
       forEachCoord(start, end, (coord) => this.cells.delete(coord));
     }
 
+    insertRow(rowIndex) {
+      this.mutateStructure('row', 'insert', rowIndex);
+    }
+
+    deleteRow(rowIndex) {
+      this.mutateStructure('row', 'delete', rowIndex);
+    }
+
+    insertColumn(colIndex) {
+      this.mutateStructure('col', 'insert', colIndex);
+    }
+
+    deleteColumn(colIndex) {
+      this.mutateStructure('col', 'delete', colIndex);
+    }
+
+    mutateStructure(axis, mode, index) {
+      const nextCells = new Map();
+      this.cells.forEach((raw, coord) => {
+        const nextCoord = shiftCoord(coord, axis, mode, index);
+        if (!nextCoord) {
+          return;
+        }
+        nextCells.set(nextCoord, rewriteFormulaForStructure(raw, axis, mode, index));
+      });
+      this.cells = nextCells;
+    }
+
     getSnapshot() {
       return { cells: Object.fromEntries(this.cells.entries()) };
     }
@@ -519,6 +570,12 @@
       const raw = this.getRaw(coord);
       let result;
       if (raw.startsWith('=')) {
+        if (raw.includes('#REF!')) {
+          result = makeError('#REF!');
+          visiting.delete(coord);
+          cache.set(coord, result);
+          return result;
+        }
         try {
           const ast = parseFormula(raw);
           result = normalizeValue(this.evaluateAst(ast, cache, visiting));
@@ -620,27 +677,71 @@
     return `${parts.absCol ? '$' : ''}${colToName(nextCol)}${parts.absRow ? '$' : ''}${nextRow + 1}`;
   }
 
-  function shiftFormula(formula, rowOffset, colOffset) {
-    let inString = false;
-    let result = '';
-    for (let i = 0; i < formula.length; i += 1) {
-      const ch = formula[i];
-      if (ch === '"') {
-        inString = !inString;
-        result += ch;
-        continue;
-      }
-      if (!inString) {
-        const match = /^\$?[A-Z]+\$?\d+/.exec(formula.slice(i).toUpperCase());
-        if (match) {
-          result += shiftRef(match[0], rowOffset, colOffset);
-          i += match[0].length - 1;
-          continue;
-        }
-      }
-      result += ch;
+  function formatRef(parts, col, row) {
+    return `${parts.absCol ? '$' : ''}${colToName(col)}${parts.absRow ? '$' : ''}${row + 1}`;
+  }
+
+  function rewriteFormulaForStructure(raw, axis, mode, index) {
+    if (!raw.startsWith('=')) {
+      return raw;
     }
-    return result;
+    return mapFormulaRefs(raw, (ref) => {
+      const parts = parseRefParts(ref);
+      const col = nameToCol(parts.colName);
+      const row = parts.rowNumber - 1;
+      if (axis === 'row') {
+        if (mode === 'insert') {
+          return row >= index ? formatRef(parts, col, row + 1) : ref;
+        }
+        if (row === index) {
+          return '#REF!';
+        }
+        return row > index ? formatRef(parts, col, row - 1) : ref;
+      }
+      if (mode === 'insert') {
+        return col >= index ? formatRef(parts, col + 1, row) : ref;
+      }
+      if (col === index) {
+        return '#REF!';
+      }
+      return col > index ? formatRef(parts, col - 1, row) : ref;
+    });
+  }
+
+  function shiftCoord(coord, axis, mode, index) {
+    const parsed = parseCoord(coord);
+    if (axis === 'row') {
+      if (mode === 'insert') {
+        if (parsed.row < index) {
+          return coord;
+        }
+        if (parsed.row >= ROWS - 1) {
+          return null;
+        }
+        return toCoord(parsed.row + 1, parsed.col);
+      }
+      if (parsed.row === index) {
+        return null;
+      }
+      return toCoord(parsed.row > index ? parsed.row - 1 : parsed.row, parsed.col);
+    }
+    if (mode === 'insert') {
+      if (parsed.col < index) {
+        return coord;
+      }
+      if (parsed.col >= COLS - 1) {
+        return null;
+      }
+      return toCoord(parsed.row, parsed.col + 1);
+    }
+    if (parsed.col === index) {
+      return null;
+    }
+    return toCoord(parsed.row, parsed.col > index ? parsed.col - 1 : parsed.col);
+  }
+
+  function shiftFormula(formula, rowOffset, colOffset) {
+    return mapFormulaRefs(formula, (ref) => shiftRef(ref, rowOffset, colOffset));
   }
 
   function selectionToTSV(model, selection) {

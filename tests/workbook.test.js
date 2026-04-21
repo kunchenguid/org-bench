@@ -67,3 +67,51 @@ test('pasting copied formulas shifts references by source-to-target offset', () 
   applyPaste(model, 'C2', '=$A1+B$1', { sourceSelection: { start: 'A1', end: 'A1' } });
   assert.equal(model.getRaw('C2'), '=$A2+D$1');
 });
+
+test('inserting a row keeps formulas pointing at the moved data', () => {
+  const model = new SpreadsheetModel();
+  model.setCell('A1', '3');
+  model.setCell('A2', '4');
+  model.setCell('B1', '=SUM(A1:A2)');
+
+  model.insertRow(0);
+
+  assert.equal(model.getRaw('A2'), '3');
+  assert.equal(model.getRaw('A3'), '4');
+  assert.equal(model.getRaw('B2'), '=SUM(A2:A3)');
+  assert.equal(model.getDisplayValue('B2'), '7');
+});
+
+test('deleting a referenced row turns formulas into #REF!', () => {
+  const model = new SpreadsheetModel();
+  model.setCell('A1', '3');
+  model.setCell('B2', '=A1+1');
+
+  model.deleteRow(0);
+
+  assert.equal(model.getRaw('B1'), '=#REF!+1');
+  assert.equal(model.getDisplayValue('B1'), '#REF!');
+});
+
+test('inserting a column keeps formulas pointing at the moved data', () => {
+  const model = new SpreadsheetModel();
+  model.setCell('A1', '8');
+  model.setCell('B1', '=A1');
+
+  model.insertColumn(0);
+
+  assert.equal(model.getRaw('B1'), '8');
+  assert.equal(model.getRaw('C1'), '=B1');
+  assert.equal(model.getDisplayValue('C1'), '8');
+});
+
+test('deleting a referenced column turns formulas into #REF!', () => {
+  const model = new SpreadsheetModel();
+  model.setCell('A1', '8');
+  model.setCell('B1', '=A1*2');
+
+  model.deleteColumn(0);
+
+  assert.equal(model.getRaw('A1'), '=#REF!*2');
+  assert.equal(model.getDisplayValue('A1'), '#REF!');
+});
