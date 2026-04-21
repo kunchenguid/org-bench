@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { createWorkbookStore } = require('../workbook-store.js');
-const { createEditController } = require('../app.js');
+const { createEditController, shouldHandleShellInput } = require('../app.js');
 
 function createMemoryStorage() {
   const data = new Map();
@@ -69,6 +69,21 @@ test('text input data can start and extend the draft before enter commits', () =
 
   assert.equal(store.getCell('A1').raw, '52');
   assert.equal(store.getSelection().activeCellId, 'A2');
+});
+
+test('shell input handling accepts body focus as a fallback for browser-driven events', () => {
+  const shell = {
+    contains(node) {
+      return node === this.child;
+    },
+    child: {},
+  };
+  const body = { tagName: 'BODY' };
+
+  assert.equal(shouldHandleShellInput(shell, shell), true);
+  assert.equal(shouldHandleShellInput(shell, shell.child), true);
+  assert.equal(shouldHandleShellInput(shell, body), true);
+  assert.equal(shouldHandleShellInput(shell, { tagName: 'BUTTON' }), false);
 });
 
 test('formula bar edit starts from the active raw value and stays in sync with the draft', () => {
