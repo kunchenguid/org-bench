@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Oracle Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand">Oracle Sheet</div>
+          <div class="hint">Type to replace, Enter to edit, right-click headers for row and column actions.</div>
+        </div>
+        <div class="formula-block">
+          <label for="formula-input">Formula</label>
+          <input id="formula-input" autocomplete="off" spellcheck="false">
+        </div>
+      </header>
+      <main>
+        <div id="grid-shell" class="grid-shell"></div>
+      </main>
+    </div>
+    <div id="context-menu" class="context-menu hidden"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
