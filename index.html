@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sheet</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Google Sheets Prototype</p>
+          <h1>Sheet</h1>
+        </div>
+        <label class="formula-bar-label" for="formula-input">Formula Bar</label>
+        <input id="formula-input" class="formula-input" type="text" spellcheck="false" />
+      </header>
+
+      <section class="sheet-frame" aria-label="Spreadsheet grid">
+        <table id="sheet-table" class="sheet-table"></table>
+      </section>
+    </main>
+
+    <script src="spreadsheet-core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
