@@ -8,6 +8,9 @@ const {
   movePosition,
   cellKey,
   columnLabel,
+  commitMove,
+  initialEditValue,
+  isPrintableKey,
   storageKey,
 } = require('../core.js');
 
@@ -40,4 +43,22 @@ test('columnLabel supports the visible brief range', () => {
 test('storageKey prefixes persisted data with the run namespace', () => {
   assert.equal(storageKey('google-run:', 'sheet-state'), 'google-run:sheet-state');
   assert.equal(storageKey('', 'sheet-state'), 'sheet-state');
+});
+
+test('isPrintableKey accepts text entry keys and rejects control keys', () => {
+  assert.equal(isPrintableKey('a'), true);
+  assert.equal(isPrintableKey('='), true);
+  assert.equal(isPrintableKey('Enter'), false);
+  assert.equal(isPrintableKey('ArrowRight'), false);
+});
+
+test('initialEditValue preserves existing content or replaces it', () => {
+  assert.equal(initialEditValue('hello', true, ''), 'hello');
+  assert.equal(initialEditValue('hello', false, 'x'), 'x');
+});
+
+test('commitMove follows spreadsheet enter and tab behavior', () => {
+  assert.deepEqual(commitMove({ col: 2, row: 2 }, 'Enter'), { col: 2, row: 3 });
+  assert.deepEqual(commitMove({ col: 2, row: 2 }, 'Tab'), { col: 3, row: 2 });
+  assert.deepEqual(commitMove({ col: 25, row: 99 }, 'Tab'), { col: 25, row: 99 });
 });
