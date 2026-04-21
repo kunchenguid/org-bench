@@ -88,6 +88,22 @@
     }
   }
 
+  function moveRange(sheet, sourceRange, targetRange) {
+    const clip = copyRange(sheet, sourceRange, true);
+    const normalizedSource = normalizeRange(sourceRange);
+    const normalizedTarget = normalizeRange(targetRange);
+
+    if (normalizedSource.startRow === normalizedTarget.startRow &&
+        normalizedSource.startCol === normalizedTarget.startCol &&
+        normalizedSource.endRow === normalizedTarget.endRow &&
+        normalizedSource.endCol === normalizedTarget.endCol) {
+      return;
+    }
+
+    clearRange(sheet, normalizedSource);
+    pasteRange(sheet, normalizedTarget, clip);
+  }
+
   function insertRow(sheet, rowIndex) {
     const nextCells = {};
     for (const cellId of Object.keys(sheet.cells)) {
@@ -225,6 +241,15 @@
     return deletedReference ? '=#REF!' : next;
   }
 
+  function normalizeRange(range) {
+    return {
+      startRow: Math.min(range.startRow, range.endRow),
+      startCol: Math.min(range.startCol, range.endCol),
+      endRow: Math.max(range.startRow, range.endRow),
+      endCol: Math.max(range.startCol, range.endCol),
+    };
+  }
+
   return {
     createSheet,
     setCell,
@@ -232,6 +257,7 @@
     getCellRaw,
     clearRange,
     copyRange,
+    moveRange,
     pasteRange,
     insertRow,
     insertCol,
