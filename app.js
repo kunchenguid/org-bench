@@ -49,6 +49,20 @@
     return selectionFromEndpoints({ row: 0, column: 0 }, { row: 0, column: 0 });
   }
 
+  function selectionToRuntimeSelection(selection) {
+    return {
+      row: selection.active.row + 1,
+      col: selection.active.column + 1,
+    };
+  }
+
+  function selectionFromRuntimeSelection(selection, rowCount, columnCount) {
+    var row = selection && Number.isInteger(selection.row) ? selection.row - 1 : 0;
+    var col = selection && Number.isInteger(selection.col) ? selection.col - 1 : 0;
+    var clamped = clampCell({ row: row, column: col }, rowCount, columnCount);
+    return selectionFromEndpoints(clamped, clamped);
+  }
+
   function addressFromCell(cell) {
     return String.fromCharCode(65 + cell.column) + String(cell.row + 1);
   }
@@ -344,12 +358,44 @@
 
     var table = document.getElementById('sheet-grid');
     var formulaInput = document.getElementById('formula-input');
-    if (!table || !formulaInput) {
+    if (!table) {
       return;
     }
 
     buildGrid(table, TOTAL_ROWS, TOTAL_COLUMNS);
-    formulaInput.readOnly = false;
+
+    var persistence = null;
+    if (globalScope.SpreadsheetPersistence && typeof globalScope.localStorage !== 'undefined') {
+      persistence = globalScope.SpreadsheetPersistence.createPersistence({
+        storage: globalScope.localStorage,
+        namespace: globalScope.__APPLE_RUN_STORAGE_NAMESPACE__ || 'sheet',
+        defaultState: {
+          cells: {},
+          selection: { row: 1, col: 1 },
+        },
+      });
+    }
+
+    var history = globalScope.SpreadsheetHistory
+      ? globalScope.SpreadsheetHistory.createHistory({
+          initialState: persistence ? persistence.load() : undefined,
+        })
+      : null;
+
+    var runtime = globalScope.SpreadsheetRuntime
+      ? globalScope.SpreadsheetRuntime.createRuntime({
+          history: history,
+          persistence: persistence,
+          structure: globalScope.StructuralEdit,
+        })
+      : null;
+
+    if (runtime) {
+      globalScope.SpreadsheetApp = Object.assign(globalScope.SpreadsheetApp || {}, {
+        runtime: runtime,
+      });
+      runtime.start();
+    }
 
     var cellEditor = document.createElement('input');
     cellEditor.type = 'text';
@@ -364,31 +410,92 @@
     cellEditor.style.background = 'rgba(255, 255, 255, 0.98)';
     cellEditor.style.outline = '0';
 
-    var state = createInitialState();
+    var runtimeState = runtime ? runtime.getState() : null;
+    var state = createInitialState({
+      selection: runtimeState
+        ? selectionFromRuntimeSelection(runtimeState.selection, TOTAL_ROWS, TOTAL_COLUMNS)
+        : createInitialSelection(),
+      cells: runtimeState ? runtimeState.cells : {},
+    });
+    state.dragAnchor = null;
+
+    function syncFormulaBar() {
+      if (!formulaInput) {
+        return;
+      }
+
+      if (state.editing && state.editing.source === 'formula') {
+        formulaInput.value = state.editing.draft;
+        return;
+      }
+
+      formulaInput.value = readCellValue(state, state.selection.active);
+    }
 
     function render() {
       applySelectionState(table, state.selection);
       renderGridValues(table, state, cellEditor);
+      syncFormulaBar();
+    }
 
-      if (state.editing && state.editing.source === 'formula') {
-        formulaInput.value = state.editing.draft;
-      } else {
-        formulaInput.value = readCellValue(state, state.selection.active);
+    function applyRuntimeState(nextRuntimeState) {
+      state.cells = Object.assign({}, nextRuntimeState.cells);
+      state.selection = selectionFromRuntimeSelection(nextRuntimeState.selection, TOTAL_ROWS, TOTAL_COLUMNS);
+      render();
+    }
+
+    function commitRuntime(nextState, source) {
+      state.selection = nextState.selection;
+      state.cells = Object.assign({}, nextState.cells);
+      state.editing = nextState.editing;
+      render();
+
+      if (runtime) {
+        runtime.commit({
+          cells: nextState.cells,
+          selection: selectionToRuntimeSelection(nextState.selection),
+        }, source || 'shell:edit');
       }
     }
 
-    function setState(nextState) {
-      state = nextState;
+    function setSelection(nextSelection, source) {
+      state.selection = nextSelection;
+      render();
+      if (runtime) {
+        runtime.updateSelection(selectionToRuntimeSelection(state.selection), source || 'shell:selection');
+      }
+    }
+
+    function setEditing(nextState) {
+      state.selection = nextState.selection;
+      state.cells = Object.assign({}, nextState.cells);
+      state.editing = nextState.editing;
       render();
     }
 
     function startEditing(source, replacementText, preserveExisting) {
-      setState(beginCellEdit(state, replacementText, preserveExisting, source));
+      setEditing(beginCellEdit(state, replacementText, preserveExisting, source));
       if (source === 'cell') {
         focusEditor(cellEditor);
-      } else {
+      } else if (formulaInput) {
         focusEditor(formulaInput);
       }
+    }
+
+    if (runtime) {
+      runtime.store.subscribe(function (nextRuntimeState, metadata) {
+        if (metadata && metadata.source === 'shell:selection') {
+          state.cells = Object.assign({}, nextRuntimeState.cells);
+          render();
+          return;
+        }
+
+        applyRuntimeState(nextRuntimeState);
+      });
+    }
+
+    if (formulaInput) {
+      formulaInput.readOnly = false;
     }
 
     render();
@@ -400,17 +507,26 @@
       }
 
       event.preventDefault();
-      setState(createInitialState({ cells: state.cells, selection: selectCell(state.selection, readCellFromDataset(cell)) }));
+      var anchor = readCellFromDataset(cell);
+      state.dragAnchor = event.shiftKey ? state.selection.anchor : anchor;
+      setSelection(selectionFromEndpoints(state.dragAnchor, anchor), 'shell:selection');
     });
 
-    table.addEventListener('dblclick', function (event) {
+    table.addEventListener('mouseover', function (event) {
+      if (!state.dragAnchor || state.editing || (event.buttons & 1) !== 1) {
+        return;
+      }
+
       var cell = event.target.closest('td');
       if (!cell) {
         return;
       }
 
-      setState(createInitialState({ cells: state.cells, selection: selectCell(state.selection, readCellFromDataset(cell)) }));
-      startEditing('cell', null, true);
+      setSelection(selectionFromEndpoints(state.dragAnchor, readCellFromDataset(cell)), 'shell:selection');
+    });
+
+    document.addEventListener('mouseup', function () {
+      state.dragAnchor = null;
     });
 
     table.addEventListener('click', function (event) {
@@ -419,54 +535,68 @@
         return;
       }
 
-      setState(createInitialState({ cells: state.cells, selection: selectCell(state.selection, readCellFromDataset(cell)) }));
+      var focus = readCellFromDataset(cell);
+      var anchor = event.shiftKey ? state.selection.anchor : focus;
+      setSelection(selectionFromEndpoints(anchor, focus), 'shell:selection');
     });
 
-    formulaInput.addEventListener('focus', function () {
-      if (!state.editing) {
-        startEditing('formula', null, true);
-      }
-    });
-
-    formulaInput.addEventListener('input', function (event) {
-      if (!state.editing) {
-        setState(beginCellEdit(state, event.target.value, false, 'formula'));
+    table.addEventListener('dblclick', function (event) {
+      var cell = event.target.closest('td');
+      if (!cell) {
         return;
       }
 
-      setState(applyEditDraft(state, event.target.value));
+      setSelection(selectionFromEndpoints(readCellFromDataset(cell), readCellFromDataset(cell)), 'shell:selection');
+      startEditing('cell', null, true);
     });
 
-    formulaInput.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        setState(commitActiveEdit(state, 'down'));
-        formulaInput.blur();
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        setState(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'));
-        formulaInput.blur();
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        setState(cancelActiveEdit(state));
-        formulaInput.blur();
-      }
-    });
+    if (formulaInput) {
+      formulaInput.addEventListener('focus', function () {
+        if (!state.editing) {
+          startEditing('formula', null, true);
+        }
+      });
+
+      formulaInput.addEventListener('input', function (event) {
+        if (!state.editing) {
+          setEditing(beginCellEdit(state, event.target.value, false, 'formula'));
+          return;
+        }
+
+        setEditing(applyEditDraft(state, event.target.value));
+      });
+
+      formulaInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          commitRuntime(commitActiveEdit(state, 'down'), 'shell:formula-enter');
+          formulaInput.blur();
+        } else if (event.key === 'Tab') {
+          event.preventDefault();
+          commitRuntime(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'), 'shell:formula-tab');
+          formulaInput.blur();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          setEditing(cancelActiveEdit(state));
+          formulaInput.blur();
+        }
+      });
+    }
 
     cellEditor.addEventListener('input', function (event) {
-      setState(applyEditDraft(state, event.target.value));
+      setEditing(applyEditDraft(state, event.target.value));
     });
 
     cellEditor.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
         event.preventDefault();
-        setState(commitActiveEdit(state, 'down'));
+        commitRuntime(commitActiveEdit(state, 'down'), 'shell:cell-enter');
       } else if (event.key === 'Tab') {
         event.preventDefault();
-        setState(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'));
+        commitRuntime(commitActiveEdit(state, event.shiftKey ? 'left' : 'right'), 'shell:cell-tab');
       } else if (event.key === 'Escape') {
         event.preventDefault();
-        setState(cancelActiveEdit(state));
+        setEditing(cancelActiveEdit(state));
       }
     });
 
@@ -511,7 +641,7 @@
       }
 
       event.preventDefault();
-      setState(moveActiveCell(state, delta, event.shiftKey));
+      setSelection(moveActiveCell(state, delta, event.shiftKey).selection, 'shell:selection');
     });
   }
 
