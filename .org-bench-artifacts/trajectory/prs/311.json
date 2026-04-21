@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 311,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/311",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet editing and navigation shell",
+  "body": "## Summary\n- add a polished static spreadsheet shell with a formula bar, 26x100 grid, and unmistakable active-cell styling\n- implement click selection, arrow-key clamped navigation, Enter/F2/double-click edit entry, typing-to-replace, Escape cancel, and Enter/Tab commit movement\n- cover the controller behavior with node tests and verify the browser flow locally under file://\n\n## Testing\n- node --test tests/spreadsheet-controller.test.js\n- AGENT_BROWSER_SESSION=apple-Dave agent-browser open file:///private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/org-bench-runs/apple/worktrees/Dave/index.html\n- AGENT_BROWSER_SESSION=apple-Dave agent-browser snapshot\n- AGENT_BROWSER_SESSION=apple-Dave agent-browser errors\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T04:48:57Z"
+    }
+  ],
+  "comments": []
+}

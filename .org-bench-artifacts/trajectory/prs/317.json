@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 317,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/317",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add storage namespace boot plumbing",
+  "body": "## Summary\n- add a run-scoped storage namespace helper that works under file:// and can be called by other browser modules\n- wire the existing spreadsheet shell through an exported `boot()` path that resolves and exposes the active storage namespace\n- cover the helper and boot plumbing with a narrow node test\n\nAuthor: Henry",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T05:06:06Z"
+    }
+  ],
+  "comments": []
+}

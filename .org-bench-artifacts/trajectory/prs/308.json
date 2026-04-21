@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 308,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/308",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add formula reference rewrite helpers",
+  "body": "## Summary\n- add a standalone helper that rewrites formula cell and range references after row or column insert and delete operations\n- cover insert, delete, absolute markers, range endpoints, and `#REF!` invalidation with node-based tests\n- keep the work parser-agnostic so it can plug into the spreadsheet state layer without touching grid rendering or editing behavior\n\n## Testing\n- node --test reference-ops.test.js\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T04:45:02Z"
+    }
+  ],
+  "comments": []
+}

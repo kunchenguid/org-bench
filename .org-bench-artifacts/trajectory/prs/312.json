@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 312,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/312",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet bootstrap shell",
+  "body": "## Summary\n- add a file://-safe vanilla HTML/CSS/JS app shell with classic script loading and neutral integration containers\n- add a storage namespace helper that prefixes persisted keys from the injected run namespace or document metadata\n- add a small bootstrap contract test covering the shell globals and boot wiring\n\nAuthor: Henry",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T04:49:11Z"
+    }
+  ],
+  "comments": []
+}

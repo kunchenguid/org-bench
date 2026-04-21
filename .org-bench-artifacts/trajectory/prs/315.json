@@ -1,0 +1,20 @@
+{
+  "run_id": "apple",
+  "pr_number": 315,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/315",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Wire structure header actions into the spreadsheet shell",
+  "body": "## Summary\n- render discoverable row and column header action controls in the spreadsheet shell and make the grid visibly resize when they are used\n- route row and column insert/delete operations through the workbook store while reusing Alice's structural formula rewrite helper from the shared formula engine\n- cover store rewrites and shell sizing/action metadata with unit tests, then verify in a real browser that a column insert exposes `AA`\n\n## Testing\n- node --test workbook-store.test.js tests/ui-shell.test.js\n- browser smoke test via `agent-browser` on `file://.../index.html` confirming header controls render and an inserted column adds `AA`\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T04:58:40Z"
+    }
+  ],
+  "comments": []
+}
