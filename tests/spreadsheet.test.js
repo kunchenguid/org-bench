@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   SpreadsheetModel,
   coordsToRef,
+  resolveStorageNamespace,
 } = require('../spreadsheet.js');
 
 test('evaluates formulas with references and functions', () => {
@@ -67,4 +68,8 @@ test('undo and redo restore prior cell state', () => {
 test('coordsToRef produces spreadsheet references', () => {
   assert.equal(coordsToRef(0, 0), 'A1');
   assert.equal(coordsToRef(4, 27), 'AB5');
+});
+
+test('resolveStorageNamespace accepts the harness benchmark namespace key', () => {
+  assert.equal(resolveStorageNamespace({ __BENCHMARK_NAMESPACE__: 'run-123' }), 'run-123');
 });
