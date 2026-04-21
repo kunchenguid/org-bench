@@ -1,33 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sheet</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gridline</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app">
-      <div class="toolbar">
-        <label class="toolbar-field">
-          <span class="toolbar-label">Cell</span>
-          <input id="name-box" type="text" readonly>
-        </label>
-        <label class="toolbar-field">
-          <span class="toolbar-label">Formula</span>
-          <input id="formula-input" type="text" spellcheck="false" placeholder="Type a value or formula">
-        </label>
-      </div>
-      <main class="sheet">
-        <div class="sheet-frame" aria-label="Spreadsheet grid">
-          <div id="column-headers" class="column-headers">
-            <div class="corner" aria-hidden="true"></div>
-          </div>
-          <div id="grid-body"></div>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div>
+          <div class="brand">Gridline</div>
+          <div class="subtitle">Formula-first spreadsheet for quick calculations.</div>
         </div>
+        <div class="formula-wrap">
+          <div class="cell-label" data-selected-cell>A1</div>
+          <input class="formula-input" data-formula-input aria-label="Formula bar" spellcheck="false" />
+        </div>
+      </header>
+      <main class="workspace">
+        <aside class="side-panel">
+          <div class="panel-title">Cell Editor</div>
+          <textarea class="cell-editor" data-cell-editor aria-label="Cell editor" spellcheck="false"></textarea>
+          <p class="panel-hint">Click a cell, type values or formulas, then press Enter to commit and move down.</p>
+        </aside>
+        <section class="grid-shell" aria-label="Spreadsheet grid">
+          <div class="column-headers" data-column-headers></div>
+          <div class="grid-body" data-grid-body></div>
+        </section>
       </main>
     </div>
-    <script src="core.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
