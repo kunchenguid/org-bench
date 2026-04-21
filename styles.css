@@ -1,0 +1,359 @@
+:root {
+  color-scheme: light;
+  --bg: #eef2f8;
+  --bg-deep: #e5ebf5;
+  --panel: rgba(255, 255, 255, 0.76);
+  --panel-strong: rgba(255, 255, 255, 0.96);
+  --panel-line: rgba(255, 255, 255, 0.72);
+  --grid: #d8e0ec;
+  --grid-strong: #c7d0df;
+  --header-bg: rgba(245, 247, 251, 0.96);
+  --header-bg-strong: rgba(237, 242, 249, 0.98);
+  --text: #162033;
+  --muted: #5f6c84;
+  --accent: #0b66ff;
+  --accent-soft: rgba(11, 102, 255, 0.12);
+  --accent-strong: rgba(11, 102, 255, 0.22);
+  --accent-text: #0b56cf;
+  --shadow: 0 26px 70px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --header-height: 42px;
+  --index-width: 60px;
+  --cell-width: 128px;
+  --cell-height: 34px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(11, 102, 255, 0.12), transparent 22%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.72), transparent 28%),
+    linear-gradient(180deg, #f8fbff 0%, var(--bg) 45%, var(--bg-deep) 100%);
+  color: var(--text);
+}
+
+body {
+  min-height: 100vh;
+  letter-spacing: -0.01em;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 18px;
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.topbar,
+.grid-frame {
+  background: var(--panel);
+  backdrop-filter: blur(22px) saturate(1.15);
+  border: 1px solid var(--panel-line);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.topbar {
+  display: grid;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-mark {
+  width: 18px;
+  height: 44px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 28%),
+    linear-gradient(180deg, #60a5fa 0%, #1d4ed8 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.45),
+    0 8px 18px rgba(29, 78, 216, 0.22);
+}
+
+.eyebrow,
+.brand-lockup h1 {
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.brand-lockup h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.formula-bar {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 20px;
+  background: rgba(244, 247, 252, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.formula-label,
+.name-box,
+.formula-input {
+  min-height: 46px;
+  border: 1px solid var(--grid);
+  border-radius: 14px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.formula-label,
+.name-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.formula-label {
+  min-width: 52px;
+  background: linear-gradient(180deg, #fbfcfe 0%, #eef3fa 100%);
+}
+
+.name-box {
+  min-width: 84px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.formula-input {
+  width: 100%;
+  padding: 0 16px;
+  font: inherit;
+  color: var(--text);
+  outline: none;
+  border-color: rgba(199, 208, 223, 0.9);
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.formula-input:hover {
+  background: #ffffff;
+}
+
+.formula-input:focus {
+  border-color: rgba(11, 102, 255, 0.45);
+  box-shadow:
+    var(--shadow-soft),
+    0 0 0 4px rgba(11, 102, 255, 0.12);
+}
+
+.formula-input::placeholder {
+  color: #98a2b3;
+}
+
+.grid-frame {
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.grid-scroll {
+  height: calc(100vh - 186px);
+  min-height: 460px;
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(215, 223, 236, 0.92);
+  background:
+    linear-gradient(180deg, rgba(247, 249, 252, 0.9) 0%, rgba(241, 245, 251, 0.62) 100%),
+    #f5f7fb;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.sheet-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  font-size: 13px;
+}
+
+.sheet-grid th,
+.sheet-grid td {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  height: var(--cell-height);
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.sheet-grid th {
+  background: var(--header-bg);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  user-select: none;
+  backdrop-filter: blur(18px);
+}
+
+.corner-cell,
+.row-header {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+
+.corner-cell {
+  top: 0;
+  z-index: 5;
+  width: var(--index-width);
+  min-width: var(--index-width);
+  border-top: 0;
+  background:
+    linear-gradient(135deg, rgba(11, 102, 255, 0.14) 0%, rgba(11, 102, 255, 0) 46%),
+    var(--header-bg-strong);
+}
+
+.column-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  min-width: var(--cell-width);
+  width: var(--cell-width);
+  height: var(--header-height);
+  border-top: 0;
+  box-shadow: inset 0 -1px 0 rgba(199, 208, 223, 0.95);
+}
+
+.row-header {
+  min-width: var(--index-width);
+  width: var(--index-width);
+  background: var(--header-bg);
+  text-align: right;
+  padding-right: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-grid tr > *:first-child {
+  border-left: 0;
+}
+
+.sheet-grid tr:first-child > * {
+  border-top: 0;
+}
+
+.sheet-grid td {
+  min-width: var(--cell-width);
+  width: var(--cell-width);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  cursor: cell;
+  user-select: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.sheet-grid td:hover {
+  background: #fcfdff;
+}
+
+.cell-range {
+  background: linear-gradient(180deg, rgba(11, 102, 255, 0.06) 0%, var(--accent-soft) 100%) !important;
+  box-shadow: inset 0 0 0 1px rgba(11, 102, 255, 0.08);
+}
+
+.cell-active {
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 0 0 1px rgba(255, 255, 255, 0.95),
+    0 10px 18px rgba(11, 102, 255, 0.1);
+  z-index: 2;
+}
+
+.cell-active::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--accent);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(11, 102, 255, 0.22);
+}
+
+.header-active,
+.header-range {
+  color: var(--accent-text) !important;
+}
+
+.header-active {
+  background: linear-gradient(180deg, #f3f7ff 0%, #e8f0ff 100%) !important;
+  box-shadow:
+    inset 0 -2px 0 var(--accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.header-range {
+  background: linear-gradient(180deg, rgba(236, 243, 255, 0.98) 0%, rgba(230, 239, 255, 0.98) 100%) !important;
+}
+
+.sheet-grid:focus-within .cell-active {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 0 0 1px rgba(255, 255, 255, 0.95),
+    0 12px 22px rgba(11, 102, 255, 0.14);
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .topbar {
+    padding: 14px;
+  }
+
+  .brand-lockup h1 {
+    font-size: 22px;
+  }
+
+  .formula-bar {
+    grid-template-columns: auto 1fr;
+  }
+
+  .formula-input {
+    grid-column: 1 / -1;
+  }
+
+  .grid-scroll {
+    height: calc(100vh - 208px);
+  }
+}
