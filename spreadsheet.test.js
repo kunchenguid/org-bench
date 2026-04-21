@@ -10,6 +10,10 @@ const {
   applyCellEdit,
   undo,
   redo,
+  setSelection,
+  extendSelection,
+  clearRange,
+  normalizeRange,
 } = require('./spreadsheet-core.js');
 
 test('starts with A1 selected and an empty sheet', () => {
@@ -100,4 +104,40 @@ test('undo restores a cleared cell and keeps history bounded', () => {
   }
 
   assert.equal(state.history.past.length, 50);
+});
+
+test('shift-style range extension keeps the anchor and updates the active cell', () => {
+  const state = createSpreadsheetState();
+
+  setSelection(state, 1, 1);
+  extendSelection(state, 3, 4);
+
+  assert.deepEqual(state.selection, { row: 3, col: 4 });
+  assert.deepEqual(normalizeRange(state.range), {
+    top: 1,
+    left: 1,
+    bottom: 3,
+    right: 4,
+  });
+});
+
+test('clearing a selected range removes all covered cells in one undoable action', () => {
+  const state = createSpreadsheetState();
+
+  applyCellEdit(state, 0, 0, 'A');
+  applyCellEdit(state, 0, 1, 'B');
+  applyCellEdit(state, 1, 0, 'C');
+  applyCellEdit(state, 1, 1, 'D');
+  setSelection(state, 0, 0);
+  extendSelection(state, 1, 1);
+
+  clearRange(state);
+
+  assert.equal(state.cells.size, 0);
+
+  undo(state);
+  assert.equal(state.cells.get('A1').raw, 'A');
+  assert.equal(state.cells.get('B1').raw, 'B');
+  assert.equal(state.cells.get('A2').raw, 'C');
+  assert.equal(state.cells.get('B2').raw, 'D');
 });

@@ -37,6 +37,10 @@
       rows: ROWS,
       cols: COLS,
       selection: { row: 0, col: 0 },
+      range: {
+        start: { row: 0, col: 0 },
+        end: { row: 0, col: 0 },
+      },
       cells: new Map(),
       history: {
         past: [],
@@ -62,17 +66,51 @@
   }
 
   function moveSelection(state, rowDelta, colDelta) {
-    state.selection = {
-      row: clamp(state.selection.row + rowDelta, 0, state.rows - 1),
-      col: clamp(state.selection.col + colDelta, 0, state.cols - 1),
+    setSelection(
+      state,
+      clamp(state.selection.row + rowDelta, 0, state.rows - 1),
+      clamp(state.selection.col + colDelta, 0, state.cols - 1)
+    );
+
+    return state.selection;
+  }
+
+  function setSelection(state, row, col) {
+    state.selection = { row, col };
+    state.range = {
+      start: { row, col },
+      end: { row, col },
     };
 
     return state.selection;
   }
 
+  function extendSelection(state, row, col) {
+    state.selection = { row, col };
+    state.range = {
+      start: { ...state.range.start },
+      end: { row, col },
+    };
+
+    return state.range;
+  }
+
+  function normalizeRange(range) {
+    return {
+      top: Math.min(range.start.row, range.end.row),
+      left: Math.min(range.start.col, range.end.col),
+      bottom: Math.max(range.start.row, range.end.row),
+      right: Math.max(range.start.col, range.end.col),
+    };
+  }
+
   function snapshotState(state) {
     const snapshot = {
       selection: { ...state.selection },
+      range: {
+        start: { ...state.range.start },
+        end: { ...state.range.end },
+      },
       cells: {},
     };
 
@@ -85,6 +123,10 @@
 
   function restoreSnapshot(state, snapshot) {
     state.selection = { ...snapshot.selection };
+    state.range = {
+      start: { ...snapshot.range.start },
+      end: { ...snapshot.range.end },
+    };
     state.cells.clear();
 
     for (const [key, raw] of Object.entries(snapshot.cells)) {
@@ -107,8 +149,19 @@
 
   function applyCellEdit(state, row, col, raw) {
     pushHistory(state.history, snapshotState(state));
-    state.selection = { row, col };
+    setSelection(state, row, col);
     commitCell(state, row, col, raw);
+  }
+
+  function clearRange(state) {
+    pushHistory(state.history, snapshotState(state));
+    const bounds = normalizeRange(state.range);
+
+    for (let row = bounds.top; row <= bounds.bottom; row += 1) {
+      for (let col = bounds.left; col <= bounds.right; col += 1) {
+        commitCell(state, row, col, '');
+      }
+    }
   }
 
   function undo(state) {
@@ -173,6 +226,10 @@
       row: clamp(payload.selection?.row ?? 0, 0, ROWS - 1),
       col: clamp(payload.selection?.col ?? 0, 0, COLS - 1),
     };
+    state.range = {
+      start: { ...state.selection },
+      end: { ...state.selection },
+    };
 
     for (const [key, raw] of Object.entries(payload.cells || {})) {
       const position = decodeCellKey(key);
@@ -193,7 +250,11 @@
     createSpreadsheetState,
     commitCell,
     moveSelection,
+    setSelection,
+    extendSelection,
+    normalizeRange,
     applyCellEdit,
+    clearRange,
     undo,
     redo,
     serializeState,

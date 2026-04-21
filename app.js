@@ -91,7 +91,18 @@
   }
 
   function renderSelection() {
+    table.querySelectorAll('.cell.in-range').forEach((node) => node.classList.remove('in-range'));
     table.querySelectorAll('.cell.selected').forEach((node) => node.classList.remove('selected'));
+
+    const bounds = core.normalizeRange(state.range);
+    for (let row = bounds.top; row <= bounds.bottom; row += 1) {
+      for (let col = bounds.left; col <= bounds.right; col += 1) {
+        const node = getCellNode(row, col);
+        if (node) {
+          node.classList.add('in-range');
+        }
+      }
+    }
 
     const selected = getCellNode(state.selection.row, state.selection.col);
     if (selected) {
@@ -137,7 +148,14 @@
       return;
     }
 
-    selectCell(Number(cell.dataset.row), Number(cell.dataset.col));
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    if (event.shiftKey) {
+      extendSelection(row, col);
+      return;
+    }
+
+    selectCell(row, col);
   }
 
   function onCellDoubleClick(event) {
@@ -157,6 +175,10 @@
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
+      if (event.shiftKey) {
+        extendBy(-1, 0);
+        return;
+      }
       moveSelection(-1, 0);
       return;
     }
@@ -179,18 +201,30 @@
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
+      if (event.shiftKey) {
+        extendBy(1, 0);
+        return;
+      }
       moveSelection(1, 0);
       return;
     }
 
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
+      if (event.shiftKey) {
+        extendBy(0, -1);
+        return;
+      }
       moveSelection(0, -1);
       return;
     }
 
     if (event.key === 'ArrowRight') {
       event.preventDefault();
+      if (event.shiftKey) {
+        extendBy(0, 1);
+        return;
+      }
       moveSelection(0, 1);
       return;
     }
@@ -203,7 +237,7 @@
 
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      commitToSelection('');
+      clearSelectedRange();
       return;
     }
 
@@ -259,7 +293,16 @@
       cancelEdit();
     }
 
-    state.selection = { row, col };
+    core.setSelection(state, row, col);
+    renderSelection();
+  }
+
+  function extendSelection(row, col) {
+    if (editSession) {
+      cancelEdit();
+    }
+
+    core.extendSelection(state, row, col);
     renderSelection();
   }
 
@@ -272,8 +315,25 @@
     renderSelection();
   }
 
+  function extendBy(rowDelta, colDelta) {
+    if (editSession) {
+      cancelEdit();
+    }
+
+    const row = Math.max(0, Math.min(state.rows - 1, state.selection.row + rowDelta));
+    const col = Math.max(0, Math.min(state.cols - 1, state.selection.col + colDelta));
+    core.extendSelection(state, row, col);
+    renderSelection();
+  }
+
   function commitToSelection(raw) {
     core.applyCellEdit(state, state.selection.row, state.selection.col, raw);
+    renderCells();
+    renderSelection();
+  }
+
+  function clearSelectedRange() {
+    core.clearRange(state);
     renderCells();
     renderSelection();
   }
