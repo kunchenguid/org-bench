@@ -2,12 +2,14 @@
   const ROWS = 100;
   const COLS = 26;
   const engine = window.SpreadsheetEngine;
+  const historyApi = window.SpreadsheetHistory;
   const state = {
     cells: {},
     evaluated: {},
     selection: { row: 0, col: 0 },
     editingCell: false,
     draft: '',
+    history: historyApi.createHistory(),
   };
 
   const namespace = resolveStorageNamespace();
@@ -20,6 +22,7 @@
   buildGrid();
   restoreState();
   recompute();
+  pushHistory();
   render();
 
   formulaInput.addEventListener('input', function () {
@@ -34,6 +37,9 @@
     } else if (event.key === 'Escape') {
       event.preventDefault();
       cancelDraft();
+    } else if (event.key === 'Tab') {
+      event.preventDefault();
+      commitDraft(0, event.shiftKey ? -1 : 1);
     }
   });
 
@@ -143,6 +149,28 @@
       return;
     }
 
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      redo();
+      return;
+    }
+
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      clearActiveCell();
+      return;
+    }
+
     if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
       event.preventDefault();
       beginEdit(false, event.key);
@@ -186,8 +214,14 @@
     }
     recompute();
     state.editingCell = false;
+    state.selection = {
+      row: clamp(state.selection.row + rowDelta, 0, ROWS - 1),
+      col: clamp(state.selection.col + colDelta, 0, COLS - 1),
+    };
+    pushHistory();
     persist();
-    selectCell(state.selection.row + rowDelta, state.selection.col + colDelta, true);
+    render();
+    activeInput().focus();
   }
 
   function cancelDraft() {
@@ -261,6 +295,62 @@
       cells: state.cells,
       selection: state.selection,
     }));
+  }
+
+  function pushHistory() {
+    historyApi.recordHistory(state.history, snapshotState());
+  }
+
+  function snapshotState() {
+    return {
+      cells: state.cells,
+      selection: state.selection,
+    };
+  }
+
+  function undo() {
+    const snapshot = historyApi.undoHistory(state.history);
+    if (!snapshot) {
+      return;
+    }
+
+    applySnapshot(snapshot);
+  }
+
+  function redo() {
+    const snapshot = historyApi.redoHistory(state.history);
+    if (!snapshot) {
+      return;
+    }
+
+    applySnapshot(snapshot);
+  }
+
+  function clearActiveCell() {
+    const cellId = activeCellId();
+    if (!state.cells[cellId]) {
+      return;
+    }
+
+    delete state.cells[cellId];
+    state.editingCell = false;
+    state.draft = '';
+    recompute();
+    pushHistory();
+    persist();
+    render();
+    activeInput().focus();
+  }
+
+  function applySnapshot(snapshot) {
+    state.cells = snapshot.cells;
+    state.selection = snapshot.selection;
+    state.editingCell = false;
+    state.draft = currentRawValue();
+    recompute();
+    persist();
+    render();
+    activeInput().focus();
   }
 
   function resolveStorageNamespace() {
