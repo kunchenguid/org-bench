@@ -83,12 +83,16 @@
 
     for (var columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
       var header = makeCell('div', 'col-header');
+      header.setAttribute('role', 'columnheader');
+      header.setAttribute('aria-colindex', String(columnIndex + 1));
       header.textContent = core.columnLabelFromIndex(columnIndex);
       fragment.appendChild(header);
     }
 
     for (var rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
       var rowHeader = makeCell('div', 'row-header');
+      rowHeader.setAttribute('role', 'rowheader');
+      rowHeader.setAttribute('aria-rowindex', String(rowIndex + 1));
       rowHeader.textContent = String(rowIndex + 1);
       fragment.appendChild(rowHeader);
 
@@ -101,6 +105,9 @@
         cell.dataset.column = String(dataColumnIndex);
         cell.setAttribute('role', 'gridcell');
         cell.setAttribute('aria-label', cellId);
+        cell.setAttribute('aria-rowindex', String(rowIndex + 1));
+        cell.setAttribute('aria-colindex', String(dataColumnIndex + 1));
+        cell.setAttribute('aria-selected', 'false');
         fragment.appendChild(cell);
       }
     }
@@ -356,6 +363,7 @@
         current = gridElement.querySelector('[data-cell-id="' + cellId + '"]');
         if (current) {
           current.classList.add('is-in-range');
+          current.setAttribute('aria-selected', 'true');
         }
       }
     }
@@ -364,6 +372,7 @@
     current = gridElement.querySelector('[data-cell-id="' + cellId + '"]');
     if (current) {
       current.classList.add('is-selected');
+      current.setAttribute('aria-selected', 'true');
       current.focus();
     }
 
