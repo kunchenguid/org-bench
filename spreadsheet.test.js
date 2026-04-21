@@ -10,6 +10,8 @@ const {
   moveSelection,
   serializeState,
   deserializeState,
+  createEditBuffer,
+  resolveEditBuffer,
 } = require('./spreadsheet-core.js');
 
 test('starts with A1 selected and an empty sheet', () => {
@@ -217,4 +219,18 @@ test('evaluates CONCAT across literals and references', () => {
   commitCell(state, 0, 1, '=CONCAT("A",A1,"B")');
 
   assert.equal(state.cells.get('B1').display, 'A9B');
+});
+
+test('committing an edit buffer uses the draft value', () => {
+  const buffer = createEditBuffer('=A1');
+  buffer.draft = '=A1+1';
+
+  assert.equal(resolveEditBuffer(buffer, true), '=A1+1');
+});
+
+test('cancelling an edit buffer restores the original value', () => {
+  const buffer = createEditBuffer('=A1');
+  buffer.draft = '=A1+1';
+
+  assert.equal(resolveEditBuffer(buffer, false), '=A1');
 });

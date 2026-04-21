@@ -8,6 +8,10 @@
     return `${String.fromCharCode(65 + col)}${row + 1}`;
   }
 
+  function colToName(col) {
+    return String.fromCharCode(65 + col);
+  }
+
   function parseCell(raw) {
     if (raw === '') {
       return null;
@@ -200,6 +204,46 @@
     }
 
     return state;
+  }
+
+  function createEditBuffer(value) {
+    return {
+      original: value || '',
+      draft: value || '',
+    };
+  }
+
+  function resolveEditBuffer(buffer, shouldCommit) {
+    return shouldCommit ? buffer.draft : buffer.original;
+  }
+
+  function rewriteFormulaReferences(formula, axis, index, delta, isDelete) {
+    if (!formula || formula[0] !== '=') {
+      return formula;
+    }
+    return formula.replace(/\$?[A-Z]\$?\d+/g, function (match) {
+      const refMatch = /^(\$?)([A-Z])(\$?)(\d+)$/.exec(match);
+      if (!refMatch) {
+        return match;
+      }
+      const isAbsCol = Boolean(refMatch[1]);
+      const isAbsRow = Boolean(refMatch[3]);
+      let refCol = refMatch[2].charCodeAt(0) - 65;
+      let refRow = Number(refMatch[4]) - 1;
+      const value = axis === 'row' ? refRow : refCol;
+      if (isDelete && value === index) {
+        return '#REF!';
+      }
+      if (value >= index) {
+        if (axis === 'row' && !isAbsRow) {
+          refRow = clamp(refRow + delta, 0, ROWS - 1);
+        }
+        if (axis === 'col' && !isAbsCol) {
+          refCol = clamp(refCol + delta, 0, COLS - 1);
+        }
+      }
+      return `${isAbsCol ? '$' : ''}${String.fromCharCode(65 + refCol)}${isAbsRow ? '$' : ''}${refRow + 1}`;
+    });
   }
 
   function recalculate(state) {
@@ -619,6 +663,9 @@
     serializeState,
     deserializeState,
     recalculate,
+    colToName,
+    createEditBuffer,
+    resolveEditBuffer,
   };
 
   if (typeof module !== 'undefined' && module.exports) {
