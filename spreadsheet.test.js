@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  clipboardFromText,
+  clipboardToText,
   copyRange,
   createEditBuffer,
   createStore,
@@ -100,6 +102,28 @@ test('copies rectangular ranges as raw cell blocks', () => {
     cells: [
       ['1', '=A1'],
       ['x', ''],
+    ],
+  });
+});
+
+test('serializes clipboard cells as TSV text', () => {
+  assert.equal(clipboardToText({
+    cells: [
+      ['1', '2'],
+      ['3', '=A1'],
+    ],
+  }), '1\t2\n3\t=A1');
+});
+
+test('parses TSV text into clipboard cell blocks', () => {
+  assert.deepEqual(clipboardFromText('1\t2\n3\t=A1'), {
+    startCol: 0,
+    startRow: 0,
+    width: 2,
+    height: 2,
+    cells: [
+      ['1', '2'],
+      ['3', '=A1'],
     ],
   });
 });

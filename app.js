@@ -258,21 +258,19 @@
   function copySelection(cut) {
     const range = getSelectionRange();
     clipboard = core.copyRange(store, range);
-    writeClipboardText(clipboard.cells.map(function (row) {
-      return row.join('\t');
-    }).join('\n'));
+    writeClipboardText(core.clipboardToText(clipboard));
     if (cut) {
       clearRange();
       rangeAnchor = { col: selection.col, row: selection.row };
     }
   }
 
-  function pasteSelection() {
-    if (!clipboard) {
+  function pasteClipboard(clipboardData) {
+    if (!clipboardData || !clipboardData.width || !clipboardData.height) {
       return;
     }
     pushHistory();
-    core.pasteRange(store, clipboard, hasRangeSelection() ? getSelectionRange() : {
+    core.pasteRange(store, clipboardData, hasRangeSelection() ? getSelectionRange() : {
       startCol: selection.col,
       startRow: selection.row,
       endCol: selection.col,
@@ -281,6 +279,18 @@
     rangeAnchor = { col: selection.col, row: selection.row };
     save();
     render();
+  }
+
+  function pasteSelection() {
+    if (clipboard) {
+      pasteClipboard(clipboard);
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(function (text) {
+        pasteClipboard(core.clipboardFromText(text));
+      }).catch(function () {});
+    }
   }
 
   function startEditing() {
@@ -440,6 +450,20 @@
       render();
       startEditing();
     }
+  });
+
+  document.addEventListener('paste', function (event) {
+    if (event.target === formulaInput || grid.querySelector('.cell-editor')) {
+      return;
+    }
+
+    const text = event.clipboardData && event.clipboardData.getData('text/plain');
+    if (!text) {
+      return;
+    }
+
+    event.preventDefault();
+    pasteClipboard(core.clipboardFromText(text));
   });
 
   render();
