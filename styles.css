@@ -40,6 +40,22 @@ body {
   gap: 14px;
 }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
+.formula-bar-group {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.name-box {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 46px;
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 600;
+}
 .formula-wrap {
   display: grid;
   grid-template-columns: 40px 1fr;
@@ -101,5 +117,6 @@ body {
   .app-shell { padding: 10px; }
   .toolbar { grid-template-columns: 1fr; }
   .brand { font-size: 16px; }
+  .formula-bar-group { grid-template-columns: 72px 1fr; }
   .sheet th, .sheet td { min-width: 88px; }
 }

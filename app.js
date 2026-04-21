@@ -1,13 +1,14 @@
 (function () {
   const core = window.SpreadsheetCore;
+  const storageApi = window.EmmaStorage;
   const COLS = 26;
   const ROWS = 100;
   const storageNamespace = resolveStorageNamespace();
-  const storageKey = storageNamespace + ':sheet-state';
   const persisted = loadState();
   const sheet = core.createSheet(persisted.cells);
   const gridWrap = document.querySelector('.grid-wrap');
   const formulaInput = document.querySelector('#formula-input');
+  const nameBox = document.querySelector('#name-box');
   const initialSelection = persisted.selection || { start: persisted.active || 'A1', end: persisted.active || 'A1' };
   const state = {
     active: persisted.active || 'A1',
@@ -69,11 +70,13 @@
     gridWrap.replaceChildren(table);
     updateVisibleCells();
   }
+
   function renderHeader() {
     let html = '<thead><tr><th class="corner row-header"></th>';
     for (let col = 1; col <= COLS; col += 1) html += '<th>' + core.indexToColumn(col) + '</th>';
     return html + '</tr></thead>';
   }
+
   function renderBody() {
     let html = '<tbody>';
     for (let row = 1; row <= ROWS; row += 1) {
@@ -86,9 +89,11 @@
     }
     return html + '</tbody>';
   }
+
   function handleGridKeydown(event) {
     if (state.editing && state.editing !== 'formula') return;
     if (event.target.classList.contains('cell-input')) return;
+
     const movement = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[event.key];
     if (movement) {
       event.preventDefault();
@@ -110,6 +115,7 @@
       startEdit(state.active, true, event.key);
     }
   }
+
   function startEdit(address, replace, value) {
     selectCell(address);
     const cell = getCellElement(address);
@@ -121,7 +127,9 @@
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
     formulaInput.value = input.value;
-    input.addEventListener('input', function () { formulaInput.value = input.value; });
+    input.addEventListener('input', function () {
+      formulaInput.value = input.value;
+    });
     input.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -141,6 +149,7 @@
       if (state.editing === address) commitValue(address, input.value, null);
     });
   }
+
   function commitValue(address, value, move) {
     core.setCell(sheet, address, value);
     state.editing = null;
@@ -151,6 +160,7 @@
     syncFormulaBar();
     focusActiveCell();
   }
+
   function selectCell(address, extend, anchor) {
     state.active = address;
     if (extend) {
@@ -162,12 +172,14 @@
     syncFormulaBar();
     persistState();
   }
+
   function moveSelection(dx, dy, extend) {
     const current = core.splitAddress(state.active);
     const next = core.makeAddress(clamp(current.col + dx, 1, COLS), clamp(current.row + dy, 1, ROWS));
     selectCell(next, extend, extend ? state.selection.start : next);
     focusActiveCell();
   }
+
   function updateVisibleCells() {
     const bounds = getSelectionBounds();
     const cells = gridWrap.querySelectorAll('[data-address]');
@@ -179,25 +191,37 @@
       cells[i].textContent = core.getCellDisplay(sheet, address);
     }
   }
+
   function syncFormulaBar() {
+    nameBox.textContent = state.active;
     if (state.editing !== 'formula') formulaInput.value = core.getCellRaw(sheet, state.active);
   }
+
   function focusActiveCell() {
     const cell = getCellElement(state.active);
     if (cell) cell.focus();
   }
+
   function getCellElement(address) {
     return gridWrap.querySelector('[data-address="' + address + '"]');
   }
+
   function persistState() {
-    localStorage.setItem(storageKey, JSON.stringify({ cells: sheet.cells, active: state.active, selection: state.selection }));
+    storageApi.savePersistedSheet(localStorage, storageNamespace, {
+      cells: sheet.cells,
+      active: state.active,
+      selection: state.selection,
+    });
   }
+
   function loadState() {
-    try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (error) { return {}; }
+    return storageApi.loadPersistedSheet(localStorage, storageNamespace) || {};
   }
+
   function resolveStorageNamespace() {
-    return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'sheet';
+    return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'spreadsheet';
   }
+
   function getSelectionBounds() {
     const start = core.splitAddress(state.selection.start);
     const end = core.splitAddress(state.selection.end);
@@ -208,10 +232,12 @@
       bottom: Math.max(start.row, end.row),
     };
   }
+
   function isAddressInBounds(address, bounds) {
     const cell = core.splitAddress(address);
     return cell.col >= bounds.left && cell.col <= bounds.right && cell.row >= bounds.top && cell.row <= bounds.bottom;
   }
+
   function clearSelection() {
     const bounds = getSelectionBounds();
     for (let row = bounds.top; row <= bounds.bottom; row += 1) {
@@ -224,22 +250,27 @@
     updateVisibleCells();
     syncFormulaBar();
   }
+
   function getCopiedSelection() {
     const bounds = getSelectionBounds();
     return core.copyRange(sheet, core.makeAddress(bounds.left, bounds.top), core.makeAddress(bounds.right, bounds.bottom));
   }
+
   function serializeCopied(copied) {
     return copied.values.map(function (row) { return row.join('\t'); }).join('\n');
   }
+
   function parseClipboardText(text) {
     return text.replace(/\r/g, '').split('\n').map(function (row) { return row.split('\t'); });
   }
+
   function onCopy(event) {
     if (event.target === formulaInput) return;
     state.clipboard = getCopiedSelection();
     event.preventDefault();
     event.clipboardData.setData('text/plain', serializeCopied(state.clipboard));
   }
+
   function onCut(event) {
     if (event.target === formulaInput) return;
     state.clipboard = getCopiedSelection();
@@ -247,6 +278,7 @@
     event.clipboardData.setData('text/plain', serializeCopied(state.clipboard));
     clearSelection();
   }
+
   function onPaste(event) {
     if (event.target === formulaInput || (state.editing && state.editing !== 'formula')) return;
     const text = event.clipboardData.getData('text/plain');
@@ -256,18 +288,24 @@
       ? state.clipboard
       : { start: state.active, values: parseClipboardText(text) };
     core.pasteBlock(sheet, copied, getPasteTarget());
+    const target = getPasteTarget();
+    const targetCell = core.splitAddress(target);
     state.selection = {
-      start: getPasteTarget(),
-      end: core.makeAddress(core.splitAddress(getPasteTarget()).col + copied.values[0].length - 1, core.splitAddress(getPasteTarget()).row + copied.values.length - 1),
+      start: target,
+      end: core.makeAddress(targetCell.col + copied.values[0].length - 1, targetCell.row + copied.values.length - 1),
     };
-    state.active = getPasteTarget();
+    state.active = target;
     persistState();
     updateVisibleCells();
     syncFormulaBar();
   }
+
   function getPasteTarget() {
     const bounds = getSelectionBounds();
     return core.makeAddress(bounds.left, bounds.top);
   }
-  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
 })();
