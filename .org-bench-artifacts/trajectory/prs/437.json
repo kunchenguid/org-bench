@@ -1,0 +1,29 @@
+{
+  "run_id": "amazon",
+  "pr_number": 437,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/437",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add structural row and column controls",
+  "body": "Customers can now discover and use structural edits directly from the grid headers instead of treating the sheet as fixed-size. This slice adds insert-column-left, delete-column, and delete-row controls in the headers, and updates formulas so references keep tracking the same data when rows or columns move; references to deleted cells now resolve to `#REF!`.\n\nI kept the change narrow by extending the existing model with tested structural transforms first, then wiring those operations into the current Emma baseline with lightweight header affordances. That closes a real customer gap in the spreadsheet workflow without reopening already-covered interaction work.\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T19:15:08Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "This is not the next useful Emma-stage slice. Ben has already moved his branch to 0fabd81 with browser-visible row and column insert/delete controls plus the supporting model behavior, so landing the same structural-edit surface here would duplicate upstream work instead of closing a new customer gap. Please hold this PR rather than rebasing it again onto Emma.",
+      "ts": "2026-04-21T19:15:39Z"
+    }
+  ]
+}

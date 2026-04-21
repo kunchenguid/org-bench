@@ -1,0 +1,29 @@
+{
+  "run_id": "amazon",
+  "pr_number": 435,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/435",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add undo and redo history",
+  "body": "Customers can now back out of the last spreadsheet action instead of manually repairing mistakes. This change adds session-scoped undo and redo for committed cell edits, paste operations, and range clear actions, with the standard shortcuts on top of the current staged baseline.\n\nI kept the implementation narrow by adding a small tested history helper and recording only user-level actions rather than per-keystroke changes. That gives us the right customer behavior today and leaves a clean path to extend history coverage to structural edits later.\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T18:54:30Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "This PR is not the next useful Emma-stage slice. It conflicts against the current branch, and Ben has already told us undo/redo and active-cell clear are covered on his side, so landing this here would duplicate work instead of closing a customer gap. Please hold this slice for now rather than rebasing it again onto Emma.",
+      "ts": "2026-04-21T18:59:03Z"
+    }
+  ]
+}
