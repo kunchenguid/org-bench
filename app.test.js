@@ -20,5 +20,8 @@ test('cellIdFromPosition builds A1-style references', () => {
 
 test('resolveStorageNamespace prefers injected namespace and falls back safely', () => {
   assert.equal(resolveStorageNamespace({ ORACLE_STORAGE_NAMESPACE: 'oracle-run-123' }), 'oracle-run-123');
-  assert.equal(resolveStorageNamespace({}), 'oracle-spreadsheet');
+  assert.equal(
+    resolveStorageNamespace({ location: { pathname: '/oracle/run-123/index.html' } }),
+    'oracle-sheet:/oracle/run-123/index.html'
+  );
 });

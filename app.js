@@ -1,5 +1,6 @@
 (function () {
   var core = window.SpreadsheetCore;
+  var FormulaEngine = window.FormulaEngine;
   var rowCount = 100;
   var columnCount = 26;
   var gridElement = document.getElementById('sheet-grid');
@@ -8,6 +9,7 @@
   var storageKey = namespace + ':sheet-state';
   var state = loadState();
   var activeEditor = null;
+  var formulaEngine = null;
 
   renderGrid();
   renderSelection();
@@ -183,6 +185,7 @@
   }
 
   function refreshGridValues() {
+    formulaEngine = createFormulaEngine();
     var cellElements = gridElement.querySelectorAll('.grid-cell');
     for (var index = 0; index < cellElements.length; index += 1) {
       updateCellDisplay(cellElements[index].dataset.cellId);
@@ -205,7 +208,7 @@
       return '';
     }
 
-    return raw;
+    return getCellResult(cellId).display;
   }
 
   function syncFormulaBar() {
@@ -289,6 +292,7 @@
   }
 
   function setRawValue(cellId, value) {
+    formulaEngine = null;
     if (value) {
       state.cells[cellId] = value;
       return;
@@ -301,6 +305,32 @@
     var element = document.createElement(tagName);
     element.className = className;
     return element;
+  }
+
+  function createFormulaEngine() {
+    if (!FormulaEngine) {
+      return null;
+    }
+
+    return new FormulaEngine({
+      getCell: function (address) {
+        return state.cells[address] || '';
+      },
+    });
+  }
+
+  function getCellResult(cellId) {
+    if (!formulaEngine) {
+      formulaEngine = createFormulaEngine();
+    }
+
+    if (!formulaEngine) {
+      return {
+        display: state.cells[cellId] || '',
+      };
+    }
+
+    return formulaEngine.evaluateCell(cellId);
   }
 
   function clamp(value, min, max) {

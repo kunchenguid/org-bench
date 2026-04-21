@@ -27,7 +27,11 @@
       return env.ORACLE_STORAGE_NAMESPACE.trim();
     }
 
-    return 'oracle-spreadsheet';
+    if (env && env.location && typeof env.location.pathname === 'string' && env.location.pathname) {
+      return 'oracle-sheet:' + env.location.pathname;
+    }
+
+    return 'oracle-sheet:local';
   }
 
   return {
