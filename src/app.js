@@ -307,6 +307,50 @@
     render();
   }
 
+  function applyStructuralChange(action) {
+    pushHistory();
+
+    if (action === 'insert-row-above') {
+      state.sheet = engine.insertRow(state.sheet, state.selection.row);
+      state.selection = createPoint(Math.min(ROW_COUNT, state.selection.row + 1), state.selection.col);
+    } else if (action === 'insert-row-below') {
+      state.sheet = engine.insertRow(state.sheet, Math.min(ROW_COUNT, state.selection.row + 1));
+    } else if (action === 'delete-row') {
+      state.sheet = engine.deleteRow(state.sheet, state.selection.row);
+      state.selection = createPoint(Math.max(1, Math.min(state.selection.row, ROW_COUNT)), state.selection.col);
+    } else if (action === 'insert-column-left') {
+      state.sheet = engine.insertColumn(state.sheet, state.selection.col);
+      state.selection = createPoint(state.selection.row, Math.min(COLUMN_COUNT, state.selection.col + 1));
+    } else if (action === 'insert-column-right') {
+      state.sheet = engine.insertColumn(state.sheet, Math.min(COLUMN_COUNT, state.selection.col + 1));
+    } else if (action === 'delete-column') {
+      state.sheet = engine.deleteColumn(state.sheet, state.selection.col);
+      state.selection = createPoint(state.selection.row, Math.max(1, Math.min(state.selection.col, COLUMN_COUNT)));
+    }
+
+    state.anchor = clonePoint(state.selection);
+    state.pendingCut = null;
+    state.editing = false;
+    state.draft = getRaw(state.selection);
+    persist();
+    render();
+  }
+
+  function appendHeaderButtons(wrapper, actions) {
+    var actionWrap = document.createElement('span');
+    actionWrap.className = 'header-actions';
+    actions.forEach(function (action) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'header-action';
+      button.dataset.action = action.action;
+      button.textContent = action.label;
+      button.title = action.title;
+      actionWrap.appendChild(button);
+    });
+    wrapper.appendChild(actionWrap);
+  }
+
   function handlePasteText(text) {
     if (!text) {
       return;
@@ -337,7 +381,19 @@
     for (col = 1; col <= COLUMN_COUNT; col += 1) {
       var colHeader = document.createElement('th');
       colHeader.className = 'col-header';
-      colHeader.textContent = engine.indexToCol(col);
+      var colContent = document.createElement('div');
+      colContent.className = 'header-content';
+      var colLabel = document.createElement('span');
+      colLabel.textContent = engine.indexToCol(col);
+      colContent.appendChild(colLabel);
+      if (col === state.selection.col) {
+        appendHeaderButtons(colContent, [
+          { action: 'insert-column-left', label: '+L', title: 'Insert column left' },
+          { action: 'insert-column-right', label: '+R', title: 'Insert column right' },
+          { action: 'delete-column', label: '-', title: 'Delete column' },
+        ]);
+      }
+      colHeader.appendChild(colContent);
       if (col >= selectionBounds().left && col <= selectionBounds().right) {
         colHeader.classList.add('range-selected');
       }
@@ -352,7 +408,19 @@
       var tr = document.createElement('tr');
       var rowHeader = document.createElement('th');
       rowHeader.className = 'row-header';
-      rowHeader.textContent = String(row);
+      var rowContent = document.createElement('div');
+      rowContent.className = 'header-content';
+      var rowLabel = document.createElement('span');
+      rowLabel.textContent = String(row);
+      rowContent.appendChild(rowLabel);
+      if (row === state.selection.row) {
+        appendHeaderButtons(rowContent, [
+          { action: 'insert-row-above', label: '+A', title: 'Insert row above' },
+          { action: 'insert-row-below', label: '+B', title: 'Insert row below' },
+          { action: 'delete-row', label: '-', title: 'Delete row' },
+        ]);
+      }
+      rowHeader.appendChild(rowContent);
       if (row >= selectionBounds().top && row <= selectionBounds().bottom) {
         rowHeader.classList.add('range-selected');
       }
@@ -408,6 +476,9 @@
   }
 
   container.addEventListener('mousedown', function (event) {
+    if (event.target.closest('.header-action')) {
+      return;
+    }
     var point = cellFromEventTarget(event.target);
     if (!point) {
       return;
@@ -438,6 +509,15 @@
     if (cellFromEventTarget(event.target)) {
       beginEdit(false);
     }
+  });
+
+  container.addEventListener('click', function (event) {
+    var actionButton = event.target.closest('.header-action');
+    if (!actionButton) {
+      return;
+    }
+    event.preventDefault();
+    applyStructuralChange(actionButton.dataset.action);
   });
 
   formulaInput.addEventListener('focus', function () {

@@ -170,6 +170,38 @@ body {
   height: 36px;
 }
 
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: inherit;
+  padding: 4px 6px;
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-action {
+  border: 0;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.header-action:hover {
+  background: rgba(37, 99, 235, 0.18);
+}
+
 .cell {
   min-width: 120px;
   width: 120px;

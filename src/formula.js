@@ -94,6 +94,126 @@
     });
   }
 
+  function transformReferenceForStructure(ref, action, index) {
+    var next = {
+      absCol: ref.absCol,
+      col: ref.col,
+      absRow: ref.absRow,
+      row: ref.row,
+    };
+
+    if (action === 'insert-row') {
+      if (next.row >= index) {
+        next.row += 1;
+      }
+      return stringifyCellRef(next);
+    }
+
+    if (action === 'delete-row') {
+      if (next.row === index) {
+        return ERROR_REF;
+      }
+      if (next.row > index) {
+        next.row -= 1;
+      }
+      return stringifyCellRef(next);
+    }
+
+    if (action === 'insert-column') {
+      if (next.col >= index) {
+        next.col += 1;
+      }
+      return stringifyCellRef(next);
+    }
+
+    if (next.col === index) {
+      return ERROR_REF;
+    }
+    if (next.col > index) {
+      next.col -= 1;
+    }
+    return stringifyCellRef(next);
+  }
+
+  function rewriteFormulaForStructure(raw, action, index) {
+    if (typeof raw !== 'string' || raw.charAt(0) !== '=') {
+      return raw;
+    }
+
+    return raw.replace(/(\$?[A-Z]\$?\d+)(:(\$?[A-Z]\$?\d+))?/g, function (match, start, _sep, end) {
+      var transformedStart = transformReferenceForStructure(parseReferenceToken(start), action, index);
+
+      if (!end) {
+        return transformedStart;
+      }
+
+      var transformedEnd = transformReferenceForStructure(parseReferenceToken(end), action, index);
+      if (transformedStart === ERROR_REF || transformedEnd === ERROR_REF) {
+        return ERROR_REF;
+      }
+      return transformedStart + ':' + transformedEnd;
+    });
+  }
+
+  function transformSheet(sheet, action, index) {
+    var nextCells = {};
+
+    Object.keys(sheet.cells).forEach(function (cellId) {
+      var position = parseCellId(cellId);
+      var raw = rewriteFormulaForStructure(sheet.cells[cellId], action, index);
+      var nextRow = position.row;
+      var nextCol = position.col;
+
+      if (action === 'insert-row') {
+        if (nextRow >= index) {
+          nextRow += 1;
+        }
+      } else if (action === 'delete-row') {
+        if (nextRow === index) {
+          return;
+        }
+        if (nextRow > index) {
+          nextRow -= 1;
+        }
+      } else if (action === 'insert-column') {
+        if (nextCol >= index) {
+          nextCol += 1;
+        }
+      } else if (action === 'delete-column') {
+        if (nextCol === index) {
+          return;
+        }
+        if (nextCol > index) {
+          nextCol -= 1;
+        }
+      }
+
+      if (nextRow < 1 || nextRow > ROW_COUNT || nextCol < 1 || nextCol > COLUMN_COUNT) {
+        return;
+      }
+
+      nextCells[indexToCol(nextCol) + String(nextRow)] = raw;
+    });
+
+    return createSheet(nextCells);
+  }
+
+  function insertRow(sheet, index) {
+    return transformSheet(sheet, 'insert-row', index);
+  }
+
+  function deleteRow(sheet, index) {
+    return transformSheet(sheet, 'delete-row', index);
+  }
+
+  function insertColumn(sheet, index) {
+    return transformSheet(sheet, 'insert-column', index);
+  }
+
+  function deleteColumn(sheet, index) {
+    return transformSheet(sheet, 'delete-column', index);
+  }
+
   function tokenize(input) {
     var tokens = [];
     var index = 0;
@@ -135,6 +255,13 @@
       }
 
       var remainder = input.slice(index);
+      var errorMatch = /^(#REF!)/.exec(remainder);
+      if (errorMatch) {
+        tokens.push({ type: 'error', value: errorMatch[1] });
+        index += errorMatch[1].length;
+        continue;
+      }
+
       var refMatch = /^(\$?[A-Z]\$?\d+)/.exec(remainder);
       if (refMatch) {
         tokens.push({ type: 'ref', value: refMatch[1] });
@@ -193,6 +320,11 @@
       if (token.type === 'string') {
         consume('string');
         return { type: 'string', value: token.value };
+      }
+
+      if (token.type === 'error') {
+        consume('error');
+        return { type: 'error', value: token.value };
       }
 
       if (token.type === 'identifier') {
@@ -398,7 +530,7 @@
       return ERROR_GENERIC;
     }
 
-    if (node.type === 'number' || node.type === 'string' || node.type === 'boolean') {
+    if (node.type === 'number' || node.type === 'string' || node.type === 'boolean' || node.type === 'error') {
       return node.value;
     }
 
@@ -555,8 +687,12 @@
     ROW_COUNT: ROW_COUNT,
     cloneSheet: cloneSheet,
     createSheet: createSheet,
+    deleteColumn: deleteColumn,
+    deleteRow: deleteRow,
     evaluateCell: evaluateCell,
     formatDisplay: formatDisplay,
+    insertColumn: insertColumn,
+    insertRow: insertRow,
     moveFormula: moveFormula,
     parseCellId: parseCellId,
     indexToCol: indexToCol,
