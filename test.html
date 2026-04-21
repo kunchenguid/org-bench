@@ -83,6 +83,17 @@
           var active = root.querySelector('.cell.active');
           assert(active && active.dataset.cellId === 'C4', 'expected C4 active');
         });
+
+        run('delete clears the active cell from the keyboard', function () {
+          sheet.selectCell(0, 0);
+          formulaInput.value = '99';
+          formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+          formulaInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          sheet.selectCell(0, 0);
+          root.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+          assert(sheet.getState().cells.A1 === undefined, 'expected raw value removed');
+          assert(root.querySelector('[data-cell-id="A1"]').textContent === '', 'expected empty display');
+        });
       }());
     </script>
   </body>
