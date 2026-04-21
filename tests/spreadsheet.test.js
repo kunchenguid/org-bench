@@ -79,6 +79,44 @@ test('spreadsheet model commits edits, moves selection, and persists raw formula
   assert.equal(restored.getSelection().activeCell, 'B2');
 });
 
+test('spreadsheet model undoes and redoes committed edits as single actions', () => {
+  const model = createSpreadsheetModel({
+    columns: 4,
+    rows: 4,
+  });
+
+  model.commitCell('A1', '12');
+  model.commitCell('A1', '18');
+
+  model.undo();
+  assert.equal(model.getCell('A1').display, '12');
+
+  model.redo();
+  assert.equal(model.getCell('A1').display, '18');
+});
+
+test('undo restores cleared formulas and redo reapplies the clear', () => {
+  const model = createSpreadsheetModel({
+    columns: 4,
+    rows: 4,
+  });
+
+  model.commitCell('A1', '12');
+  model.commitCell('B1', '=A1*2');
+
+  model.clearCell('A1');
+  assert.equal(model.getCell('A1').display, '');
+  assert.equal(model.getCell('B1').display, '0');
+
+  model.undo();
+  assert.equal(model.getCell('A1').display, '12');
+  assert.equal(model.getCell('B1').display, '24');
+
+  model.redo();
+  assert.equal(model.getCell('A1').display, '');
+  assert.equal(model.getCell('B1').display, '0');
+});
+
 test('cell keys are generated from zero-based row and column indexes', () => {
   assert.equal(makeCellKey(0, 0), 'A1');
   assert.equal(makeCellKey(4, 25), 'Z5');

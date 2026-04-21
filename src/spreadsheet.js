@@ -608,6 +608,31 @@
     const engine = createFormulaEngine();
     const listeners = new Set();
     const state = loadState(storage, storageKey, columns, rows);
+    const history = {
+      undoStack: [],
+      redoStack: [],
+    };
+
+    function snapshotState() {
+      return {
+        rawCells: new Map(state.rawCells),
+        activeCell: state.selection.activeCell,
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      state.rawCells = new Map(snapshot.rawCells);
+      state.selection.activeCell = snapshot.activeCell;
+      recalculate();
+    }
+
+    function rememberForUndo() {
+      history.undoStack.push(snapshotState());
+      if (history.undoStack.length > 50) {
+        history.undoStack.shift();
+      }
+      history.redoStack = [];
+    }
 
     function notify() {
       persistState(storage, storageKey, state);
@@ -636,6 +661,7 @@
     }
 
     function commitCell(key, raw, options) {
+      rememberForUndo();
       const value = raw == null ? '' : String(raw);
       if (value) {
         state.rawCells.set(key, value);
@@ -652,8 +678,27 @@
     }
 
     function clearCell(key) {
+      rememberForUndo();
       state.rawCells.delete(key);
       recalculate();
+      notify();
+    }
+
+    function undo() {
+      if (!history.undoStack.length) {
+        return;
+      }
+      history.redoStack.push(snapshotState());
+      applySnapshot(history.undoStack.pop());
+      notify();
+    }
+
+    function redo() {
+      if (!history.redoStack.length) {
+        return;
+      }
+      history.undoStack.push(snapshotState());
+      applySnapshot(history.redoStack.pop());
       notify();
     }
 
@@ -692,8 +737,10 @@
       getSelection: getSelection,
       getState: getState,
       moveSelection: moveSelection,
+      redo: redo,
       selectCell: selectCell,
       subscribe: subscribe,
+      undo: undo,
     };
   }
 

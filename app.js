@@ -174,6 +174,20 @@
   });
 
   document.addEventListener('keydown', function (event) {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        model.redo();
+      } else {
+        model.undo();
+      }
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      model.redo();
+      return;
+    }
     if (event.metaKey || event.ctrlKey || event.altKey) {
       return;
     }
