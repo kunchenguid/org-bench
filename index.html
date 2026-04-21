@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Spreadsheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="toolbar" aria-label="Formula bar">
+        <div class="name-box" data-name-box>A1</div>
+        <input class="formula-bar" data-formula-bar aria-label="Cell formula" spellcheck="false">
+      </section>
+      <section class="grid-shell">
+        <div class="grid" data-grid aria-label="Spreadsheet grid"></div>
+      </section>
+    </main>
+    <script src="src/core.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
