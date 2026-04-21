@@ -222,6 +222,26 @@
     };
   }
 
+  function clipboardToText(clipboard) {
+    return clipboard.cells.map(function (row) {
+      return row.join('\t');
+    }).join('\n');
+  }
+
+  function clipboardFromText(text) {
+    const normalized = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n$/, '');
+    const rows = normalized.split('\n').map(function (row) {
+      return row.split('\t');
+    });
+    return {
+      startCol: 0,
+      startRow: 0,
+      width: rows[0] ? rows[0].length : 0,
+      height: rows.length,
+      cells: rows,
+    };
+  }
+
   function pasteRange(store, clipboard, targetRange) {
     const target = normalizeRange(targetRange);
     const targetWidth = target.endCol - target.startCol + 1;
@@ -529,6 +549,8 @@
   return {
     COLS,
     ROWS,
+    clipboardFromText,
+    clipboardToText,
     colToName,
     copyRange,
     createEditBuffer,
