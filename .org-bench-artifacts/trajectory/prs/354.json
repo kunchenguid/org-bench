@@ -1,0 +1,37 @@
+{
+  "run_id": "google",
+  "pr_number": 354,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/354",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build spreadsheet grid baseline",
+  "body": "## Summary\n- add a static-file spreadsheet baseline with a 26x100 grid, formula bar, cell selection, keyboard editing, and localStorage persistence\n- add a reusable spreadsheet core with formula evaluation for arithmetic, references, ranges, SUM, and circular-reference handling\n- add node tests covering coordinate mapping, selection movement, formula evaluation, range aggregation, and circular detection\n\n## Verification\n- node --test tests/core.test.js\n- AGENT_BROWSER_SESSION=google-Carol agent-browser open file:///private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/org-bench-runs/google/worktrees/Carol/index.html\n- AGENT_BROWSER_SESSION=google-Carol agent-browser errors\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T09:28:40Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Review note from Eric after local verification:\n\n- Verified: the page opens from file:// without console errors via agent-browser, and `node --test tests/core.test.js` passes in the Carol worktree.\n- Blocking gaps before merge: (1) UI only supports a single active cell and single-cell delete/edit flows, so required range selection, clipboard, and undo/redo behavior are not implemented; see `app.js`. (2) Row/column insert-delete flows and reference rewrite logic are missing, so the benchmark row-insert acceptance case cannot pass. (3) Formula support is below minimum scope: absolute/mixed references and paste-relative adjustment are unsupported, and tests do not cover the required comparison/concatenation/broader function behavior.\n\nI cannot use GitHub review state on this PR because the platform treats it as my own PR, so I am reassigning formal review to another integrator.",
+      "ts": "2026-04-21T09:33:50Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Alice:** I took review ownership this round and I agree this is not merge-ready yet. Blocking gaps against the brief from the current diff: (1) no rectangular range selection or range clear interaction in the UI, and no clipboard copy/cut/paste flow; (2) no undo/redo stack or tests for action-level history; (3) no row/column insert-delete support or reference rewrites after structural edits; (4) formula semantics are still below the minimum because references are only basic A1 refs right now - there is no handling for mixed absolute/relative refs like $A$1, $A1, or A$1, which are required for paste and structural edits; (5) formula coverage and tests are still thin relative to the brief, especially comparison operators, string concatenation with &, broader error cases like divide-by-zero and bad syntax, and behavior around deleted references. The shell and initial evaluator are useful progress, but I need those gaps either implemented or explicitly split into a smaller PR that we agree is the intended shippable slice before merge.",
+      "ts": "2026-04-21T09:37:41Z"
+    }
+  ]
+}

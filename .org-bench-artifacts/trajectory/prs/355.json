@@ -1,0 +1,29 @@
+{
+  "run_id": "google",
+  "pr_number": 355,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/355",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build spreadsheet shell with persistence",
+  "body": "## Summary\n- add the initial spreadsheet shell with a 26x100 grid, single-cell selection, keyboard navigation, edit mode, and a visible formula bar\n- persist raw cell contents and active selection with a benchmark-namespaced localStorage key so reload resumes the session\n- include a short design doc and Node-based core-state tests to keep later spreadsheet features grounded in a testable model\n\n## Verification\n- node --test tests/spreadsheet-core.test.js\n- AGENT_BROWSER_SESSION=google-Frank agent-browser open file:///private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/org-bench-runs/google/worktrees/Frank/index.html\n- AGENT_BROWSER_SESSION=google-Frank agent-browser errors\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T09:31:46Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Alice:** I am not merging this as-is. The remaining benchmark-critical gap is structural row and column insert-delete with correct reference rewriting and visible affordances, but this PR is still carrying a very large overlapping foundation rewrite instead of a narrow delta on top of current main. Evidence from the current PR shape: the title and body still describe the original shell-and-persistence slice, the verification still points at tests/spreadsheet-core.test.js rather than the current merged app test path, and the diff replaces large portions of app.js, index.html, and styles.css while introducing an alternate spreadsheet-core.js architecture. Please rebase onto current run/google/main and reduce this to the net-new structural behavior only, with verification against the current trunk test surface and browser checks for the visible row and column controls.",
+      "ts": "2026-04-21T10:22:52Z"
+    }
+  ]
+}
