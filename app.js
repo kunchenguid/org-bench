@@ -1,5 +1,6 @@
 (function () {
   const Engine = window.SpreadsheetEngine;
+  const History = window.SpreadsheetHistory;
   const ROWS = 100;
   const COLS = 26;
   const STORAGE_KEY = getStorageNamespace() + ':sheet-state';
@@ -10,7 +11,7 @@
     range: null,
     editing: null,
     dragAnchor: null,
-    history: { undo: [], redo: [] },
+    history: History.createHistory(50),
     clipboard: null,
     headerMenu: null,
   };
@@ -47,14 +48,6 @@
       selection: Object.assign({}, state.selection),
       range: state.range ? Object.assign({}, state.range) : null,
     };
-  }
-
-  function pushHistory() {
-    state.history.undo.push(snapshot());
-    if (state.history.undo.length > 50) {
-      state.history.undo.shift();
-    }
-    state.history.redo = [];
   }
 
   function restoreSnapshot(entry) {
@@ -442,15 +435,16 @@
   }
 
   function commitEdit(value, nextSelection) {
-    pushHistory();
-    setRawCell(state.selection.row, state.selection.col, value);
-    state.editing = null;
-    editor.style.display = 'none';
-    state.range = null;
-    state.selection = {
-      row: clamp(nextSelection.row, 0, ROWS - 1),
-      col: clamp(nextSelection.col, 0, COLS - 1),
-    };
+    runAction('commit', function () {
+      setRawCell(state.selection.row, state.selection.col, value);
+      state.editing = null;
+      editor.style.display = 'none';
+      state.range = null;
+      state.selection = {
+        row: clamp(nextSelection.row, 0, ROWS - 1),
+        col: clamp(nextSelection.col, 0, COLS - 1),
+      };
+    });
     render();
     ensureActiveCellVisible();
     persistState();
@@ -463,13 +457,14 @@
       left: state.selection.col,
       right: state.selection.col,
     };
-    pushHistory();
-    for (let row = range.top; row <= range.bottom; row += 1) {
-      for (let col = range.left; col <= range.right; col += 1) {
-        setRawCell(row, col, '');
+    runAction('clear', function () {
+      for (let row = range.top; row <= range.bottom; row += 1) {
+        for (let col = range.left; col <= range.right; col += 1) {
+          setRawCell(row, col, '');
+        }
       }
-    }
-    state.range = null;
+      state.range = null;
+    });
     render();
     persistState();
   }
@@ -494,15 +489,17 @@
 
   function onCopy(event) {
     const block = getSelectionBlock();
-    state.clipboard = { block: block, cut: false };
-    event.clipboardData.setData('text/plain', block.rows.map(function (row) { return row.join('\t'); }).join('\n'));
+    const text = block.rows.map(function (row) { return row.join('\t'); }).join('\n');
+    state.clipboard = { block: block, cut: false, text: text };
+    event.clipboardData.setData('text/plain', text);
     event.preventDefault();
   }
 
   function onCut(event) {
     const block = getSelectionBlock();
-    state.clipboard = { block: block, cut: true };
-    event.clipboardData.setData('text/plain', block.rows.map(function (row) { return row.join('\t'); }).join('\n'));
+    const text = block.rows.map(function (row) { return row.join('\t'); }).join('\n');
+    state.clipboard = { block: block, cut: true, text: text };
+    event.clipboardData.setData('text/plain', text);
     event.preventDefault();
   }
 
@@ -512,69 +509,70 @@
       return;
     }
     const block = text.split(/\r?\n/).map(function (line) { return line.split('\t'); });
-    applyPastedBlock(block, state.clipboard && state.clipboard.block);
+    const sourceBlock = state.clipboard && state.clipboard.text === text ? state.clipboard.block : null;
+    applyPastedBlock(block, sourceBlock);
     event.preventDefault();
   }
 
   function applyPastedBlock(rows, sourceBlock) {
-    pushHistory();
-    const target = getNormalizedRange();
-    const targetRows = rows.length;
-    const targetCols = rows.reduce(function (max, row) { return Math.max(max, row.length); }, 0);
-    const fillMatchingRange = target && target.bottom - target.top + 1 === targetRows && target.right - target.left + 1 === targetCols;
-    const startRow = fillMatchingRange ? target.top : state.selection.row;
-    const startCol = fillMatchingRange ? target.left : state.selection.col;
+    const actionLabel = state.clipboard && state.clipboard.cut && sourceBlock ? 'cut' : 'paste';
+    runAction(actionLabel, function () {
+      const target = getNormalizedRange();
+      const targetRows = rows.length;
+      const targetCols = rows.reduce(function (max, row) { return Math.max(max, row.length); }, 0);
+      const fillMatchingRange = target && target.bottom - target.top + 1 === targetRows && target.right - target.left + 1 === targetCols;
+      const startRow = fillMatchingRange ? target.top : state.selection.row;
+      const startCol = fillMatchingRange ? target.left : state.selection.col;
 
-    for (let r = 0; r < targetRows; r += 1) {
-      for (let c = 0; c < targetCols; c += 1) {
-        let value = rows[r][c] || '';
-        if (sourceBlock) {
-          const sourceRow = sourceBlock.range.top + Math.min(r, sourceBlock.range.bottom - sourceBlock.range.top);
-          const sourceCol = sourceBlock.range.left + Math.min(c, sourceBlock.range.right - sourceBlock.range.left);
-          value = value.charAt(0) === '=' ? Engine.copyFormula(value, { row: sourceRow, col: sourceCol }, { row: startRow + r, col: startCol + c }) : value;
+      for (let r = 0; r < targetRows; r += 1) {
+        for (let c = 0; c < targetCols; c += 1) {
+          let value = rows[r][c] || '';
+          if (sourceBlock) {
+            const sourceRow = sourceBlock.range.top + Math.min(r, sourceBlock.range.bottom - sourceBlock.range.top);
+            const sourceCol = sourceBlock.range.left + Math.min(c, sourceBlock.range.right - sourceBlock.range.left);
+            value = value.charAt(0) === '=' ? Engine.copyFormula(value, { row: sourceRow, col: sourceCol }, { row: startRow + r, col: startCol + c }) : value;
+          }
+          setRawCell(startRow + r, startCol + c, value);
         }
-        setRawCell(startRow + r, startCol + c, value);
       }
-    }
 
-    if (state.clipboard && state.clipboard.cut && sourceBlock) {
-      for (let row = sourceBlock.range.top; row <= sourceBlock.range.bottom; row += 1) {
-        for (let col = sourceBlock.range.left; col <= sourceBlock.range.right; col += 1) {
-          if (row < startRow || row >= startRow + targetRows || col < startCol || col >= startCol + targetCols) {
-            setRawCell(row, col, '');
+      if (state.clipboard && state.clipboard.cut && sourceBlock) {
+        for (let row = sourceBlock.range.top; row <= sourceBlock.range.bottom; row += 1) {
+          for (let col = sourceBlock.range.left; col <= sourceBlock.range.right; col += 1) {
+            if (row < startRow || row >= startRow + targetRows || col < startCol || col >= startCol + targetCols) {
+              setRawCell(row, col, '');
+            }
           }
         }
       }
-    }
 
-    state.selection = { row: clamp(startRow, 0, ROWS - 1), col: clamp(startCol, 0, COLS - 1) };
-    state.range = {
-      startRow: startRow,
-      endRow: clamp(startRow + targetRows - 1, 0, ROWS - 1),
-      startCol: startCol,
-      endCol: clamp(startCol + targetCols - 1, 0, COLS - 1),
-    };
+      state.selection = { row: clamp(startRow, 0, ROWS - 1), col: clamp(startCol, 0, COLS - 1) };
+      state.range = {
+        startRow: startRow,
+        endRow: clamp(startRow + targetRows - 1, 0, ROWS - 1),
+        startCol: startCol,
+        endCol: clamp(startCol + targetCols - 1, 0, COLS - 1),
+      };
+    });
     state.clipboard = null;
     render();
     persistState();
   }
 
   function undo() {
-    const entry = state.history.undo.pop();
+    const entry = History.undoAction(state.history);
     if (!entry) {
       return;
     }
-    state.history.redo.push(snapshot());
-    restoreSnapshot(entry);
+    restoreSnapshot(entry.state);
   }
 
   function redo() {
-    const entry = state.history.redo.pop();
+    const entry = History.redoAction(state.history);
     if (!entry) {
       return;
     }
-    state.history.undo.push(snapshot());
-    restoreSnapshot(entry);
+    restoreSnapshot(entry.state);
   }
 
   function onContextMenu(event) {
@@ -633,73 +631,84 @@
   }
 
   function insertRow(index) {
-    pushHistory();
-    const nextCells = {};
-    Object.keys(state.sheet.cells).forEach(function (key) {
-      const ref = Engine.parseRef(key);
-      const row = ref.row >= index ? ref.row + 1 : ref.row;
-      nextCells[Engine.toCellKey(row, ref.col)] = state.sheet.cells[key];
+    runAction('insert-row', function () {
+      const nextCells = {};
+      Object.keys(state.sheet.cells).forEach(function (key) {
+        const ref = Engine.parseRef(key);
+        const row = ref.row >= index ? ref.row + 1 : ref.row;
+        nextCells[Engine.toCellKey(row, ref.col)] = state.sheet.cells[key];
+      });
+      state.sheet.cells = nextCells;
+      rewriteAllFormulas({ type: 'insert-row', index: index, count: 1 });
+      if (state.selection.row >= index) {
+        state.selection.row += 1;
+      }
     });
-    state.sheet.cells = nextCells;
-    rewriteAllFormulas({ type: 'insert-row', index: index, count: 1 });
-    if (state.selection.row >= index) {
-      state.selection.row += 1;
-    }
     render();
     persistState();
   }
 
   function deleteRow(index) {
-    pushHistory();
-    const nextCells = {};
-    Object.keys(state.sheet.cells).forEach(function (key) {
-      const ref = Engine.parseRef(key);
-      if (ref.row === index) {
-        return;
-      }
-      const row = ref.row > index ? ref.row - 1 : ref.row;
-      nextCells[Engine.toCellKey(row, ref.col)] = state.sheet.cells[key];
+    runAction('delete-row', function () {
+      const nextCells = {};
+      Object.keys(state.sheet.cells).forEach(function (key) {
+        const ref = Engine.parseRef(key);
+        if (ref.row === index) {
+          return;
+        }
+        const row = ref.row > index ? ref.row - 1 : ref.row;
+        nextCells[Engine.toCellKey(row, ref.col)] = state.sheet.cells[key];
+      });
+      state.sheet.cells = nextCells;
+      rewriteAllFormulas({ type: 'delete-row', index: index, count: 1 });
+      state.selection.row = clamp(state.selection.row > index ? state.selection.row - 1 : state.selection.row, 0, ROWS - 1);
     });
-    state.sheet.cells = nextCells;
-    rewriteAllFormulas({ type: 'delete-row', index: index, count: 1 });
-    state.selection.row = clamp(state.selection.row > index ? state.selection.row - 1 : state.selection.row, 0, ROWS - 1);
     render();
     persistState();
   }
 
   function insertCol(index) {
-    pushHistory();
-    const nextCells = {};
-    Object.keys(state.sheet.cells).forEach(function (key) {
-      const ref = Engine.parseRef(key);
-      const col = ref.col >= index ? ref.col + 1 : ref.col;
-      nextCells[Engine.toCellKey(ref.row, col)] = state.sheet.cells[key];
+    runAction('insert-col', function () {
+      const nextCells = {};
+      Object.keys(state.sheet.cells).forEach(function (key) {
+        const ref = Engine.parseRef(key);
+        const col = ref.col >= index ? ref.col + 1 : ref.col;
+        nextCells[Engine.toCellKey(ref.row, col)] = state.sheet.cells[key];
+      });
+      state.sheet.cells = nextCells;
+      rewriteAllFormulas({ type: 'insert-col', index: index, count: 1 });
+      if (state.selection.col >= index) {
+        state.selection.col += 1;
+      }
     });
-    state.sheet.cells = nextCells;
-    rewriteAllFormulas({ type: 'insert-col', index: index, count: 1 });
-    if (state.selection.col >= index) {
-      state.selection.col += 1;
-    }
     render();
     persistState();
   }
 
   function deleteCol(index) {
-    pushHistory();
-    const nextCells = {};
-    Object.keys(state.sheet.cells).forEach(function (key) {
-      const ref = Engine.parseRef(key);
-      if (ref.col === index) {
-        return;
-      }
-      const col = ref.col > index ? ref.col - 1 : ref.col;
-      nextCells[Engine.toCellKey(ref.row, col)] = state.sheet.cells[key];
+    runAction('delete-col', function () {
+      const nextCells = {};
+      Object.keys(state.sheet.cells).forEach(function (key) {
+        const ref = Engine.parseRef(key);
+        if (ref.col === index) {
+          return;
+        }
+        const col = ref.col > index ? ref.col - 1 : ref.col;
+        nextCells[Engine.toCellKey(ref.row, col)] = state.sheet.cells[key];
+      });
+      state.sheet.cells = nextCells;
+      rewriteAllFormulas({ type: 'delete-col', index: index, count: 1 });
+      state.selection.col = clamp(state.selection.col > index ? state.selection.col - 1 : state.selection.col, 0, COLS - 1);
     });
-    state.sheet.cells = nextCells;
-    rewriteAllFormulas({ type: 'delete-col', index: index, count: 1 });
-    state.selection.col = clamp(state.selection.col > index ? state.selection.col - 1 : state.selection.col, 0, COLS - 1);
     render();
     persistState();
+  }
+
+  function runAction(label, fn) {
+    const before = snapshot();
+    fn();
+    const after = snapshot();
+    History.recordAction(state.history, before, after, label);
   }
 
   function persistState() {
