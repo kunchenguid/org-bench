@@ -11,7 +11,7 @@
     parseSelectionRect,
     resolveStorageNamespace,
   } = window.SpreadsheetLib;
-  const { retargetFormulaBarEdit } = window.SpreadsheetAppState;
+  const { retargetFormulaBarEdit, shouldRenderCellEditor } = window.SpreadsheetAppState;
 
   const namespace = resolveStorageNamespace(window);
   const storageKey = `${namespace}:sheet-state`;
@@ -184,7 +184,7 @@
     td.classList.toggle('error', display.startsWith('#'));
     td.classList.toggle('numeric', typeof computed === 'number');
     td.classList.toggle('boolean', typeof computed === 'boolean');
-    if (!state.editing || state.editing.coord !== coord) {
+    if (!shouldRenderCellEditor(state.editing, coord)) {
       td.innerHTML = '';
       const nextButton = document.createElement('button');
       nextButton.type = 'button';
@@ -243,6 +243,13 @@
       original: model.getRaw(coord),
       source: fromFormulaBar ? 'formula' : 'cell',
     };
+    if (fromFormulaBar) {
+      refreshSelection();
+      syncFormulaBar();
+      formulaInput.focus();
+      formulaInput.setSelectionRange(formulaInput.value.length, formulaInput.value.length);
+      return;
+    }
     const td = document.querySelector(`td[data-coord="${coord}"]`);
     td.innerHTML = '';
     const input = document.createElement('input');
