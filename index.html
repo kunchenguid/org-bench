@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="formula-shell">
+      <div class="nameplate">Sheet</div>
+      <label class="formula-label" for="formula-input">fx</label>
+      <input id="formula-input" class="formula-input" type="text" autocomplete="off" spellcheck="false">
+    </header>
+    <main class="grid-shell">
+      <div class="grid-scroll" id="grid-scroll">
+        <table class="sheet-grid" id="sheet-grid"></table>
+        <input id="cell-editor" class="cell-editor hidden" type="text" autocomplete="off" spellcheck="false">
+      </div>
+    </main>
+    <div class="statusbar" id="statusbar">A1</div>
+  </div>
+  <script src="src/formula.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
