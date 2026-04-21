@@ -5,6 +5,9 @@ const {
   setCell,
   getCellRaw,
   getCellDisplay,
+  copyRange,
+  pasteBlock,
+  shiftFormula,
 } = require('./spreadsheet.js');
 
 function test(name, fn) {
@@ -54,4 +57,34 @@ test('detects circular references', () => {
 
   assert.equal(getCellDisplay(sheet, 'D1'), '#CIRC!');
   assert.equal(getCellDisplay(sheet, 'D2'), '#CIRC!');
+});
+
+test('shifts relative and absolute references when formulas move', () => {
+  assert.equal(shiftFormula('=A1+$B1+C$2+$D$3', 2, 1), '=C2+$B2+E$2+$D$3');
+  assert.equal(shiftFormula('=SUM(A1:B2)', 1, 3), '=SUM(B4:C5)');
+});
+
+test('copies a range as raw cell contents', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '1');
+  setCell(sheet, 'B1', '=A1');
+  setCell(sheet, 'A2', 'hello');
+
+  const copied = copyRange(sheet, 'A1', 'B2');
+  assert.deepEqual(copied.values, [
+    ['1', '=A1'],
+    ['hello', ''],
+  ]);
+});
+
+test('pastes copied formulas with relative references shifted to destination', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '2');
+  setCell(sheet, 'B1', '=A1');
+
+  const copied = copyRange(sheet, 'B1', 'B1');
+  pasteBlock(sheet, copied, 'C1');
+
+  assert.equal(getCellRaw(sheet, 'C1'), '=B1');
+  assert.equal(getCellDisplay(sheet, 'C1'), '2');
 });

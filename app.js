@@ -8,21 +8,41 @@
   const sheet = core.createSheet(persisted.cells);
   const gridWrap = document.querySelector('.grid-wrap');
   const formulaInput = document.querySelector('#formula-input');
-  const state = { active: persisted.active || 'A1', editing: null };
+  const initialSelection = persisted.selection || { start: persisted.active || 'A1', end: persisted.active || 'A1' };
+  const state = {
+    active: persisted.active || 'A1',
+    editing: null,
+    selection: initialSelection,
+    dragAnchor: null,
+    clipboard: null,
+  };
 
   renderGrid();
   syncFormulaBar();
   focusActiveCell();
 
-  gridWrap.addEventListener('click', function (event) {
+  gridWrap.addEventListener('mousedown', function (event) {
     const cell = event.target.closest('[data-address]');
-    if (cell) selectCell(cell.dataset.address);
+    if (!cell) return;
+    state.dragAnchor = event.shiftKey ? state.selection.start : cell.dataset.address;
+    selectCell(cell.dataset.address, event.shiftKey, state.dragAnchor);
+  });
+  gridWrap.addEventListener('mouseover', function (event) {
+    const cell = event.target.closest('[data-address]');
+    if (!cell || event.buttons !== 1 || !state.dragAnchor) return;
+    selectCell(cell.dataset.address, true, state.dragAnchor);
   });
   gridWrap.addEventListener('dblclick', function (event) {
     const cell = event.target.closest('[data-address]');
     if (cell) startEdit(cell.dataset.address, false, '');
   });
   gridWrap.addEventListener('keydown', handleGridKeydown);
+  window.addEventListener('mouseup', function () {
+    state.dragAnchor = null;
+  });
+  document.addEventListener('copy', onCopy);
+  document.addEventListener('cut', onCut);
+  document.addEventListener('paste', onPaste);
 
   formulaInput.addEventListener('input', function () {
     if (state.editing !== 'formula') state.editing = 'formula';
@@ -72,7 +92,7 @@
     const movement = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[event.key];
     if (movement) {
       event.preventDefault();
-      moveSelection(movement[0], movement[1]);
+      moveSelection(movement[0], movement[1], event.shiftKey);
       return;
     }
     if (event.key === 'Enter' || event.key === 'F2') {
@@ -82,7 +102,7 @@
     }
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      commitValue(state.active, '', null);
+      clearSelection();
       return;
     }
     if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
@@ -131,22 +151,30 @@
     syncFormulaBar();
     focusActiveCell();
   }
-  function selectCell(address) {
+  function selectCell(address, extend, anchor) {
     state.active = address;
+    if (extend) {
+      state.selection = { start: anchor || state.selection.start, end: address };
+    } else {
+      state.selection = { start: address, end: address };
+    }
     updateVisibleCells();
     syncFormulaBar();
     persistState();
   }
-  function moveSelection(dx, dy) {
+  function moveSelection(dx, dy, extend) {
     const current = core.splitAddress(state.active);
-    selectCell(core.makeAddress(clamp(current.col + dx, 1, COLS), clamp(current.row + dy, 1, ROWS)));
+    const next = core.makeAddress(clamp(current.col + dx, 1, COLS), clamp(current.row + dy, 1, ROWS));
+    selectCell(next, extend, extend ? state.selection.start : next);
     focusActiveCell();
   }
   function updateVisibleCells() {
+    const bounds = getSelectionBounds();
     const cells = gridWrap.querySelectorAll('[data-address]');
     for (let i = 0; i < cells.length; i += 1) {
       const address = cells[i].dataset.address;
       cells[i].classList.toggle('active', address === state.active);
+      cells[i].classList.toggle('in-range', isAddressInBounds(address, bounds));
       if (state.editing === address) continue;
       cells[i].textContent = core.getCellDisplay(sheet, address);
     }
@@ -162,13 +190,84 @@
     return gridWrap.querySelector('[data-address="' + address + '"]');
   }
   function persistState() {
-    localStorage.setItem(storageKey, JSON.stringify({ cells: sheet.cells, active: state.active }));
+    localStorage.setItem(storageKey, JSON.stringify({ cells: sheet.cells, active: state.active, selection: state.selection }));
   }
   function loadState() {
     try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (error) { return {}; }
   }
   function resolveStorageNamespace() {
     return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'sheet';
+  }
+  function getSelectionBounds() {
+    const start = core.splitAddress(state.selection.start);
+    const end = core.splitAddress(state.selection.end);
+    return {
+      left: Math.min(start.col, end.col),
+      right: Math.max(start.col, end.col),
+      top: Math.min(start.row, end.row),
+      bottom: Math.max(start.row, end.row),
+    };
+  }
+  function isAddressInBounds(address, bounds) {
+    const cell = core.splitAddress(address);
+    return cell.col >= bounds.left && cell.col <= bounds.right && cell.row >= bounds.top && cell.row <= bounds.bottom;
+  }
+  function clearSelection() {
+    const bounds = getSelectionBounds();
+    for (let row = bounds.top; row <= bounds.bottom; row += 1) {
+      for (let col = bounds.left; col <= bounds.right; col += 1) {
+        core.setCell(sheet, core.makeAddress(col, row), '');
+      }
+    }
+    state.editing = null;
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+  }
+  function getCopiedSelection() {
+    const bounds = getSelectionBounds();
+    return core.copyRange(sheet, core.makeAddress(bounds.left, bounds.top), core.makeAddress(bounds.right, bounds.bottom));
+  }
+  function serializeCopied(copied) {
+    return copied.values.map(function (row) { return row.join('\t'); }).join('\n');
+  }
+  function parseClipboardText(text) {
+    return text.replace(/\r/g, '').split('\n').map(function (row) { return row.split('\t'); });
+  }
+  function onCopy(event) {
+    if (event.target === formulaInput) return;
+    state.clipboard = getCopiedSelection();
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', serializeCopied(state.clipboard));
+  }
+  function onCut(event) {
+    if (event.target === formulaInput) return;
+    state.clipboard = getCopiedSelection();
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', serializeCopied(state.clipboard));
+    clearSelection();
+  }
+  function onPaste(event) {
+    if (event.target === formulaInput || (state.editing && state.editing !== 'formula')) return;
+    const text = event.clipboardData.getData('text/plain');
+    if (!text) return;
+    event.preventDefault();
+    const copied = state.clipboard && serializeCopied(state.clipboard) === text
+      ? state.clipboard
+      : { start: state.active, values: parseClipboardText(text) };
+    core.pasteBlock(sheet, copied, getPasteTarget());
+    state.selection = {
+      start: getPasteTarget(),
+      end: core.makeAddress(core.splitAddress(getPasteTarget()).col + copied.values[0].length - 1, core.splitAddress(getPasteTarget()).row + copied.values.length - 1),
+    };
+    state.active = getPasteTarget();
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+  }
+  function getPasteTarget() {
+    const bounds = getSelectionBounds();
+    return core.makeAddress(bounds.left, bounds.top);
   }
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 })();

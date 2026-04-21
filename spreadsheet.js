@@ -32,6 +32,52 @@
     return formatValue(evaluateCell(sheet, address, {}));
   }
 
+  function copyRange(sheet, startAddress, endAddress) {
+    const start = splitAddress(startAddress);
+    const end = splitAddress(endAddress);
+    const top = Math.min(start.row, end.row);
+    const left = Math.min(start.col, end.col);
+    const bottom = Math.max(start.row, end.row);
+    const right = Math.max(start.col, end.col);
+    const values = [];
+
+    for (let row = top; row <= bottom; row += 1) {
+      const line = [];
+      for (let col = left; col <= right; col += 1) {
+        line.push(getCellRaw(sheet, makeAddress(col, row)));
+      }
+      values.push(line);
+    }
+
+    return {
+      start: makeAddress(left, top),
+      end: makeAddress(right, bottom),
+      values: values,
+    };
+  }
+
+  function pasteBlock(sheet, copied, targetAddress) {
+    const sourceStart = splitAddress(copied.start);
+    const targetStart = splitAddress(targetAddress);
+    const colOffset = targetStart.col - sourceStart.col;
+    const rowOffset = targetStart.row - sourceStart.row;
+
+    for (let row = 0; row < copied.values.length; row += 1) {
+      for (let col = 0; col < copied.values[row].length; col += 1) {
+        const raw = copied.values[row][col];
+        const destination = makeAddress(targetStart.col + col, targetStart.row + row);
+        setCell(sheet, destination, raw && raw[0] === '=' ? shiftFormula(raw, colOffset, rowOffset) : raw);
+      }
+    }
+  }
+
+  function shiftFormula(formula, colOffset, rowOffset) {
+    if (!formula || formula[0] !== '=') return formula;
+    return '=' + formula.slice(1).replace(/\$?[A-Z]+\$?[1-9][0-9]*/g, function (ref) {
+      return shiftReference(ref, colOffset, rowOffset);
+    });
+  }
+
   function evaluateCell(sheet, address, state) {
     if (!state.memo) state.memo = {};
     if (!state.stack) state.stack = [];
@@ -383,6 +429,13 @@
     const split = splitAddress(ref);
     return split ? makeAddress(split.col, split.row) : null;
   }
+  function shiftReference(ref, colOffset, rowOffset) {
+    const match = /^(\$?)([A-Z]+)(\$?)([1-9][0-9]*)$/.exec(String(ref).toUpperCase());
+    if (!match) return ref;
+    const nextCol = match[1] ? columnToIndex(match[2]) : columnToIndex(match[2]) + colOffset;
+    const nextRow = match[3] ? Number(match[4]) : Number(match[4]) + rowOffset;
+    return (match[1] ? '$' : '') + indexToColumn(Math.max(1, nextCol)) + (match[3] ? '$' : '') + String(Math.max(1, nextRow));
+  }
   function splitAddress(ref) {
     const match = /^\$?([A-Z]+)\$?([1-9][0-9]*)$/.exec(String(ref).toUpperCase());
     return match ? { col: columnToIndex(match[1]), row: Number(match[2]) } : null;
@@ -410,6 +463,9 @@
     setCell: setCell,
     getCellRaw: getCellRaw,
     getCellDisplay: getCellDisplay,
+    copyRange: copyRange,
+    pasteBlock: pasteBlock,
+    shiftFormula: shiftFormula,
     evaluateCell: evaluateCell,
     splitAddress: splitAddress,
     makeAddress: makeAddress,
