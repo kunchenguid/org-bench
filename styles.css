@@ -1,0 +1,170 @@
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Inter, Arial, sans-serif;
+  background: #eef3f8;
+  color: #16202a;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9fc 100%);
+  border-bottom: 1px solid #d8e0ea;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #1877f2;
+  white-space: nowrap;
+}
+
+.formula-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #d0d7e2;
+  border-radius: 10px;
+  padding: 0 12px;
+  min-height: 42px;
+  box-shadow: 0 1px 2px rgba(22, 32, 42, 0.04);
+}
+
+.formula-label {
+  color: #6b7c93;
+  font-weight: 600;
+}
+
+#formula-bar {
+  border: 0;
+  outline: none;
+  font: inherit;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+}
+
+.grid-shell {
+  overflow: auto;
+  padding: 18px;
+}
+
+.sheet-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(24, 119, 242, 0.08);
+  border: 1px solid #d8e0ea;
+}
+
+.sheet-grid th,
+.sheet-grid td {
+  border-right: 1px solid #e3e8ef;
+  border-bottom: 1px solid #e3e8ef;
+  min-width: 110px;
+  height: 32px;
+  padding: 0;
+}
+
+.sheet-grid th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 2;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5c6c80;
+  text-align: center;
+}
+
+.sheet-grid .corner,
+.sheet-grid .row-header {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  min-width: 48px;
+  background: #f8fafc;
+}
+
+.sheet-grid .corner {
+  z-index: 4;
+}
+
+.row-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5c6c80;
+  text-align: center;
+}
+
+.cell {
+  position: relative;
+  padding: 0 10px;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: cell;
+  background: #ffffff;
+}
+
+.cell.numeric {
+  text-align: right;
+}
+
+.cell.active {
+  box-shadow: inset 0 0 0 2px #1877f2;
+  background: #f2f7ff;
+}
+
+.cell.error {
+  color: #b42318;
+}
+
+.cell-editor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  outline: 2px solid #1877f2;
+  outline-offset: -2px;
+  padding: 0 10px;
+  font: inherit;
+  background: #ffffff;
+}
+
+@media (max-width: 800px) {
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .grid-shell {
+    padding: 10px;
+  }
+
+  .sheet-grid th,
+  .sheet-grid td {
+    min-width: 92px;
+  }
+}
