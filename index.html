@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Apple Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Spreadsheet</p>
+          <h1>Untitled Sheet</h1>
+        </div>
+        <div class="topbar-status" aria-label="Status">
+          <span class="status-pill">Ready</span>
+        </div>
+      </header>
+
+      <section class="formula-panel" aria-label="Formula bar">
+        <div class="name-box" id="name-box" aria-live="polite">A1</div>
+        <label class="formula-bar" for="formula-input">
+          <span class="formula-symbol">fx</span>
+          <input
+            id="formula-input"
+            type="text"
+            spellcheck="false"
+            placeholder="Select a cell to inspect its raw contents"
+            aria-label="Formula bar"
+          >
+        </label>
+      </section>
+
+      <main class="sheet-card" aria-label="Spreadsheet shell">
+        <div class="grid-scroll" id="grid-scroll">
+          <div class="grid-root" id="grid-root" role="grid" aria-label="Spreadsheet"></div>
+        </div>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
