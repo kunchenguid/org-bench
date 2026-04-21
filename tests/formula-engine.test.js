@@ -103,6 +103,18 @@ test('surfaces spreadsheet error markers for division by zero, unknown functions
   assert.equal(engine.getDisplayValue('B2'), '#CIRC!');
 });
 
+test('clears stale parse errors after an existing record is corrected and recalculated', () => {
+  const engine = new SpreadsheetEngine();
+
+  engine.setCell('A1', '=1+');
+  engine.recalculate();
+  assert.equal(engine.getDisplayValue('A1'), '#ERR!');
+
+  engine.cells.get('A1').raw = '=1+2';
+  engine.recalculate();
+  assert.equal(engine.getDisplayValue('A1'), 3);
+});
+
 test('tracks direct dependencies for formula cells', () => {
   const engine = new SpreadsheetEngine();
 

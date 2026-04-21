@@ -34,6 +34,7 @@ class SpreadsheetEngine {
 
   recalculate() {
     for (const [cellId, record] of this.cells.entries()) {
+      record.error = null;
       record.dependencies = [];
       record.ast = null;
       record.value = '';
