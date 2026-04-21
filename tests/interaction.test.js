@@ -131,3 +131,18 @@ test('document keydown ignore helper only suppresses events for focused editors'
   const editor = {};
   assert.equal(shouldIgnoreDocumentKeydown(createInitialState(), editor, null, editor), true);
 });
+
+test('document keydown ignore helper still allows history shortcuts while an editor keeps focus', () => {
+  const formulaInput = {};
+
+  assert.equal(
+    shouldIgnoreDocumentKeydown(
+      createInitialState(),
+      formulaInput,
+      formulaInput,
+      null,
+      { key: 'z', metaKey: true, ctrlKey: false, altKey: false }
+    ),
+    false
+  );
+});
