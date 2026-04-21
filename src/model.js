@@ -55,6 +55,51 @@
       });
     }
 
+    function copyRange(startAddress, endAddress) {
+      const addresses = expandRange(startAddress, endAddress);
+      const origin = addressToPoint(addresses[0]);
+      const shape = rangeShape(startAddress, endAddress);
+
+      return {
+        originAddress: pointToAddress(origin.column, origin.row),
+        width: shape.width,
+        height: shape.height,
+        cells: addresses.map(function (address) {
+          const point = addressToPoint(address);
+          return {
+            rowOffset: point.row - origin.row,
+            columnOffset: point.column - origin.column,
+            rawValue: getRawValue(address)
+          };
+        })
+      };
+    }
+
+    function cutRange(startAddress, endAddress) {
+      const clipboard = copyRange(startAddress, endAddress);
+      clearCells(expandRange(startAddress, endAddress));
+      return clipboard;
+    }
+
+    function pasteRange(targetAddress, clipboard) {
+      const origin = addressToPoint(targetAddress);
+      const sourceOrigin = addressToPoint(clipboard.originAddress);
+      const rowShift = origin.row - sourceOrigin.row;
+      const columnShift = origin.column - sourceOrigin.column;
+
+      clipboard.cells.forEach(function (entry) {
+        const row = origin.row + entry.rowOffset;
+        const column = origin.column + entry.columnOffset;
+        if (row < 0 || row >= ROW_COUNT || column < 0 || column >= COLUMN_COUNT) {
+          return;
+        }
+
+        const address = pointToAddress(column, row);
+        const rawValue = translateRawValue(entry.rawValue, rowShift, columnShift);
+        setCell(address, rawValue);
+      });
+    }
+
     function selectCell(address) {
       selectedCell = normalizeAddress(address);
     }
@@ -103,6 +148,9 @@
     return {
       setCell: setCell,
       clearCells: clearCells,
+      copyRange: copyRange,
+      cutRange: cutRange,
+      pasteRange: pasteRange,
       getRawValue: getRawValue,
       getCellValue: getCellValue,
       getDisplayValue: getDisplayValue,
@@ -456,6 +504,56 @@
     return addresses;
   }
 
+  function rangeShape(start, end) {
+    const startPoint = addressToPoint(start);
+    const endPoint = addressToPoint(end);
+    return {
+      width: Math.abs(endPoint.column - startPoint.column) + 1,
+      height: Math.abs(endPoint.row - startPoint.row) + 1
+    };
+  }
+
+  function translateRawValue(rawValue, rowOffset, columnOffset) {
+    if (!rawValue || rawValue.charAt(0) !== '=') {
+      return rawValue;
+    }
+
+    return shiftFormulaReferences(rawValue, rowOffset, columnOffset);
+  }
+
+  function shiftFormulaReferences(formula, rowOffset, columnOffset) {
+    if (!formula || formula.charAt(0) !== '=') {
+      return formula;
+    }
+
+    return '=' + formula.slice(1).replace(/(\$?)([A-Z]+)(\$?)(\d+)(?::(\$?)([A-Z]+)(\$?)(\d+))?/g, function (match, absColumnA, columnA, absRowA, rowA, absColumnB, columnB, absRowB, rowB) {
+      const first = shiftReferencePart(absColumnA, columnA, absRowA, rowA, rowOffset, columnOffset);
+      if (!columnB) {
+        return first;
+      }
+      const second = shiftReferencePart(absColumnB, columnB, absRowB, rowB, rowOffset, columnOffset);
+      return first + ':' + second;
+    });
+  }
+
+  function shiftReferencePart(absColumn, columnLetters, absRow, rowNumber, rowOffset, columnOffset) {
+    let column = lettersToColumnIndex(columnLetters);
+    let row = Number(rowNumber) - 1;
+
+    if (!absColumn) {
+      column += columnOffset;
+    }
+    if (!absRow) {
+      row += rowOffset;
+    }
+
+    if (column < 0 || column >= COLUMN_COUNT || row < 0 || row >= ROW_COUNT) {
+      return '#REF!';
+    }
+
+    return absColumn + indexToColumnLetters(column) + absRow + String(row + 1);
+  }
+
   function applyNumericBinary(left, right, operator) {
     if (isError(left)) {
       return left;
@@ -619,6 +717,7 @@
     ROW_COUNT: ROW_COUNT,
     createSpreadsheetModel: createSpreadsheetModel,
     expandRange: expandRange,
+    shiftFormulaReferences: shiftFormulaReferences,
     addressToPoint: addressToPoint,
     pointToAddress: pointToAddress,
     indexToColumnLetters: indexToColumnLetters

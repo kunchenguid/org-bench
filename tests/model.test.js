@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createSpreadsheetModel, expandRange } = require('../src/model.js');
+const { createSpreadsheetModel, expandRange, shiftFormulaReferences } = require('../src/model.js');
 
 test('stores raw values and evaluates formulas through references', () => {
   const model = createSpreadsheetModel();
@@ -86,4 +86,35 @@ test('shows reference errors instead of silently clamping invalid addresses', ()
 
   assert.equal(model.getDisplayValue('A1'), '#REF!');
   assert.equal(model.getDisplayValue('A2'), '#REF!');
+});
+
+test('shifts only relative formula references during copy-paste', () => {
+  assert.equal(shiftFormulaReferences('=A1+$B1+C$1+$D$1', 2, 1), '=B3+$B3+D$1+$D$1');
+  assert.equal(shiftFormulaReferences('=SUM(A1:B2)', 1, 2), '=SUM(C2:D3)');
+});
+
+test('copies, pastes, and cuts rectangular cell blocks', () => {
+  const model = createSpreadsheetModel();
+
+  model.setCell('A1', '2');
+  model.setCell('B1', '=A1+3');
+  model.setCell('A2', 'note');
+
+  const copied = model.copyRange('A1', 'B2');
+  model.pasteRange('C3', copied);
+
+  assert.equal(model.getRawValue('C3'), '2');
+  assert.equal(model.getRawValue('D3'), '=C3+3');
+  assert.equal(model.getDisplayValue('D3'), '5');
+  assert.equal(model.getRawValue('C4'), 'note');
+
+  const cut = model.cutRange('A1', 'B2');
+  assert.equal(model.getRawValue('A1'), '');
+  assert.equal(model.getRawValue('B1'), '');
+  assert.equal(model.getRawValue('A2'), '');
+
+  model.pasteRange('A5', cut);
+  assert.equal(model.getRawValue('A5'), '2');
+  assert.equal(model.getRawValue('B5'), '=A5+3');
+  assert.equal(model.getDisplayValue('B5'), '5');
 });

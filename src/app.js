@@ -11,6 +11,8 @@
   const rows = modelApi.ROW_COUNT;
   const state = loadState();
   const model = modelApi.createSpreadsheetModel(state);
+  let clipboard = null;
+  let clipboardText = '';
   let isEditing = false;
   let selectionAnchor = model.getSelectedCell();
   let selectionFocus = model.getSelectedCell();
@@ -101,6 +103,54 @@
 
     event.preventDefault();
     moveSelection(movement.column, movement.row, event.shiftKey);
+  });
+
+  document.addEventListener('copy', function (event) {
+    if (isTextEditingTarget(event.target)) {
+      return;
+    }
+
+    clipboard = model.copyRange(selectionAnchor, selectionFocus);
+    clipboardText = serializeClipboard(clipboard);
+    if (event.clipboardData) {
+      event.preventDefault();
+      event.clipboardData.setData('text/plain', clipboardText);
+    }
+    status.textContent = 'Copied ' + clipboard.height + 'x' + clipboard.width + ' cells';
+  });
+
+  document.addEventListener('cut', function (event) {
+    if (isTextEditingTarget(event.target)) {
+      return;
+    }
+
+    clipboard = model.cutRange(selectionAnchor, selectionFocus);
+    clipboardText = serializeClipboard(clipboard);
+    if (event.clipboardData) {
+      event.preventDefault();
+      event.clipboardData.setData('text/plain', clipboardText);
+    }
+    persist();
+    refresh();
+    status.textContent = 'Cut ' + clipboard.height + 'x' + clipboard.width + ' cells';
+  });
+
+  document.addEventListener('paste', function (event) {
+    if (isTextEditingTarget(event.target)) {
+      return;
+    }
+
+    const pastedText = event.clipboardData ? event.clipboardData.getData('text/plain') : clipboardText;
+    const payload = clipboard && pastedText === clipboardText ? clipboard : parseClipboardText(pastedText);
+    if (!payload) {
+      return;
+    }
+
+    event.preventDefault();
+    model.pasteRange(getSelectionTopLeft(), payload);
+    persist();
+    refresh();
+    status.textContent = 'Pasted ' + payload.height + 'x' + payload.width + ' cells';
   });
 
   formulaInput.addEventListener('input', function () {
@@ -241,6 +291,12 @@
     return modelApi.expandRange(selectionAnchor, selectionFocus);
   }
 
+  function getSelectionTopLeft() {
+    const anchor = modelApi.addressToPoint(selectionAnchor);
+    const focus = modelApi.addressToPoint(selectionFocus);
+    return modelApi.pointToAddress(Math.min(anchor.column, focus.column), Math.min(anchor.row, focus.row));
+  }
+
   function refresh() {
     const selectedAddress = model.getSelectedCell();
     const selectedAddresses = new Set(getSelectedAddresses());
@@ -290,5 +346,52 @@
     }
 
     return size + ' cells selected';
+  }
+
+  function serializeClipboard(payload) {
+    const rows = [];
+
+    for (let rowOffset = 0; rowOffset < payload.height; rowOffset += 1) {
+      const row = [];
+      for (let columnOffset = 0; columnOffset < payload.width; columnOffset += 1) {
+        const match = payload.cells.find(function (entry) {
+          return entry.rowOffset === rowOffset && entry.columnOffset === columnOffset;
+        });
+        row.push(match ? match.rawValue : '');
+      }
+      rows.push(row.join('\t'));
+    }
+
+    return rows.join('\n');
+  }
+
+  function parseClipboardText(text) {
+    if (!text) {
+      return null;
+    }
+
+    const lines = text.replace(/\r/g, '').split('\n');
+    const width = lines.reduce(function (max, line) {
+      return Math.max(max, line.split('\t').length);
+    }, 0);
+
+    return {
+      originAddress: 'A1',
+      width: width,
+      height: lines.length,
+      cells: lines.flatMap(function (line, rowOffset) {
+        return line.split('\t').map(function (rawValue, columnOffset) {
+          return {
+            rowOffset: rowOffset,
+            columnOffset: columnOffset,
+            rawValue: rawValue
+          };
+        });
+      })
+    };
+  }
+
+  function isTextEditingTarget(target) {
+    return target === formulaInput || target === editor;
   }
 })();
