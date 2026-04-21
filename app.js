@@ -1,5 +1,6 @@
 (function () {
   const engine = window.SpreadsheetEngine;
+  const interaction = window.SpreadsheetInteraction;
   const grid = document.getElementById('sheet-grid');
   const formulaInput = document.getElementById('formula-input');
   const nameBox = document.getElementById('name-box');
@@ -48,6 +49,12 @@
     }
   });
 
+  formulaInput.addEventListener('blur', function () {
+    if (state.editing && state.editing.mode === 'formula') {
+      commitPendingEdit(0, 0);
+    }
+  });
+
   cellEditor.addEventListener('input', function () {
     if (state.editing) {
       state.editing.value = cellEditor.value;
@@ -68,10 +75,19 @@
     }
   });
 
+  cellEditor.addEventListener('blur', function () {
+    if (state.editing && state.editing.mode === 'cell') {
+      commitPendingEdit(0, 0);
+    }
+  });
+
   grid.addEventListener('mousedown', function (event) {
     const cell = event.target.closest('td[data-row]');
     if (!cell) {
       return;
+    }
+    if (state.editing) {
+      commitPendingEdit(0, 0);
     }
     const row = Number(cell.dataset.row);
     const col = Number(cell.dataset.col);
@@ -302,13 +318,25 @@
     if (!state.editing) {
       return;
     }
-    pushHistory();
+    const changed = state.editing.value !== state.editing.original;
+    if (changed) {
+      pushHistory();
+    }
     const focus = state.selection.focus;
     engine.setCellRaw(state.sheet, focus.row, focus.col, state.editing.value);
     state.editing = null;
     moveSelectionBy(rowDelta, colDelta);
-    state.redoStack = [];
+    if (changed) {
+      state.redoStack = [];
+    }
     render();
+  }
+
+  function commitPendingEdit(rowDelta, colDelta) {
+    if (!state.editing) {
+      return;
+    }
+    commitEdit(rowDelta, colDelta);
   }
 
   function clearSelection() {
@@ -350,14 +378,12 @@
     const height = matrix.length;
     const width = Math.max.apply(null, matrix.map(function (row) { return row.length; }));
     const destination = selectionBounds();
-    const target = destination.top === destination.bottom && destination.left === destination.right
-      ? { top: destination.top, left: destination.left, bottom: destination.top + height - 1, right: destination.left + width - 1 }
-      : destination;
+    const target = interaction.resolvePasteTarget(destination, { height, width });
 
     pushHistory();
     const snapshot = matrix.map(function (row) { return row.slice(); });
 
-    if (state.clipboard && state.clipboard.cut) {
+    if (state.clipboard && state.clipboard.cut && state.clipboard.text === text) {
       clearRange(state.clipboard.source);
     }
 
@@ -377,7 +403,7 @@
     }
 
     state.redoStack = [];
-    state.clipboard = state.clipboard && state.clipboard.cut ? null : state.clipboard;
+    state.clipboard = state.clipboard && state.clipboard.cut && state.clipboard.text === text ? null : state.clipboard;
     setSelection({ row: target.top, col: target.left }, { row: Math.min(engine.ROWS - 1, target.bottom), col: Math.min(engine.COLS - 1, target.right) });
     render();
   }
