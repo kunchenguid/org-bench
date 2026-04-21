@@ -772,22 +772,20 @@
     if (
       targetRect &&
       targetRect.rowEnd - targetRect.rowStart + 1 === sourceHeight &&
-      targetRect.colEnd - targetRect.colStart + 1 > sourceWidth
+      targetRect.colEnd - targetRect.colStart + 1 === sourceWidth
     ) {
-      for (let targetCol = targetRect.colStart; targetCol <= targetRect.colEnd; targetCol += sourceWidth) {
-        matrix.forEach((rowValues, rowIndex) => {
-          rowValues.forEach((raw, colIndex) => {
-            const row = clamp(targetRect.rowStart + rowIndex, 0, ROWS - 1);
-            const col = clamp(targetCol + colIndex, 0, COLS - 1);
-            const dest = toCoord(row, col);
-            let nextRaw = raw;
-            if (nextRaw.startsWith('=') && sourceTopLeft) {
-              nextRaw = shiftFormula(nextRaw, row - (sourceTopLeft.row + rowIndex), col - (sourceTopLeft.col + colIndex));
-            }
-            model.setCell(dest, nextRaw);
-          });
+      matrix.forEach((rowValues, rowIndex) => {
+        rowValues.forEach((raw, colIndex) => {
+          const row = clamp(targetRect.rowStart + rowIndex, 0, ROWS - 1);
+          const col = clamp(targetRect.colStart + colIndex, 0, COLS - 1);
+          const dest = toCoord(row, col);
+          let nextRaw = raw;
+          if (nextRaw.startsWith('=') && sourceTopLeft) {
+            nextRaw = shiftFormula(nextRaw, row - (sourceTopLeft.row + rowIndex), col - (sourceTopLeft.col + colIndex));
+          }
+          model.setCell(dest, nextRaw);
         });
-      }
+      });
       return;
     }
 
