@@ -1,5 +1,6 @@
 (function () {
   const engine = window.SpreadsheetEngine;
+  const selection = window.SpreadsheetSelection;
   const MAX_COLUMNS = 26;
   const MAX_ROWS = 100;
   const namespace = window.__BENCHMARK_STORAGE_NAMESPACE__ || window.BENCHMARK_STORAGE_NAMESPACE || 'amazon-sheet';
@@ -12,13 +13,19 @@
   const storedState = loadState();
   const sheet = engine.createEmptySheet(storedState.cells);
   let activeCell = storedState.activeCell || 'A1';
+  let rangeAnchorCell = storedState.rangeAnchorCell || activeCell;
   let editingCell = null;
   let editOriginalValue = '';
   let clipboard = null;
+  let isDraggingSelection = false;
 
   buildGrid();
   refreshAllCells();
   updateSelection();
+
+  document.addEventListener('mouseup', function () {
+    isDraggingSelection = false;
+  });
 
   formulaInput.addEventListener('focus', function () {
     formulaInput.select();
@@ -51,7 +58,7 @@
 
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
-      moveSelection(event.key);
+      moveSelection(event.key, event.shiftKey);
       return;
     }
 
@@ -69,7 +76,7 @@
 
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
-      setRawValue(activeCell, '');
+      clearSelection();
       return;
     }
 
@@ -100,9 +107,9 @@
 
   function loadState() {
     try {
-      return JSON.parse(localStorage.getItem(storageKey)) || { cells: {}, activeCell: 'A1' };
+      return JSON.parse(localStorage.getItem(storageKey)) || { cells: {}, activeCell: 'A1', rangeAnchorCell: 'A1' };
     } catch (error) {
-      return { cells: {}, activeCell: 'A1' };
+      return { cells: {}, activeCell: 'A1', rangeAnchorCell: 'A1' };
     }
   }
 
@@ -110,6 +117,7 @@
     localStorage.setItem(storageKey, JSON.stringify({
       cells: sheet.cells,
       activeCell: activeCell,
+      rangeAnchorCell: rangeAnchorCell,
     }));
   }
 
@@ -141,8 +149,18 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.address = address;
-        button.addEventListener('click', function () {
-          selectCell(address);
+        button.addEventListener('mousedown', function (event) {
+          isDraggingSelection = true;
+          selectCell(address, event.shiftKey);
+        });
+        button.addEventListener('mouseenter', function () {
+          if (isDraggingSelection) {
+            selectCell(address, true);
+          }
+        });
+        button.addEventListener('click', function (event) {
+          selectCell(address, event.shiftKey || isDraggingSelection);
+          isDraggingSelection = false;
         });
         button.addEventListener('dblclick', function () {
           startEditing(address, engine.getCellRaw(sheet, address));
@@ -176,11 +194,14 @@
     cell.classList.toggle('numeric', typeof engine.getCellValue(sheet, address) === 'number');
   }
 
-  function selectCell(address) {
+  function selectCell(address, keepRange) {
     if (editingCell && editingCell !== address) {
       finishEdit(true, false);
     }
     activeCell = address;
+    if (!keepRange) {
+      rangeAnchorCell = address;
+    }
     updateSelection();
     saveState();
   }
@@ -188,6 +209,15 @@
   function updateSelection() {
     grid.querySelectorAll('.cell.active').forEach(function (cell) {
       cell.classList.remove('active');
+    });
+    grid.querySelectorAll('.cell.in-range').forEach(function (cell) {
+      cell.classList.remove('in-range');
+    });
+    selection.listAddressesInRange(rangeAnchorCell, activeCell).forEach(function (address) {
+      const selectedCell = getCellElement(address);
+      if (selectedCell) {
+        selectedCell.classList.add('in-range');
+      }
     });
     const cell = getCellElement(activeCell);
     if (cell) {
@@ -199,7 +229,7 @@
   }
 
   function startEditing(address, initialValue) {
-    selectCell(address);
+    selectCell(address, false);
     editingCell = address;
     editOriginalValue = engine.getCellRaw(sheet, address);
     const cell = getCellElement(address);
@@ -252,7 +282,7 @@
     cell.querySelector('button').hidden = false;
     editingCell = null;
     setRawValue(address, nextValue, false);
-    selectCell(address);
+    selectCell(address, false);
     if (shouldCommit && moveDown) {
       moveSelection('ArrowDown');
     } else if (shouldCommit && direction) {
@@ -287,7 +317,7 @@
     saveState();
   }
 
-  function moveSelection(key) {
+  function moveSelection(key, extendRange) {
     const directions = {
       ArrowUp: 'up',
       ArrowDown: 'down',
@@ -295,7 +325,16 @@
       ArrowRight: 'right',
     };
     const direction = directions[key] || key;
-    selectCell(engine.stepAddress(activeCell, direction, MAX_COLUMNS, MAX_ROWS));
+    selectCell(engine.stepAddress(activeCell, direction, MAX_COLUMNS, MAX_ROWS), extendRange);
+  }
+
+  function clearSelection() {
+    selection.listAddressesInRange(rangeAnchorCell, activeCell).forEach(function (address) {
+      engine.setCell(sheet, address, '');
+      refreshCell(address);
+    });
+    formulaInput.value = engine.getCellRaw(sheet, activeCell);
+    saveState();
   }
 
   function getCellElement(address) {
@@ -336,11 +375,7 @@
   }
 
   function parseAddress(address) {
-    const match = address.match(/^([A-Z]+)(\d+)$/);
-    return {
-      column: labelToColumn(match[1]),
-      row: Number(match[2]),
-    };
+    return selection.parseAddress(address);
   }
   function labelToColumn(label) {
     let total = 0;
