@@ -10,6 +10,7 @@
   const engine = window.spreadsheetEngine || {};
   let cutMatrix = null;
   let ignoreFormulaSync = false;
+  let draggingRange = false;
 
   render();
 
@@ -17,6 +18,9 @@
   document.addEventListener('copy', handleCopy);
   document.addEventListener('cut', handleCut);
   document.addEventListener('paste', handlePaste);
+  document.addEventListener('pointerup', () => {
+    draggingRange = false;
+  });
 
   formulaInput.addEventListener('focus', () => {
     store.startFormulaBarEdit();
@@ -190,10 +194,25 @@
     sheet.innerHTML = headerCells.join('') + bodyRows.join('');
 
     Array.from(sheet.querySelectorAll('[data-role="cell-button"]')).forEach((button) => {
-      button.addEventListener('click', () => {
-        store.selectCell(Number(button.dataset.row), Number(button.dataset.col));
+      button.addEventListener('click', (event) => {
+        store.selectCell(Number(button.dataset.row), Number(button.dataset.col), { extend: event.shiftKey });
         render();
         focusActiveCell();
+      });
+
+      button.addEventListener('pointerdown', () => {
+        draggingRange = true;
+        store.selectCell(Number(button.dataset.row), Number(button.dataset.col));
+        render();
+      });
+
+      button.addEventListener('pointerenter', () => {
+        if (!draggingRange) {
+          return;
+        }
+
+        store.selectCell(Number(button.dataset.row), Number(button.dataset.col), { extend: true });
+        render();
       });
 
       button.addEventListener('dblclick', () => {
