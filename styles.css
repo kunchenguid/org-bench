@@ -1,0 +1,220 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f5f9;
+  --panel: #ffffff;
+  --panel-2: #eef2f8;
+  --grid: #d6dce8;
+  --grid-strong: #bcc6d8;
+  --text: #162033;
+  --muted: #5f6f89;
+  --accent: #315efb;
+  --accent-soft: rgba(49, 94, 251, 0.14);
+  --selection: rgba(49, 94, 251, 0.1);
+  --shadow: 0 18px 42px rgba(14, 23, 38, 0.08);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #fbfcff 0%, var(--bg) 72%);
+  color: var(--text);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 20px;
+  gap: 16px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(188, 198, 216, 0.8);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+
+.brand {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.formula-label,
+.cell-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.formula-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0 14px;
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px rgba(188, 198, 216, 0.75);
+}
+
+.formula-input:focus,
+.cell-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(49, 94, 251, 0.16);
+}
+
+.grid-shell {
+  flex: 1;
+  min-height: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(188, 198, 216, 0.8);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow);
+}
+
+.grid-root {
+  width: 100%;
+  height: calc(100vh - 132px);
+  overflow: auto;
+}
+
+.sheet {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.sheet th,
+.sheet td {
+  position: relative;
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  padding: 0;
+}
+
+.sheet thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.corner,
+.col-header,
+.row-header {
+  background: linear-gradient(180deg, #fdfefe 0%, #edf2fa 100%);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.corner {
+  left: 0;
+  z-index: 4;
+  min-width: 56px;
+}
+
+.row-header {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 56px;
+  width: 56px;
+  text-align: center;
+}
+
+.col-header {
+  min-width: 120px;
+  width: 120px;
+  height: 36px;
+  text-align: center;
+}
+
+.cell {
+  min-width: 120px;
+  width: 120px;
+  height: 34px;
+  background: var(--panel);
+}
+
+.cell.selected {
+  background: var(--selection);
+}
+
+.cell.active {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  z-index: 1;
+}
+
+.cell-content,
+.cell-editor {
+  width: 100%;
+  height: 100%;
+  padding: 7px 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.cell-content {
+  text-align: left;
+}
+
+.cell-editor {
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  font: inherit;
+}
+
+.col-header.selected,
+.row-header.selected {
+  background: linear-gradient(180deg, #f7f9ff 0%, #e6eeff 100%);
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 12px;
+  }
+
+  .toolbar {
+    grid-template-columns: auto auto;
+  }
+
+  .formula-input {
+    grid-column: 1 / -1;
+  }
+
+  .grid-root {
+    height: calc(100vh - 148px);
+  }
+}
