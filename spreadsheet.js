@@ -78,6 +78,60 @@
     }
   }
 
+  function insertRow(sheet, rowIndex) {
+    recordHistory(sheet);
+    const nextCells = {};
+    const addresses = Object.keys(sheet.cells).sort(compareAddressesDescending);
+    for (let i = 0; i < addresses.length; i += 1) {
+      const address = addresses[i];
+      const position = splitAddress(address);
+      const targetAddress = position.row >= rowIndex ? makeAddress(position.col, position.row + 1) : address;
+      nextCells[targetAddress] = rewriteFormulaForStructureChange(sheet.cells[address], { type: 'row-insert', index: rowIndex });
+    }
+    sheet.cells = nextCells;
+  }
+
+  function deleteRow(sheet, rowIndex) {
+    recordHistory(sheet);
+    const nextCells = {};
+    const addresses = Object.keys(sheet.cells).sort(compareAddressesAscending);
+    for (let i = 0; i < addresses.length; i += 1) {
+      const address = addresses[i];
+      const position = splitAddress(address);
+      if (position.row === rowIndex) continue;
+      const targetAddress = position.row > rowIndex ? makeAddress(position.col, position.row - 1) : address;
+      nextCells[targetAddress] = rewriteFormulaForStructureChange(sheet.cells[address], { type: 'row-delete', index: rowIndex });
+    }
+    sheet.cells = nextCells;
+  }
+
+  function insertColumn(sheet, columnIndex) {
+    recordHistory(sheet);
+    const nextCells = {};
+    const addresses = Object.keys(sheet.cells).sort(compareAddressesDescending);
+    for (let i = 0; i < addresses.length; i += 1) {
+      const address = addresses[i];
+      const position = splitAddress(address);
+      const targetAddress = position.col >= columnIndex ? makeAddress(position.col + 1, position.row) : address;
+      nextCells[targetAddress] = rewriteFormulaForStructureChange(sheet.cells[address], { type: 'column-insert', index: columnIndex });
+    }
+    sheet.cells = nextCells;
+  }
+
+  function deleteColumn(sheet, columnIndex) {
+    recordHistory(sheet);
+    const nextCells = {};
+    const addresses = Object.keys(sheet.cells).sort(compareAddressesAscending);
+    for (let i = 0; i < addresses.length; i += 1) {
+      const address = addresses[i];
+      const position = splitAddress(address);
+      if (position.col === columnIndex) continue;
+      const targetAddress = position.col > columnIndex ? makeAddress(position.col - 1, position.row) : address;
+      nextCells[targetAddress] = rewriteFormulaForStructureChange(sheet.cells[address], { type: 'column-delete', index: columnIndex });
+    }
+    sheet.cells = nextCells;
+  }
+
   function getCellRaw(sheet, address) {
     return sheet.cells[address] || '';
   }
@@ -99,6 +153,7 @@
       value = null;
     } else if (raw[0] === '=') {
       try {
+        if (raw.indexOf('#REF!') !== -1) return makeError(ERROR.REF);
         value = evaluateNode(sheet, parseFormula(raw.slice(1)), state);
       } catch (error) {
         value = makeError(error && error.code ? error.code : ERROR.ERR);
@@ -437,6 +492,32 @@
     const split = splitAddress(ref);
     return split ? makeAddress(split.col, split.row) : null;
   }
+  function rewriteFormulaForStructureChange(raw, operation) {
+    if (!raw || raw[0] !== '=') return raw;
+    return raw.replace(/(\$?)([A-Z]+)(\$?)([1-9][0-9]*)/g, function (_, absCol, colLabel, absRow, rowValue) {
+      const reference = { col: columnToIndex(colLabel), row: Number(rowValue) };
+      if (operation.type === 'row-insert') {
+        if (reference.row >= operation.index) reference.row += 1;
+      } else if (operation.type === 'row-delete') {
+        if (reference.row === operation.index) return '#REF!';
+        if (reference.row > operation.index) reference.row -= 1;
+      } else if (operation.type === 'column-insert') {
+        if (reference.col >= operation.index) reference.col += 1;
+      } else if (operation.type === 'column-delete') {
+        if (reference.col === operation.index) return '#REF!';
+        if (reference.col > operation.index) reference.col -= 1;
+      }
+      return (absCol || '') + indexToColumn(reference.col) + (absRow || '') + String(reference.row);
+    });
+  }
+  function compareAddressesAscending(left, right) {
+    const a = splitAddress(left);
+    const b = splitAddress(right);
+    return a.row - b.row || a.col - b.col;
+  }
+  function compareAddressesDescending(left, right) {
+    return compareAddressesAscending(right, left);
+  }
   function splitAddress(ref) {
     const match = /^\$?([A-Z]+)\$?([1-9][0-9]*)$/.exec(String(ref).toUpperCase());
     return match ? { col: columnToIndex(match[1]), row: Number(match[2]) } : null;
@@ -462,6 +543,10 @@
     ERROR: ERROR,
     createSheet: createSheet,
     setCell: setCell,
+    insertRow: insertRow,
+    deleteRow: deleteRow,
+    insertColumn: insertColumn,
+    deleteColumn: deleteColumn,
     undo: undo,
     redo: redo,
     runAction: runAction,
