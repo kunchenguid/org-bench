@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Oracle Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="formula-bar-shell">
+        <label class="name-box" for="formula-input">A1</label>
+        <input id="formula-input" class="formula-input" type="text" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      </header>
+      <main class="grid-shell" aria-label="Spreadsheet">
+        <table id="sheet" class="sheet" aria-label="Spreadsheet grid"></table>
+      </main>
+    </div>
+    <script src="src/engine.js"></script>
+    <script src="src/spreadsheet-store.js"></script>
+    <script src="src/state.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
