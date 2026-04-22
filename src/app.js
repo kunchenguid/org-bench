@@ -1,7 +1,7 @@
 'use strict';
 
 (function bootstrap() {
-  const STORAGE_NAMESPACE = 'oracle-sheet';
+  const STORAGE_NAMESPACE = resolveStorageNamespace();
   const rows = 100;
   const cols = 26;
   const sheet = document.getElementById('sheet');
@@ -347,7 +347,7 @@
       return '<td class="' + classes.join(' ') + '"><input class="cell-editor" data-role="cell-editor" value="' + escapeAttribute(state.draft) + '" aria-label="Cell ' + toCellRef(row, col) + '"></td>';
     }
 
-    return '<td class="' + classes.join(' ') + '"><button type="button" class="cell-button" data-role="cell-button" data-row="' + row + '" data-col="' + col + '" aria-label="Cell ' + toCellRef(row, col) + '">' + display + '</button></td>';
+    return '<td class="' + classes.join(' ') + '"><button type="button" class="cell-button" data-role="cell-button" data-row="' + row + '" data-col="' + col + '" tabindex="' + (active ? '0' : '-1') + '" aria-label="Cell ' + toCellRef(row, col) + '">' + display + '</button></td>';
   }
 
   function getDisplayValue(raw, row, col, engine) {
@@ -381,6 +381,28 @@
     });
     adapter.load();
     return adapter;
+  }
+
+  function resolveStorageNamespace() {
+    const meta = document.querySelector('meta[name="storage-namespace"]');
+    const candidates = [
+      window.__BENCHMARK_STORAGE_NAMESPACE__,
+      window.BENCHMARK_STORAGE_NAMESPACE,
+      window.__RUN_STORAGE_NAMESPACE__,
+      window.RUN_STORAGE_NAMESPACE,
+      window.__ORACLE_STORAGE_NAMESPACE__,
+      window.ORACLE_STORAGE_NAMESPACE,
+      document.documentElement.dataset.storageNamespace,
+      document.body.dataset.storageNamespace,
+      meta && meta.content,
+    ];
+
+    const injected = candidates.find((value) => typeof value === 'string' && value.trim());
+    if (injected) {
+      return injected;
+    }
+
+    return 'oracle-run:' + window.location.pathname;
   }
 
   function syncPersistence() {
