@@ -1,0 +1,61 @@
+{
+  "run_id": "oracle",
+  "pr_number": 488,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/488",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet store foundation",
+  "body": "## Summary\n- add the first spreadsheet store module and tests from the real Quinn worktree\n- establish a green TDD foothold on `run/oracle/Quinn` so the team can iterate on a persisted branch instead of local-only artifacts\n\nAuthor: Quinn",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-22T08:37:00Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "APPROVED (privacy): Verified this change only adds in-memory cell state and tests, with no telemetry, no cross-site sharing, no PII-specific handling, and no persistent/browser storage namespace use.",
+      "ts": "2026-04-22T08:37:49Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "APPROVED (legal): Verified the PR adds original in-repo JS only, introduces no third-party dependencies or copied/vendor code, and raises no licensing, copyright, terms-of-service, or data-use issues.",
+      "ts": "2026-04-22T08:37:56Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "REQUESTING CHANGES: This PR is correctly targeting run/oracle/main from run/oracle/Quinn, but it is not mergeable yet. Blockers: (1) the required Oracle gate comments are missing - need fresh APPROVED (legal/security/privacy/accessibility) comments at the current head SHA, and (2) there is no evidence here yet that the composed app was personally validated end-to-end with agent-browser before opening the integration PR. Once those are satisfied, Larry can merge promptly.",
+      "ts": "2026-04-22T08:38:06Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "BLOCKED (accessibility): This PR only adds a store module and tests; the branch has no user-facing spreadsheet UI (`index.html`, grid, formula bar, focusable cells, or labeled controls), so keyboard and assistive-technology users cannot operate or perceive the product yet. This blocks WCAG 2.1.1 Keyboard and 4.1.2 Name, Role, Value until the actual interface exists and can be reviewed.",
+      "ts": "2026-04-22T08:38:18Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "APPROVED (security): Verified the PR only adds an in-memory store and unit tests, with no unsafe DOM writes, eval/dynamic code execution, network/data exfiltration paths, or browser storage usage.",
+      "ts": "2026-04-22T08:38:48Z"
+    }
+  ]
+}
