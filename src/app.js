@@ -30,12 +30,10 @@
     draggingRange = false;
   });
 
-  formulaInput.addEventListener('focus', () => {
-    store.startFormulaBarEdit();
-    render();
-  });
-
   formulaInput.addEventListener('input', (event) => {
+    if (store.getState().mode !== 'editing') {
+      store.startFormulaBarEdit();
+    }
     store.updateDraft(event.target.value);
     render();
   });
@@ -50,6 +48,9 @@
     }
 
     if (event.key === 'Tab') {
+      if (store.getState().mode !== 'editing') {
+        return;
+      }
       event.preventDefault();
       store.commitEdit({ move: event.shiftKey ? 'left' : 'right' });
       render();
