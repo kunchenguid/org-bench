@@ -94,6 +94,108 @@
     }
   }
 
+  function insertRows(sheet, startRow, count) {
+    return transformSheet(sheet, function (position) {
+      if (position.row >= startRow) {
+        return { col: position.col, row: position.row + count };
+      }
+      return position;
+    }, function (position) {
+      if (position.row >= startRow) {
+        return { col: position.col, row: position.row + count };
+      }
+      return position;
+    });
+  }
+
+  function deleteRows(sheet, startRow, count) {
+    const endRow = startRow + count - 1;
+    return transformSheet(sheet, function (position) {
+      if (position.row >= startRow && position.row <= endRow) return null;
+      if (position.row > endRow) {
+        return { col: position.col, row: position.row - count };
+      }
+      return position;
+    }, function (position) {
+      if (position.row >= startRow && position.row <= endRow) {
+        return { deleted: true };
+      }
+      if (position.row > endRow) {
+        return { col: position.col, row: position.row - count };
+      }
+      return position;
+    });
+  }
+
+  function insertColumns(sheet, startCol, count) {
+    return transformSheet(sheet, function (position) {
+      if (position.col >= startCol) {
+        return { col: position.col + count, row: position.row };
+      }
+      return position;
+    }, function (position) {
+      if (position.col >= startCol) {
+        return { col: position.col + count, row: position.row };
+      }
+      return position;
+    });
+  }
+
+  function deleteColumns(sheet, startCol, count) {
+    const endCol = startCol + count - 1;
+    return transformSheet(sheet, function (position) {
+      if (position.col >= startCol && position.col <= endCol) return null;
+      if (position.col > endCol) {
+        return { col: position.col - count, row: position.row };
+      }
+      return position;
+    }, function (position) {
+      if (position.col >= startCol && position.col <= endCol) {
+        return { deleted: true };
+      }
+      if (position.col > endCol) {
+        return { col: position.col - count, row: position.row };
+      }
+      return position;
+    });
+  }
+
+  function transformSheet(sheet, mapCellPosition, mapReferencePosition) {
+    return runAction(sheet, function () {
+      const nextCells = {};
+      const entries = Object.keys(sheet.cells);
+      for (let index = 0; index < entries.length; index += 1) {
+        const address = entries[index];
+        const position = splitAddress(address);
+        const mapped = mapCellPosition(position);
+        if (!mapped) continue;
+        nextCells[makeAddress(mapped.col, mapped.row)] = transformCellRaw(sheet.cells[address], position, mapped, mapReferencePosition);
+      }
+      sheet.cells = nextCells;
+    });
+  }
+
+  function transformCellRaw(raw, position, mappedPosition, mapReferencePosition) {
+    if (!raw || raw[0] !== '=') return raw;
+    const rowDelta = mappedPosition.row - position.row;
+    const colDelta = mappedPosition.col - position.col;
+    return '=' + raw.slice(1).replace(/(\$?)([A-Z]+)(\$?)([1-9][0-9]*)/g, function (_match, absCol, colLabel, absRow, rowNumber) {
+      const reference = {
+        col: columnToIndex(colLabel),
+        row: Number(rowNumber),
+      };
+      const mapped = rowDelta !== 0 || colDelta !== 0
+        ? {
+            col: absCol ? reference.col : reference.col + colDelta,
+            row: absRow ? reference.row : reference.row + rowDelta,
+          }
+        : mapReferencePosition(reference);
+      if (!mapped) return '';
+      if (mapped.deleted) return '0';
+      return (absCol || '') + indexToColumn(mapped.col) + (absRow || '') + String(mapped.row);
+    });
+  }
+
   function getCellRaw(sheet, address) {
     return sheet.cells[address] || '';
   }
@@ -482,6 +584,10 @@
     undo: undo,
     redo: redo,
     runAction: runAction,
+    insertRows: insertRows,
+    deleteRows: deleteRows,
+    insertColumns: insertColumns,
+    deleteColumns: deleteColumns,
     getCellRaw: getCellRaw,
     getCellDisplay: getCellDisplay,
     evaluateCell: evaluateCell,
