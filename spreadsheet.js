@@ -18,6 +18,8 @@
       history: {
         undoStack: [],
         redoStack: [],
+        actionDepth: 0,
+        actionRecorded: false,
       },
     };
   }
@@ -27,6 +29,10 @@
   }
 
   function recordHistory(sheet) {
+    if (sheet.history.actionDepth > 0) {
+      if (sheet.history.actionRecorded) return;
+      sheet.history.actionRecorded = true;
+    }
     sheet.history.undoStack.push(snapshotCells(sheet));
     if (sheet.history.undoStack.length > 50) {
       sheet.history.undoStack.shift();
@@ -71,6 +77,21 @@
     sheet.history.undoStack.push(snapshotCells(sheet));
     sheet.cells = sheet.history.redoStack.pop();
     return true;
+  }
+
+  function runAction(sheet, callback) {
+    sheet.history.actionDepth += 1;
+    if (sheet.history.actionDepth === 1) {
+      sheet.history.actionRecorded = false;
+    }
+    try {
+      return callback();
+    } finally {
+      sheet.history.actionDepth -= 1;
+      if (sheet.history.actionDepth === 0) {
+        sheet.history.actionRecorded = false;
+      }
+    }
   }
 
   function getCellRaw(sheet, address) {
@@ -460,6 +481,7 @@
     shiftFormula: shiftFormula,
     undo: undo,
     redo: redo,
+    runAction: runAction,
     getCellRaw: getCellRaw,
     getCellDisplay: getCellDisplay,
     evaluateCell: evaluateCell,

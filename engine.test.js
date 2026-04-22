@@ -8,6 +8,7 @@ const {
   shiftFormula,
   undo,
   redo,
+  runAction,
 } = require('./spreadsheet.js');
 
 function test(name, fn) {
@@ -86,6 +87,23 @@ test('undo and redo restore dependent formula results', () => {
   redo(sheet);
   assert.equal(getCellDisplay(sheet, 'A1'), '');
   assert.equal(getCellDisplay(sheet, 'B1'), '0');
+});
+
+test('batched actions undo multi-cell edits in one step', () => {
+  const sheet = createSheet();
+
+  runAction(sheet, () => {
+    setCell(sheet, 'A1', '1');
+    setCell(sheet, 'A2', '2');
+    setCell(sheet, 'A3', '=SUM(A1:A2)');
+  });
+
+  assert.equal(getCellDisplay(sheet, 'A3'), '3');
+
+  undo(sheet);
+  assert.equal(getCellDisplay(sheet, 'A1'), '');
+  assert.equal(getCellDisplay(sheet, 'A2'), '');
+  assert.equal(getCellDisplay(sheet, 'A3'), '');
 });
 
 test('shifts relative references when a formula is pasted', () => {
