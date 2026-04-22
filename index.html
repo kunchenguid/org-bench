@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Oracle Sheet</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar" aria-label="Spreadsheet controls">
+        <div class="brand-block">
+          <div class="brand-mark">O</div>
+          <div>
+            <h1>Oracle Sheet</h1>
+            <p>Interaction shell</p>
+          </div>
+        </div>
+        <div class="formula-panel">
+          <label class="name-box-label" for="name-box">Cell</label>
+          <input id="name-box" class="name-box" type="text" readonly>
+          <label class="formula-label" for="formula-input">Formula bar</label>
+          <input id="formula-input" class="formula-input" type="text" spellcheck="false" autocomplete="off">
+        </div>
+      </header>
+
+      <main class="sheet-frame">
+        <div class="sheet-scroller" id="sheet-scroller">
+          <table class="sheet-grid" id="sheet-grid" aria-label="Spreadsheet grid"></table>
+        </div>
+      </main>
+
+      <footer class="status-bar" id="status-bar" aria-live="polite">
+        Ready.
+      </footer>
+    </div>
+
+    <script src="src/grid-state.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+  </html>

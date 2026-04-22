@@ -1,0 +1,277 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --grid: #d9e1ec;
+  --grid-strong: #b8c4d6;
+  --text: #162033;
+  --muted: #5b6b83;
+  --accent: #2d6cdf;
+  --accent-soft: rgba(45, 108, 223, 0.16);
+  --range-soft: rgba(45, 108, 223, 0.08);
+  --header: #edf2f8;
+  --header-active: #dfe9fb;
+  --danger: #b84040;
+  --shadow: 0 18px 40px rgba(16, 24, 40, 0.12);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #eef3f9 0%, #f8fbff 100%);
+  color: var(--text);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: 16px;
+}
+
+.toolbar,
+.status-bar,
+.sheet-frame {
+  background: var(--panel);
+  border: 1px solid rgba(184, 196, 214, 0.7);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.toolbar {
+  display: grid;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-block h1,
+.brand-block p {
+  margin: 0;
+}
+
+.brand-block h1 {
+  font-size: 1.1rem;
+}
+
+.brand-block p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1b56c7, #5f9bff);
+  color: white;
+  font-weight: 700;
+}
+
+.formula-panel {
+  display: grid;
+  grid-template-columns: auto 88px auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.name-box-label,
+.formula-label {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.name-box,
+.formula-input {
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--grid-strong);
+  padding: 0 12px;
+  font: inherit;
+  min-width: 0;
+}
+
+.name-box {
+  background: var(--header);
+  text-align: center;
+  font-weight: 600;
+}
+
+.formula-input:focus,
+.sheet-cell.is-active:focus,
+.header-action:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sheet-frame {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sheet-scroller {
+  height: calc(100vh - 200px);
+  min-height: 460px;
+  overflow: auto;
+  border-radius: 18px;
+}
+
+.sheet-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.corner-cell,
+.col-header,
+.row-header,
+.sheet-cell {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+}
+
+.corner-cell,
+.col-header,
+.row-header {
+  position: sticky;
+  z-index: 2;
+  background: var(--header);
+}
+
+.corner-cell {
+  left: 0;
+  top: 0;
+  z-index: 4;
+  min-width: 64px;
+}
+
+.col-header {
+  top: 0;
+  min-width: 120px;
+  padding: 0;
+}
+
+.row-header {
+  left: 0;
+  z-index: 3;
+  width: 64px;
+  padding: 0;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.header-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.header-actions {
+  display: inline-flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.col-header:hover .header-actions,
+.row-header:hover .header-actions,
+.col-header.is-active .header-actions,
+.row-header.is-active .header-actions {
+  opacity: 1;
+}
+
+.header-action {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.header-action:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.sheet-cell {
+  position: relative;
+  width: 120px;
+  height: 34px;
+  min-width: 120px;
+  background: white;
+  padding: 0;
+}
+
+.sheet-cell.is-in-range {
+  background: var(--range-soft);
+}
+
+.sheet-cell.is-active {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  z-index: 1;
+}
+
+.sheet-cell.is-editing {
+  box-shadow: inset 0 0 0 2px #19a974;
+}
+
+.cell-button,
+.cell-editor {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  padding: 6px 8px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+}
+
+.cell-button {
+  cursor: cell;
+}
+
+.cell-button:focus {
+  outline: none;
+}
+
+.cell-editor {
+  background: white;
+}
+
+.status-bar {
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 900px) {
+  .formula-panel {
+    grid-template-columns: auto 88px;
+  }
+
+  .formula-input {
+    grid-column: 1 / -1;
+  }
+}
