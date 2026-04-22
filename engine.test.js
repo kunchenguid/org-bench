@@ -5,6 +5,10 @@ const {
   setCell,
   getCellRaw,
   getCellDisplay,
+  insertRow,
+  deleteRow,
+  insertColumn,
+  deleteColumn,
   undo,
   redo,
 } = require('./spreadsheet.js');
@@ -85,4 +89,41 @@ test('undo and redo restore dependent formula results', () => {
   redo(sheet);
   assert.equal(getCellDisplay(sheet, 'A1'), '');
   assert.equal(getCellDisplay(sheet, 'B1'), '0');
+});
+
+test('inserting a row updates formula references to keep pointing at the same data', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '5');
+  setCell(sheet, 'B1', '=A1');
+
+  insertRow(sheet, 1);
+
+  assert.equal(getCellRaw(sheet, 'A2'), '5');
+  assert.equal(getCellRaw(sheet, 'B2'), '=A2');
+  assert.equal(getCellDisplay(sheet, 'B2'), '5');
+});
+
+test('deleting a referenced row turns the formula into a ref error', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '5');
+  setCell(sheet, 'B2', '=A1');
+
+  deleteRow(sheet, 1);
+
+  assert.equal(getCellRaw(sheet, 'B1'), '=#REF!');
+  assert.equal(getCellDisplay(sheet, 'B1'), '#REF!');
+});
+
+test('inserting and deleting columns rewrites formula references', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '4');
+  setCell(sheet, 'B1', '=A1');
+
+  insertColumn(sheet, 1);
+  assert.equal(getCellRaw(sheet, 'C1'), '=B1');
+  assert.equal(getCellDisplay(sheet, 'C1'), '4');
+
+  deleteColumn(sheet, 2);
+  assert.equal(getCellRaw(sheet, 'B1'), '=#REF!');
+  assert.equal(getCellDisplay(sheet, 'B1'), '#REF!');
 });
