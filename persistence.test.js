@@ -2,8 +2,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  buildClipboardMatrix,
+  createHistory,
   createWorkbookPersistence,
+  parseClipboardText,
   resolveRunNamespace,
+  serializeClipboardMatrix,
 } = require('./src/persistence.js');
 
 function createMemoryStorage() {
@@ -136,4 +140,61 @@ test('createWorkbookPersistence rejects missing namespaces', () => {
     () => createWorkbookPersistence({ storage: createMemoryStorage() }),
     /namespace/
   );
+});
+
+test('createHistory supports push, undo, and redo with a bounded stack', () => {
+  const history = createHistory({ cells: {} }, { limit: 2 });
+
+  history.push({ cells: { A1: '1' } });
+  history.push({ cells: { A1: '2' } });
+  history.push({ cells: { A1: '3' } });
+
+  assert.equal(history.canUndo(), true);
+  assert.deepEqual(history.undo(), { cells: { A1: '2' } });
+  assert.deepEqual(history.undo(), { cells: { A1: '1' } });
+  assert.equal(history.canUndo(), false);
+  assert.deepEqual(history.redo(), { cells: { A1: '2' } });
+});
+
+test('createHistory clears redo entries after a new push', () => {
+  const history = createHistory({ cells: {} });
+
+  history.push({ cells: { A1: '1' } });
+  history.push({ cells: { A1: '2' } });
+  history.undo();
+  history.push({ cells: { A1: '3' } });
+
+  assert.equal(history.canRedo(), false);
+  assert.deepEqual(history.current(), { cells: { A1: '3' } });
+});
+
+test('buildClipboardMatrix produces a rectangular matrix with empty gaps', () => {
+  const matrix = buildClipboardMatrix({
+    cells: {
+      A1: '1',
+      C1: '=A1+B1',
+      B2: 'tail',
+    },
+    range: {
+      start: 'A1',
+      end: 'C2',
+    },
+  });
+
+  assert.deepEqual(matrix, [
+    ['1', '', '=A1+B1'],
+    ['', 'tail', ''],
+  ]);
+});
+
+test('serializeClipboardMatrix and parseClipboardText round-trip tabular clipboard text', () => {
+  const matrix = [
+    ['1', 'two'],
+    ['', '=SUM(A1:A2)'],
+  ];
+
+  const text = serializeClipboardMatrix(matrix);
+
+  assert.equal(text, '1\ttwo\n\t=SUM(A1:A2)');
+  assert.deepEqual(parseClipboardText(text), matrix);
 });
