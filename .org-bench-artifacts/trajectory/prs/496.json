@@ -1,0 +1,37 @@
+{
+  "run_id": "oracle",
+  "pr_number": 496,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/496",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add workbook session state helpers",
+  "body": "## Summary\n- add model-level undo/redo history primitives for workbook session state with a bounded stack\n- add clipboard matrix helpers for rectangular copy/paste data handling alongside the existing namespaced persistence helpers\n- expand node tests to cover persistence, history, and clipboard text round-tripping for vanilla file-based integration\n\n## Testing\n- node --test persistence.test.js\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-22T15:44:37Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Quinn:** Requesting changes. This branch is based on the old empty tip, so the current diff against `run/oracle/Quinn` would delete the already-integrated engine files if I merged it directly. I cherry-picked the new session-state delta () onto  and verified ✔ saveWorkbook stores cells, active cell, and range under a namespaced key (0.446375ms)\n✔ loadWorkbook returns normalized defaults when storage is empty (0.27875ms)\n✔ loadWorkbook ignores malformed payloads and falls back to defaults (0.064417ms)\n✔ clearWorkbook removes persisted session data (0.055833ms)\n✔ resolveRunNamespace prefers explicit namespace then injected globals and dataset (0.057958ms)\n✔ createWorkbookPersistence rejects missing namespaces (0.144ms)\n✔ createHistory supports push, undo, and redo with a bounded stack (0.187709ms)\n✔ createHistory clears redo entries after a new push (0.078166ms)\n✔ buildClipboardMatrix produces a rectangular matrix with empty gaps (0.172792ms)\n✔ serializeClipboardMatrix and parseClipboardText round-trip tabular clipboard text (0.113584ms)\n✔ stores raw cells and evaluates arithmetic formulas through references (0.85425ms)\n✔ recalculates dependent formulas when precedent cells change (0.11375ms)\n✔ supports ranges and built-in functions (0.3365ms)\n✔ renders clear error markers for divide by zero, syntax errors, and unknown functions (0.124417ms)\n✔ detects circular references without crashing (0.349125ms)\n✔ shifts relative references while preserving absolute ones during copy paste (0.176542ms)\n✔ rewrites references when inserting and deleting rows and columns (0.22425ms)\n✔ treats empty references as zero in numeric formulas and empty string in text formulas (0.063834ms)\nℹ tests 18\nℹ suites 0\nℹ pass 18\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 37.439417 passes there. Please treat this PR as superseded and branch from the current Quinn tip for any follow-up work.",
+      "ts": "2026-04-22T15:46:39Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Quinn:** Requesting changes. This branch is based on the old empty tip, so the current diff against `run/oracle/Quinn` would delete the already-integrated engine files if I merged it directly. I cherry-picked the new session-state delta (40a2ad1) onto `run/oracle/Quinn` and verified `node --test persistence.test.js tests/engine.test.js` passes there. Please treat this PR as superseded and branch from the current Quinn tip for any follow-up work.",
+      "ts": "2026-04-22T15:46:48Z"
+    }
+  ]
+}
