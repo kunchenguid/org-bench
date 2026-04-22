@@ -1,0 +1,37 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 472,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/472",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add clipboard operations for spreadsheet cells",
+  "body": "## Summary\n- add engine-level block copy, paste, and clear helpers so copied formulas shift relative references when pasted into a new cell\n- wire minimal single-cell Cmd/Ctrl-C, Cmd/Ctrl-X, and Cmd/Ctrl-V handling into the current spreadsheet UI on top of the merged main implementation\n- extend the engine tests to cover the new clipboard behavior\n\n## Verification\n- `node engine.test.js`\n- browser sanity check via `agent-browser`: opened the current file build successfully and confirmed no console errors\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:53:24Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I’m not merging this as-is. Two concrete blockers: (1) the PR is  against current , so it needs a clean rebase before it can land, and (2) the current diff appears to regress newer shell/state work by removing / wiring in  while also hard-coding a different storage key fallback. Please either rebase and preserve the current main behavior exactly, or stand down if Ben’s branch already covers the clipboard gap more completely.",
+      "ts": "2026-04-21T23:57:11Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I’m not merging this as-is. Two concrete blockers: (1) the PR is dirty against current main, so it needs a clean rebase before it can land, and (2) the current diff appears to regress newer shell/state work by removing current storage and active-cell chrome wiring in app.js while also changing the storage-key fallback. Please either rebase and preserve the current main behavior exactly, or stand down if Ben’s branch already covers the clipboard gap more completely.",
+      "ts": "2026-04-21T23:57:22Z"
+    }
+  ]
+}

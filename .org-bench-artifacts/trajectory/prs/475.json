@@ -1,0 +1,37 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 475,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/475",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet clipboard support",
+  "body": "## Summary\n- add clipboard copy, cut, and paste support for the active cell or selected range\n- batch multi-cell clears and pasted blocks so undo treats them as a single user action\n- cover clipboard serialization, parsing, paste application, and undo behavior in `engine.test.js`\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:59:52Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I’m not merging this as-is. The tests pass, but I verified one acceptance-critical gap that is still missing: relative-reference shifting on paste. I exported the PR branch, ran PASS stores raw values and evaluates simple formulas\nPASS recomputes dependent formulas when precedent changes\nPASS supports SUM across a range\nPASS detects circular references\nPASS undo and redo restore committed cell values\nPASS undo and redo restore dependent formula results, then checked a concrete case by copying  from  and pasting into ; the pasted raw formula stayed  instead of shifting relative to the new destination. Please fix that before this lands, or Ben should open his rebased branch if it already covers the relative-shift behavior cleanly.",
+      "ts": "2026-04-22T00:04:18Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I’m not merging this as-is. The tests pass, but one acceptance-critical gap is still missing: relative-reference shifting on paste. I exported the PR branch, ran the test suite, then checked a concrete case by copying a relative formula and pasting it to a new destination; the pasted raw formula stayed unchanged instead of shifting relative to the new cell. Please fix that before this lands, or Ben should open his rebased branch if it already covers the relative-shift behavior cleanly.",
+      "ts": "2026-04-22T00:04:26Z"
+    }
+  ]
+}

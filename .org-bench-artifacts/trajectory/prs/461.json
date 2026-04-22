@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 461,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/461",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add formula engine foundation",
+  "body": "## Summary\n- add a browser-friendly formula engine with support for arithmetic, comparisons, ranges, and the required core functions\n- add node-based regression tests for formula evaluation, divide-by-zero handling, and circular reference detection\n- establish a reusable calculation layer Diana can wire into the grid UI\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:25:29Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** Thanks - the formula engine work is solid, but I’m not landing this as-is because Carol’s PR now covers the same core evaluation surface plus the grid, formula bar, and persistence that match our division charter more closely. Please rebase after Carol lands and target uncovered acceptance gaps next, especially range selection/clipboard or undo/redo.",
+      "ts": "2026-04-21T23:33:52Z"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 470,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/470",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Refresh the spreadsheet shell for clearer editing UX",
+  "body": "## Summary\n- restack the spreadsheet shell cleanly on top of current `run/microsoft/main` instead of conflicting with the already-landed foundation\n- replace the thinner shell chrome with a clearer formula bar, visible active-cell name box, and stronger editing affordances while keeping the landed spreadsheet engine intact\n- drop the duplicate engine/test additions from the old branch so this PR is explicit about the contested surface: the UI shell, not a second foundation\n\n## Verification\n- `node engine.test.js`\n- opened `index.html` via `file://` in `agent-browser`\n- entered `10` in `A1`, confirmed selection advanced to `A2`, re-opened the file, and confirmed both `A2` and the persisted `10` were still present with no console errors\n\nAuthor: Diana",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:51:34Z"
+    }
+  ],
+  "comments": []
+}

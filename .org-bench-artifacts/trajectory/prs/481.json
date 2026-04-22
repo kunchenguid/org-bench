@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 481,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/481",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet clipboard support",
+  "body": "## Summary\n- add clipboard copy, cut, and paste support for the active cell or selected range on top of the current history-aware spreadsheet shell\n- preserve single-action undo for range clear and paste, and shift relative formula references when pasted to a new destination\n- cover clipboard serialization, paste application, relative-reference shifting, and undo behavior in `engine.test.js`\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-22T00:12:13Z"
+    }
+  ],
+  "comments": []
+}
