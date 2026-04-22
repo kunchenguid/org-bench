@@ -5,6 +5,7 @@ const {
   setCell,
   getCellRaw,
   getCellDisplay,
+  shiftFormula,
   undo,
   redo,
 } = require('./spreadsheet.js');
@@ -85,4 +86,12 @@ test('undo and redo restore dependent formula results', () => {
   redo(sheet);
   assert.equal(getCellDisplay(sheet, 'A1'), '');
   assert.equal(getCellDisplay(sheet, 'B1'), '0');
+});
+
+test('shifts relative references when a formula is pasted', () => {
+  assert.equal(shiftFormula('=A1+B$2+$C3+$D$4', 'A1', 'C3'), '=C3+D$2+$C5+$D$4');
+});
+
+test('shifts formula ranges during paste', () => {
+  assert.equal(shiftFormula('=SUM(A1:B2)', 'A1', 'B3'), '=SUM(B3:C4)');
 });
