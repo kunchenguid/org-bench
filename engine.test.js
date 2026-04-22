@@ -8,6 +8,10 @@ const {
   undo,
   redo,
   runAction,
+  insertRows,
+  deleteRows,
+  insertColumns,
+  deleteColumns,
 } = require('./spreadsheet.js');
 
 function test(name, fn) {
@@ -103,4 +107,53 @@ test('batched actions undo multi-cell edits in one step', () => {
   assert.equal(getCellDisplay(sheet, 'A1'), '');
   assert.equal(getCellDisplay(sheet, 'A2'), '');
   assert.equal(getCellDisplay(sheet, 'A3'), '');
+});
+
+test('insertRows shifts cells and formulas downward', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '5');
+  setCell(sheet, 'B2', '=A1');
+
+  insertRows(sheet, 1, 1);
+
+  assert.equal(getCellRaw(sheet, 'A2'), '5');
+  assert.equal(getCellRaw(sheet, 'B3'), '=A2');
+  assert.equal(getCellDisplay(sheet, 'B3'), '5');
+});
+
+test('deleteRows removes cells in range and shifts following rows up', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '1');
+  setCell(sheet, 'A2', '2');
+  setCell(sheet, 'B3', '=A2');
+
+  deleteRows(sheet, 2, 1);
+
+  assert.equal(getCellRaw(sheet, 'A2'), '');
+  assert.equal(getCellRaw(sheet, 'B2'), '=A1');
+  assert.equal(getCellDisplay(sheet, 'B2'), '1');
+});
+
+test('insertColumns shifts cells and formulas right', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '7');
+  setCell(sheet, 'B1', '=A1');
+
+  insertColumns(sheet, 1, 1);
+
+  assert.equal(getCellRaw(sheet, 'B1'), '7');
+  assert.equal(getCellRaw(sheet, 'C1'), '=B1');
+  assert.equal(getCellDisplay(sheet, 'C1'), '7');
+});
+
+test('deleteColumns removes cells in range and shifts following columns left', () => {
+  const sheet = createSheet();
+  setCell(sheet, 'A1', '4');
+  setCell(sheet, 'B1', '8');
+  setCell(sheet, 'C1', '=B1');
+
+  deleteColumns(sheet, 2, 1);
+
+  assert.equal(getCellRaw(sheet, 'B1'), '=A1');
+  assert.equal(getCellDisplay(sheet, 'B1'), '4');
 });
