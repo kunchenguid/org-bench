@@ -130,12 +130,19 @@ test('applies clipboard text at a destination cell', () => {
   applyClipboardMatrix(sheet, 'B2', [
     ['1', '=B2'],
     ['hello', '4'],
-  ]);
+  ], 'B2');
 
   assert.equal(getCellRaw(sheet, 'B2'), '1');
   assert.equal(getCellRaw(sheet, 'C2'), '=B2');
   assert.equal(getCellRaw(sheet, 'B3'), 'hello');
   assert.equal(getCellRaw(sheet, 'C3'), '4');
+});
+
+test('pasting shifts relative references to the new destination', () => {
+  const sheet = createSheet();
+  applyClipboardMatrix(sheet, 'C3', [['=A1+B1']], 'A1');
+
+  assert.equal(getCellRaw(sheet, 'C3'), '=C3+D3');
 });
 
 test('undo reverses a pasted block as a single action', () => {
