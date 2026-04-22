@@ -655,7 +655,7 @@ function normalizeAddress(address, config) {
 }
 
 function parseAddress(address, config) {
-  const match = String(address).trim().toUpperCase().match(/^([A-Z])(\d+)$/);
+  const match = String(address).trim().toUpperCase().replace(/\$/g, '').match(/^([A-Z])(\d+)$/);
   if (!match) {
     throw spreadsheetError(ERROR_CODES.REF);
   }

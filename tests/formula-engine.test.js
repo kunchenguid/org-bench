@@ -87,6 +87,19 @@ test('recomputes dependents in stable order when precedents change', () => {
   assert.equal(engine.getCellDisplay('C1'), '12');
 });
 
+test('evaluates absolute and mixed cell references', () => {
+  const engine = createSpreadsheetEngine();
+
+  engine.setCell('A1', '7');
+  engine.setCell('B1', '=$A$1');
+  engine.setCell('B2', '=$A1');
+  engine.setCell('B3', '=A$1');
+
+  assert.equal(engine.getCellDisplay('B1'), '7');
+  assert.equal(engine.getCellDisplay('B2'), '7');
+  assert.equal(engine.getCellDisplay('B3'), '7');
+});
+
 test('shifts relative references and preserves absolute references during translation', () => {
   const engine = createSpreadsheetEngine();
 
