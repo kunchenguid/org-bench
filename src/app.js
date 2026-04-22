@@ -135,13 +135,6 @@
       return;
     }
 
-    if (event.key === 'Tab') {
-      event.preventDefault();
-      store.moveActive(event.shiftKey ? 'left' : 'right');
-      render();
-      return;
-    }
-
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault();
       store.clearSelection();
