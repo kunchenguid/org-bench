@@ -17,6 +17,17 @@ function createSpreadsheetStore(options) {
     return cells[cellKey(row, col)] || '';
   }
 
+  function getCells() {
+    const refs = {};
+
+    Object.keys(cells).forEach((key) => {
+      const parts = key.split(':');
+      refs[toCellRef(Number(parts[0]), Number(parts[1]))] = cells[key];
+    });
+
+    return refs;
+  }
+
   function getState() {
     return {
       rows,
@@ -227,6 +238,7 @@ function createSpreadsheetStore(options) {
   return {
     getState,
     getCellRaw,
+    getCells,
     selectCell,
     setRange,
     startEdit,
@@ -308,6 +320,14 @@ function rangeBounds(range) {
 
 function cellKey(row, col) {
   return row + ':' + col;
+}
+
+function toCellRef(row, col) {
+  return columnLabel(col) + String(row + 1);
+}
+
+function columnLabel(col) {
+  return String.fromCharCode(65 + col);
 }
 
 function copyCell(cell) {

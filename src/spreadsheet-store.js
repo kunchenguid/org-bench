@@ -324,7 +324,13 @@ function cloneCells(cells) {
   );
 }
 
-module.exports = {
-  STATE_STORAGE_SUFFIX,
-  createSpreadsheetStore,
-};
+if (typeof module !== 'undefined') {
+  module.exports = {
+    STATE_STORAGE_SUFFIX,
+    createSpreadsheetStore,
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.createPersistentSpreadsheetStore = createSpreadsheetStore;
+}

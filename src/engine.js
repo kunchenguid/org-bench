@@ -720,8 +720,14 @@ function isEmpty(value) {
   return value && value.type === 'empty';
 }
 
-module.exports = {
-  createSpreadsheetEngine,
-  shiftFormulaReferences,
-  rewriteFormulaForStructuralChange,
-};
+if (typeof module !== 'undefined') {
+  module.exports = {
+    createSpreadsheetEngine,
+    shiftFormulaReferences,
+    rewriteFormulaForStructuralChange,
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.createSpreadsheetEngine = createSpreadsheetEngine;
+}
