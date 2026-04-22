@@ -1,20 +1,28 @@
 'use strict';
 
 (function bootstrap() {
+  const STORAGE_NAMESPACE = 'oracle-sheet';
   const rows = 100;
   const cols = 26;
-  const store = window.createSpreadsheetStore({ rows, cols });
   const sheet = document.getElementById('sheet');
   const formulaInput = document.getElementById('formula-input');
   const nameBox = document.querySelector('.name-box');
-  const engine = window.spreadsheetEngine || {};
+  const persistentStore = createPersistenceAdapter();
+  const persistedState = persistentStore ? persistentStore.getState() : null;
+  const initialCells = persistedState ? extractInitialCells(persistedState.cells) : {};
+  const store = window.createSpreadsheetStore({ rows, cols, initialCells });
   let cutMatrix = null;
-  let ignoreFormulaSync = false;
   let draggingRange = false;
+
+  if (persistedState && persistedState.selection && persistedState.selection.active) {
+    const active = fromCellRef(persistedState.selection.active);
+    store.selectCell(active.row, active.col);
+  }
 
   render();
 
-  document.addEventListener('keydown', handleKeydown);
+  document.addEventListener('keydown', handleKeydown, true);
+  document.addEventListener('keyup', handleKeyup, true);
   document.addEventListener('copy', handleCopy);
   document.addEventListener('cut', handleCut);
   document.addEventListener('paste', handlePaste);
@@ -85,6 +93,22 @@
     }
 
     if (state.mode === 'editing') {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        store.commitEdit({ move: 'down' });
+        render();
+        focusActiveCell();
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        store.commitEdit({ move: event.shiftKey ? 'left' : 'right' });
+        render();
+        focusActiveCell();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        store.cancelEdit();
+        render();
+        focusActiveCell();
+      }
       return;
     }
 
@@ -133,6 +157,40 @@
     }
   }
 
+  function handleKeyup(event) {
+    if (event.target === formulaInput) {
+      return;
+    }
+
+    const state = store.getState();
+    if (state.mode !== 'editing') {
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      store.commitEdit({ move: 'down' });
+      render();
+      focusActiveCell();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      store.commitEdit({ move: event.shiftKey ? 'left' : 'right' });
+      render();
+      focusActiveCell();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      store.cancelEdit();
+      render();
+      focusActiveCell();
+    }
+  }
+
   function handleCopy(event) {
     const text = matrixToText(store.getSelectionMatrix());
     event.preventDefault();
@@ -170,6 +228,7 @@
 
   function render() {
     const state = store.getState();
+    const engine = createEngineSnapshot();
     nameBox.textContent = toCellRef(state.active.row, state.active.col);
     syncFormulaBar(state.formulaBarValue);
 
@@ -185,7 +244,7 @@
       const rowHeaderClass = row === state.active.row ? ' class="header-active"' : '';
       bodyRows.push('<tr><th' + rowHeaderClass + ' scope="row">' + (row + 1) + '</th>');
       for (let col = 0; col < cols; col += 1) {
-        bodyRows.push(renderCell(row, col, state));
+        bodyRows.push(renderCell(row, col, state, engine));
       }
       bodyRows.push('</tr>');
     }
@@ -266,9 +325,11 @@
         input.setSelectionRange(input.value.length, input.value.length);
       });
     });
+
+    syncPersistence();
   }
 
-  function renderCell(row, col, state) {
+  function renderCell(row, col, state, engine) {
     const active = row === state.active.row && col === state.active.col;
     const inRange = isInRange(row, col, state.range);
     const classes = ['cell'];
@@ -280,7 +341,7 @@
     }
 
     const raw = store.getCellRaw(row, col);
-    const display = escapeHtml(getDisplayValue(raw, row, col));
+    const display = escapeHtml(getDisplayValue(raw, row, col, engine));
 
     if (active && state.mode === 'editing') {
       return '<td class="' + classes.join(' ') + '"><input class="cell-editor" data-role="cell-editor" value="' + escapeAttribute(state.draft) + '" aria-label="Cell ' + toCellRef(row, col) + '"></td>';
@@ -289,9 +350,9 @@
     return '<td class="' + classes.join(' ') + '"><button type="button" class="cell-button" data-role="cell-button" data-row="' + row + '" data-col="' + col + '" aria-label="Cell ' + toCellRef(row, col) + '">' + display + '</button></td>';
   }
 
-  function getDisplayValue(raw, row, col) {
-    if (typeof engine.getCellDisplay === 'function') {
-      return String(engine.getCellDisplay({ raw, row, col, getRaw: store.getCellRaw }) || '');
+  function getDisplayValue(raw, row, col, engine) {
+    if (engine && typeof engine.getDisplayValue === 'function') {
+      return String(engine.getDisplayValue(toCellRef(row, col)) || '');
     }
 
     return raw;
@@ -306,10 +367,77 @@
   }
 
   function syncFormulaBar(value) {
-    if (ignoreFormulaSync) {
+    formulaInput.value = value;
+  }
+
+  function createPersistenceAdapter() {
+    if (typeof window.createPersistentSpreadsheetStore !== 'function' || !window.localStorage) {
+      return null;
+    }
+
+    const adapter = window.createPersistentSpreadsheetStore({
+      storage: window.localStorage,
+      storageNamespace: STORAGE_NAMESPACE,
+    });
+    adapter.load();
+    return adapter;
+  }
+
+  function syncPersistence() {
+    if (!persistentStore) {
       return;
     }
-    formulaInput.value = value;
+
+    const persisted = persistentStore.getState().cells;
+    const current = store.getCells();
+
+    Object.keys(persisted).forEach((address) => {
+      if (!(address in current)) {
+        persistentStore.setCellRaw(address, '');
+      }
+    });
+
+    Object.keys(current).forEach((address) => {
+      persistentStore.setCellRaw(address, current[address]);
+    });
+
+    persistentStore.selectCell(toCellRef(store.getState().active.row, store.getState().active.col));
+    persistentStore.save();
+  }
+
+  function createEngineSnapshot() {
+    if (typeof window.createSpreadsheetEngine !== 'function') {
+      return null;
+    }
+
+    const snapshot = window.createSpreadsheetEngine();
+    const cells = store.getCells();
+
+    Object.keys(cells).forEach((address) => {
+      snapshot.setCell(address, cells[address]);
+    });
+
+    return snapshot;
+  }
+
+  function extractInitialCells(cells) {
+    return Object.fromEntries(
+      Object.entries(cells || {}).map(([address, cell]) => [address, cell.raw])
+    );
+  }
+
+  function fromCellRef(ref) {
+    const match = /^([A-Z]+)(\d+)$/.exec(ref);
+    let col = 0;
+
+    for (let index = 0; index < match[1].length; index += 1) {
+      col = (col * 26) + (match[1].charCodeAt(index) - 64);
+    }
+
+    return {
+      row: Number(match[2]) - 1,
+      col: col - 1,
+    };
   }
 
   function focusActiveCell() {
