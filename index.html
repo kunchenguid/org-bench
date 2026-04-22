@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oracle Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell" data-app-shell>
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark" aria-hidden="true">O</span>
+        <div>
+          <p class="eyebrow">Oracle</p>
+          <h1>Sheet</h1>
+        </div>
+      </div>
+      <div class="formula-strip" aria-label="Spreadsheet formula bar">
+        <label class="name-box" data-name-box>
+          <span class="sr-only">Selected cell</span>
+          <input type="text" value="A1" aria-label="Selected cell name" readonly>
+        </label>
+        <label class="formula-box">
+          <span class="formula-symbol">fx</span>
+          <input type="text" data-formula-input aria-label="Formula bar" placeholder="Select a cell to inspect or edit its formula" readonly>
+        </label>
+      </div>
+    </header>
+
+    <main class="grid-shell">
+      <aside class="action-rail">
+        <section class="action-card" data-column-actions aria-labelledby="column-actions-title">
+          <div class="action-card-header">
+            <h2 id="column-actions-title">Columns</h2>
+            <span class="shortcut-hint">Header menu</span>
+          </div>
+          <p>Insert left, insert right, or delete from each column header menu.</p>
+        </section>
+        <section class="action-card" data-row-actions aria-labelledby="row-actions-title">
+          <div class="action-card-header">
+            <h2 id="row-actions-title">Rows</h2>
+            <span class="shortcut-hint">Header menu</span>
+          </div>
+          <p>Insert above, insert below, or delete from each row header menu.</p>
+        </section>
+      </aside>
+
+      <section class="sheet-panel" aria-label="Spreadsheet grid">
+        <div class="sheet-frame">
+          <div class="sheet-grid" data-grid-root></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="src/view.js"></script>
+</body>
+</html>
