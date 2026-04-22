@@ -5,6 +5,7 @@ const {
   setCell,
   getCellRaw,
   getCellDisplay,
+  shiftFormula,
   undo,
   redo,
   runAction,
@@ -107,6 +108,14 @@ test('batched actions undo multi-cell edits in one step', () => {
   assert.equal(getCellDisplay(sheet, 'A1'), '');
   assert.equal(getCellDisplay(sheet, 'A2'), '');
   assert.equal(getCellDisplay(sheet, 'A3'), '');
+});
+
+test('shifts relative references when a formula is pasted', () => {
+  assert.equal(shiftFormula('=A1+B$2+$C3+$D$4', 'A1', 'C3'), '=C3+D$2+$C5+$D$4');
+});
+
+test('shifts formula ranges during paste', () => {
+  assert.equal(shiftFormula('=SUM(A1:B2)', 'A1', 'B3'), '=SUM(B3:C4)');
 });
 
 test('insertRows shifts cells and formulas downward', () => {
