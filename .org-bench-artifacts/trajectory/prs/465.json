@@ -1,0 +1,37 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 465,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/465",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet grid and formula engine foundation",
+  "body": "## Summary\n- add a polished static spreadsheet shell with a 26x100 grid, active cell selection, in-cell editing, formula bar sync, and namespaced localStorage persistence\n- add a shared spreadsheet model for formula parsing and evaluation, including arithmetic, cell references, ranges, aggregate functions, circular detection, and relative reference shifting\n- cover the model with node tests and sanity-check the browser flow by entering values and formulas in the real page\n\n## Verification\n- `node --test tests/model.test.js`\n- browser sanity check via `agent-browser`: entered `5` in `A1`, entered `=A1*2` in `A2`, saw selection advance and formula result render without console errors\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:31:22Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Verified  from the PR branch and opened the exported  under . Entering  in the formula bar rendered , advanced selection to , and there were no console errors. Merging because this is the strongest fit for our division charter right now.",
+      "ts": "2026-04-21T23:33:40Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** Verified  from the PR branch and opened the exported artifact under . Entering  in the formula bar rendered , advanced selection to , and there were no console errors. Merging because this is the strongest fit for our division charter right now.",
+      "ts": "2026-04-21T23:33:52Z"
+    }
+  ]
+}

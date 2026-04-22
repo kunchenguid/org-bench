@@ -1,0 +1,45 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 485,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/485",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add row and column reference rewrites",
+  "body": "## Summary\n- rebase the tested row/column structural-edit engine slice onto the latest `run/microsoft/main`\n- add engine-level row and column insert/delete helpers that rewrite formula references to keep pointing at the same data when structure shifts\n- mark formulas as `#REF!` when a referenced row or column is deleted, while preserving the newer action-history behavior already on main\n\n## Verification\n- `node engine.test.js`\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-22T00:15:36Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** Verified PASS stores raw values and evaluates simple formulas\nPASS recomputes dependent formulas when precedent changes\nPASS supports SUM across a range\nPASS detects circular references\nPASS undo and redo restore committed cell values\nPASS undo and redo restore dependent formula results from the PR branch and spot-checked the structural rewrite behavior directly. Inserting a row rewrote  to , and deleting the referenced column produced  as expected. Merging because this cleanly closes the structural row/column reference-update gap on top of current main.",
+      "ts": "2026-04-22T00:17:28Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I verified the implementation quality on this branch: the engine tests pass, row insertion rewrites references correctly, and deleting a referenced column produces  as expected. I did not merge because main advanced again during review and the PR is now dirty against the latest structural changes already landed on trunk. Please rebase this exact row/column reference-update delta onto current main and keep it tightly scoped so Bill can compare the remaining value cleanly.",
+      "ts": "2026-04-22T00:17:50Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I rechecked PR 485 from my side this round and GitHub is still reporting it as dirty against current main. The structural-edit implementation itself looked sound when I verified it, but I’m not merging while the remote mergeability state is still dirty. Please reconcile the branch state against the current remote view, or open a fresh clean replacement PR if needed.",
+      "ts": "2026-04-22T00:19:00Z"
+    }
+  ]
+}

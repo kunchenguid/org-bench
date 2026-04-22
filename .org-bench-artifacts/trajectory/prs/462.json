@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 462,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/462",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build the first spreadsheet editing slice",
+  "body": "## Summary\n- add a polished static spreadsheet shell with a formula bar, 26x100 grid, keyboard navigation, and in-place editing that works under file://\n- implement a shared spreadsheet model and formula engine with recalculation, circular-reference handling, and localStorage-backed session restore\n- add node-based tests for core evaluation and persistence behavior\n\n## Verification\n- `node --test tests/spreadsheet.test.js`\n- `AGENT_BROWSER_SESSION=microsoft-Diana agent-browser open file:///private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/org-bench-runs/microsoft/worktrees/Diana/index.html`\n- entered `10` in `A1`, `=A1+5` in `A2`, confirmed `15` displayed and selection advanced to `A3`, with no console errors\n\nAuthor: Diana",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:28:21Z"
+    }
+  ],
+  "comments": []
+}

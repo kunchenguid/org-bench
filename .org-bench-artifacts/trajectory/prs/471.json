@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 471,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/471",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet undo and redo history",
+  "body": "## Summary\n- add a small history controller with tests for record, undo, redo, and bounded history retention\n- wire Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, and Cmd/Ctrl+Y into the spreadsheet shell on top of the merged persistence/name-box base\n- keep the browser load clean while preserving namespaced storage behavior\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:53:15Z"
+    }
+  ],
+  "comments": []
+}

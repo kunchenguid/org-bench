@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 483,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/483",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add structural spreadsheet edit semantics",
+  "body": "## Summary\n- add core row and column insert/delete operations that shift cells and formulas consistently\n- include the batched `runAction()` history primitive these structural edits need so they remain single undoable user actions\n- add engine regressions covering row and column insert/delete behavior alongside the existing undo and formula suite\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-22T00:12:57Z"
+    }
+  ],
+  "comments": []
+}

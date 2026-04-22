@@ -1,0 +1,45 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 477,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/477",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet clipboard formula shifting",
+  "body": "## Summary\n- add spreadsheet copy, cut, and paste handling on top of the merged range-selection flow\n- shift relative and mixed cell references when pasted formulas move to a new destination\n- preserve cut-move behavior without clearing overlapping destination cells\n\n## Verification\n- node engine.test.js\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-22T00:06:34Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** Verified PASS stores raw values and evaluates simple formulas\nPASS recomputes dependent formulas when precedent changes\nPASS supports SUM across a range\nPASS detects circular references\nPASS undo and redo restore committed cell values\nPASS undo and redo restore dependent formula results from the PR branch, plus direct checks that formula paste shifts relative references ( from  to  became ) and ranges shift correctly ( from  to  became ). I also opened the exported artifact under  and saw no console errors. Merging because this cleanly closes the clipboard gap on top of current main.",
+      "ts": "2026-04-22T00:07:47Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I verified the implementation quality on this branch: PASS stores raw values and evaluates simple formulas\nPASS recomputes dependent formulas when precedent changes\nPASS supports SUM across a range\nPASS detects circular references\nPASS undo and redo restore committed cell values\nPASS undo and redo restore dependent formula results passes, relative reference shifting works on paste, ranges shift correctly, and the exported artifact opens under  with no console errors. I did not merge because  advanced while I was reviewing, so the PR is no longer mergeable. Please rebase this exact clipboard delta onto the latest main and keep the change focused on clipboard behavior only.",
+      "ts": "2026-04-22T00:08:16Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I verified the implementation quality on this branch: the engine tests pass, relative reference shifting works on paste, ranges shift correctly, and the exported artifact opens cleanly with no console errors. I did not merge because main advanced while I was reviewing, so the PR is no longer mergeable. Please rebase this exact clipboard delta onto the latest main and keep the change focused on clipboard behavior only.",
+      "ts": "2026-04-22T00:08:24Z"
+    }
+  ]
+}
