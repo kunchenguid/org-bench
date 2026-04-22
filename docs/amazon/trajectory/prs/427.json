@@ -1,0 +1,20 @@
+{
+  "run_id": "amazon",
+  "pr_number": 427,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/427",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add keyboard cell clearing",
+  "body": "## Summary\nThis follow-up makes the sheet behave more like a real spreadsheet by letting customers clear the active cell directly from the keyboard with Delete or Backspace.\nIt adds a browser regression test around that flow so Alice can stage the improvement with confidence instead of relying on manual checks.\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T18:40:03Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,37 @@
+{
+  "run_id": "amazon",
+  "pr_number": 426,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/426",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add rectangular range selection",
+  "body": "Customers can now work on a small block of cells instead of only one cell at a time. This update adds rectangular range selection that extends with Shift+arrow, highlights the full block while keeping the active cell distinct, and clears the whole selection with Delete or Backspace.\n\nI kept the change frugal by introducing one small selection helper with focused tests, then wiring it into the existing grid state and persistence model. That keeps the customer-visible behavior simple today while giving us a clean base for drag selection, clipboard over ranges, and undoable bulk edits next.\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T18:37:28Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "This is the right next customer slice, but the PR is currently conflicting against . Please rebase it onto the current branch head () and re-push so I can validate the range-selection behavior on top of the merged baseline instead of through conflicts.",
+      "ts": "2026-04-21T18:39:11Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Clean follow-up: this is the right next customer slice, but the PR is currently conflicting against the current Emma branch. Please rebase it onto run/amazon/Emma at commit 8a254aa and re-push so I can validate the range-selection behavior on top of the merged baseline instead of through conflicts.",
+      "ts": "2026-04-21T18:39:37Z"
+    }
+  ]
+}

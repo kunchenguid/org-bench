@@ -1,0 +1,21 @@
+{
+  "run_id": "apple",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 2,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 3,
+    "aesthetics": 4,
+    "interaction_feel": 2,
+    "practical_utility": 2
+  },
+  "rationale": "I observed a real grid render on load: snapshot showed a formula bar with `fx`, active-cell label `A1`, and a `Spreadsheet grid` table with column headers `A`-`Z` and row headers `1`-`100`. Clicking `A1`, typing `10`, and pressing Enter advanced the active-cell label in the formula bar from `A1` to `A2`, so basic selection/edit/commit/navigation exists. After entering `20` in `A2`, `30` in `A3`, and formulas `=SUM(A1:A3)`, `=AVERAGE(A1:A3)`, `=IF(A1>5,\"big\",\"small\")`, `=CONCAT(\"total=\",SUM(A1:A3))`, and `=ROUND(A1/3,2)` into `B1:B5`, the browser snapshot still exposed only cell addresses, not evaluated results; source inspection explains why: `app.js` `renderGridValues()` writes `state.cells[address]` directly, and the formula engine is not wired into UI rendering, so formulas are not actually evaluated/displayed end to end. I also saw no browser-observable row/column insert UI, copy/paste, cut, delete-range, or error-marker affordances during exercise. Reload preserved selection state: after reopening the same URL, the snapshot still showed the active-cell label as `B6`, which suggests persistence is hooked up, but the artifact did not provide browser-observable evidence of evaluated formula outputs or spreadsheet-style recalculation. `agent-browser errors` returned a long stream of `✗` markers rather than a clean empty result, which further reduced confidence in runtime robustness. Visually, the app is cohesive and clean - the single-page grid, formula bar, and header styling read like a real tool - but functionally it falls well short of the required spreadsheet behavior.",
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 208386,
+    "out": 3153
+  },
+  "cost_usd": 0
+}

@@ -1,0 +1,21 @@
+{
+  "run_id": "amazon",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 2,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 3,
+    "aesthetics": 4,
+    "interaction_feel": 3,
+    "practical_utility": 2
+  },
+  "rationale": "Loaded clean with no console errors. The grid, headers, formula bar, and selection all rendered, and basic editing worked: entering values produced visible `10`, `20`, `30`, and Enter advanced selection. Core formulas evaluated correctly: `=SUM(A1:A3)` showed `60`, `=AVERAGE(A1:A3)` showed `20`, `=IF(A1>5,\"big\",\"small\")` showed `big`, `=CONCAT(\"total=\",SUM(A1:A3))` showed `total=60`, and `=ROUND(A1/3,2)` showed `3.33`. After changing `A1` to `40`, dependents recomputed to `90`, `30`, `big`, `total=90`, and `13.33`. Relative copy/paste worked: copying `=A1` from `C1` to `C2` yielded visible `40` then `20`. Absolute refs looked broken: `D1` showed raw `=$A$1` in the formula bar, but the cell stayed blank and pasting to `D2` also stayed blank. Undo/redo worked on my delete attempt: the sheet flipped between `90/30/total=90` and `60/20/total=60`. Insert/delete row controls worked and formulas adjusted or produced visible `#REF!` markers instead of crashing after row deletion. Error rendering was good: `=1/0` displayed `#DIV/0!`. Major failure: reload persistence did not restore contents. After reopening the same URL, the snapshot showed row 1 cells empty again (`row 1 -> textbox [ref=e190]`, `e191`, `e192` with no values), so raw cell contents were lost across reload. Range selection/delete also did not behave like a true multi-cell range in my Shift+Arrow test: only part of the intended A1:A3 block cleared.",
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 350225,
+    "out": 7005
+  },
+  "cost_usd": 0
+}

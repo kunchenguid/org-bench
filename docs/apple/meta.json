@@ -1,0 +1,122 @@
+{
+  "run_id": "apple",
+  "schema_version": 1,
+  "topology": {
+    "slug": "apple",
+    "name": "Apple",
+    "leader_id": "Steve",
+    "node_count": 9,
+    "culture": {
+      "kind": "apple-taste",
+      "summary": "Apple culture - taste bar + secrecy. Polish-first. Quality over schedule."
+    }
+  },
+  "seed": 1,
+  "brief": {
+    "path": "configs/brief.md",
+    "content_hash": "0a3d051ac8b9b246909a7484a4b235965e39aebb4c12c3c59434a24d52e0b93f"
+  },
+  "models": {
+    "node": "openai/gpt-5.4",
+    "judge": "openai/gpt-5.4",
+    "analyst": "openai/gpt-5.4"
+  },
+  "totals": {
+    "tokens": {
+      "in": 7515000,
+      "out": 286077,
+      "total": 7801077
+    },
+    "cost_usd": 0,
+    "wall_clock_ms": 12852028
+  },
+  "tokens_by_node": {
+    "Alice": {
+      "in": 248172,
+      "out": 20186,
+      "total": 268358,
+      "cost_usd": 0
+    },
+    "Ben": {
+      "in": 239136,
+      "out": 20979,
+      "total": 260115,
+      "cost_usd": 0
+    },
+    "Carol": {
+      "in": 1028918,
+      "out": 71829,
+      "total": 1100747,
+      "cost_usd": 0
+    },
+    "Dave": {
+      "in": 836410,
+      "out": 28165,
+      "total": 864575,
+      "cost_usd": 0
+    },
+    "Emma": {
+      "in": 1021517,
+      "out": 27730,
+      "total": 1049247,
+      "cost_usd": 0
+    },
+    "Frank": {
+      "in": 693053,
+      "out": 34707,
+      "total": 727760,
+      "cost_usd": 0
+    },
+    "Grace": {
+      "in": 829825,
+      "out": 28506,
+      "total": 858331,
+      "cost_usd": 0
+    },
+    "Henry": {
+      "in": 469616,
+      "out": 21223,
+      "total": 490839,
+      "cost_usd": 0
+    },
+    "Steve": {
+      "in": 1552039,
+      "out": 28126,
+      "total": 1580165,
+      "cost_usd": 0
+    }
+  },
+  "messages": {
+    "total": 215,
+    "by_tag": {
+      "decompose": 0,
+      "ask": 29,
+      "answer": 0,
+      "deliver": 0,
+      "status": 186,
+      "review": 0,
+      "untagged": 0
+    }
+  },
+  "patches": {
+    "proposed": 0,
+    "accepted": 0,
+    "rejected": 0,
+    "superseded": 0
+  },
+  "artifact": {
+    "deploy_success": true,
+    "build_success": true,
+    "published_path": "docs/apple"
+  },
+  "milestones": {
+    "time_to_first_build_ms": 0
+  },
+  "flags": {
+    "cap_exceeded": false,
+    "truncated_blobs": false,
+    "routing_rejections": 0,
+    "pr_activity_unsummarized": 0,
+    "node_failures": 0
+  }
+}

@@ -5,3 +5,4 @@ dist/
 .claude/
 .DS_Store
 packages/viewer/public/runs.json
+BLOG.md

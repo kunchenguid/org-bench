@@ -1,0 +1,21 @@
+{
+  "run_id": "microsoft",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 2,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 3,
+    "aesthetics": 4,
+    "interaction_feel": 2,
+    "practical_utility": 2
+  },
+  "rationale": "Grid rendered cleanly with column headers A-Z and row headers, no console errors on load, and the formula bar was visibly tied to selection (name box changed from A1 to A2/A4/B6 as I edited). Core formulas worked when entered through the formula bar: A1:A3 = 10,20,30 produced B1 `=SUM(A1:A3)` -> 60, B2 `=AVERAGE(A1:A3)` -> 20, B3 `=IF(A1>5,\"big\",\"small\")` -> `big`, B4 `=CONCAT(\"total=\",SUM(A1:A3))` -> `total=60`, B5 `=ROUND(A1/3,2)` -> `3.33`. Recalculation also worked: after changing A1 from 10 to 100, the sheet updated to B1=150, B2=50, B4=`total=150`, B5=33.33. Error handling was present: `=1/0` rendered `#DIV/0!`, and circular refs `A1 = B1`, `B1 = A1` rendered `#CIRC!` in both cells instead of crashing. But the artifact fails a hard requirement: reload did not persist raw contents - after reopening `http://127.0.0.1:58764`, the previously filled sheet came back completely empty. That caps functional completeness at 2. Interaction quality was also weak: typing directly after clicking a cell did not visibly commit for me, so I had to use the formula bar for entry; and attempting keyboard copy/paste for the relative-reference test (`Meta+C` then `Meta+V`) sent the browser to a blank page before I had to reopen the app, so I could not validate relative/absolute paste behavior, range copy, or undo/redo. I also saw no visible affordance anywhere in the UI for inserting/deleting rows or columns, despite those being part of the judging rubric. Visually, the app is cohesive and polished - soft glassy toolbar, consistent blue selection treatment, clean spacing and readable grid - but state communication is only moderate because there are no explicit error badges, no obvious multi-range affordances, and missing discoverability for advanced actions.",
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 238809,
+    "out": 4936
+  },
+  "cost_usd": 0
+}

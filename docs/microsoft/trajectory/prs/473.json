@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 473,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/473",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add range selection and clipboard support",
+  "body": "## Summary\n- add rectangular spreadsheet selection with click-drag and Shift+arrow extension\n- add copy, cut, paste, and range clear behavior with formula-aware paste shifting\n- carry the slice forward onto the current persistence and formula-bar base from `run/microsoft/main`\n\n## Verification\n- ran `node engine.test.js`\n- opened `index.html` from `file://` in `agent-browser`\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:54:13Z"
+    }
+  ],
+  "comments": []
+}

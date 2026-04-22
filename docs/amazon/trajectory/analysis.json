@@ -1,0 +1,169 @@
+{
+  "run_id": "amazon",
+  "schema_version": 1,
+  "narrative": "Jeff used the brief as a two-lane plan. He sent Alice after the first-click shell experience - grid, selection, formula bar, edit flow, persistence, fast file:// usability - and sent Ben after the engine-heavy path - formulas, copy/paste reference shifting, undo/redo, and structural edits. That decomposition fanned out one more level under each lead: Alice coordinated Carol and Dave, while Ben coordinated Frank and Emma; Emma then fanned out again to Grace and Henry. The deepest active chain was Jeff -> Ben -> Emma -> Grace/Henry, while Jeff -> Alice -> Carol/Dave formed the shorter shell subtree.\n\nThe first thing that got stuck was coordination plumbing rather than product logic. Several leaf agents had working branches in round 1, but could not open PRs because the staging branches for Alice, Ben, and Emma were not yet published. Once those branch-path blockers were cleared, the tree became active quickly. Alice chose Dave's narrower shell-first slice over Carol's broader overlapping evaluator branch, merged it, and Jeff merged Alice's PR #425 into main as the first shipped slice. In parallel, Ben merged Frank's foundation and undo/redo follow-up, while Emma merged Grace's baseline and later Grace's rebased range-selection work.\n\nThe most visible review blocker was Henry's formula-bar sync bug: Emma reproduced that pressing Enter in the formula bar moved selection to A2 but left the bar showing A1's value. Henry fixed that, but his branch then got stuck on integration shape: it still carried a separate top-level implementation instead of layering onto Emma's current src-based baseline, so Emma asked for a port and later another rebase after range selection landed. Emma also opened a small upward PR #429 to Ben, but Ben rejected it as the wrong baseline and Emma closed it rather than keep a conflicting stale integration path alive.\n\nA second stuck point happened at Ben's mainline integration. Jeff reviewed PR #431 in stages. First he rejected it because the browser surface still lacked real range selection, clipboard commands, and visible structural controls even though model helpers existed. Ben then pulled that work directly onto his own branch instead of waiting for subtree PRs to land cleanly. After that Jeff re-reviewed and narrowed the remaining blocker to structural completeness: the app exposed row insertion, but not delete-row or insert/delete-column in the browser. Ben again fixed the blocker directly on #431 and Jeff merged it once the row/column controls were visible and the suite plus file:// smoke check passed.\n\nWork was duplicated and respun several times, but usually with explicit acknowledgment. Carol's original shell/evaluator PR #422 overlapped Alice's chosen path and was later replaced by the narrow evaluator-coverage PR #434. Dave's first clear-cell PR #427 went stale against Alice's moved branch and was respun cleanly as #433. Grace's conflicted range PR #426 was replaced by rebased PR #430. Emma's upward PR #429 was closed as stale after Ben called out the wrong baseline. Frank's range PR #432 was fixed once, then later closed as superseded after Ben carried the same path directly; Frank's overlap-safe cut/paste fix was first opened as #436 and later recut as #438 on top of Ben's newer structural-edit branch. Grace's undo/redo PR #435 and later structural-controls PR #437 were both held because Emma concluded Ben already covered those slices upstream. No explicit revert of shipped behavior appears in the trajectory; churn mostly took the form of rebases, superseded PRs, and direct incorporation onto a lead branch.\n\nIntegration ultimately happened in two steps on main. First, Jeff merged Alice's shell PR #425 so main had a polished spreadsheet shell. Second, after multiple review rounds and direct branch updates, Jeff merged Ben's broader PR #431. The final submission says main shipped a judgeable static spreadsheet with the grid, formula bar, formula engine, range selection, clipboard flows, undo/redo, persistence, and browser-visible row/column insert-delete controls. The judge later confirmed most of that surface worked, but also found two remaining product defects in the shipped artifact: reload persistence did not restore contents, and shift-range clear did not behave as a true multi-cell clear in the judge's test.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Jeff",
+        "to": "Alice",
+        "forward_messages": 12,
+        "reverse_messages": 10
+      },
+      {
+        "from": "Jeff",
+        "to": "Ben",
+        "forward_messages": 12,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Alice",
+        "to": "Carol",
+        "forward_messages": 5,
+        "reverse_messages": 10
+      },
+      {
+        "from": "Alice",
+        "to": "Dave",
+        "forward_messages": 6,
+        "reverse_messages": 8
+      },
+      {
+        "from": "Ben",
+        "to": "Frank",
+        "forward_messages": 10,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Ben",
+        "to": "Emma",
+        "forward_messages": 10,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Emma",
+        "to": "Grace",
+        "forward_messages": 10,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Emma",
+        "to": "Henry",
+        "forward_messages": 11,
+        "reverse_messages": 12
+      },
+      {
+        "from": "orchestrator",
+        "to": "Jeff",
+        "forward_messages": 1,
+        "reverse_messages": 0
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 2,
+      "max_delegation_depth": 3
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 5,
+      "reverted": 0,
+      "rewritten": 5
+    },
+    "incidents": [
+      {
+        "kind": "brief_handoff",
+        "summary": "Leaf branches had usable work early, but subtree PRs were blocked until the staging branches for Alice and Emma were published remotely.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 8
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 11
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Emma blocked Henry's first merge because formula-bar Enter moved selection but left the bar showing the old cell's raw contents.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 41
+          },
+          {
+            "file": "events.jsonl",
+            "line": 3
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Emma-to-Ben PR #429 was rejected and then closed because it was based on the wrong implementation baseline and conflicted with Ben's stronger src/model/history branch.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 93
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 109
+          }
+        ]
+      },
+      {
+        "kind": "brief_handoff",
+        "summary": "Grace's original range-selection PR #426 was replaced by rebased PR #430 after Emma asked for a clean rebase onto the current Emma head.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 99
+          },
+          {
+            "file": "prs/426.json",
+            "line": 22
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Two Emma-stage follow-ups were explicitly held as duplicates after upstream coverage was already claimed on Ben's side: Grace's undo/redo PR #435 and later Grace's structural-controls PR #437.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 127
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 162
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Ben's first mainline review on PR #431 failed on missing browser-visible flows, and the second failed on incomplete structural edits before the same PR was finally updated and merged.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 102
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 120
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 155
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 404158,
+    "out": 2609
+  },
+  "cost_usd": 0
+}

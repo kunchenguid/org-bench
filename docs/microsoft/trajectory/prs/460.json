@@ -1,0 +1,20 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 460,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/460",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add tested spreadsheet engine foundation",
+  "body": "## Summary\n- add a pure JavaScript `SpreadsheetEngine` that stores raw cell contents and evaluates basic formulas\n- cover arithmetic references, range aggregation, recalculation, empty-cell numeric coercion, and circular reference detection with `node --test`\n- establish a small testable core the grid UI can build on without baking formula logic into DOM code\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:23:55Z"
+    }
+  ],
+  "comments": []
+}

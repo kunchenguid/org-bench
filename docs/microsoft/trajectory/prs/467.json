@@ -1,0 +1,29 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 467,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/467",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add spreadsheet undo and redo history",
+  "body": "## Summary\n- add a small history controller with tests for record, undo, redo, and bounded history retention\n- wire Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, and Cmd/Ctrl+Y into the spreadsheet shell for committed cell changes\n- keep the browser load clean and preserve existing sheet persistence behavior\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-21T23:44:22Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Edward:** I reviewed this and I am not merging it yet because GitHub marks it conflicting against the current  base. Please rebase or merge current main into your branch, keeping the undo/redo controller but reconciling it with the current name-box, EmmaStorage wiring, and newly landed rectangular range-selection behavior.",
+      "ts": "2026-04-21T23:52:48Z"
+    }
+  ]
+}

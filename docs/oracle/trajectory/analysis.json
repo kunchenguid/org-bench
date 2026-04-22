@@ -1,0 +1,159 @@
+{
+  "run_id": "oracle",
+  "schema_version": 1,
+  "narrative": "Larry used the brief to impose a strict two-level coordination shape. He delegated all build decomposition to Quinn, required a single staging branch (`run/oracle/Quinn`), a single integration PR to main, and pre-positioned Alice, Ben, Carol, and Dave as narrow legal/security/privacy/accessibility reviewers who would stay idle until that integration PR existed.\n\nQuinn fanned the work out cleanly across three engineers. Emma owned the formula engine and dependency graph. Frank owned the UI, browser entrypoint, and all composition/orchestration surfaces. Grace owned persistence plus row/column structural transforms. That decomposition stayed stable for the whole run. The main early coordination failure was infrastructural: Emma and Grace both finished first-round work but could not open PRs because `origin/run/oracle/Quinn` did not exist yet. Quinn fixed that by pushing the staging branch, after which Frank's shell PR #499, Emma's engine PR #500, and Grace's store PR #501 were all merged into staging, followed by Frank's range-selection PR #502.\n\nAfter the three subsystem slices were combined, the run got stuck on integration. Quinn's browser acceptance found that the composed app loaded with no console errors, but the core edit path `click A1 -> type -> Enter` was not reliably committing and advancing. Frank spent multiple rounds on local composition patches; Emma was briefly pulled in for a parallel narrow pass on the same blocker. Those attempts did not produce a reviewable fix quickly, so Quinn eventually stopped waiting for a clean browser pass and opened integration PR #503 with the known issue explicitly documented. In parallel, Frank opened PR #504 to land the best current browser composition wiring even though the exact edit-flow blocker remained unresolved.\n\nOnce PR #503 existed, the decomposition changed from feature work to review-driven remediation. Legal and security approved quickly. Privacy blocked because `src/app.js` used a hardcoded `oracle-sheet` namespace instead of a run-scoped injected namespace. Accessibility blocked because every cell was tabbable, so `Tab` walked the grid cell by cell. Quinn routed both blockers back to Frank, who opened PR #505 to add a run-scoped namespace resolver and a roving-tabindex model. That cleared privacy, but accessibility remained blocked: Dave's browser checks still showed `Tab` moving within the grid. Frank then opened PR #506 to remove the non-editing `Tab` override so `Tab` could leave the grid, and after another re-review cycle, PR #507 to stop passive formula-bar focus from entering edit mode and only trap `Tab` there during an actual formula-bar edit. Each of these merges advanced PR #503 to a new head, which forced Larry to re-request fresh current-head comments from all four reviewers.\n\nActive coordination concentrated on a few edges. Larry and Quinn exchanged status every round. Quinn and Frank were the busiest engineering pair, because Frank owned the composition layer and nearly every late blocker landed there. Quinn and Emma were active early for the engine handoff and later for backup on the edit-flow bug, but Emma's later work never shipped as a PR. Quinn and Grace were active early around the persistence slice, then largely quiet after PR #501 merged. The review lane was hub-and-spoke through Larry: reviewers reported to Larry, and Quinn mediated fixes back to Frank.\n\nSeveral decisions got stuck. The most expensive stall was the edit-flow bug: Quinn kept insisting on the exact acceptance case, Frank kept localizing the problem to browser composition, and no fix PR appeared for multiple rounds. That produced duplicated work when Emma was asked to take an independent pass on the same bug while Frank was still iterating. A second sticky point was accessibility: the first roving-focus fix changed the model but did not actually make `Tab` leave the widget in Dave's browser checks, so the team needed two more narrow follow-up PRs before the blocker cleared. There was also some message-level confusion after merges, with a few stale status reports referring to PRs or heads that had already advanced.\n\nIntegration did happen, but only after repeated review-refresh cycles. Quinn merged engineer PRs into `run/oracle/Quinn`, Larry kept re-pinging reviewers whenever PR #503's head changed, and the final integration head was commit `cb24008adcdc02e467586c483ddee2323a81d44c`. At that head, legal, security, privacy, and accessibility all posted fresh approvals, and Larry squash-merged PR #503 into `run/oracle/main` as `cb08b7dd93bb1512db90351ee3598534930d391d`.\n\nWhat shipped was a browser spreadsheet artifact with a 26x100 grid, formula bar, formula evaluation, dependency recomputation, circular-reference handling, keyboard arrow navigation, and enough UI polish to satisfy most of the judge's interaction and visual checks. The final judge artifact also showed the limits of what shipped: persistence still failed on reload, and copy/paste relative-reference shifting plus row/column insert-delete behavior were not verified in the UI even though underlying subsystems for those features had been built and merged.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Larry",
+        "to": "Quinn",
+        "forward_messages": 27,
+        "reverse_messages": 27
+      },
+      {
+        "from": "Quinn",
+        "to": "Frank",
+        "forward_messages": 27,
+        "reverse_messages": 27
+      },
+      {
+        "from": "Quinn",
+        "to": "Emma",
+        "forward_messages": 24,
+        "reverse_messages": 27
+      },
+      {
+        "from": "Quinn",
+        "to": "Grace",
+        "forward_messages": 5,
+        "reverse_messages": 9
+      },
+      {
+        "from": "Larry",
+        "to": "Alice",
+        "forward_messages": 5,
+        "reverse_messages": 15
+      },
+      {
+        "from": "Larry",
+        "to": "Ben",
+        "forward_messages": 5,
+        "reverse_messages": 16
+      },
+      {
+        "from": "Larry",
+        "to": "Carol",
+        "forward_messages": 5,
+        "reverse_messages": 15
+      },
+      {
+        "from": "Larry",
+        "to": "Dave",
+        "forward_messages": 5,
+        "reverse_messages": 24
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 1,
+      "max_delegation_depth": 2
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 3,
+      "reverted": 0,
+      "rewritten": 2
+    },
+    "incidents": [
+      {
+        "kind": "integration_failure",
+        "summary": "Emma and Grace finished initial subsystem work but could not open PRs because the remote staging branch `run/oracle/Quinn` did not exist until Quinn pushed it.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 23
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 25
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 30
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "The composed app stalled on the `click A1 -> type -> Enter` acceptance path for many rounds, and Quinn eventually opened the integration PR with that blocker documented instead of waiting for a clean pass.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 55
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 85
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 103
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Some status reports lagged behind the actual branch/PR state, including reports that PR #504 was still open after Quinn had merged it and that the current blockers had not been delegated after Quinn had already routed them.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 114
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 122
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 124
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 132
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Accessibility required multiple follow-up PRs and re-review cycles: the first roving-focus change did not stop `Tab` from moving within the grid, so later narrow fixes targeted grid tab exit and then the formula-bar/tab path before approval was granted.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 165
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 187
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 209
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 231
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 253
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 278294,
+    "out": 1644
+  },
+  "cost_usd": 0
+}

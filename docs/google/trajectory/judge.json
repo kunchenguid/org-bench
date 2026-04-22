@@ -1,0 +1,21 @@
+{
+  "run_id": "google",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 3,
+    "learnability": 4,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 4,
+    "aesthetics": 4,
+    "interaction_feel": 3,
+    "practical_utility": 3
+  },
+  "rationale": "Loaded cleanly with no console errors. The grid rendered with headers A-Z and row numbers, a visible formula bar, and structural buttons (+ Row/- Row/+ Col/- Col). Editing worked end to end: entering `10`, `20`, `30` into `A1:A3` and pressing Enter advanced selection (`A1` to `A2`, etc.). Formula results matched what was rendered in the grid: `B1 =SUM(A1:A3)` -> `60`, `B2 =AVERAGE(A1:A3)` -> `20`, `B3 =IF(A1>5,\"big\",\"small\")` -> `big`, `B4 =CONCAT(\"total=\",SUM(A1:A3))` -> `total=60`, `B5 =ROUND(A1/3,2)` -> `3.33`. After changing `A1` from `10` to `15`, dependents recomputed to `65`, `21.666666666666668`, `big`, `total=65`, and `5`. Copy/paste shifted references correctly in observed output: copying `C1 =A1` to `C2` left `C1` showing `15` while `C2` showed `20`, and copying `D1 =$A$1` to `D2` kept both as `15`. Structural edits persisted and rewrote formulas: inserting a row above `A2` moved values down (`20` at `A3`, `30` at `A4`) while `B1` still showed `65`; deleting the referenced row then rendered `#REF!` in `B1` instead of crashing. Reloading the page preserved raw contents and rendered values (`A1` still `15`, `B1` still `#REF!`, `B5` still `5`). I did not directly observe range drag selection, multi-cell delete/copy-paste, undo/redo, or a visible circular-reference marker through the browser session, so completeness and interaction feel stay capped below top tier.",
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 283799,
+    "out": 5998
+  },
+  "cost_usd": 0
+}

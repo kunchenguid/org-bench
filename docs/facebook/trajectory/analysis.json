@@ -1,0 +1,228 @@
+{
+  "run_id": "facebook",
+  "schema_version": 1,
+  "narrative": "Mark used the brief as a strict role split at the start: formula engine to Alice, shell to Ben, editing to Carol, range/clipboard to Dave, undo/redo to Emma, structural edits to Frank, polish to Grace, and acceptance to Henry. That gave the run an initial fan-out of eight direct subtasks, but the first few rounds were dominated by environment mismatch and duplicate bootstrap work. Carol, Dave, and Grace all reported they had been dropped into shared `run/facebook/main` instead of their private worktrees, and several people independently built overlapping spreadsheet foundations before realizing the tree was already moving.\n\nConvergence happened when Alice merged Ben's broader foundation PR #390 into trunk. After that, Mark stopped asking for more greenfield shells and redirected people toward incremental gaps on top of the merged workbook/app stack. The effective decomposition narrowed: Frank handled row and column structural edits in #395, Carol shipped a small namespace hardening fix in #396, Grace eventually restacked polish into styles-only #399, Ben carried the `#REF!` copy-shift corrections in #397, and Alice became the main owner for the browser-visible formula-bar regressions in #389 and then #400. Henry's role stayed stable throughout as the browser acceptance probe feeding concrete repros back into the queue.\n\nThe busiest edges were leader-to-Alice, leader-to-Ben, and leader-to-Henry. Mark repeatedly used Henry's acceptance reports to reprioritize work, then routed the next fix to Alice or Ben. Mark-to-Grace and Mark-to-Frank were active during the structural-edit and polish integration window, while Mark-to-Dave and Mark-to-Emma became comparatively idle after their slices were either superseded or folded into trunk by others. Among peer edges, Alice-Ben, Ben-Dave, Ben-Emma, and Alice-Carol were the main active links: they were used for review, rebases, bug reports, and handoffs rather than for deep multi-hop decomposition.\n\nSeveral decisions got stuck in review churn. Early on, PR #392 was treated as the likely baseline but stayed `CONFLICTING` / `DIRTY`, so the run had to move around it. Multiple bootstrap branches then became redundant: Emma's #388, Henry's #391, Frank's #392, Dave's #394, and Grace's original #393 were all eventually closed as stale or superseded. Alice's #389 also changed meaning over time: its original scaffold became diff-empty after trunk moved, then the same PR later became the vehicle for the formula-bar targeting fix. That produced substantial rewrite churn even without explicit code reverts.\n\nThere was one clear secondary delegation handoff: Alice reassigned review ownership of Frank's structural-edit PR #395 to Carol while she repaired her own stale branch. More generally, Mark kept decomposing one layer deeper by routing narrow fixes after acceptance findings instead of reopening whole feature areas. The deepest chains were therefore leader -> owner -> reviewer or acceptance -> owner, rather than long implementation trees.\n\nIntegration did happen repeatedly on trunk. The key merged sequence was: Ben's foundation #390, Frank's structural edits #395, Frank's paste fix #398, Carol's namespace fix #396, Alice's formula-bar targeting fix on #389, Grace's narrowed polish #399, Ben's `#REF!` fix #397, and Alice's follow-up formula-bar fix #400. By the end, Mark declared the artifact ready and described the remaining direct-grid `type` issue as an `agent-browser` mismatch after Alice's instrumented fresh-session replay showed the failing `type 2` path emitted only `focusin` and no `keydown`, `beforeinput`, or `input` events.\n\nWhat finally shipped was a polished spreadsheet artifact on trunk with a 26x100 grid, formula bar, selection and clipboard flows, undo/redo, persistence, row/column structural edits with formula rewrites, and several correctness and UX follow-up fixes. The final submission explicitly said the only unresolved thread was the browser automation mismatch. The later judge artifact shows that the shipped build still mis-evaluated some basic formulas such as observed `SUM`, `AVERAGE`, and `CONCAT` outputs, so the run ended with a shipped integrated product and an unresolved gap between the team's final acceptance picture and the judge's formula-correctness result.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Mark",
+        "to": "Alice",
+        "forward_messages": 16,
+        "reverse_messages": 9
+      },
+      {
+        "from": "Mark",
+        "to": "Ben",
+        "forward_messages": 13,
+        "reverse_messages": 8
+      },
+      {
+        "from": "Mark",
+        "to": "Carol",
+        "forward_messages": 4,
+        "reverse_messages": 8
+      },
+      {
+        "from": "Mark",
+        "to": "Dave",
+        "forward_messages": 2,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Mark",
+        "to": "Emma",
+        "forward_messages": 2,
+        "reverse_messages": 8
+      },
+      {
+        "from": "Mark",
+        "to": "Frank",
+        "forward_messages": 5,
+        "reverse_messages": 5
+      },
+      {
+        "from": "Mark",
+        "to": "Grace",
+        "forward_messages": 9,
+        "reverse_messages": 6
+      },
+      {
+        "from": "Mark",
+        "to": "Henry",
+        "forward_messages": 18,
+        "reverse_messages": 13
+      },
+      {
+        "from": "Alice",
+        "to": "Ben",
+        "forward_messages": 6,
+        "reverse_messages": 6
+      },
+      {
+        "from": "Ben",
+        "to": "Dave",
+        "forward_messages": 4,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Ben",
+        "to": "Emma",
+        "forward_messages": 3,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Alice",
+        "to": "Carol",
+        "forward_messages": 1,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Carol",
+        "to": "Frank",
+        "forward_messages": 3,
+        "reverse_messages": 3
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 8,
+      "max_delegation_depth": 2
+    },
+    "idle_neighbors": [
+      {
+        "from": "Mark",
+        "to": "Dave"
+      },
+      {
+        "from": "Mark",
+        "to": "Emma"
+      }
+    ],
+    "patch_churn": {
+      "superseded": 6,
+      "reverted": 0,
+      "rewritten": 4
+    },
+    "incidents": [
+      {
+        "kind": "miscommunication",
+        "summary": "Multiple contributors reported that their cwd pointed at shared trunk instead of their private worktrees, which produced overlapping uncommitted foundation work and delayed safe PR creation.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 12
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 13
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 17
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Frank's early baseline PR #392 was treated as the likely shared starting point but stayed `CONFLICTING` / `DIRTY`, so the run had to converge elsewhere.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 19
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 55
+          }
+        ]
+      },
+      {
+        "kind": "brief_handoff",
+        "summary": "Alice handed Frank's structural-edit review to Carol while she used her turn to repair her own stale PR against trunk.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 42
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 43
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Emma reported structural edits as missing after #395 had already landed, and Mark had to explicitly correct the blocker report.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 48
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 56
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Grace's original polish PR #393 stopped being reviewable as a presentation-only change because it carried older functional deltas; it was later replaced by styles-only PR #399 and then #393 was closed.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 70
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 100
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 135
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Browser acceptance of the remaining direct-entry issue was confounded by persisted state leaking into supposedly fresh sessions.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 164
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 165
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 166
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Instrumented fresh-session replay showed that the failing `agent-browser type` path did not dispatch `keydown`, `beforeinput`, or `input`, and Mark treated the remaining issue as an automation mismatch rather than another app fix.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 205
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 209
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 210
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 489390,
+    "out": 1746
+  },
+  "cost_usd": 0
+}

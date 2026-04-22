@@ -1,0 +1,21 @@
+{
+  "run_id": "facebook",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 2,
+    "learnability": 4,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 4,
+    "aesthetics": 4,
+    "interaction_feel": 3,
+    "practical_utility": 2
+  },
+  "rationale": "The grid loaded cleanly with no console errors and exposed clear in-product instructions: \"Type to replace, Enter to edit, Shift+Arrow to extend, Cmd/Ctrl+C/V for clipboard, and right-click headers for row or column edits.\" Selection/commit navigation worked - the banner advanced from `A1` to `A2` to `A4` as I entered values with `Enter`. Persistence also worked: after reloading `http://127.0.0.1:61483`, the snapshot still showed the same populated cells. But the formula engine visibly mis-evaluated basic formulas, which hard-caps functionality: with `A1=10`, `A2=20`, `A3=30` rendered in the snapshot, the sheet showed `B1=40` for `=SUM(A1:A3)`, `B2=13.3333333333` for `=AVERAGE(A1:A3)`, and `B4=total=40` for `=CONCAT(\"total=\",SUM(A1:A3))`; only `B3=big` for `=IF(A1>5,\"big\",\"small\")` and `B5=3.33` for `=ROUND(A1/3,2)` matched expectations. Because basic arithmetic/range aggregation was wrong in observed output, this is not reliable for real spreadsheet work despite a polished, coherent UI.",
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 226533,
+    "out": 4139
+  },
+  "cost_usd": 0
+}

@@ -1,6 +1,6 @@
 # org-bench
 
-Benchmarks multi-agent coding topologies on a shared task (build an in-browser spreadsheet in plain vanilla HTML/CSS/JS). Seven topologies (`apple`, `amazon`, `microsoft`, `google`, `facebook`, `oracle`, `solo`), each run once per pilot. Agents coordinate through inbox messages and real GitHub PRs; every run ships a deployed artifact to GitHub Pages (and must also open from `file://`).
+Benchmarks multi-agent coding topologies on a shared task (build an in-browser spreadsheet in plain vanilla HTML/CSS/JS). Six topologies (`apple`, `amazon`, `microsoft`, `google`, `facebook`, `oracle`), each run once per pilot. Agents coordinate through inbox messages and real GitHub PRs; every run ships a deployed artifact to GitHub Pages (and must also open from `file://`).
 
 Core design questions are in `PRD.md` and `DESIGN.md`.
 
@@ -57,7 +57,7 @@ Every node wakes every round. Nodes with empty inboxes see a prompt stub explain
 ## Lifecycle
 
 1. **Setup**: bare-clone the remote into `$TMPDIR/org-bench-runs/<run-id>/.git`, push orphan `run/<run-id>/main` (covered by the repo-level ruleset above - no per-run branch-protection call), add per-node worktrees at detached HEAD.
-2. **Rounds**: every node wakes every round; parallel OpenCode sessions per node; outbound messages routed per topology adjacency; agents open PRs against `run/<run-id>/main`; integrators merge. Solo runs also land via PR (the solo builder opens + self-merges their own PRs).
+2. **Rounds**: every node wakes every round; parallel OpenCode sessions per node; outbound messages routed per topology adjacency; agents open PRs against `run/<run-id>/main`; integrators merge.
 3. **Finalize** (in order): snapshot PRs → publish artifact (fetch + reset main worktree to remote, copy worktree source + `trajectory/` to `docs/<topo>/`, excluding `.git`, `node_modules`, `dist`, `.org-bench-artifacts`) → judge → analyst → aggregate meta → close open PRs → delete agent branches on remote → persist `inbox/` + `trajectory/` under `.org-bench-artifacts/` on `run/<run-id>/main` via a `run/<run-id>/artifacts` PR (opened + merged by the orchestrator, not a direct push) → `rm -rf $TMPDIR/org-bench-runs/<run-id>/`.
 
 The judge stage spawns its own dedicated `opencode serve` process (separate from the run's node-facing serve) with `AGENT_BROWSER_SESSION=org-bench-judge-<topo>` in its env, then sends a single prompt asking the agent to drive the artifact through `agent-browser` via bash and return a rubric JSON. There is no separate harness-driven evaluator stage; scoring and scenario exercise both happen inside that one judge session.
@@ -83,6 +83,8 @@ npm run bench -- configs/run-<topo>.ts > /tmp/org-bench-<topo>.log 2>&1 &
 
 ## Monitoring
 
+**For agents: prefer event-based streaming over timer-based polling.** A run takes 30-60 min real time and hundreds of rounds/turn events; sleeping N minutes then reading the log is both higher latency (you miss intermediate failures) and more expensive (cache misses) than subscribing to the log as it grows. Use the `Monitor` tool with a `tail -f` + `grep --line-buffered` (or `awk`) filter so each meaningful line becomes one event - filter for `round_end`, first-of-round `turn_error`, `stage_failed`, `final_submission`, the finalize JSON object, and any `FATAL|Traceback`. A selective filter (not raw `tail -f`) keeps the event stream actionable. Raw terminal commands to sanity-check:
+
 ```bash
 tail -f /tmp/org-bench-<topo>.log
 wc -l "${TMPDIR:-/tmp}/org-bench-runs/<topo>/trajectory/nodes/leader.jsonl"   # round progress
@@ -90,6 +92,8 @@ ps -ax -o pid,rss,etime,command | grep 'opencode serve'   # RAM sanity check
 ```
 
 If opencode RSS climbs past ~40 GB, kill and investigate. A `stage_failed` event (judge flake, analyst flake, etc.) is non-fatal; finalize continues.
+
+**Watch for high `turn_error` rate.** If JSON parse errors (`Unexpected token...`) dominate round-end `completed` counts, prompts are likely too verbose for opencode's StructuredOutput flow - shorten them and retry. Healthy runs have near-zero turn_errors per round.
 
 ### Peeking inside an in-progress turn
 
@@ -118,6 +122,18 @@ for w in "${TMPDIR:-/tmp}/org-bench-runs/$RUN"/worktrees/*; do
   echo "== $(basename "$w") =="; git -C "$w" log --oneline -5 2>/dev/null
 done
 ```
+
+### Counting a run's PRs
+
+PR numbers (`#244` etc.) are repo-global and keep climbing across runs - do NOT read the latest PR number as a count of this run's output. To see what the current run has produced, always filter by base branch or creation time:
+
+```bash
+gh pr list --repo kunchenguid/org-bench --state all --limit 100 \
+  --search "created:>=$(date -u +%Y-%m-%d) base:run/<topo>/main" \
+  --json number,state,title,headRefName
+```
+
+Count by state with `jq`/python if you want merged-vs-open numbers. Never report a PR count without this filter.
 
 ## After a run
 

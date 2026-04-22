@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Facebook Sheets</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="product-name">Facebook Sheets</div>
+        <div class="product-hint">Type to replace, Enter to edit, Shift+Arrow to extend, Cmd/Ctrl+C/V for clipboard, and right-click headers for row or column edits.</div>
+      </div>
+      <div class="selection-chip" id="selection-label">A1</div>
+    </header>
+
+    <section class="formula-bar-wrap">
+      <label class="name-box" id="name-box" for="formula-input">A1</label>
+      <div class="formula-prefix">fx</div>
+      <input id="formula-input" class="formula-input" type="text" spellcheck="false" aria-label="Formula bar">
+    </section>
+
+    <main class="grid-shell">
+      <table id="sheet" class="sheet-grid" aria-label="Spreadsheet grid"></table>
+    </main>
+  </div>
+  <div class="header-menu hidden" id="header-menu" role="menu" aria-label="Header actions">
+    <button type="button" data-action="insert-before"></button>
+    <button type="button" data-action="insert-after"></button>
+    <button type="button" data-action="delete"></button>
+  </div>
+  <script src="app-state.js"></script>
+  <script src="workbook.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

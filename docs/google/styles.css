@@ -1,0 +1,232 @@
+:root {
+  --bg: #eff4ff;
+  --panel: rgba(255, 255, 255, 0.94);
+  --line: #d4dced;
+  --header: #eef3ff;
+  --text: #13233b;
+  --muted: #60708b;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.16);
+  --shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.toolbar,
+.side-panel,
+.grid-shell {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow);
+  border-radius: 18px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.toolbar-controls {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.subtitle,
+.panel-hint {
+  color: var(--muted);
+}
+
+.formula-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.structure-actions,
+.structure-panel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.structure-panel-actions {
+  flex-direction: column;
+}
+
+.action-button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: #f8fbff;
+}
+
+.action-button:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.cell-label {
+  min-width: 56px;
+  text-align: center;
+  font-weight: 700;
+  background: var(--header);
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.formula-input,
+.cell-editor {
+  width: 100%;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  color: var(--text);
+}
+
+.formula-input:focus,
+.cell-editor:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.side-panel {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-title {
+  font-weight: 700;
+}
+
+.cell-editor {
+  min-height: 180px;
+  resize: vertical;
+}
+
+.grid-shell {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.column-headers,
+.grid-row {
+  display: grid;
+  grid-template-columns: 64px repeat(26, minmax(96px, 1fr));
+}
+
+.grid-body {
+  overflow: auto;
+  min-height: 0;
+}
+
+.corner-cell,
+.column-header,
+.row-header,
+.grid-cell {
+  min-height: 36px;
+  padding: 8px 10px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.corner-cell,
+.column-header,
+.row-header {
+  background: var(--header);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.grid-cell {
+  font: inherit;
+  border-top: 0;
+  border-left: 0;
+  background: #fff;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.grid-cell:hover {
+  background: #f8fbff;
+}
+
+.grid-cell.is-selected {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: #f8fbff;
+}
+
+@media (max-width: 960px) {
+  .toolbar,
+  .workspace {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .formula-wrap {
+    justify-content: stretch;
+  }
+
+  .toolbar-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

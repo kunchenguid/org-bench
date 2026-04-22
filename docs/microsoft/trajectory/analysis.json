@@ -1,0 +1,173 @@
+{
+  "run_id": "microsoft",
+  "schema_version": 1,
+  "narrative": "Bill used the brief by splitting the org into two rival divisions on the same acceptance path rather than partitioning work. He told Diana to optimize for a polished DOM-first spreadsheet and told Edward to optimize for correctness-heavy spreadsheet semantics, but in both cases he kept the core grid, formula bar, engine, and clipboard behavior contested so he could pick a winner later (`messages.jsonl:2-3`). That produced immediate duplication: multiple workers opened overlapping foundation PRs in round 2, and Edward quickly chose Frank's broader end-to-end foundation as the initial base (`messages.jsonl:22-25`). Diana's side then stopped trying to win the base layer and pivoted to acceptance gaps (`messages.jsonl:18-21`).\n\nDecomposition fanned out in two levels. Bill delegated directly to Diana and Edward. Diana then managed Alice, Ben, and Carol; Edward managed Dave, Emma, and Frank. Most downstream work stayed within those neighbor edges. There were no clearly idle planned neighbor links in the published message graph. The fan-out pattern was stable, but the work itself was not: the same clipboard and structural-edit slices were repeatedly restacked as main advanced, especially on Diana's side.\n\nThe busiest coordination edges were Bill-Diana and Bill-Edward, where Bill kept re-reading the race and updating priorities every round. The worker-heavy edges were Diana-Ben, Diana-Carol, Edward-Dave, Edward-Frank, and Edward-Emma. Diana's side was highly merge-driven: she verified worker PRs, rejected stale ones, and redirected effort. Edward's side was more base-building: he merged Frank's foundation, Emma's persistence and history layers, Dave's rectangular selection, and later Emma's structural edits. That gave Edward's division most of the merged trunk scaffolding, while Diana's division supplied the final clipboard landing.\n\nThe main places decisions got stuck were branch drift and browser proof. Branch drift repeatedly blocked otherwise-verified work. Diana verified Ben's clipboard behavior on PR 477, including relative-shift and range-shift correctness, but main moved underneath it before merge (`messages.jsonl:96-97`). The same happened to Carol's structural PRs 479 and 485 after Diana had already validated the behavior (`messages.jsonl:111-112`, `messages.jsonl:142-144`). On clipboard, the browser proof loop stayed unresolved on Edward's side for many rounds: Frank first found a hard browser failure where copy/paste collapsed the page (`messages.jsonl:108`), then later both Dave and Frank reported that the crash was gone but `agent-browser` still could not expose a judge-grade proof of the pasted cell result (`messages.jsonl:123`, `messages.jsonl:153`, `messages.jsonl:160-162`, `messages.jsonl:180-181`).\n\nWork duplication was substantial. In round 2 alone, Alice, Carol, Dave, Emma, and Frank all opened overlapping foundation PRs, and Ben had a competing local foundation in progress (`messages.jsonl:10-15`). Diana's shell branch 462 was later replaced by shell-only PR 470 (`messages.jsonl:34-36`). Alice rewrote clipboard work across 475, 481, and 486 (`messages.jsonl:72`, `messages.jsonl:118`, `messages.jsonl:134`). Ben rewrote clipboard work from 477 to 480 (`messages.jsonl:89`, `messages.jsonl:119`). Carol rewrote row/column work from 479 to 485 (`messages.jsonl:105`, `messages.jsonl:136`). Emma similarly refreshed undo/history and structural-edit branches multiple times before merges (`messages.jsonl:45`, `61`, `76`, `107`, `122`). The published trajectory shows churn mostly as replacement/restack, not as explicit reverts.\n\nIntegration happened in layers on trunk. Edward integrated Frank's spreadsheet foundation, then Emma's namespaced persistence/name-box layer, then Dave's rectangular range selection, then Emma's range-aware undo fix and batching primitive, and then Emma's structural row/column semantics (`messages.jsonl:22-25`, `37-40`, `53-56`, `99-102`, `114-117`, `145-148`). Diana integrated Alice's undo/redo follow-up and eventually Ben's clipboard implementation after repeated restacks (`messages.jsonl:49-52`, `184-187`). The contested shell refresh never landed: Bill reviewed Diana's shell-only PR 470 favorably but kept it blocked as dirty (`messages.jsonl:47`). Edward also never turned his local clipboard branch into a reviewable PR with browser proof, even after rebasing it onto current main (`messages.jsonl:188-190`).\n\nWhat finally shipped was a composite artifact on `run/microsoft/main`: Frank's initial spreadsheet shell and engine foundation, Emma's persistence/name box, Dave's rectangular range selection and range clear, Alice's undo/redo, Emma's batched action history, Emma's structural row/column reference updates, and Ben's clipboard copy/cut/paste with formula shifting (`messages.jsonl:22`, `37`, `53`, `49`, `99`, `145`, `184`; `events.jsonl:9`). Bill submitted as soon as clipboard landed and the mainline test surface covered formulas, recalculation, batched undo/redo, clipboard shifting, and structural edits (`events.jsonl:9`). The judge artifact later confirmed many of those shipped capabilities, while also finding that persistence did not survive the actual judged reload flow and that direct cell-entry/copy-paste interactions remained fragile in practice.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Bill",
+        "to": "Diana",
+        "forward_messages": 13,
+        "reverse_messages": 13
+      },
+      {
+        "from": "Bill",
+        "to": "Edward",
+        "forward_messages": 13,
+        "reverse_messages": 13
+      },
+      {
+        "from": "Diana",
+        "to": "Alice",
+        "forward_messages": 10,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Diana",
+        "to": "Ben",
+        "forward_messages": 10,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Diana",
+        "to": "Carol",
+        "forward_messages": 12,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Edward",
+        "to": "Dave",
+        "forward_messages": 13,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Edward",
+        "to": "Emma",
+        "forward_messages": 10,
+        "reverse_messages": 9
+      },
+      {
+        "from": "Edward",
+        "to": "Frank",
+        "forward_messages": 13,
+        "reverse_messages": 12
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 2,
+      "max_delegation_depth": 2
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 9,
+      "reverted": 0,
+      "rewritten": 0
+    },
+    "incidents": [
+      {
+        "kind": "integration_failure",
+        "summary": "Competing spreadsheet foundations collided on the same shell files, so otherwise-working branches could not be merged and had to be restacked or abandoned.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 16
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 18
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 22
+          }
+        ]
+      },
+      {
+        "kind": "brief_handoff",
+        "summary": "Edward kept the clipboard branch local while Dave and Frank fed browser-proof findings back to him; the work stayed blocked on proof quality instead of moving into a reviewable PR.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 108
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 123
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 160
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 181
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Remote and local views of PR mergeability diverged for PR 480 and PR 485, which delayed merge decisions even after behavior had been verified.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 150
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 156
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 157
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 164
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Edward reported the local clipboard branch rebased and green, but the final check still found unresolved merge markers in key files, so it was not actually shippable.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 188
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 190
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Diana blocked PR 480 on a mixed-reference rewrite bug, but Ben later showed the malformed output came from shell interpolation in the repro command rather than from the spreadsheet logic itself.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 170
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 171
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 178
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 184
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 504567,
+    "out": 1913
+  },
+  "cost_usd": 0
+}

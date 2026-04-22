@@ -1,0 +1,21 @@
+{
+  "run_id": "oracle",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 2,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 4,
+    "aesthetics": 4,
+    "interaction_feel": 3,
+    "practical_utility": 2
+  },
+  "rationale": "Loaded with a visible grid, headers, name box, and formula bar, and `agent-browser errors` showed no console errors on load. I entered values through the formula bar and saw A1=10, A2=20, A3=30; formulas evaluated correctly in the UI: B1 `=SUM(A1:A3)` -> `60`, B2 `=AVERAGE(A1:A3)` -> `20`, B3 `=IF(A1>5,\"big\",\"small\")` -> `big`, B4 `=CONCAT(\"total=\",SUM(A1:A3))` -> `total=60`, B5 `=ROUND(A1/3,2)` -> `3.33`. After changing A1 from `10` to `5`, dependents recomputed to `35`, `11.6666666667`, `small`, `total=35`, and `1.67`. Arrow navigation worked: pressing `ArrowDown` moved selection from A1 to A2 and updated the name box to `A2`. Circular references were handled cleanly: setting A1=`=B1` and B1=`=A1` rendered `#CIRC!` in both cells instead of crashing. The main failure is persistence: reloading `http://127.0.0.1:54833` restored a blank sheet, losing all entered contents, so by the stated floor functional completeness cannot exceed 2. I also could not verify copy/paste relative-reference shifting or row/column insert-delete behavior in the UI; there were no visible insert/delete affordances, and a copy/paste attempt led to unstable behavior during capture. Visually, the sheet is cohesive and polished: soft gray headers, clear blue active-cell outline, readable spacing, and the formula bar is clearly tied to the current cell via the name box.",
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 287506,
+    "out": 5000
+  },
+  "cost_usd": 0
+}

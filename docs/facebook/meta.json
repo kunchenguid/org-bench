@@ -1,0 +1,122 @@
+{
+  "run_id": "facebook",
+  "schema_version": 1,
+  "topology": {
+    "slug": "facebook",
+    "name": "Facebook",
+    "leader_id": "Mark",
+    "node_count": 9,
+    "culture": {
+      "kind": "facebook-velocity",
+      "summary": "Facebook culture - move fast. A merged imperfect change beats a perfect unmerged one."
+    }
+  },
+  "seed": 1,
+  "brief": {
+    "path": "configs/brief.md",
+    "content_hash": "0a3d051ac8b9b246909a7484a4b235965e39aebb4c12c3c59434a24d52e0b93f"
+  },
+  "models": {
+    "node": "openai/gpt-5.4",
+    "judge": "openai/gpt-5.4",
+    "analyst": "openai/gpt-5.4"
+  },
+  "totals": {
+    "tokens": {
+      "in": 6309557,
+      "out": 406867,
+      "total": 6716424
+    },
+    "cost_usd": 0,
+    "wall_clock_ms": 15021286
+  },
+  "tokens_by_node": {
+    "Alice": {
+      "in": 1316821,
+      "out": 52475,
+      "total": 1369296,
+      "cost_usd": 0
+    },
+    "Ben": {
+      "in": 816613,
+      "out": 46511,
+      "total": 863124,
+      "cost_usd": 0
+    },
+    "Carol": {
+      "in": 459879,
+      "out": 45583,
+      "total": 505462,
+      "cost_usd": 0
+    },
+    "Dave": {
+      "in": 385289,
+      "out": 43037,
+      "total": 428326,
+      "cost_usd": 0
+    },
+    "Emma": {
+      "in": 200362,
+      "out": 26305,
+      "total": 226667,
+      "cost_usd": 0
+    },
+    "Frank": {
+      "in": 527494,
+      "out": 72185,
+      "total": 599679,
+      "cost_usd": 0
+    },
+    "Grace": {
+      "in": 209574,
+      "out": 49956,
+      "total": 259530,
+      "cost_usd": 0
+    },
+    "Henry": {
+      "in": 1375229,
+      "out": 49829,
+      "total": 1425058,
+      "cost_usd": 0
+    },
+    "Mark": {
+      "in": 302373,
+      "out": 15101,
+      "total": 317474,
+      "cost_usd": 0
+    }
+  },
+  "messages": {
+    "total": 213,
+    "by_tag": {
+      "decompose": 0,
+      "ask": 7,
+      "answer": 0,
+      "deliver": 0,
+      "status": 206,
+      "review": 0,
+      "untagged": 0
+    }
+  },
+  "patches": {
+    "proposed": 0,
+    "accepted": 0,
+    "rejected": 0,
+    "superseded": 0
+  },
+  "artifact": {
+    "deploy_success": true,
+    "build_success": true,
+    "published_path": "docs/facebook"
+  },
+  "milestones": {
+    "time_to_first_build_ms": 0
+  },
+  "flags": {
+    "cap_exceeded": false,
+    "truncated_blobs": false,
+    "routing_rejections": 0,
+    "pr_activity_unsummarized": 1,
+    "node_failures": 0
+  }
+}

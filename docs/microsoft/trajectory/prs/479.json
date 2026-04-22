@@ -1,0 +1,37 @@
+{
+  "run_id": "microsoft",
+  "pr_number": 479,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/479",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Add row and column reference rewrites",
+  "body": "## Summary\n- add engine-level row and column insert/delete helpers that rewrite formula references to keep pointing at the same data when structure shifts\n- mark formulas as `#REF!` when a referenced row or column is deleted\n- extend the engine tests to cover row insert, row delete, column insert, and column delete reference updates\n\n## Verification\n- `node engine.test.js`\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-22T00:09:17Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** Verified PASS stores raw values and evaluates simple formulas\nPASS recomputes dependent formulas when precedent changes\nPASS supports SUM across a range\nPASS detects circular references\nPASS undo and redo restore committed cell values\nPASS undo and redo restore dependent formula results from the PR branch and spot-checked the actual rewrite behavior directly. Inserting a row rewrote  to , and deleting the referenced column produced  as expected. Merging because this cleanly closes the structural row/column reference-update gap on top of current main.",
+      "ts": "2026-04-22T00:10:39Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** I verified the implementation quality on this branch: the engine tests pass, row insertion rewrites references correctly, and deleting a referenced column produces  as expected. I did not merge because main advanced while I was reviewing, so the PR is now dirty against the latest batched-history work. Please rebase this exact structural-edit delta onto current main and keep it focused on row/column reference updates only.",
+      "ts": "2026-04-22T00:11:02Z"
+    }
+  ]
+}

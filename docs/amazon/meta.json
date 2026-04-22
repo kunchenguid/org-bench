@@ -1,0 +1,122 @@
+{
+  "run_id": "amazon",
+  "schema_version": 1,
+  "topology": {
+    "slug": "amazon",
+    "name": "Amazon",
+    "leader_id": "Jeff",
+    "node_count": 9,
+    "culture": {
+      "kind": "amazon-writing",
+      "summary": "Amazon culture - PR/FAQ writing + customer obsession + frugality. Hierarchical staging: each tech lead owns a staging branch and integrates upward."
+    }
+  },
+  "seed": 1,
+  "brief": {
+    "path": "configs/brief.md",
+    "content_hash": "0a3d051ac8b9b246909a7484a4b235965e39aebb4c12c3c59434a24d52e0b93f"
+  },
+  "models": {
+    "node": "openai/gpt-5.4",
+    "judge": "openai/gpt-5.4",
+    "analyst": "openai/gpt-5.4"
+  },
+  "totals": {
+    "tokens": {
+      "in": 3921717,
+      "out": 338517,
+      "total": 4260234
+    },
+    "cost_usd": 0,
+    "wall_clock_ms": 10831870
+  },
+  "tokens_by_node": {
+    "Alice": {
+      "in": 300012,
+      "out": 23322,
+      "total": 323334,
+      "cost_usd": 0
+    },
+    "Ben": {
+      "in": 404938,
+      "out": 39291,
+      "total": 444229,
+      "cost_usd": 0
+    },
+    "Carol": {
+      "in": 140453,
+      "out": 23456,
+      "total": 163909,
+      "cost_usd": 0
+    },
+    "Dave": {
+      "in": 163321,
+      "out": 29271,
+      "total": 192592,
+      "cost_usd": 0
+    },
+    "Emma": {
+      "in": 504067,
+      "out": 33044,
+      "total": 537111,
+      "cost_usd": 0
+    },
+    "Frank": {
+      "in": 237390,
+      "out": 46718,
+      "total": 284108,
+      "cost_usd": 0
+    },
+    "Grace": {
+      "in": 379329,
+      "out": 44417,
+      "total": 423746,
+      "cost_usd": 0
+    },
+    "Henry": {
+      "in": 885860,
+      "out": 78126,
+      "total": 963986,
+      "cost_usd": 0
+    },
+    "Jeff": {
+      "in": 151964,
+      "out": 11258,
+      "total": 163222,
+      "cost_usd": 0
+    }
+  },
+  "messages": {
+    "total": 164,
+    "by_tag": {
+      "decompose": 0,
+      "ask": 3,
+      "answer": 0,
+      "deliver": 0,
+      "status": 153,
+      "review": 8,
+      "untagged": 0
+    }
+  },
+  "patches": {
+    "proposed": 0,
+    "accepted": 0,
+    "rejected": 0,
+    "superseded": 0
+  },
+  "artifact": {
+    "deploy_success": true,
+    "build_success": true,
+    "published_path": "docs/amazon"
+  },
+  "milestones": {
+    "time_to_first_build_ms": 0
+  },
+  "flags": {
+    "cap_exceeded": false,
+    "truncated_blobs": false,
+    "routing_rejections": 0,
+    "pr_activity_unsummarized": 6,
+    "node_failures": 0
+  }
+}

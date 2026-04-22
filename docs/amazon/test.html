@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Northstar Sheet Tests</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; }
+      .pass { color: #0a7a24; }
+      .fail { color: #b42318; }
+    </style>
+  </head>
+  <body>
+    <h1>Northstar Sheet Browser Tests</h1>
+    <div id="results"></div>
+    <div id="fixture"></div>
+    <script>
+      window.AMAZON_RUN_NAMESPACE = 'amazon-dave-test';
+      window.localStorage.removeItem('amazon-dave-test:sheet-state');
+    </script>
+    <script src="spreadsheet.js"></script>
+    <script src="app.js"></script>
+    <script>
+      (function () {
+        var results = document.getElementById('results');
+        var fixture = document.getElementById('fixture');
+
+        function assert(condition, message) {
+          if (!condition) {
+            throw new Error(message);
+          }
+        }
+
+        function run(name, fn) {
+          var line = document.createElement('div');
+          try {
+            fn();
+            line.className = 'pass';
+            line.textContent = 'PASS: ' + name;
+          } catch (error) {
+            line.className = 'fail';
+            line.textContent = 'FAIL: ' + name + ' - ' + error.message;
+          }
+          results.appendChild(line);
+        }
+
+        var formulaInput = document.createElement('input');
+        var cellNameInput = document.createElement('input');
+        var root = document.createElement('div');
+        fixture.appendChild(formulaInput);
+        fixture.appendChild(cellNameInput);
+        fixture.appendChild(root);
+        var sheet = window.NorthstarSheetApp.createSpreadsheet(root, formulaInput, cellNameInput);
+
+        run('renders 26 columns and 100 rows', function () {
+          assert(root.querySelectorAll('.column-header').length === 26, 'expected 26 columns');
+          assert(root.querySelectorAll('.row-header').length === 100, 'expected 100 rows');
+        });
+
+        run('starts with A1 selected', function () {
+          var active = root.querySelector('.cell.active');
+          assert(active && active.dataset.cellId === 'A1', 'expected A1 active');
+        });
+
+        run('formula bar commits formulas and reevaluates dependents', function () {
+          sheet.selectCell(0, 0);
+          formulaInput.value = '4';
+          formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+          formulaInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          sheet.selectCell(1, 0);
+          formulaInput.value = '6';
+          formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+          formulaInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          sheet.selectCell(0, 1);
+          formulaInput.value = '=A1+A2';
+          formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+          formulaInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          assert(root.querySelector('[data-cell-id="B1"]').textContent === '10', 'expected formula result');
+        });
+
+        run('selection can move programmatically', function () {
+          sheet.selectCell(3, 2);
+          var active = root.querySelector('.cell.active');
+          assert(active && active.dataset.cellId === 'C4', 'expected C4 active');
+        });
+      }());
+    </script>
+  </body>
+</html>

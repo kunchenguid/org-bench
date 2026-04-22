@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "topology": "amazon",
+    "artifactPath": "amazon/"
+  },
+  {
+    "topology": "apple",
+    "artifactPath": "apple/"
+  },
+  {
+    "topology": "facebook",
+    "artifactPath": "facebook/"
+  },
+  {
+    "topology": "google",
+    "artifactPath": "google/"
+  },
+  {
+    "topology": "microsoft",
+    "artifactPath": "microsoft/"
+  },
+  {
+    "topology": "oracle",
+    "artifactPath": "oracle/"
+  }
+]

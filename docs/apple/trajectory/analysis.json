@@ -1,0 +1,219 @@
+{
+  "run_id": "apple",
+  "schema_version": 1,
+  "narrative": "Steve used the kickoff brief to split the spreadsheet into eight narrow owner-based slices immediately: formula engine (Alice), shell (Ben), single-cell editing (Carol), range/clipboard (Dave), persistence/history (Emma), structural row/column edits (Frank), visual polish (Grace), and bootstrap/runtime seams (Henry). The fan-out stayed shallow: all substantive delegation was direct from Steve, with no worker-to-worker delegation visible in the published messages. Early work landed out of order because the repo started empty, so workers built isolated slices and Steve merged the shell, persistence/history primitives, and structure rewrite core first; after that he steered the rest by reviewing PRs, asking for rebases, and redirecting people onto current `run/apple/main`. The most active coordination edges were Steve-Emma, Steve-Grace, Steve-Ben, Steve-Carol, and Steve-Dave; Alice and Henry were active early around engine/runtime integration and then went mostly quiet, while no direct neighbor edge stayed completely unused. Decisions got stuck mainly at integration boundaries: Alice's engine was initially Node-only, Dave's clipboard path initially bypassed runtime and used the wrong global export, Frank's UI wiring had to move from an already-merged PR to a fresh PR, and Carol's editing work repeatedly hit stale/conflicting PR state before being reopened as replacement PRs. Work churn centered on Carol's editing line, which moved from PR #328 to #334 to #335 and then still needed a live bugfix PR #336 after browser QA showed Enter would not commit; Emma's undo fix also required a clean-session repro because earlier observations were polluted by persisted browser state. Integration happened incrementally on main: shell (#329), persistence/history primitives (#325), structure rewrite core (#324), visual polish (#330), browser-safe formula engine (#326), runtime seams (#327), persistence/history hookup (#333), clipboard/range clear (#331), structural header commands (#332), single-cell editing (#335), live Enter-commit fix (#336), and live undo fix (#337). Steve finished with a fresh isolated browser pass and submitted after confirming `A1 -> formula bar commit -> Cmd+Z` behaved correctly on shipped main, but the judge artifact later recorded that formulas still were not browser-observable end to end because rendered grid values came from raw cell contents rather than evaluated engine output.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Steve",
+        "to": "Alice",
+        "forward_messages": 10,
+        "reverse_messages": 6
+      },
+      {
+        "from": "Steve",
+        "to": "Ben",
+        "forward_messages": 17,
+        "reverse_messages": 5
+      },
+      {
+        "from": "Steve",
+        "to": "Carol",
+        "forward_messages": 15,
+        "reverse_messages": 14
+      },
+      {
+        "from": "Steve",
+        "to": "Dave",
+        "forward_messages": 15,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Steve",
+        "to": "Emma",
+        "forward_messages": 22,
+        "reverse_messages": 14
+      },
+      {
+        "from": "Steve",
+        "to": "Frank",
+        "forward_messages": 12,
+        "reverse_messages": 14
+      },
+      {
+        "from": "Steve",
+        "to": "Grace",
+        "forward_messages": 21,
+        "reverse_messages": 22
+      },
+      {
+        "from": "Steve",
+        "to": "Henry",
+        "forward_messages": 8,
+        "reverse_messages": 6
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 8,
+      "max_delegation_depth": 1
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 2,
+      "reverted": 0,
+      "rewritten": 5
+    },
+    "incidents": [
+      {
+        "kind": "integration_failure",
+        "summary": "Alice's first formula-engine PR was functionally correct in Node tests but unusable from the browser until Steve asked for a browser export and Alice refreshed the same PR.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 37
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 58
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 66
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Carol's editing work repeatedly hit overlap and merge-state problems, then still required a follow-up live bugfix after browser QA showed Enter would not commit the active cell.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 38
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 68
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 122
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 148
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 161
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 175
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 178
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Dave's clipboard branch initially wrote through local app state and looked for the wrong engine export, then went through merge-marker cleanup before it was mergeable.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 69
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 83
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 98
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 111
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 116
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 120
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Frank first extended an already-merged PR with structural UI wiring, then had to reopen that work as a fresh PR and rebase it multiple times as main moved.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 63
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 70
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 94
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 100
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 121
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 142
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Emma's first undo report used a stale browser profile (`B2`/`B3`), and the clean runtime/history repro was only pinned down after both Steve and Emma rechecked in fresh isolated sessions.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 186
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 188
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 193
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 195
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "The final shipped artifact passed the team's live browser verification, but the judge artifact later recorded that formulas were still not rendered as evaluated values in the grid UI.",
+        "refs": [
+          {
+            "file": "events.jsonl",
+            "line": 1
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 387928,
+    "out": 1473
+  },
+  "cost_usd": 0
+}

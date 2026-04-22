@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gridline</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div>
+          <div class="brand">Gridline</div>
+          <div class="subtitle">Formula-first spreadsheet for quick calculations.</div>
+        </div>
+        <div class="toolbar-controls">
+          <div class="structure-actions" aria-label="Structure actions">
+            <button type="button" class="action-button" data-insert-row>+ Row</button>
+            <button type="button" class="action-button" data-delete-row>- Row</button>
+            <button type="button" class="action-button" data-insert-column>+ Col</button>
+            <button type="button" class="action-button" data-delete-column>- Col</button>
+          </div>
+          <div class="formula-wrap">
+            <div class="cell-label" data-selected-cell>A1</div>
+            <input class="formula-input" data-formula-input aria-label="Formula bar" spellcheck="false" />
+          </div>
+        </div>
+      </header>
+      <main class="workspace">
+        <aside class="side-panel">
+          <div class="panel-title">Cell Editor</div>
+          <textarea class="cell-editor" data-cell-editor aria-label="Cell editor" spellcheck="false"></textarea>
+          <div class="structure-panel-actions">
+            <button type="button" class="action-button" data-insert-row>Insert row at selection</button>
+            <button type="button" class="action-button" data-delete-row>Delete selected row</button>
+            <button type="button" class="action-button" data-insert-column>Insert column at selection</button>
+            <button type="button" class="action-button" data-delete-column>Delete selected column</button>
+          </div>
+          <p class="panel-hint">Click a cell, type values or formulas, then press Enter to commit and move down.</p>
+        </aside>
+        <section class="grid-shell" aria-label="Spreadsheet grid">
+          <div class="column-headers" data-column-headers></div>
+          <div class="grid-body" data-grid-body></div>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

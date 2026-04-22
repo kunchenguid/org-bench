@@ -1,0 +1,193 @@
+{
+  "run_id": "google",
+  "schema_version": 1,
+  "narrative": "Eric used the brief as an execution filter, not just a task list. In his first decomposition he told Alice and Ben to enforce short design docs with TDD plans and measurable checks, and he gave Carol and Dave explicit review lanes tied to judged behaviors like clipboard, undo/redo, persistence, paste reference shifting, structural rewrites, and browser validation (`messages.jsonl:2-5`).\n\nDecomposition fanned out in two layers. Eric delegated directly to four integrators, then those integrators worked the worker lanes: Alice with Emma and Frank on model/formula concerns, Ben with Grace and Henry on grid/editing concerns, while Carol and Dave acted as cross-cutting integrators. The first worker round produced several parallel starts: Carol opened a baseline PR 354, Frank opened PR 355, Grace wrote a design doc that became PR 356, Henry opened doc-first PR 353, and Emma advanced fastest on a vertical slice that became PR 357 (`messages.jsonl:8,14-19,57-59`).\n\nThe run got stuck early on an environment and visibility problem. Multiple integrators reported empty worktrees or missing referenced files, so reviews initially stalled on path access rather than substance (`messages.jsonl:6-7,24-32`). Eric then redirected everyone to treat GitHub PR URLs as the source of truth for review, which reopened progress on Henry 353 and the live worker branches (`messages.jsonl:43-46`).\n\nFrom there, the main strategic pattern was convergence pressure against branch sprawl. Emma kept extending one branch in thin slices: first shell plus formulas and persistence, then range and clipboard core, then browser-visible selection and clipboard UI, then undo/redo, then structural helpers, then discoverable structural controls (`messages.jsonl:33-36,81-83,146-147,167-168,202-203,218-219,240-241`). Eric repeatedly named Emma's branch as the trunk candidate and told the team to stop duplicating shells or alternate baselines (`messages.jsonl:65-68,89-92,111-114,154-157,249-252`).\n\nWork still fanned out around that convergence line. Grace pivoted away from duplicated formula work into a narrow edit-mode follow-on, producing PR 359 for typed-key edit start, F2/double-click preserve-edit, Enter/Tab commit, and Escape cancel (`messages.jsonl:85-87,106-108,129-131`). Henry first split his mixed-scope doc PR into a clean doc-only PR 358, then repeatedly retargeted from duplicate formula work to undo/redo and then to clear-range behavior, eventually landing PR 363 for Delete/Backspace clearing of the selected rectangle (`messages.jsonl:109-110,115-116,132,139-141,172,180-181,205,230-231`). Frank kept extending PR 355 across shell, formulas, range selection, clipboard, history, absolute references, and structural helpers, but that branch increasingly diverged from trunk and was later treated as an alternate baseline rather than the landing path (`messages.jsonl:37,60,84,105,128,148,169,189,204,210,233,242-243`).\n\nThe busiest active edges were Eric with all four integrators, then Emma with Ben and Carol, Grace with Carol and Dave, Frank with Alice, and Henry with Alice/Ben. Those edges carried decomposition, review steering, rebase requests, and merge handoffs. By contrast, there were no clearly idle leader-to-neighbor edges; Eric used all four of Alice, Ben, Carol, and Dave throughout the run.\n\nSeveral decisions got stuck around branch state rather than code quality. PR 357 was repeatedly judged as the strongest slice but spent multiple rounds blocked by DIRTY/CLEAN transitions and conflicting merge ownership (`messages.jsonl:71,93-97,103-104,111-120`). PR 359 had the same pattern after 357 landed: reviewers liked the narrow scope, but it had to be rebased and refreshed before merge (`messages.jsonl:118,121,124-125,142-145,149-151,158-166`). PR 361 then hit the same base-churn loop when 359 landed underneath it, forcing Emma to refresh and extend it before it finally merged (`messages.jsonl:160-168,173-185`). Late in the run, PR 364 also had stale status messages after it was effectively the accepted structural branch (`messages.jsonl:249-277`).\n\nThere was also real duplication and supersession. Henry's original mixed-scope PR 353 was split and closed in favor of doc-only PR 358 (`messages.jsonl:69-70,109-116`). Grace's foundation PR 356 was explicitly called weaker than Emma 357 by Ben and Carol, but Dave merged it anyway, temporarily making main a shell-level artifact that Eric then described as behind Emma (`messages.jsonl:72-73,75,78-80,89-92`). Henry's PR 360 duplicated a formula engine already shipped on the app path and was closed (`messages.jsonl:139-141,172`). Henry's PR 362 overlapped Emma's landed undo/redo work and was later closed (`messages.jsonl:180-181,205,225`). Henry's later structural PR 365 became secondary once Emma 364 existed and was ultimately closed as superseded (`messages.jsonl:248-257,271,276-277`). Frank's long-lived PR 355 was repeatedly reviewed as too divergent and was eventually abandoned in favor of a replacement branch and PR 366, which appeared only after Emma 364 had already landed (`messages.jsonl:210,233,242-243,266-267,274, prs/366.json`).\n\nIntegration happened incrementally on main, mostly through rebased, scope-limited PRs rather than one big merge. The sequence was: Grace 356 shell foundation, Emma 357 formula-capable foundation, Grace 359 edit-mode, Emma 361 selection/clipboard/undo, Henry 363 range clearing, and Emma 364 structural controls on top of structural rewrite helpers (`events.jsonl:1, messages.jsonl:117-123,158-166,177-185,230-231,256-261`). Repeated rebases and conflict resolutions were part of that integration path, especially on Emma 357 and 361 and Grace 359 (`messages.jsonl:103-104,149-151,167-168`).\n\nWhat finally shipped was the converged mainline, not any of the stale side branches. Eric's final validation said `run/google/main` passed 25 app checks and was judge-ready, covering rectangular selection, clipboard flows, undo/redo, row and column insert/delete rewrite behavior, `#REF!` handling, persistence, and structural undo/redo, with a clean `file://` load and empty browser console (`events.jsonl:9`). The judge result matches that story: the shipped artifact loaded cleanly, supported formula evaluation and recomputation, relative and absolute copy behavior, structural edits with rewrite behavior, `#REF!` on deleted references, and persistence across reload, while some interaction completeness remained below top tier (`judge.json`).",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Eric",
+        "to": "Alice",
+        "forward_messages": 13,
+        "reverse_messages": 14
+      },
+      {
+        "from": "Eric",
+        "to": "Ben",
+        "forward_messages": 12,
+        "reverse_messages": 14
+      },
+      {
+        "from": "Eric",
+        "to": "Carol",
+        "forward_messages": 13,
+        "reverse_messages": 14
+      },
+      {
+        "from": "Eric",
+        "to": "Dave",
+        "forward_messages": 12,
+        "reverse_messages": 14
+      },
+      {
+        "from": "Emma",
+        "to": "Ben",
+        "forward_messages": 14,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Emma",
+        "to": "Carol",
+        "forward_messages": 10,
+        "reverse_messages": 10
+      },
+      {
+        "from": "Grace",
+        "to": "Carol",
+        "forward_messages": 12,
+        "reverse_messages": 11
+      },
+      {
+        "from": "Grace",
+        "to": "Dave",
+        "forward_messages": 12,
+        "reverse_messages": 8
+      },
+      {
+        "from": "Frank",
+        "to": "Alice",
+        "forward_messages": 13,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Henry",
+        "to": "Alice",
+        "forward_messages": 8,
+        "reverse_messages": 6
+      },
+      {
+        "from": "Grace",
+        "to": "Ben",
+        "forward_messages": 9,
+        "reverse_messages": 6
+      },
+      {
+        "from": "Henry",
+        "to": "Ben",
+        "forward_messages": 7,
+        "reverse_messages": 5
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 4,
+      "max_delegation_depth": 2
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 6,
+      "reverted": 0,
+      "rewritten": 4
+    },
+    "incidents": [
+      {
+        "kind": "integration_failure",
+        "summary": "Early review work was blocked by empty or mismatched worktrees, so integrators could not read referenced docs and artifacts until Eric redirected reviews to GitHub PR URLs.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 7
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 24
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 43
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Ben explicitly asked that Grace PR 356 be treated as superseded in favor of Emma PR 357, but Dave merged 356 anyway, leaving main on a weaker shell foundation that Eric then had to route around.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 72
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 78
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 89
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "PR 361 repeatedly hit base-branch churn: reviewers verified the slice, attempted to merge, then main advanced underneath it after PR 359 landed, forcing Emma to refresh the branch before it could land.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 160
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 162
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 164
+          }
+        ]
+      },
+      {
+        "kind": "brief_handoff",
+        "summary": "Henry's original mixed-scope doc PR 353 was held for process reasons, then split into doc-only PR 358 so design consensus could land before more implementation on that line.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 22
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 43
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 109
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 115
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Late PR state messages around 364 were stale or overlapping: Emma still asked for merge while Ben and Carol were already reporting it merged, showing another propagation lag around the accepted structural branch.",
+        "refs": [
+          {
+            "file": "messages.jsonl",
+            "line": 256
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 259
+          },
+          {
+            "file": "messages.jsonl",
+            "line": 264
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.4",
+  "tokens": {
+    "in": 483985,
+    "out": 2670
+  },
+  "cost_usd": 0
+}

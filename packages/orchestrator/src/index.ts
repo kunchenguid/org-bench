@@ -323,7 +323,23 @@ export function buildNodeCommonContext({
     ? [`## Culture`, ``, validatedTopology.culture.summary].join("\n")
     : "";
 
-  return [teamSection, cultureSection]
+  const toolsSection = [
+    `## Tools: agent-browser`,
+    ``,
+    `You have an \`agent-browser\` CLI available via bash that drives a real browser. Use it to actually open and interact with HTML artifacts - for testing your own work, reviewing a peer's PR, or verifying end-to-end behavior after merges. Common commands:`,
+    ``,
+    `- \`agent-browser open <url>\` (file:// URLs work for local artifacts)`,
+    `- \`agent-browser snapshot\` (dump a queryable DOM snapshot with uids)`,
+    `- \`agent-browser click <uid>\` / \`fill <uid> <text>\` / \`type <text>\` / \`press <key>\``,
+    `- \`agent-browser errors\` (read uncaught console errors)`,
+    `- \`agent-browser screenshot <path>\``,
+    ``,
+    `Call them through bash, one at a time, reading output between calls. Because multiple nodes run per round, always set an isolated browser session so you don't collide with peers:`,
+    ``,
+    `\`AGENT_BROWSER_SESSION=${runId}-${validatedNodeId} agent-browser <command>\``,
+  ].join("\n");
+
+  return [teamSection, cultureSection, toolsSection]
     .filter((section) => section.length > 0)
     .join("\n\n");
 }
@@ -1121,6 +1137,18 @@ export async function runSoloBenchmark({
         }),
     });
 
+    await runFinalizeStage({
+      artifactDir,
+      runId: validatedRunId,
+      round: Math.max(1, roundsExecuted),
+      stage: "close_browser_sessions",
+      run: () =>
+        closeBrowserSessions({
+          runId: validatedRunId,
+          nodeIds: executableRunConfig.topology.nodes,
+        }),
+    });
+
     const meta = await aggregateMeta({
       artifactDir,
       repoRoot: validatedRepoRoot,
@@ -1366,6 +1394,16 @@ export async function runBenchmark(
         activeNodes: activeNodeIds.join(","),
         activeCount: activeNodeIds.length,
       });
+      const mainSyncSha = await syncMainWorktreeToRemote({
+        mainWorktreeDir: workspace.mainWorktreeDir,
+        remoteName: workspace.remoteName,
+        mainBranch: `run/${validatedRunId}/main`,
+      });
+      logEvent("main_worktree_synced", {
+        runId: validatedRunId,
+        round,
+        sha: mainSyncSha,
+      });
       const roundResults = await raceRoundSafetyTimeout(
         runRoundParallel({
           runId: validatedRunId,
@@ -1536,6 +1574,18 @@ export async function runBenchmark(
           runId: validatedRunId,
           model: executableRunConfig.models.analyst.model,
           openCodeClient: resolvedOpenCodeClient,
+        }),
+    });
+
+    await runFinalizeStage({
+      artifactDir,
+      runId: validatedRunId,
+      round: Math.max(1, roundsExecuted),
+      stage: "close_browser_sessions",
+      run: () =>
+        closeBrowserSessions({
+          runId: validatedRunId,
+          nodeIds: executableRunConfig.topology.nodes,
         }),
     });
 
@@ -5118,6 +5168,60 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 async function runGit(args: string[], cwd: string): Promise<void> {
   await execFileAsync("git", args, { cwd });
+}
+
+// Every AGENT_BROWSER_SESSION value we hand out spawns a persistent Chrome
+// user-data-dir (~1 GB each for idle, much more under load). agent-browser
+// does not close those on session end, so runs leak ~10 GB of Chrome per
+// topology. Call `agent-browser close` once per session we created at the end
+// of finalize. Best-effort - swallow failures so they can't fail the run.
+async function closeBrowserSessions({
+  runId,
+  nodeIds,
+}: {
+  runId: string;
+  nodeIds: string[];
+}): Promise<void> {
+  const sessions = [
+    `org-bench-judge-${runId}`,
+    ...nodeIds.map((nodeId) => `${runId}-${nodeId}`),
+  ];
+  await Promise.all(
+    sessions.map(async (sessionName) => {
+      try {
+        await execFileAsync("agent-browser", ["close"], {
+          env: { ...process.env, AGENT_BROWSER_SESSION: sessionName },
+        });
+      } catch {
+        // swallow - cleanup is best-effort
+      }
+    }),
+  );
+}
+
+// Before each round we force the shared main worktree to match the remote
+// tip and nuke anything agents may have dropped in there. Without this, merges
+// that land mid-run don't show up when any node points agent-browser at
+// ../main/index.html, so their live-testing validates stale code.
+async function syncMainWorktreeToRemote({
+  mainWorktreeDir,
+  remoteName,
+  mainBranch,
+}: {
+  mainWorktreeDir: string;
+  remoteName: string;
+  mainBranch: string;
+}): Promise<string> {
+  await runGit(["fetch", remoteName, mainBranch], mainWorktreeDir);
+  await runGit(
+    ["reset", "--hard", `${remoteName}/${mainBranch}`],
+    mainWorktreeDir,
+  );
+  await runGit(["clean", "-fd"], mainWorktreeDir);
+  const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], {
+    cwd: mainWorktreeDir,
+  });
+  return stdout.trim();
 }
 
 async function runCommand({
