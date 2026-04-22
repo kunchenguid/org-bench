@@ -14,8 +14,8 @@ test('records snapshots and undoes to the previous state', () => {
 
   const result = undoSnapshot(history);
 
-  assert.deepEqual(result.snapshot, { cells: {}, active: 'A1' });
-  assert.deepEqual(result.history.future, [{ cells: { A1: '7' }, active: 'A2' }]);
+  assert.deepEqual(result.snapshot, { cells: {}, active: 'A1', rangeAnchor: null });
+  assert.deepEqual(result.history.future, [{ cells: { A1: '7' }, active: 'A2', rangeAnchor: null }]);
 });
 
 test('redos an undone snapshot', () => {
@@ -25,7 +25,7 @@ test('redos an undone snapshot', () => {
 
   const redone = redoSnapshot(undone.history);
 
-  assert.deepEqual(redone.snapshot, { cells: { A1: '7' }, active: 'A2' });
+  assert.deepEqual(redone.snapshot, { cells: { A1: '7' }, active: 'A2', rangeAnchor: null });
 });
 
 test('drops redo history after a new snapshot is recorded', () => {
@@ -44,5 +44,14 @@ test('caps history at fifty prior snapshots', () => {
   }
 
   assert.equal(history.past.length, 50);
-  assert.deepEqual(history.past[0], { cells: { A1: '10' }, active: 'A1' });
+  assert.deepEqual(history.past[0], { cells: { A1: '10' }, active: 'A1', rangeAnchor: null });
+});
+
+test('preserves selection metadata in snapshots', () => {
+  let history = createHistory({ cells: {}, active: 'B2', rangeAnchor: { col: 1, row: 1 } });
+  history = recordSnapshot(history, { cells: { B2: '9' }, active: 'C3', rangeAnchor: { col: 2, row: 2 } });
+
+  const undone = undoSnapshot(history);
+
+  assert.deepEqual(undone.snapshot, { cells: {}, active: 'B2', rangeAnchor: { col: 1, row: 1 } });
 });

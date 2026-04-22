@@ -58,6 +58,7 @@
     return {
       cells: Object.assign({}, snapshot.cells),
       active: snapshot.active,
+      rangeAnchor: snapshot.rangeAnchor ? { col: snapshot.rangeAnchor.col, row: snapshot.rangeAnchor.row } : null,
     };
   }
 
