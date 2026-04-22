@@ -128,7 +128,7 @@ test('inserting a row rewrites formulas so references keep pointing at the same 
   assert.equal(cells.B2, '=SUM(A2:A3)');
 });
 
-test('deleting a referenced row produces #REF! for deleted cell references', () => {
+test('deleting a referenced row collapses a deleted single-cell formula to raw #REF!', () => {
   const store = createSpreadsheetStore({ namespace: 'delete-row', storage: createMemoryStorage() });
 
   store.commit({
@@ -136,7 +136,6 @@ test('deleting a referenced row produces #REF! for deleted cell references', () 
       A1: '7',
       A2: '8',
       B1: '=A2',
-      B3: '=SUM(A1:A2)',
     },
   });
 
@@ -144,8 +143,7 @@ test('deleting a referenced row produces #REF! for deleted cell references', () 
 
   const cells = store.getState().cells;
   assert.equal(cells.A1, '7');
-  assert.equal(cells.B1, '=#REF!');
-  assert.equal(cells.B2, '=SUM(A1:#REF!)');
+  assert.equal(cells.B1, '#REF!');
 });
 
 test('column insertion and deletion rewrite formulas with absolute markers preserved', () => {
@@ -166,7 +164,23 @@ test('column insertion and deletion rewrite formulas with absolute markers prese
   assert.equal(store.getState().cells.C1, '=SUM($A1:B$1)');
 });
 
-test('deleting a referenced column produces #REF! for deleted column references', () => {
+test('deleting a referenced range endpoint collapses the formula to raw #REF!', () => {
+  const store = createSpreadsheetStore({ namespace: 'delete-range-endpoint', storage: createMemoryStorage() });
+
+  store.commit({
+    cells: {
+      A1: '1',
+      A2: '2',
+      B3: '=SUM(A1:A2)',
+    },
+  });
+
+  store.deleteRows(2, 1);
+
+  assert.equal(store.getState().cells.B2, '#REF!');
+});
+
+test('deleting a referenced column also collapses the formula to raw #REF!', () => {
   const store = createSpreadsheetStore({ namespace: 'delete-column', storage: createMemoryStorage() });
 
   store.commit({
@@ -174,12 +188,10 @@ test('deleting a referenced column produces #REF! for deleted column references'
       A1: '1',
       B1: '2',
       C1: '=B1',
-      C2: '=SUM(A1:B1)',
     },
   });
 
   store.deleteColumns(2, 1);
 
-  assert.equal(store.getState().cells.B1, '=#REF!');
-  assert.equal(store.getState().cells.B2, '=SUM(A1:#REF!)');
+  assert.equal(store.getState().cells.B1, '#REF!');
 });

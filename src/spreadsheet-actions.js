@@ -5,6 +5,7 @@ const DEFAULT_SELECTION = {
 };
 
 const STORAGE_SUFFIX = 'spreadsheet-state';
+const DELETED_REFERENCE = '#REF!';
 
 function createMemoryStorage() {
   const values = new Map();
@@ -311,15 +312,22 @@ function rewriteFormulaForStructure(raw, change) {
     return raw;
   }
 
-  return raw.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, (match, absoluteColumn, columnLabel, absoluteRow, rowLabel) => {
+  let deletedReferenceFound = false;
+  const rewritten = raw.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, (match, absoluteColumn, columnLabel, absoluteRow, rowLabel) => {
     const reference = {
       column: labelToColumn(columnLabel),
       row: Number(rowLabel),
       absoluteColumn: absoluteColumn === '$',
       absoluteRow: absoluteRow === '$',
     };
-    return rewriteReferenceForStructure(reference, change);
+    const nextReference = rewriteReferenceForStructure(reference, change);
+    if (nextReference === DELETED_REFERENCE) {
+      deletedReferenceFound = true;
+    }
+    return nextReference;
   });
+
+  return deletedReferenceFound ? DELETED_REFERENCE : rewritten;
 }
 
 function rewriteReferenceForStructure(reference, change) {
@@ -333,8 +341,8 @@ function rewriteReferenceForStructure(reference, change) {
       if (!reference.absoluteRow && reference.row >= start) {
         nextRow += change.count;
       }
-    } else if (reference.row >= start && reference.row <= end) {
-      return '#REF!';
+  } else if (reference.row >= start && reference.row <= end) {
+      return DELETED_REFERENCE;
     } else if (!reference.absoluteRow && reference.row > end) {
       nextRow -= change.count;
     }
@@ -343,7 +351,7 @@ function rewriteReferenceForStructure(reference, change) {
       nextColumn += change.count;
     }
   } else if (reference.column >= start && reference.column <= end) {
-    return '#REF!';
+    return DELETED_REFERENCE;
   } else if (!reference.absoluteColumn && reference.column > end) {
     nextColumn -= change.count;
   }
