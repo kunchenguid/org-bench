@@ -43,6 +43,22 @@
     sheet.cells[address] = String(raw);
   }
 
+  function shiftFormula(raw, sourceAddress, targetAddress) {
+    if (!raw || raw.charAt(0) !== '=') return raw || '';
+    const source = splitAddress(sourceAddress);
+    const target = splitAddress(targetAddress);
+    if (!source || !target) return raw;
+    const deltaCol = target.col - source.col;
+    const deltaRow = target.row - source.row;
+
+    return '=' + raw.slice(1).replace(/(\$?)([A-Z]+)(\$?)([1-9][0-9]*)/g, function (_match, colAbs, colLabel, rowAbs, rowNumber) {
+      const ref = { col: columnToIndex(colLabel), row: Number(rowNumber) };
+      const nextCol = colAbs ? ref.col : ref.col + deltaCol;
+      const nextRow = rowAbs ? ref.row : ref.row + deltaRow;
+      if (nextCol < 1 || nextRow < 1) return ERROR.REF;
+      return (colAbs ? '$' : '') + indexToColumn(nextCol) + (rowAbs ? '$' : '') + String(nextRow);
+    });
+  }
   function undo(sheet) {
     if (!sheet.history.undoStack.length) return false;
     sheet.history.redoStack.push(snapshotCells(sheet));
@@ -441,6 +457,7 @@
     ERROR: ERROR,
     createSheet: createSheet,
     setCell: setCell,
+    shiftFormula: shiftFormula,
     undo: undo,
     redo: redo,
     getCellRaw: getCellRaw,

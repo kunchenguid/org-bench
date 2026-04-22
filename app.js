@@ -10,7 +10,7 @@
   const gridWrap = document.querySelector('.grid-wrap');
   const formulaInput = document.querySelector('#formula-input');
   const nameBox = document.querySelector('#name-box');
-  const state = { active: persisted.active || 'A1', editing: null, rangeAnchor: null };
+  const state = { active: persisted.active || 'A1', editing: null, rangeAnchor: null, clipboard: null };
   let history = historyApi.createHistory(snapshotState());
 
   renderGrid();
@@ -28,6 +28,9 @@
     if (cell) startEdit(cell.dataset.address, false, '');
   });
   gridWrap.addEventListener('keydown', handleGridKeydown);
+  document.addEventListener('copy', handleCopy);
+  document.addEventListener('cut', handleCut);
+  document.addEventListener('paste', handlePaste);
 
   formulaInput.addEventListener('input', function () {
     if (state.editing !== 'formula') state.editing = 'formula';
@@ -198,6 +201,118 @@
     syncFormulaBar();
   }
 
+  function handleCopy(event) {
+    if (!shouldHandleClipboard(event)) return;
+    const payload = buildClipboardPayload();
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', payload.text);
+    payload.cut = false;
+    state.clipboard = payload;
+  }
+
+  function handleCut(event) {
+    if (!shouldHandleClipboard(event)) return;
+    const payload = buildClipboardPayload();
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', payload.text);
+    payload.cut = true;
+    state.clipboard = payload;
+  }
+
+  function handlePaste(event) {
+    if (!shouldHandleClipboard(event)) return;
+    const text = event.clipboardData.getData('text/plain');
+    if (!text) return;
+    event.preventDefault();
+    applyClipboard(text);
+  }
+
+  function shouldHandleClipboard(event) {
+    if (state.editing && state.editing !== 'formula') return false;
+    const activeElement = document.activeElement;
+    if (activeElement === formulaInput) return false;
+    return gridWrap.contains(activeElement) || gridWrap.contains(event.target) || document.body === activeElement;
+  }
+
+  function buildClipboardPayload() {
+    const range = getSelectedRange();
+    const rect = range || getSingleCellRange(state.active);
+    const rows = [];
+    for (let row = rect.startRow; row <= rect.endRow; row += 1) {
+      const values = [];
+      for (let col = rect.startCol; col <= rect.endCol; col += 1) {
+        values.push(core.getCellRaw(sheet, core.makeAddress(col, row)));
+      }
+      rows.push(values);
+    }
+    return {
+      anchor: core.makeAddress(rect.startCol, rect.startRow),
+      rows: rows,
+      width: rect.endCol - rect.startCol + 1,
+      height: rect.endRow - rect.startRow + 1,
+      text: rows.map(function (row) { return row.join('\t'); }).join('\n'),
+      cut: false,
+    };
+  }
+
+  function applyClipboard(text) {
+    const payload = state.clipboard && state.clipboard.text === text ? state.clipboard : parseClipboardText(text);
+    const target = getPasteRange(payload);
+    const sourceStart = payload.anchor ? core.splitAddress(payload.anchor) : null;
+    history = historyApi.recordSnapshot(history, nextPasteSnapshot(payload, target));
+    for (let row = 0; row < payload.height; row += 1) {
+      for (let col = 0; col < payload.width; col += 1) {
+        const targetAddress = core.makeAddress(target.startCol + col, target.startRow + row);
+        if (!isAddressInBounds(targetAddress)) continue;
+        const raw = payload.rows[row][col];
+        const sourceAddress = sourceStart ? core.makeAddress(sourceStart.col + col, sourceStart.row + row) : targetAddress;
+        core.setCell(sheet, targetAddress, core.shiftFormula(raw, sourceAddress, targetAddress));
+      }
+    }
+    if (payload.cut && payload.anchor) clearCutSource(payload, target);
+    state.active = core.makeAddress(target.startCol, target.startRow);
+    state.rangeAnchor = payload.width > 1 || payload.height > 1 ? { col: target.startCol, row: target.startRow } : null;
+    if (state.rangeAnchor) state.active = core.makeAddress(target.endCol, target.endRow);
+    persistState();
+    updateVisibleCells();
+    syncFormulaBar();
+    focusActiveCell();
+    if (payload.cut) state.clipboard = null;
+  }
+
+  function clearCutSource(payload, target) {
+    const sourceStart = core.splitAddress(payload.anchor);
+    for (let row = 0; row < payload.height; row += 1) {
+      for (let col = 0; col < payload.width; col += 1) {
+        const sourceAddress = core.makeAddress(sourceStart.col + col, sourceStart.row + row);
+        if (!isAddressWithinRange(sourceAddress, target)) core.setCell(sheet, sourceAddress, '');
+      }
+    }
+  }
+
+  function parseClipboardText(text) {
+    const rows = text.replace(/\r/g, '').split('\n').map(function (row) { return row.split('\t'); });
+    return {
+      anchor: null,
+      rows: rows,
+      width: rows[0] ? rows[0].length : 1,
+      height: rows.length,
+      text: text,
+      cut: false,
+    };
+  }
+
+  function getPasteRange(payload) {
+    const selected = getSelectedRange();
+    if (selected && rangeWidth(selected) === payload.width && rangeHeight(selected) === payload.height) return selected;
+    const active = core.splitAddress(state.active);
+    return {
+      startCol: active.col,
+      endCol: active.col + payload.width - 1,
+      startRow: active.row,
+      endRow: active.row + payload.height - 1,
+    };
+  }
   function getSelectedRange() {
     if (!state.rangeAnchor) return null;
     const anchor = state.rangeAnchor;
@@ -210,6 +325,10 @@
     };
   }
 
+  function getSingleCellRange(address) {
+    const cell = core.splitAddress(address);
+    return { startCol: cell.col, endCol: cell.col, startRow: cell.row, endRow: cell.row };
+  }
   function getSelectedAddresses() {
     const range = getSelectedRange();
     if (!range) return [state.active];
@@ -229,6 +348,10 @@
     return position.col >= range.startCol && position.col <= range.endCol && position.row >= range.startRow && position.row <= range.endRow;
   }
 
+  function isAddressWithinRange(address, range) {
+    const position = core.splitAddress(address);
+    return position.col >= range.startCol && position.col <= range.endCol && position.row >= range.startRow && position.row <= range.endRow;
+  }
   function updateVisibleCells() {
     const cells = gridWrap.querySelectorAll('[data-address]');
     for (let i = 0; i < cells.length; i += 1) {
@@ -294,6 +417,35 @@
     };
   }
 
+  function nextPasteSnapshot(payload, target) {
+    const cells = Object.assign({}, sheet.cells);
+    const sourceStart = payload.anchor ? core.splitAddress(payload.anchor) : null;
+    for (let row = 0; row < payload.height; row += 1) {
+      for (let col = 0; col < payload.width; col += 1) {
+        const targetAddress = core.makeAddress(target.startCol + col, target.startRow + row);
+        if (!isAddressInBounds(targetAddress)) continue;
+        const raw = payload.rows[row][col];
+        const sourceAddress = sourceStart ? core.makeAddress(sourceStart.col + col, sourceStart.row + row) : targetAddress;
+        const shifted = core.shiftFormula(raw, sourceAddress, targetAddress);
+        if (shifted) cells[targetAddress] = shifted;
+        else delete cells[targetAddress];
+      }
+    }
+    if (payload.cut && payload.anchor) {
+      for (let row = 0; row < payload.height; row += 1) {
+        for (let col = 0; col < payload.width; col += 1) {
+          const sourceAddress = core.makeAddress(sourceStart.col + col, sourceStart.row + row);
+          if (!isAddressWithinRange(sourceAddress, target)) delete cells[sourceAddress];
+        }
+      }
+    }
+    return {
+      cells: cells,
+      active: payload.width > 1 || payload.height > 1 ? core.makeAddress(target.endCol, target.endRow) : core.makeAddress(target.startCol, target.startRow),
+      rangeAnchor: payload.width > 1 || payload.height > 1 ? { col: target.startCol, row: target.startRow } : null,
+    };
+  }
+
   function resolveNextActive(address, move) {
     const current = core.splitAddress(address);
     if (move === 'down') return core.makeAddress(current.col, clamp(current.row + 1, 1, ROWS));
@@ -313,5 +465,11 @@
     return window.__RUN_STORAGE_NAMESPACE__ || window.RUN_STORAGE_NAMESPACE || window.__BENCHMARK_STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'spreadsheet';
   }
 
+  function rangeWidth(range) { return range.endCol - range.startCol + 1; }
+  function rangeHeight(range) { return range.endRow - range.startRow + 1; }
+  function isAddressInBounds(address) {
+    const position = core.splitAddress(address);
+    return position && position.col >= 1 && position.col <= COLS && position.row >= 1 && position.row <= ROWS;
+  }
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 })();
