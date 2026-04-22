@@ -218,6 +218,7 @@
     if (!event.clipboardData) return;
     event.preventDefault();
     event.clipboardData.setData('text/plain', core.serializeSelection(sheet, getSelectedAddresses()));
+    event.clipboardData.setData('application/x-spreadsheet-origin', getSelectionOrigin());
   }
 
   function handleClipboardCut(event) {
@@ -225,6 +226,7 @@
     if (!event.clipboardData) return;
     event.preventDefault();
     event.clipboardData.setData('text/plain', core.serializeSelection(sheet, getSelectedAddresses()));
+    event.clipboardData.setData('application/x-spreadsheet-origin', getSelectionOrigin());
     clearSelectedCells();
   }
 
@@ -234,11 +236,17 @@
     event.preventDefault();
     const text = event.clipboardData.getData('text/plain');
     if (!text) return;
-    core.applyClipboardMatrix(sheet, state.active, core.parseClipboardText(text));
+    core.applyClipboardMatrix(sheet, state.active, core.parseClipboardText(text), event.clipboardData.getData('application/x-spreadsheet-origin') || 'A1');
     persistState();
     updateVisibleCells();
     syncFormulaBar();
     focusActiveCell();
+  }
+
+  function getSelectionOrigin() {
+    const range = getSelectedRange();
+    if (!range) return state.active;
+    return core.makeAddress(range.startCol, range.startRow);
   }
 
   function getSelectedRange() {

@@ -101,14 +101,16 @@
     });
   }
 
-  function applyClipboardMatrix(sheet, originAddress, matrix) {
+  function applyClipboardMatrix(sheet, originAddress, matrix, sourceOriginAddress) {
     const origin = splitAddress(originAddress);
     if (!origin) return [];
+    const sourceOrigin = splitAddress(sourceOriginAddress || 'A1');
     const changes = [];
     for (let row = 0; row < matrix.length; row += 1) {
       for (let col = 0; col < matrix[row].length; col += 1) {
         const address = makeAddress(origin.col + col, origin.row + row);
-        changes.push({ address: address, raw: matrix[row][col] });
+        const sourceAddress = sourceOrigin ? makeAddress(sourceOrigin.col + col, sourceOrigin.row + row) : address;
+        changes.push({ address: address, raw: shiftFormulaReferences(matrix[row][col], sourceAddress, address) });
       }
     }
     return applyCellChanges(sheet, changes);
@@ -461,6 +463,28 @@
 
   function makeError(code) { return { __error: true, code: code || ERROR.ERR }; }
   function isError(value) { return !!(value && value.__error); }
+  function shiftFormulaReferences(raw, fromAddress, toAddress) {
+    if (typeof raw !== 'string' || raw[0] !== '=') return raw;
+    const from = splitAddress(fromAddress);
+    const to = splitAddress(toAddress);
+    if (!from || !to) return raw;
+    const colDelta = to.col - from.col;
+    const rowDelta = to.row - from.row;
+    return '=' + raw.slice(1).replace(/\$?[A-Z]+\$?[1-9][0-9]*/g, function (match) {
+      return shiftReferenceToken(match, colDelta, rowDelta);
+    });
+  }
+
+  function shiftReferenceToken(token, colDelta, rowDelta) {
+    const parts = /^(\$?)([A-Z]+)(\$?)([1-9][0-9]*)$/.exec(token);
+    if (!parts) return token;
+    const col = columnToIndex(parts[2]);
+    const row = Number(parts[4]);
+    const shiftedCol = parts[1] ? col : col + colDelta;
+    const shiftedRow = parts[3] ? row : row + rowDelta;
+    return (parts[1] ? '$' : '') + indexToColumn(Math.max(1, shiftedCol)) + (parts[3] ? '$' : '') + String(Math.max(1, shiftedRow));
+  }
+
   function getBounds(positions) {
     return positions.reduce(function (bounds, position) {
       if (!bounds) {
