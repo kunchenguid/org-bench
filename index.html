@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuickSheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app" aria-label="Spreadsheet">
+    <div class="topbar">
+      <div class="brand">QuickSheet</div>
+      <button id="insert-row">Insert row above</button>
+      <button id="delete-row">Delete row</button>
+      <button id="insert-col">Insert column left</button>
+      <button id="delete-col">Delete column</button>
+      <span class="hint">Enter/F2 edit · Shift+arrows select · Cmd/Ctrl+Z undo</span>
+    </div>
+    <div class="formula-row">
+      <div id="name-box" class="name-box">A1</div>
+      <div class="fx">fx</div>
+      <input id="formula-bar" aria-label="Formula bar" autocomplete="off">
+    </div>
+    <div id="grid-wrap" class="grid-wrap">
+      <table id="grid" aria-label="Spreadsheet grid"></table>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
