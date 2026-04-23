@@ -271,7 +271,8 @@
     });
   }
 
-  function snapshot() { return JSON.stringify({ rows: state.rows, cols: state.cols, cells: state.cells, active: state.active, range: state.range }); }
+  function serializeState(source) { return JSON.stringify({ rows: source.rows, cols: source.cols, cells: source.cells, active: source.active, range: source.range }); }
+  function snapshot() { return serializeState(state); }
   function restore(snap) {
     const s = JSON.parse(snap);
     state.rows = s.rows; state.cols = s.cols; state.cells = s.cells || {}; state.active = s.active; state.anchor = s.active; state.range = s.range || normalizeRange(s.active, s.active);
@@ -466,6 +467,6 @@
     const active = cellEl(state.active.row, state.active.col); if (active) active.focus();
   }
 
-  window.SpreadsheetInternals = { evaluateCell: evaluateCell, adjustFormula: adjustFormula, shiftFormulaForInsert: shiftFormulaForInsert, shiftFormulaForDelete: shiftFormulaForDelete };
+  window.SpreadsheetInternals = { evaluateCell: evaluateCell, adjustFormula: adjustFormula, shiftFormulaForInsert: shiftFormulaForInsert, shiftFormulaForDelete: shiftFormulaForDelete, storageKey: storageKey, serializeState: serializeState };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 }());

@@ -6,6 +6,7 @@
 </head>
 <body>
   <pre id="results">Running...</pre>
+  <script>window.SPREADSHEET_STORAGE_NAMESPACE = 'test-namespace';</script>
   <script src="app.js"></script>
   <script>
     (function () {
@@ -36,6 +37,15 @@
       });
       test('updates formulas after inserting a row', function () {
         equal(api.shiftFormulaForInsert('=SUM(A1:A3)+B4', 'row', 2, 1), '=SUM(A1:A4)+B5');
+      });
+      test('prefixes storage keys with injected namespace', function () {
+        equal(api.storageKey, 'test-namespace:spreadsheet-state-v1');
+      });
+      test('serializes raw formulas and active selection for reload', function () {
+        const snap = api.serializeState({ rows: 100, cols: 26, cells: { B2: '=A1+2' }, active: { row: 2, col: 2 }, range: { r1: 2, c1: 2, r2: 2, c2: 2 } });
+        equal(JSON.parse(snap).cells.B2, '=A1+2');
+        equal(JSON.parse(snap).active.row, 2);
+        equal(JSON.parse(snap).active.col, 2);
       });
       out.textContent = results.join('\n');
       if (results.some(function (line) { return line.indexOf('FAIL ') === 0; })) {
