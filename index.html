@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="toolbar">
+      <div class="brand">Sheet</div>
+      <div class="cell-name" id="cellName">A1</div>
+      <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <div class="hint">Enter edit · Tab move · Shift+arrows select · Ctrl/Cmd+Z undo</div>
+    </header>
+    <main class="sheet-wrap" id="sheetWrap">
+      <table id="grid" class="grid" aria-label="Spreadsheet grid"></table>
+    </main>
+    <div id="menu" class="menu" hidden></div>
+  </div>
+  <script src="spreadsheet-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
