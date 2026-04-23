@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">Sheet</div>
+      <div id="nameBox" class="name-box">A1</div>
+      <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <div class="hint">Enter/F2 edit · Shift+arrows select · Cmd/Ctrl+C/V/Z</div>
+    </header>
+    <main id="viewport" class="viewport" aria-label="Spreadsheet grid">
+      <table id="grid" class="grid"></table>
+    </main>
+    <div id="menu" class="menu" hidden></div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

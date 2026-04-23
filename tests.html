@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Tests</title>
+</head>
+<body>
+  <pre id="results">Running...</pre>
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      const out = document.getElementById('results');
+      const results = [];
+      function test(name, fn) {
+        try {
+          fn();
+          results.push('PASS ' + name);
+        } catch (err) {
+          results.push('FAIL ' + name + ': ' + err.message);
+        }
+      }
+      function equal(actual, expected) {
+        if (actual !== expected) throw new Error('expected ' + expected + ', got ' + actual);
+      }
+      const api = window.SpreadsheetInternals;
+      test('evaluates arithmetic and ranges', function () {
+        const cells = { A1: '2', A2: '3', A3: '=SUM(A1:A2)*2' };
+        equal(api.evaluateCell(cells, 'A3').display, '10');
+      });
+      test('detects circular references', function () {
+        const cells = { A1: '=B1', B1: '=A1' };
+        equal(api.evaluateCell(cells, 'A1').display, '#CIRC!');
+      });
+      test('adjusts relative references when pasted', function () {
+        equal(api.adjustFormula('=A1+$B$2+A$3+$C4', 'B2', 'D5'), '=C4+$B$2+C$3+$C7');
+      });
+      test('updates formulas after inserting a row', function () {
+        equal(api.shiftFormulaForInsert('=SUM(A1:A3)+B4', 'row', 2, 1), '=SUM(A1:A4)+B5');
+      });
+      out.textContent = results.join('\n');
+      if (results.some(function (line) { return line.indexOf('FAIL ') === 0; })) {
+        throw new Error('Test failures:\n' + out.textContent);
+      }
+    }());
+  </script>
+</body>
+</html>
