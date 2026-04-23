@@ -19,6 +19,7 @@ assert.strictEqual(value(makeSheet({ A1: '7', B1: '=IF(A1>5,"big","small")' }), 
 assert.strictEqual(value(makeSheet({ A1: '=TRUE<>FALSE', A2: '="Total: "&ROUND(2.345,2)' }), 'A1'), 'TRUE');
 assert.strictEqual(value(makeSheet({ A1: '=TRUE<>FALSE', A2: '="Total: "&ROUND(2.345,2)' }), 'A2'), 'Total: 2.35');
 assert.strictEqual(value(makeSheet({ A1: '=B1', B1: '=A1' }), 'A1'), '#CIRC!');
+assert.strictEqual(value(makeSheet({ B1: '=SUM(A1:A101)' }), 'B1'), '#REF!');
 assert.strictEqual(core.adjustFormula('=A1+$B$2+C$3+$D4+A1:B2', 0, 0, 2, 1), '=B3+$B$2+D$3+$D6+B3:C4');
 
 console.log('core tests passed');

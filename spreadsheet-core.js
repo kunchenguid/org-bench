@@ -96,6 +96,7 @@
 
   function evaluateCell(sheet, pos, stack) {
     stack = stack || {};
+    if (pos.row < 0 || pos.col < 0 || pos.row >= sheet.rows || pos.col >= sheet.cols) return { value: { error: '#REF!' }, display: '#REF!' };
     var key = cellKey(pos.row, pos.col);
     if (stack[key]) return { value: { error: '#CIRC!' }, display: '#CIRC!' };
     var raw = rawValue(sheet, pos.row, pos.col);
@@ -166,6 +167,7 @@
         var endTok = eat().value;
         var end = parseRef(endTok);
         if (!end) throw new Error('#ERR!');
+        if (end.row < 0 || end.col < 0 || end.row >= sheet.rows || end.col >= sheet.cols) throw new Error('#REF!');
         var out = [];
         var r1 = Math.min(ref.row, end.row), r2 = Math.max(ref.row, end.row);
         var c1 = Math.min(ref.col, end.col), c2 = Math.max(ref.col, end.col);
