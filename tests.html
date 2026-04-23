@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Tests</title>
+  <style>body{font-family:system-ui,sans-serif;margin:24px}.pass{color:#147a3d}.fail{color:#b00020}</style>
+</head>
+<body>
+  <h1>Spreadsheet Tests</h1>
+  <ol id="results"></ol>
+  <script src="app.js"></script>
+  <script>
+    const results = document.getElementById('results');
+    function test(name, fn) {
+      const item = document.createElement('li');
+      try { fn(); item.className = 'pass'; item.textContent = 'PASS ' + name; }
+      catch (error) { item.className = 'fail'; item.textContent = 'FAIL ' + name + ': ' + error.message; }
+      results.appendChild(item);
+    }
+    function assertEqual(actual, expected) {
+      if (actual !== expected) throw new Error('expected ' + expected + ', got ' + actual);
+    }
+    test('evaluates arithmetic, ranges, IF, and concatenation', () => {
+      const sheet = new SpreadsheetModel(10, 8, 'test-suite-core');
+      localStorage.clear();
+      sheet.setCell('A1', '10');
+      sheet.setCell('A2', '5');
+      sheet.setCell('A3', '=SUM(A1:A2)*2');
+      sheet.setCell('B1', '=IF(A3>=30,"Total: "&A3,"low")');
+      assertEqual(sheet.getDisplay('A3'), '30');
+      assertEqual(sheet.getDisplay('B1'), 'Total: 30');
+    });
+    test('detects circular references without crashing', () => {
+      const sheet = new SpreadsheetModel(10, 8, 'test-suite-circ');
+      sheet.setCell('A1', '=B1+1');
+      sheet.setCell('B1', '=A1+1');
+      assertEqual(sheet.getDisplay('A1'), '#CIRC!');
+      assertEqual(sheet.getDisplay('B1'), '#CIRC!');
+    });
+    test('copying a relative formula shifts references', () => {
+      const sheet = new SpreadsheetModel(10, 8, 'test-suite-copy');
+      sheet.setCell('A1', '2');
+      sheet.setCell('A2', '3');
+      sheet.setCell('B1', '=A1+A2');
+      sheet.copyPaste({ row: 0, col: 1, row2: 0, col2: 1 }, { row: 0, col: 2 });
+      assertEqual(sheet.getRaw('C1'), '=B1+B2');
+    });
+  </script>
+</body>
+</html>
