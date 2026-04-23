@@ -56,20 +56,22 @@
 
   function adjustFormulaForStructure(formula, type, index, delta) {
     if (!formula || formula.charAt(0) !== '=') return formula;
-    return replaceFormulaRefs(formula, function (text) {
+    var deletedRef = false;
+    var adjusted = replaceFormulaRefs(formula, function (text) {
       var ref = parseRef(text);
       if (!ref) return text;
       if (type === 'row') {
         if (delta > 0 && ref.row >= index) ref.row += delta;
-        if (delta < 0 && ref.row === index) return '#REF!';
+        if (delta < 0 && ref.row === index) { deletedRef = true; return '#REF!'; }
         if (delta < 0 && ref.row > index) ref.row += delta;
       } else {
         if (delta > 0 && ref.col >= index) ref.col += delta;
-        if (delta < 0 && ref.col === index) return '#REF!';
+        if (delta < 0 && ref.col === index) { deletedRef = true; return '#REF!'; }
         if (delta < 0 && ref.col > index) ref.col += delta;
       }
       return refToText(ref);
     });
+    return deletedRef ? '=#REF!' : adjusted;
   }
 
   function replaceFormulaRefs(formula, replacer) {
@@ -120,6 +122,7 @@
     if (stack[key]) return { value: { error: '#CIRC!' }, display: '#CIRC!' };
     var raw = rawValue(sheet, pos.row, pos.col);
     if (!String(raw).startsWith('=')) return primitive(raw);
+    if (String(raw) === '=#REF!') return { value: { error: '#REF!' }, display: '#REF!' };
     stack[key] = true;
     try {
       var val = parseFormula(String(raw).slice(1), sheet, stack);

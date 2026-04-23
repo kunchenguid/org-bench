@@ -23,5 +23,7 @@ assert.strictEqual(value(makeSheet({ B1: '=SUM(A1:A101)' }), 'B1'), '#REF!');
 assert.strictEqual(core.adjustFormula('=A1+$B$2+C$3+$D4+A1:B2', 0, 0, 2, 1), '=B3+$B$2+D$3+$D6+B3:C4');
 assert.strictEqual(core.adjustFormulaForStructure('="A1 stays text: "&A1', 'row', 0, 1), '="A1 stays text: "&A2');
 assert.strictEqual(core.adjustFormula('="A1 stays text: "&A1', 0, 0, 0, 1), '="A1 stays text: "&B1');
+assert.strictEqual(core.adjustFormulaForStructure('=A1+A2', 'row', 0, -1), '=#REF!');
+assert.strictEqual(value(makeSheet({ A1: '=#REF!' }), 'A1'), '#REF!');
 
 console.log('core tests passed');
