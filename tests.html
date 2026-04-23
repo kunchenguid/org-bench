@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Tests</title>
+  <style>body{font-family:system-ui,sans-serif;margin:24px}.pass{color:#147a3d}.fail{color:#b00020}#fixture{position:absolute;left:-10000px;top:0}</style>
+</head>
+<body>
+  <h1>Spreadsheet Tests</h1>
+  <ol id="results"></ol>
+  <div id="fixture"></div>
+  <script src="app.js"></script>
+  <script>
+    const results = document.getElementById('results');
+    function test(name, fn) {
+      const item = document.createElement('li');
+      try { fn(); item.className = 'pass'; item.textContent = 'PASS ' + name; }
+      catch (error) { item.className = 'fail'; item.textContent = 'FAIL ' + name + ': ' + error.message; }
+      results.appendChild(item);
+    }
+    function assertEqual(actual, expected) {
+      if (actual !== expected) throw new Error('expected ' + expected + ', got ' + actual);
+    }
+    function assertIncludes(actual, expected) {
+      if (!String(actual).includes(expected)) throw new Error('expected ' + actual + ' to include ' + expected);
+    }
+    function press(key, options) {
+      const target = document.querySelector('.cell-editor') || document;
+      target.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ key, bubbles: true, cancelable: true }, options || {})));
+    }
+    function activeInput() {
+      const input = document.querySelector('.cell-editor');
+      if (!input) throw new Error('expected cell editor');
+      return input;
+    }
+    function setupUi() {
+      localStorage.clear();
+      document.getElementById('fixture').innerHTML = '<main class="app"><header class="toolbar"><input id="cell-name"><input id="formula-bar"></header><section id="sheet-wrap"><table id="sheet"></table></section><div id="context-menu" hidden></div></main>';
+      const ui = new SpreadsheetUI();
+      ui.select(0, 0);
+      return ui;
+    }
+    test('evaluates arithmetic, ranges, IF, and concatenation', () => {
+      const sheet = new SpreadsheetModel(10, 8, 'test-suite-core');
+      localStorage.clear();
+      sheet.setCell('A1', '10');
+      sheet.setCell('A2', '5');
+      sheet.setCell('A3', '=SUM(A1:A2)*2');
+      sheet.setCell('B1', '=IF(A3>=30,"Total: "&A3,"low")');
+      assertEqual(sheet.getDisplay('A3'), '30');
+      assertEqual(sheet.getDisplay('B1'), 'Total: 30');
+    });
+    test('detects circular references without crashing', () => {
+      const sheet = new SpreadsheetModel(10, 8, 'test-suite-circ');
+      sheet.setCell('A1', '=B1+1');
+      sheet.setCell('B1', '=A1+1');
+      assertEqual(sheet.getDisplay('A1'), '#CIRC!');
+      assertEqual(sheet.getDisplay('B1'), '#CIRC!');
+    });
+    test('copying a relative formula shifts references', () => {
+      const sheet = new SpreadsheetModel(10, 8, 'test-suite-copy');
+      sheet.setCell('A1', '2');
+      sheet.setCell('A2', '3');
+      sheet.setCell('B1', '=A1+A2');
+      sheet.copyPaste({ row: 0, col: 1, row2: 0, col2: 1 }, { row: 0, col: 2 });
+      assertEqual(sheet.getRaw('C1'), '=B1+B2');
+    });
+    test('browser smoke: edit, movement, recalculation, range delete, undo, insert, reload', () => {
+      const ui = setupUi();
+      press('1');
+      activeInput().value = '10';
+      press('Enter');
+      assertEqual(ui.model.getRaw('A1'), '10');
+      assertEqual(document.getElementById('cell-name').value, 'A2');
+
+      press('5');
+      activeInput().value = '5';
+      press('Tab');
+      assertEqual(ui.model.getRaw('A2'), '5');
+      assertEqual(document.getElementById('cell-name').value, 'B2');
+
+      press('ArrowLeft');
+      press('ArrowDown');
+      press('=');
+      activeInput().value = '=A1+A2';
+      press('Enter');
+      assertEqual(ui.model.getDisplay('A3'), '15');
+      ui.select(1, 0);
+      press('7');
+      activeInput().value = '7';
+      press('Enter');
+      assertEqual(ui.model.getDisplay('A3'), '17');
+
+      ui.select(0, 0);
+      press('ArrowDown', { shiftKey: true });
+      press('Delete');
+      assertEqual(ui.model.getRaw('A1'), '');
+      assertEqual(ui.model.getRaw('A2'), '');
+      press('z', { metaKey: true });
+      assertEqual(ui.model.getRaw('A1'), '10');
+      assertEqual(ui.model.getRaw('A2'), '7');
+
+      ui.model.insertRow(0);
+      ui.render();
+      ui.refresh();
+      assertEqual(ui.model.getRaw('A4'), '=A2+A3');
+      const restored = new SpreadsheetModel(100, 26);
+      assertEqual(restored.getRaw('A4'), '=A2+A3');
+    });
+    test('browser smoke: copy/paste shifts a relative formula and undo restores', () => {
+      const ui = setupUi();
+      ui.model.setCell('A1', '2');
+      ui.model.setCell('A2', '3');
+      ui.model.setCell('B1', '=A1+A2');
+      ui.select(0, 1);
+      ui.model.copySource = { ...ui.model.selection };
+      ui.select(0, 2);
+      ui.model.copyPaste(ui.model.copySource, ui.model.selection, false);
+      assertEqual(ui.model.getRaw('C1'), '=B1+B2');
+      assertEqual(ui.model.getDisplay('C1'), '5');
+      ui.model.undo();
+      assertEqual(ui.model.getRaw('C1'), '');
+      assertIncludes(ui.table.textContent, '5');
+    });
+  </script>
+</body>
+</html>
