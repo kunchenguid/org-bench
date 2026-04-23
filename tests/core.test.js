@@ -20,5 +20,7 @@ assert.strictEqual(value(makeSheet({ A1: '=TRUE<>FALSE', A2: '="Total: "&ROUND(2
 assert.strictEqual(value(makeSheet({ A1: '=TRUE<>FALSE', A2: '="Total: "&ROUND(2.345,2)' }), 'A2'), 'Total: 2.35');
 assert.strictEqual(value(makeSheet({ A1: '=B1', B1: '=A1' }), 'A1'), '#CIRC!');
 assert.strictEqual(core.adjustFormula('=A1+$B$2+C$3+$D4+A1:B2', 0, 0, 2, 1), '=B3+$B$2+D$3+$D6+B3:C4');
+assert.strictEqual(core.adjustFormulaForStructure('="A1 stays text: "&A1', 'row', 0, 1), '="A1 stays text: "&A2');
+assert.strictEqual(core.adjustFormula('="A1 stays text: "&A1', 0, 0, 0, 1), '="A1 stays text: "&B1');
 
 console.log('core tests passed');

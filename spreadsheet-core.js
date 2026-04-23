@@ -44,7 +44,7 @@
     if (!formula || formula.charAt(0) !== '=') return formula;
     var dr = dstRow - srcRow;
     var dc = dstCol - srcCol;
-    return formula.replace(/\$?[A-Z]+\$?\d+/g, function (text) {
+    return replaceFormulaRefs(formula, function (text) {
       var ref = parseRef(text);
       if (!ref) return text;
       if (!ref.absRow) ref.row += dr;
@@ -56,7 +56,7 @@
 
   function adjustFormulaForStructure(formula, type, index, delta) {
     if (!formula || formula.charAt(0) !== '=') return formula;
-    return formula.replace(/\$?[A-Z]+\$?\d+/g, function (text) {
+    return replaceFormulaRefs(formula, function (text) {
       var ref = parseRef(text);
       if (!ref) return text;
       if (type === 'row') {
@@ -70,6 +70,25 @@
       }
       return refToText(ref);
     });
+  }
+
+  function replaceFormulaRefs(formula, replacer) {
+    var out = '';
+    var segment = '';
+    var inString = false;
+    for (var i = 0; i < formula.length; i++) {
+      var ch = formula.charAt(i);
+      if (ch === '"') {
+        out += inString ? segment : segment.replace(/\$?[A-Z]+\$?\d+/g, replacer);
+        out += ch;
+        segment = '';
+        inString = !inString;
+      } else {
+        segment += ch;
+      }
+    }
+    out += inString ? segment : segment.replace(/\$?[A-Z]+\$?\d+/g, replacer);
+    return out;
   }
 
   function rawValue(sheet, row, col) {
