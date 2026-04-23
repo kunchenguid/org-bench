@@ -1,0 +1,43 @@
+:root {
+  --bg: #f7f8fb;
+  --panel: #ffffff;
+  --grid: #d9dee8;
+  --header: #eef2f7;
+  --text: #111827;
+  --muted: #667085;
+  --blue: #1877f2;
+  --blue-soft: rgba(24, 119, 242, .14);
+  --error: #b42318;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.app { height: 100vh; display: flex; flex-direction: column; }
+.toolbar { display: grid; grid-template-columns: auto 72px minmax(220px, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--grid); box-shadow: 0 1px 8px rgba(15, 23, 42, .06); }
+.brand { font-weight: 800; letter-spacing: -.02em; color: var(--blue); font-size: 18px; }
+.namebox { height: 32px; border: 1px solid var(--grid); border-radius: 8px; display: grid; place-items: center; font-weight: 700; background: #f9fafb; }
+.formula { height: 32px; border: 1px solid var(--grid); border-radius: 8px; padding: 0 11px; font: inherit; background: #fff; }
+.formula:focus { outline: 2px solid var(--blue-soft); border-color: var(--blue); }
+.hint { color: var(--muted); white-space: nowrap; font-size: 12px; }
+.grid-wrap { flex: 1; overflow: auto; outline: none; background: #fff; }
+.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 1890px; user-select: none; }
+.grid th, .grid td { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); height: 28px; padding: 0 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.grid th { position: sticky; z-index: 2; background: var(--header); color: #344054; font-weight: 700; text-align: center; }
+.corner { left: 0; top: 0; z-index: 4 !important; width: 46px; min-width: 46px; }
+.col-head { top: 0; width: 70px; min-width: 70px; }
+.row-head { left: 0; width: 46px; min-width: 46px; z-index: 3 !important; }
+.grid td { width: 70px; min-width: 70px; background: #fff; cursor: cell; text-align: right; }
+.grid td.text { text-align: left; }
+.grid td.error { color: var(--error); font-weight: 700; }
+.grid td.in-range { background: var(--blue-soft); }
+.grid td.active { position: relative; background: #fff; box-shadow: inset 0 0 0 2px var(--blue); z-index: 1; }
+.grid td.editing { padding: 0; box-shadow: inset 0 0 0 2px var(--blue); }
+.cell-editor { width: 100%; height: 100%; border: 0; padding: 0 7px; font: inherit; background: #fff; outline: none; }
+.menu { position: fixed; z-index: 10; min-width: 168px; border: 1px solid var(--grid); border-radius: 10px; padding: 6px; background: #fff; box-shadow: 0 16px 30px rgba(15, 23, 42, .18); }
+.menu button { display: block; width: 100%; border: 0; background: transparent; padding: 8px 10px; text-align: left; border-radius: 7px; font: inherit; cursor: pointer; }
+.menu button:hover { background: var(--blue-soft); }
+
+@media (max-width: 760px) {
+  .toolbar { grid-template-columns: auto 64px 1fr; }
+  .hint { display: none; }
+}
