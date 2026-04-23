@@ -4,6 +4,10 @@
   var formulaBar = document.getElementById('formulaBar');
   var cellName = document.getElementById('cellName');
   var menu = document.getElementById('menu');
+  var selectionStatus = document.getElementById('selectionStatus');
+  var insertRowBtn = document.getElementById('insertRowBtn');
+  var insertColBtn = document.getElementById('insertColBtn');
+  var clearRangeBtn = document.getElementById('clearRangeBtn');
   var ns = window.__SPREADSHEET_STORAGE_NAMESPACE__ || window.__BENCH_STORAGE_NAMESPACE__ || window.STORAGE_NAMESPACE || 'facebook-sheet';
   var storageKey = ns + ':state';
   var sheet = { rows: 100, cols: 26, cells: {} };
@@ -59,6 +63,24 @@
     });
     formulaBar.value = raw(active.row, active.col);
     cellName.textContent = key(active.row, active.col);
+    updateSelectionStatus();
+    paintHeaders();
+  }
+
+  function updateSelectionStatus() {
+    var rows = range.r2 - range.r1 + 1;
+    var cols = range.c2 - range.c1 + 1;
+    selectionStatus.textContent = rows === 1 && cols === 1
+      ? key(active.row, active.col) + ' selected'
+      : key(range.r1, range.c1) + ':' + key(range.r2, range.c2) + ' selected (' + rows + ' x ' + cols + ')';
+  }
+
+  function paintHeaders() {
+    grid.querySelectorAll('th.hot').forEach(function (th) { th.classList.remove('hot'); });
+    var rowHead = grid.querySelector('tbody th[data-row="' + active.row + '"]');
+    var colHead = grid.querySelector('thead th[data-col="' + active.col + '"]');
+    if (rowHead) rowHead.classList.add('hot');
+    if (colHead) colHead.classList.add('hot');
   }
 
   function selectCell(row, col, extend) {
@@ -206,6 +228,9 @@
     menu.style.left = e.clientX + 'px'; menu.style.top = e.clientY + 'px'; menu.hidden = false;
   });
   document.addEventListener('click', function (e) { if (!menu.contains(e.target)) menu.hidden = true; });
+  insertRowBtn.addEventListener('click', function () { insertRow(active.row); grid.focus(); });
+  insertColBtn.addEventListener('click', function () { insertCol(active.col); grid.focus(); });
+  clearRangeBtn.addEventListener('click', function () { applyRange(function (r, c) { setRaw(r, c, ''); }); grid.focus(); });
 
   document.addEventListener('copy', function (e) {
     if (editing || document.activeElement === formulaBar) return;

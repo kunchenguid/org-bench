@@ -12,8 +12,16 @@
       <div class="brand">Sheet</div>
       <div class="cell-name" id="cellName">A1</div>
       <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
-      <div class="hint">Enter edit · Tab move · Shift+arrows select · Ctrl/Cmd+Z undo</div>
+      <div class="actions" aria-label="Quick spreadsheet actions">
+        <button id="insertRowBtn" type="button" title="Insert row above the active cell">+ Row</button>
+        <button id="insertColBtn" type="button" title="Insert column left of the active cell">+ Col</button>
+        <button id="clearRangeBtn" type="button" title="Clear selected cells">Clear</button>
+      </div>
     </header>
+    <div class="statusbar">
+      <span id="selectionStatus">A1 selected</span>
+      <span class="hint">Enter edit · Tab move · Shift+arrows select · right-click headers for insert/delete · Ctrl/Cmd+Z undo</span>
+    </div>
     <main class="sheet-wrap" id="sheetWrap">
       <table id="grid" class="grid" aria-label="Spreadsheet grid"></table>
     </main>
