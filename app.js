@@ -412,9 +412,9 @@
       const input = document.createElement('input'); input.className = 'cell-editor'; input.value = raw; td.appendChild(input); this.editing = { input, original: this.model.getRaw(this.model.selection) };
       input.focus(); input.select();
       input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { this.commitEdit(); this.move(1, 0); e.preventDefault(); }
-        else if (e.key === 'Tab') { this.commitEdit(); this.move(0, 1); e.preventDefault(); }
-        else if (e.key === 'Escape') { this.cancelEdit(); e.preventDefault(); }
+        if (e.key === 'Enter') { this.commitEdit(); this.move(1, 0); e.preventDefault(); e.stopPropagation(); }
+        else if (e.key === 'Tab') { this.commitEdit(); this.move(0, 1); e.preventDefault(); e.stopPropagation(); }
+        else if (e.key === 'Escape') { this.cancelEdit(); e.preventDefault(); e.stopPropagation(); }
       });
       input.addEventListener('blur', () => this.commitEdit());
     }
