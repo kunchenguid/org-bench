@@ -6,7 +6,7 @@
   const ERROR = { ERR: '#ERR!', REF: '#REF!', DIV: '#DIV/0!', CIRC: '#CIRC!' };
 
   function storagePrefix(ns) {
-    const injected = window.__SPREADSHEET_STORAGE_NAMESPACE__ || window.SPREADSHEET_STORAGE_NAMESPACE || '';
+    const injected = window.SPREADSHEET_STORAGE_NAMESPACE || window.__SPREADSHEET_STORAGE_NAMESPACE__ || window.__BENCH_STORAGE_NAMESPACE__ || window.__STORAGE_NAMESPACE__ || window.STORAGE_NAMESPACE || '';
     return (ns || injected || 'facebook-sheet') + ':';
   }
 

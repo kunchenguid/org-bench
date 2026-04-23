@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Persistence Test</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <pre id="results">Running...</pre>
+  <main class="app" aria-label="Spreadsheet">
+    <header class="toolbar">
+      <div class="brand">Sheet</div>
+      <label class="namebox" for="cell-name">Cell</label>
+      <input id="cell-name" class="cell-name" readonly value="A1">
+      <label class="formula-label" for="formula-bar">fx</label>
+      <input id="formula-bar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <div class="hint">Test</div>
+    </header>
+    <section class="sheet-wrap" id="sheet-wrap">
+      <table id="sheet" class="sheet" aria-label="Spreadsheet grid"></table>
+    </section>
+  </main>
+  <div id="context-menu" class="context-menu" hidden></div>
+  <script>
+    window.SPREADSHEET_STORAGE_NAMESPACE = 'frank-persistence-test';
+    localStorage.removeItem('facebook-sheet:state');
+    localStorage.setItem('frank-persistence-test:state', JSON.stringify({
+      rows: 100,
+      cols: 26,
+      cells: [['1,1', '=A1+2']],
+      selection: { row: 1, col: 1, row2: 1, col2: 1 }
+    }));
+  </script>
+  <script src="../app.js"></script>
+  <script>
+    (function () {
+      function assertEqual(actual, expected, label) {
+        if (actual !== expected) throw new Error(label + ': expected ' + expected + ', got ' + actual);
+      }
+      var result = document.getElementById('results');
+      var raw = new Map(JSON.parse(localStorage.getItem('frank-persistence-test:state')).cells);
+      assertEqual(document.getElementById('cell-name').value, 'B2', 'selected cell restores');
+      assertEqual(document.getElementById('formula-bar').value, '=A1+2', 'raw formula restores');
+      assertEqual(raw.get('1,1'), '=A1+2', 'raw formula remains persisted');
+      result.textContent = 'PASS persistence namespace and reload restore';
+    }());
+  </script>
+</body>
+</html>
