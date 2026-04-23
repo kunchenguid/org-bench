@@ -8,6 +8,10 @@
   const editor = document.getElementById('editor');
   const formulaBar = document.getElementById('formulaBar');
   const nameBox = document.getElementById('nameBox');
+  const selectionStatus = document.getElementById('selectionStatus');
+  const insertRowBtn = document.getElementById('insertRowBtn');
+  const insertColBtn = document.getElementById('insertColBtn');
+  const deleteRangeBtn = document.getElementById('deleteRangeBtn');
   const persisted = load();
   const sheet = new SpreadsheetModel(persisted && persisted.sheet);
   let active = persisted && persisted.active ? persisted.active : { row: 0, col: 0 };
@@ -39,6 +43,7 @@
     renderSelection();
     formulaBar.value = sheet.getRaw(keyOf(active.row, active.col));
     nameBox.textContent = keyOf(active.row, active.col);
+    updateSelectionStatus();
     cellAt(active.row, active.col).scrollIntoView({ block: 'nearest', inline: 'nearest' });
     save();
   }
@@ -92,6 +97,7 @@
     renderSelection();
     formulaBar.value = sheet.getRaw(keyOf(active.row, active.col));
     nameBox.textContent = keyOf(active.row, active.col);
+    updateSelectionStatus();
     save();
   }
   function renderSelection() {
@@ -103,6 +109,15 @@
     const rowHeader = grid.querySelector(`tbody th[data-row="${active.row}"]`);
     if (colHeader) colHeader.classList.add('hot');
     if (rowHeader) rowHeader.classList.add('hot');
+    updateSelectionStatus();
+  }
+  function updateSelectionStatus() {
+    const r = currentRange();
+    const rows = r.r2 - r.r1 + 1;
+    const cols = r.c2 - r.c1 + 1;
+    const start = keyOf(r.r1, r.c1);
+    const end = keyOf(r.r2, r.c2);
+    selectionStatus.textContent = rows === 1 && cols === 1 ? `${keyOf(active.row, active.col)} selected` : `${start}:${end} selected (${rows} x ${cols})`;
   }
   function beginEdit(seed, preserve) {
     const td = cellAt(active.row, active.col);
@@ -176,6 +191,7 @@
     renderSelection();
     formulaBar.value = sheet.getRaw(keyOf(active.row, active.col));
     nameBox.textContent = keyOf(active.row, active.col);
+    updateSelectionStatus();
   });
   grid.addEventListener('mouseover', event => {
     if (!dragSelecting) return;
@@ -195,6 +211,9 @@
     showHeaderMenu(event.clientX, event.clientY, rowHeader ? 'row' : 'col', Number((rowHeader || colHeader).dataset[rowHeader ? 'row' : 'col']));
   });
   document.addEventListener('click', event => { if (!event.target.closest('.header-menu')) closeMenu(); });
+  insertRowBtn.addEventListener('click', () => { sheet.insertRow(active.row); render(); grid.focus(); });
+  insertColBtn.addEventListener('click', () => { sheet.insertCol(active.col); render(); grid.focus(); });
+  deleteRangeBtn.addEventListener('click', () => { deleteSelection(); grid.focus(); });
 
   grid.addEventListener('keydown', event => {
     if (editing) return;

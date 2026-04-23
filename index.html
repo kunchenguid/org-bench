@@ -11,9 +11,21 @@
     <header class="topbar">
       <div class="brand">Sheet</div>
       <div class="name-box" id="nameBox">A1</div>
-      <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
-      <div class="hints">Enter/F2 edit · Shift+arrows select · right-click headers insert/delete</div>
+      <label class="formula-wrap" aria-label="Formula bar">
+        <span class="fx">fx</span>
+        <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="toolbar" aria-label="Spreadsheet actions">
+        <button id="insertRowBtn" type="button" title="Insert row above selected cell">+ Row</button>
+        <button id="insertColBtn" type="button" title="Insert column left of selected cell">+ Col</button>
+        <button id="deleteRangeBtn" type="button" title="Clear selected cells">Clear</button>
+      </div>
     </header>
+    <div class="statusbar">
+      <span id="selectionStatus">A1 selected</span>
+      <span class="status-separator"></span>
+      <span>Enter/F2 edits · Shift+arrows selects ranges · right-click headers for insert/delete</span>
+    </div>
     <section id="grid" class="grid" tabindex="0" aria-label="Spreadsheet grid"></section>
     <div id="editor" class="cell-editor" hidden contenteditable="true" spellcheck="false"></div>
   </main>

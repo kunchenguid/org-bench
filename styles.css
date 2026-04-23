@@ -27,9 +27,9 @@ body {
 .sheet-shell {
   height: 100vh;
   display: grid;
-  grid-template-rows: 50px 1fr;
+  grid-template-rows: 50px 30px 1fr;
   padding: 12px;
-  gap: 10px;
+  gap: 8px;
 }
 
 .topbar {
@@ -43,7 +43,7 @@ body {
   padding: 8px 10px;
   box-shadow: 0 8px 22px rgba(24, 34, 54, 0.06);
 }
-.brand { font-weight: 750; color: var(--blue); letter-spacing: -0.02em; }
+.brand { font-weight: 800; color: var(--blue); letter-spacing: -0.03em; font-size: 18px; }
 .name-box {
   height: 32px;
   border: 1px solid var(--grid);
@@ -53,18 +53,72 @@ body {
   color: var(--header-text);
   font-size: 13px;
   background: #fafbfe;
+  font-weight: 650;
 }
-.formula-bar {
+.formula-wrap {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
   height: 32px;
   border: 1px solid var(--grid);
   border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+.formula-wrap:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.fx {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--grid);
+  background: #f8fafc;
+  color: var(--muted);
+  font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.formula-bar {
+  height: 30px;
+  border: 0;
   padding: 0 10px;
   font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--text);
   outline: none;
+  min-width: 0;
 }
-.formula-bar:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
-.hints { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toolbar button {
+  height: 32px;
+  border: 1px solid #cfd8e6;
+  border-radius: 8px;
+  background: linear-gradient(#fff, #f6f8fc);
+  color: #24324b;
+  font: 650 12px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  padding: 0 10px;
+  cursor: pointer;
+}
+.toolbar button:hover { border-color: var(--blue); color: var(--blue); background: #f4f8ff; }
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 0 4px;
+}
+#selectionStatus {
+  color: #174ea6;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.status-separator {
+  width: 1px;
+  height: 14px;
+  background: #d4dbe8;
+}
 
 .grid {
   position: relative;
@@ -102,19 +156,22 @@ th {
   font-weight: 650;
   text-align: center;
 }
+thead th { box-shadow: inset 0 -1px #c8d1df; }
+tbody th { box-shadow: inset -1px 0 #c8d1df; }
 thead th { top: 0; }
 tbody th { left: 0; min-width: var(--row-head); max-width: var(--row-head); z-index: 1; }
 thead th.corner { left: 0; z-index: 3; min-width: var(--row-head); max-width: var(--row-head); }
 td { background: #fff; cursor: cell; }
 td.number { text-align: right; font-variant-numeric: tabular-nums; }
 td.error { color: var(--danger); font-weight: 650; }
-td.selected-range { background: var(--blue-soft); }
+td.selected-range { background: linear-gradient(rgba(26, 115, 232, 0.12), rgba(26, 115, 232, 0.12)), #fff; }
 td.active {
   position: relative;
   background: #fff;
-  outline: 2px solid var(--blue);
-  outline-offset: -2px;
+  outline: 3px solid var(--blue);
+  outline-offset: -3px;
   z-index: 1;
+  box-shadow: inset 0 0 0 1px #fff, 0 0 0 1px var(--blue);
 }
 td.active::after {
   content: "";
@@ -126,7 +183,7 @@ td.active::after {
   background: var(--blue);
   border: 1px solid #fff;
 }
-th.hot { background: #dbeafe; color: #174ea6; }
+th.hot { background: #dbeafe; color: #174ea6; box-shadow: inset 0 -2px var(--blue); }
 
 .cell-editor {
   position: fixed;
@@ -167,7 +224,9 @@ th.hot { background: #dbeafe; color: #174ea6; }
 
 @media (max-width: 760px) {
   .sheet-shell { padding: 6px; gap: 6px; }
-  .topbar { grid-template-columns: 58px 58px 1fr; }
-  .hints { display: none; }
+  .topbar { grid-template-columns: 54px 58px 1fr; gap: 6px; }
+  .toolbar { grid-column: 1 / -1; overflow-x: auto; }
+  .toolbar button { flex: 1; min-width: 74px; }
+  .statusbar { overflow: hidden; white-space: nowrap; }
   :root { --cell-w: 92px; --row-head: 42px; }
 }
