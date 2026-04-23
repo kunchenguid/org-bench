@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "pr_number": 522,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/522",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Harden spreadsheet persistence namespace",
+  "body": "## Summary\n- Accept additional injected storage namespace globals before falling back to the default key.\n- Add a file:// browser regression page that preloads raw formula state, reloads the app, and verifies the selected cell and formula bar restore from the namespaced key.\n\n## Verification\n- node tests/core.test.js\n- agent-browser open file://.../tests/persistence.test.html and confirmed PASS output\n\nAuthor: Frank",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-23T23:14:27Z"
+    }
+  ],
+  "comments": []
+}

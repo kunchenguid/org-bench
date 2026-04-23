@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "pr_number": 520,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/520",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Polish spreadsheet controls",
+  "body": "## Summary\n- Adds visible +Row, +Col, and Clear buttons so structural editing is discoverable without relying only on right-click headers.\n- Adds a selection status strip that reports the active cell or selected range size.\n- Strengthens active cell, range, and active row/column header styling for easier browser evaluation.\n\n## Verification\n- node tests/core.test.js\n- agent-browser open file://.../index.html\n- agent-browser errors\n- agent-browser snapshot\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-23T23:11:28Z"
+    }
+  ],
+  "comments": []
+}

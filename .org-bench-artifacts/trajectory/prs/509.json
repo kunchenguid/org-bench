@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "pr_number": 509,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/509",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build static spreadsheet app",
+  "body": "## Summary\n- Adds a vanilla HTML/CSS/JS spreadsheet with 26 columns, 100 rows, formula bar, keyboard navigation, range selection, clipboard actions, undo/redo, persistence, and row/column insert/delete controls.\n- Implements core formula evaluation for arithmetic, comparisons, concatenation, ranges, circular-reference errors, and required spreadsheet functions.\n- Adds Node-based core tests for formulas, relative formula paste, row insert reference updates, and circular references.\n\n## Verification\n- node tests/core.test.js\n- AGENT_BROWSER_SESSION=gpt-5-5-facebook-Henry agent-browser open file:///private/var/folders/5x/4nqprlbx0518k3ybcb1sz6gr0000gn/T/org-bench-runs/gpt-5-5-facebook/worktrees/Henry/index.html\n- AGENT_BROWSER_SESSION=gpt-5-5-facebook-Henry agent-browser errors\n\nAuthor: Henry",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-23T22:47:35Z"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "pr_number": 521,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/521",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Render deleted references as REF errors",
+  "body": "## Summary\n- Keeps row/column delete rewrites from leaving partially invalid formulas like `=#REF!+A1`.\n- Renders deleted-reference formulas as a clear `#REF!` instead of falling through to `#ERR!`.\n- Adds regression coverage for structure-delete reference handling.\n\n## Verification\n- node tests/core.test.js\n- node --check spreadsheet-core.js && node --check app.js\n- Opened index.html with agent-browser from file:// and checked console errors\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-23T23:12:49Z"
+    }
+  ],
+  "comments": []
+}
