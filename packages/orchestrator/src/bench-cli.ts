@@ -2,8 +2,10 @@ import path from "node:path";
 
 import {
   defaultRunScratchRoot,
+  defineRunConfig,
   loadRunConfig,
   runBenchmark,
+  type RunConfig,
 } from "./index.js";
 import { enableStderrLogSink } from "./logger.js";
 import {
@@ -36,6 +38,9 @@ const SIGNAL_EXIT_CODE: Partial<Record<BenchCleanupEvent, number>> = {
   uncaughtException: 1,
   unhandledRejection: 1,
 };
+
+const BENCH_SUITE_ENV = "ORG_BENCH_SUITE";
+const BENCH_MODEL_ENV = "ORG_BENCH_MODEL";
 
 export function installBenchCleanupHandlers(options?: {
   processHook?: BenchProcessHook;
@@ -72,8 +77,58 @@ export function installBenchCleanupHandlers(options?: {
   };
 }
 
-function formatRunId(topologySlug: string): string {
-  return topologySlug;
+function formatRunId(runConfig: RunConfig): string {
+  return runConfig.suite === undefined
+    ? runConfig.topology.slug
+    : `${runConfig.suite}-${runConfig.topology.slug}`;
+}
+
+function readOptionalEnv(
+  env: NodeJS.ProcessEnv,
+  name: string,
+): string | undefined {
+  const value = env[name]?.trim();
+  return value === undefined || value.length === 0 ? undefined : value;
+}
+
+export function applyBenchEnvironmentOverrides(
+  runConfig: RunConfig,
+  env: NodeJS.ProcessEnv = process.env,
+): RunConfig {
+  const suite = readOptionalEnv(env, BENCH_SUITE_ENV);
+  const model = readOptionalEnv(env, BENCH_MODEL_ENV);
+
+  if (suite === undefined && model === undefined) {
+    return runConfig;
+  }
+
+  if (model !== undefined && suite === undefined) {
+    throw new Error(
+      `${BENCH_MODEL_ENV} requires ${BENCH_SUITE_ENV} so model reruns cannot overwrite baseline artifacts`,
+    );
+  }
+
+  if (suite !== undefined && !/^[A-Za-z0-9_-]+$/.test(suite)) {
+    throw new Error(
+      `${BENCH_SUITE_ENV} must contain only letters, numbers, underscores, and hyphens, e.g. gpt-5-5`,
+    );
+  }
+
+  const models =
+    model === undefined
+      ? runConfig.models
+      : {
+          node: { ...runConfig.models.node, model },
+          judge: { ...runConfig.models.judge, model },
+          analyst: { ...runConfig.models.analyst, model },
+          player: { ...runConfig.models.player, model },
+        };
+
+  return defineRunConfig({
+    ...runConfig,
+    ...(suite === undefined ? {} : { suite }),
+    models,
+  });
 }
 
 export function resolveBenchConfigPath(
@@ -103,9 +158,11 @@ async function main(): Promise<void> {
     cwd: process.cwd(),
     initCwd: process.env.INIT_CWD,
   });
-  const runConfig = await loadRunConfig(resolvedConfigPath);
+  const runConfig = applyBenchEnvironmentOverrides(
+    await loadRunConfig(resolvedConfigPath),
+  );
   const repoRoot = path.resolve(path.dirname(resolvedConfigPath), "..");
-  const runId = formatRunId(runConfig.topology.slug);
+  const runId = formatRunId(runConfig);
   const runScratchRoot = defaultRunScratchRoot();
 
   // Install signal/exit handlers before we spawn any opencode serve, so a

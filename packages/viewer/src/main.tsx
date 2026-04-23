@@ -2,7 +2,15 @@ import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 import type { RunEntry } from "./runs-manifest.js";
-import { buildRunHash, parseRunRoute, type RunRoute } from "./run-data.js";
+import {
+  buildRunHash,
+  entryToRunRoute,
+  formatRunLabel,
+  parseRunRoute,
+  runEntryKey,
+  LEGACY_MODEL,
+  type RunRoute,
+} from "./run-data.js";
 import {
   buildCompareHash,
   parseCompareRoute,
@@ -90,18 +98,23 @@ function IndexPage() {
       )}
       {state.status === "ready" &&
         state.entries.map((entry) => (
-          <section key={entry.topology} data-topology={entry.topology}>
+          <section
+            key={runEntryKey(entry)}
+            data-topology={entry.topology}
+            data-model={entry.model ?? LEGACY_MODEL}
+          >
             <h2>
               <a
                 data-testid="topology-link"
                 href={buildTopologyHash({ topology: entry.topology })}
               >
                 {entry.topology}
-              </a>
+              </a>{" "}
+              <small>{entry.model ?? LEGACY_MODEL}</small>
             </h2>
             <p>
-              <a href={buildRunHash({ topology: entry.topology })}>
-                Open run view
+              <a href={buildRunHash(entryToRunRoute(entry))}>
+                Open {formatRunLabel(entryToRunRoute(entry))}
               </a>
             </p>
           </section>

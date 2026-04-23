@@ -172,6 +172,7 @@ export type RunBudget = {
 };
 
 export type RunConfig = {
+  suite?: string;
   topology: TopologyConfig;
   seed: number;
   maxRounds: number;
@@ -301,7 +302,10 @@ export function buildNodeCommonContext({
         : peerId === validatedNodeId
           ? " (you)"
           : "";
-    const expectation = validatedTopology.nodeExpectations[peerId];
+    const expectation = renderNodeExpectation(
+      validatedTopology.nodeExpectations[peerId] ?? "",
+      runId,
+    );
     return `- **${peerId}**${marker}: ${expectation}`;
   });
 
@@ -342,6 +346,21 @@ export function buildNodeCommonContext({
   return [teamSection, cultureSection, toolsSection]
     .filter((section) => section.length > 0)
     .join("\n\n");
+}
+
+function renderNodeExpectation(expectation: string, runId: string): string {
+  const runBranchPrefix = `run/${runId}`;
+  return expectation
+    .replaceAll("{{runId}}", runId)
+    .replaceAll("{{runBranchPrefix}}", runBranchPrefix)
+    .replaceAll("{{mainBranch}}", `${runBranchPrefix}/main`)
+    .replace(/\{\{nodeBranch:([^}\s]+)\}\}/g, (_match, nodeId: string) => {
+      return `${runBranchPrefix}/${nodeId}`;
+    });
+}
+
+function benchmarkRunLabelForSuite(suite: string | undefined): string {
+  return suite === undefined ? "benchmark-run" : `benchmark-run-${suite}`;
 }
 
 export type WorkspaceInitOptions = {
@@ -522,6 +541,7 @@ export type RunSoloNodeRoundInput = {
   round: number;
   workspace: InitializedWorkspace;
   runConfig: RunConfig;
+  benchmarkRunLabel?: string;
   abortSignal?: AbortSignal;
   runner?: CommandRunner;
   openCodeClient?: {
@@ -651,12 +671,14 @@ export type CloseOpenRunPullRequestsInput = {
 };
 
 export type StripBenchmarkRunLabelsForTopologyInput = {
-  topologySlug: string;
+  runId: string;
+  benchmarkRunLabel: string;
   runner?: CommandRunner;
 };
 
 export type EnsureBenchmarkRunLabelsInput = {
   runId: string;
+  benchmarkRunLabel: string;
   runner?: CommandRunner;
 };
 
@@ -664,6 +686,7 @@ export type PublishRunArtifactInput = {
   repoRoot: string;
   runId: string;
   topology: string;
+  suite?: string;
   workspace: InitializedWorkspace;
   runner?: CommandRunner;
 };
@@ -734,6 +757,7 @@ export type CleanupRunBranchesInput = {
 export type PersistRunArtifactsInput = {
   workspace: InitializedWorkspace;
   runId: string;
+  benchmarkRunLabel: string;
   runner?: CommandRunner;
 };
 
@@ -810,6 +834,7 @@ export type RunBenchmarkNodeRoundInput = {
   nodeId: string;
   workspace: InitializedNodeWorktree;
   runConfig: RunConfig;
+  benchmarkRunLabel?: string;
   inboxMessages: Array<typeof MessageEnvelope._type>;
   abortSignal?: AbortSignal;
   runner?: CommandRunner;
@@ -956,12 +981,20 @@ export async function runSoloBenchmark({
       validatedRepoRoot,
     ),
   };
+  const benchmarkRunLabel = benchmarkRunLabelForSuite(
+    executableRunConfig.suite,
+  );
   await runPreflightClosePullRequests(validatedRunId, closeOpenPullRequests);
   await runPreflightStripPriorTopologyLabels(
-    executableRunConfig.topology.slug,
+    validatedRunId,
+    benchmarkRunLabel,
     stripPriorTopologyLabels,
   );
-  await runPreflightEnsureRunLabels(validatedRunId, ensureRunLabels);
+  await runPreflightEnsureRunLabels(
+    validatedRunId,
+    benchmarkRunLabel,
+    ensureRunLabels,
+  );
 
   const workspace = await initializeWorkspace({
     repoRoot: validatedRepoRoot,
@@ -1057,6 +1090,7 @@ export async function runSoloBenchmark({
             round,
             workspace,
             runConfig: executableRunConfig,
+            benchmarkRunLabel,
             abortSignal,
             openCodeClient: roundOpenCodeClient,
           }),
@@ -1103,6 +1137,7 @@ export async function runSoloBenchmark({
       repoRoot: validatedRepoRoot,
       runId: validatedRunId,
       topology: executableRunConfig.topology.slug,
+      suite: executableRunConfig.suite,
       workspace,
     });
     const publishedIndexPath = path.join(artifactDir, "index.html");
@@ -1170,6 +1205,7 @@ export async function runSoloBenchmark({
     await persistArtifacts({
       workspace,
       runId: validatedRunId,
+      benchmarkRunLabel,
     });
     await teardownWorkspace({
       repoRoot: validatedRepoRoot,
@@ -1241,6 +1277,9 @@ export async function runBenchmark(
       validatedRepoRoot,
     ),
   };
+  const benchmarkRunLabel = benchmarkRunLabelForSuite(
+    executableRunConfig.suite,
+  );
   const initializeWorkspace = input.initWorkspace ?? initWorkspace;
   const initializeInboxes = input.initializeInboxes ?? initializeNodeInboxes;
   const initializeWorktrees =
@@ -1270,10 +1309,15 @@ export async function runBenchmark(
 
   await runPreflightClosePullRequests(validatedRunId, closeOpenPullRequests);
   await runPreflightStripPriorTopologyLabels(
-    executableRunConfig.topology.slug,
+    validatedRunId,
+    benchmarkRunLabel,
     stripPriorTopologyLabels,
   );
-  await runPreflightEnsureRunLabels(validatedRunId, ensureRunLabels);
+  await runPreflightEnsureRunLabels(
+    validatedRunId,
+    benchmarkRunLabel,
+    ensureRunLabels,
+  );
 
   const workspace = await initializeWorkspace({
     repoRoot: validatedRepoRoot,
@@ -1424,6 +1468,7 @@ export async function runBenchmark(
             nodeId,
             workspace: nodeWorkspace,
             runConfig: executableRunConfig,
+            benchmarkRunLabel,
             inboxMessages: await drainNodeInboxMessages({
               runDir: workspace.runDir,
               nodeId,
@@ -1543,6 +1588,7 @@ export async function runBenchmark(
       repoRoot: validatedRepoRoot,
       runId: validatedRunId,
       topology: executableRunConfig.topology.slug,
+      suite: executableRunConfig.suite,
       workspace,
     });
     const publishedIndexPath = path.join(artifactDir, "index.html");
@@ -1610,6 +1656,7 @@ export async function runBenchmark(
     await persistArtifacts({
       workspace,
       runId: validatedRunId,
+      benchmarkRunLabel,
     });
     await teardownWorkspace({
       repoRoot: validatedRepoRoot,
@@ -2321,6 +2368,7 @@ export async function runSoloNodeRound({
   round,
   workspace,
   runConfig,
+  benchmarkRunLabel,
   abortSignal,
   runner = runCommand,
   openCodeClient,
@@ -2349,6 +2397,8 @@ export async function runSoloNodeRound({
     briefPath: path.join(workspace.runDir, "brief.md"),
     perNodeTurnTimeoutMs: validatedConfig.perNodeTurnTimeoutMs,
     inboxMessages: soloInboxMessages,
+    benchmarkRunLabel:
+      benchmarkRunLabel ?? benchmarkRunLabelForSuite(validatedConfig.suite),
   });
   const startedAt = new Date();
   const startedAtMs = Date.now();
@@ -2502,6 +2552,7 @@ export async function runTopologyNodeRound({
   nodeId,
   workspace,
   runConfig,
+  benchmarkRunLabel,
   inboxMessages,
   abortSignal,
   runner = runCommand,
@@ -2539,6 +2590,8 @@ export async function runTopologyNodeRound({
     briefPath: path.join(workspace.runDir, "brief.md"),
     inboxMessages,
     perNodeTurnTimeoutMs: validatedConfig.perNodeTurnTimeoutMs,
+    benchmarkRunLabel:
+      benchmarkRunLabel ?? benchmarkRunLabelForSuite(validatedConfig.suite),
   });
   const startedAt = new Date();
   const startedAtMs = Date.now();
@@ -3154,6 +3207,7 @@ export async function publishRunArtifact({
   repoRoot,
   runId,
   topology,
+  suite,
   workspace,
   runner = runCommand,
 }: PublishRunArtifactInput): Promise<string> {
@@ -3162,9 +3216,11 @@ export async function publishRunArtifact({
   );
   validateNonEmptyString(runId, "runId");
   const validatedTopology = validateNonEmptyString(topology, "topology");
+  const validatedSuite = validateOptionalPathSegment(suite, "suite");
   const destinationDir = path.join(
     validatedRepoRoot,
     "docs",
+    ...(validatedSuite === undefined ? [] : [validatedSuite]),
     validatedTopology,
   );
   const trajectoryDir = path.join(workspace.runDir, "trajectory");
@@ -3627,9 +3683,14 @@ export async function closeOpenRunPullRequests({
 
 export async function ensureBenchmarkRunLabels({
   runId,
+  benchmarkRunLabel,
   runner = runCommand,
 }: EnsureBenchmarkRunLabelsInput): Promise<string[]> {
   const validatedRunId = validateNonEmptyString(runId, "runId");
+  const validatedBenchmarkRunLabel = validateNonEmptyString(
+    benchmarkRunLabel,
+    "benchmarkRunLabel",
+  );
   const listResult = await runner({
     command: "gh",
     args: ["label", "list", "--json", "name", "--limit", "1000"],
@@ -3656,7 +3717,7 @@ export async function ensureBenchmarkRunLabels({
   const required: Array<{ name: string; color: string; description: string }> =
     [
       {
-        name: "benchmark-run",
+        name: validatedBenchmarkRunLabel,
         color: "0e8a16",
         description: "Marks PRs produced by an org-bench topology run.",
       },
@@ -3705,17 +3766,22 @@ export async function ensureBenchmarkRunLabels({
 }
 
 export async function stripBenchmarkRunLabelsForTopology({
-  topologySlug,
+  runId,
+  benchmarkRunLabel,
   runner = runCommand,
 }: StripBenchmarkRunLabelsForTopologyInput): Promise<number[]> {
-  const validatedSlug = validateNonEmptyString(topologySlug, "topologySlug");
+  const validatedRunId = validateNonEmptyString(runId, "runId");
+  const validatedBenchmarkRunLabel = validateNonEmptyString(
+    benchmarkRunLabel,
+    "benchmarkRunLabel",
+  );
   const listResult = await runner({
     command: "gh",
     args: [
       "pr",
       "list",
       "--label",
-      "benchmark-run",
+      validatedBenchmarkRunLabel,
       "--state",
       "all",
       "--json",
@@ -3726,11 +3792,13 @@ export async function stripBenchmarkRunLabelsForTopology({
   });
 
   if (listResult.exitCode !== 0) {
-    throw new Error(listResult.stderr || "gh pr list (benchmark-run) failed");
+    throw new Error(
+      listResult.stderr || `gh pr list (${validatedBenchmarkRunLabel}) failed`,
+    );
   }
 
   const listed = parsePrListWithLabels(listResult.stdout);
-  const exactLabel = `run:${validatedSlug}`;
+  const exactLabel = `run:${validatedRunId}`;
   const suffixedPrefix = `${exactLabel}-`;
   const targets = listed.filter((pr) =>
     pr.labels.some(
@@ -3752,7 +3820,7 @@ export async function stripBenchmarkRunLabelsForTopology({
         "edit",
         String(number),
         "--remove-label",
-        "benchmark-run",
+        validatedBenchmarkRunLabel,
       ],
     });
 
@@ -3848,9 +3916,14 @@ export async function cleanupRunBranches({
 export async function persistRunArtifactsToRootBranch({
   workspace,
   runId,
+  benchmarkRunLabel,
   runner = runCommand,
 }: PersistRunArtifactsInput): Promise<boolean> {
   const validatedRunId = validateNonEmptyString(runId, "runId");
+  const validatedBenchmarkRunLabel = validateNonEmptyString(
+    benchmarkRunLabel,
+    "benchmarkRunLabel",
+  );
 
   await syncMainWorktreeWithRemote(workspace);
 
@@ -3918,7 +3991,7 @@ export async function persistRunArtifactsToRootBranch({
       "--body",
       `Automated: persists trajectory + inbox artifacts under \`.org-bench-artifacts/\` for run \`${validatedRunId}\`.`,
       "--label",
-      "benchmark-run",
+      validatedBenchmarkRunLabel,
       "--label",
       `run:${validatedRunId}`,
     ],
@@ -4234,7 +4307,12 @@ async function appendOrchestratorEvent(
   await appendFile(eventsPath, `${JSON.stringify(record)}\n`, "utf8");
 }
 
-type FinalizeStageName = "judge" | "analyst" | "aggregate" | "close_prs";
+type FinalizeStageName =
+  | "judge"
+  | "analyst"
+  | "aggregate"
+  | "close_browser_sessions"
+  | "close_prs";
 
 async function runPreflightClosePullRequests(
   runId: string,
@@ -4254,30 +4332,32 @@ async function runPreflightClosePullRequests(
 }
 
 async function runPreflightStripPriorTopologyLabels(
-  topologySlug: string,
+  runId: string,
+  benchmarkRunLabel: string,
   stripPriorTopologyLabels: (
     input: StripBenchmarkRunLabelsForTopologyInput,
   ) => Promise<number[]>,
 ): Promise<void> {
   try {
-    await stripPriorTopologyLabels({ topologySlug });
+    await stripPriorTopologyLabels({ runId, benchmarkRunLabel });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
 
     process.stderr.write(
-      `[bench] preflight strip_prior_topology_labels failed for ${topologySlug}; continuing: ${detail}\n`,
+      `[bench] preflight strip_prior_topology_labels failed for ${runId}; continuing: ${detail}\n`,
     );
   }
 }
 
 async function runPreflightEnsureRunLabels(
   runId: string,
+  benchmarkRunLabel: string,
   ensureRunLabels: (
     input: EnsureBenchmarkRunLabelsInput,
   ) => Promise<string[]>,
 ): Promise<void> {
   try {
-    await ensureRunLabels({ runId });
+    await ensureRunLabels({ runId, benchmarkRunLabel });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
 
@@ -4808,6 +4888,7 @@ function validateRunConfig(value: unknown): RunConfig {
   }
 
   const topology = validateTopology(value.topology);
+  const suite = validateOptionalPathSegment(value.suite, "suite");
   const seed = validatePositiveInteger(value.seed, "seed");
   const maxRounds = validatePositiveInteger(value.maxRounds, "maxRounds");
   const perNodeTurnTimeoutMs = validatePositiveInteger(
@@ -4826,6 +4907,7 @@ function validateRunConfig(value: unknown): RunConfig {
   const runBudget = validateRunBudget(value.runBudget);
 
   return {
+    ...(suite === undefined ? {} : { suite }),
     topology,
     seed,
     maxRounds,
@@ -5140,6 +5222,24 @@ function validateNonEmptyString(value: unknown, field: string): string {
   return value;
 }
 
+function validateOptionalPathSegment(
+  value: unknown,
+  field: string,
+): string | undefined {
+  if (value === undefined) return undefined;
+  const segment = validateNonEmptyString(value, field);
+  if (
+    segment === "." ||
+    segment === ".." ||
+    !/^[A-Za-z0-9._-]+$/.test(segment)
+  ) {
+    throw new Error(
+      `Invalid run config: ${field} must be a safe path segment`,
+    );
+  }
+  return segment;
+}
+
 function validateBoolean(value: unknown, field: string): boolean {
   if (typeof value !== "boolean") {
     throw new Error(`Invalid run config: ${field} must be a boolean`);
@@ -5322,7 +5422,11 @@ function renderLeaderRoleSection(topologyName: string): string {
   ].join("\n");
 }
 
-function renderDeveloperRoleSection(runId: string, nodeId: string): string {
+function renderDeveloperRoleSection(
+  runId: string,
+  nodeId: string,
+  benchmarkRunLabel: string,
+): string {
   return [
     `### As a developer`,
     `- **Landing rule (enforced by the remote): the remote rejects direct pushes to \`run/${runId}/main\`.** Your only way to land code is: side branch -> push -> PR -> integrator merge.`,
@@ -5337,10 +5441,10 @@ function renderDeveloperRoleSection(runId: string, nodeId: string): string {
     `  git add -A && git commit -m "..."`,
     `  git push -u origin run/${runId}/${nodeId}`,
     `  gh pr create --base run/${runId}/main --head run/${runId}/${nodeId} \\`,
-    `    --title "..." --body "..." --label benchmark-run --label run:${runId}`,
+    `    --title "..." --body "..." --label ${benchmarkRunLabel} --label run:${runId}`,
     "  ```",
     `  If you want parallel PRs, branch off your own branch with \`git checkout -b run/${runId}/${nodeId}-<slug>\` and push that; do not reuse another node's branch name.`,
-    `- Every PR must include labels: \`benchmark-run\`, \`run:${runId}\`.`,
+    `- Every PR must include labels: \`${benchmarkRunLabel}\`, \`run:${runId}\`.`,
     `- PR description signature line: \`Author: ${nodeId}\`. PR comment prefix: \`**${nodeId}:**\`.`,
     `- **After you raise a PR**, send a message to an integrator other than yourself asking them to review and merge. Include the PR URL. If they push back with fixes, address them on the same PR and re-request review.`,
     `- Before committing, pull any new changes on \`run/${runId}/main\` into your worktree so your branch is not stale.`,
@@ -5357,14 +5461,14 @@ function renderIntegratorRoleSection(): string {
   ].join("\n");
 }
 
-function renderSoloRoleSection(runId: string): string {
+function renderSoloRoleSection(runId: string, benchmarkRunLabel: string): string {
   return [
     `### As the solo builder`,
     `- You are the only node in this run; there are no peer reviews.`,
     `- **The remote rejects direct pushes to \`run/${runId}/main\`.** Land every change via a PR, even though you are reviewing your own work:`,
     `  1. From the \`main/\` worktree, create a side branch: \`git checkout -b run/${runId}/leader-<short-description>\`.`,
     `  2. Commit your work on that side branch and push it: \`git push -u origin run/${runId}/leader-<short-description>\`.`,
-    `  3. Open a PR: \`gh pr create --base run/${runId}/main --head run/${runId}/leader-<short-description> --title "..." --body "..." --label benchmark-run --label run:${runId}\`.`,
+    `  3. Open a PR: \`gh pr create --base run/${runId}/main --head run/${runId}/leader-<short-description> --title "..." --body "..." --label ${benchmarkRunLabel} --label run:${runId}\`.`,
     `  4. Merge it yourself: \`gh pr merge <pr-number> --squash --delete-branch\`.`,
     `  5. Sync your local worktree back onto main: \`git checkout run/${runId}/main && git pull --ff-only origin run/${runId}/main\`.`,
     `- Use a new side-branch name per PR. Do not attempt \`git push\` directly to \`run/${runId}/main\` - it will be rejected.`,
@@ -5399,12 +5503,14 @@ function buildSoloPrompt({
   briefPath,
   perNodeTurnTimeoutMs,
   inboxMessages,
+  benchmarkRunLabel,
 }: {
   round: number;
   maxRounds: number;
   briefPath: string;
   perNodeTurnTimeoutMs: number;
   inboxMessages: Array<typeof MessageEnvelope._type>;
+  benchmarkRunLabel: string;
 }): string {
   const commonContext = buildNodeCommonContext({
     runId: "solo",
@@ -5434,7 +5540,7 @@ function buildSoloPrompt({
       `You are shipping the whole artifact yourself. This is **round ${round} of ${maxRounds}** (${remainingRounds} rounds remaining, including this one). Rounds used affects your final score - declare final submission as soon as the artifact is ready rather than using the full budget.`,
       `Your role flags: developer.`,
       ``,
-      renderSoloRoleSection("solo"),
+      renderSoloRoleSection("solo", benchmarkRunLabel),
       ``,
       renderTurnTimeLimitSection(perNodeTurnTimeoutMs),
     ].join("\n"),
@@ -5458,6 +5564,7 @@ export function buildTopologyNodePrompt({
   briefPath,
   inboxMessages,
   perNodeTurnTimeoutMs,
+  benchmarkRunLabel,
 }: {
   runId: string;
   round: number;
@@ -5467,6 +5574,7 @@ export function buildTopologyNodePrompt({
   briefPath: string;
   inboxMessages: Array<typeof MessageEnvelope._type>;
   perNodeTurnTimeoutMs: number;
+  benchmarkRunLabel: string;
 }): string {
   const commonContext = buildNodeCommonContext({
     runId,
@@ -5498,7 +5606,9 @@ export function buildTopologyNodePrompt({
     roleSections.push(renderLeaderRoleSection(topology.name));
   }
   if (isDeveloper) {
-    roleSections.push(renderDeveloperRoleSection(runId, nodeId));
+    roleSections.push(
+      renderDeveloperRoleSection(runId, nodeId, benchmarkRunLabel),
+    );
   }
   if (isIntegrator) {
     roleSections.push(renderIntegratorRoleSection());

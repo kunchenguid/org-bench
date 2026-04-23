@@ -1,7 +1,12 @@
 import cytoscape from "cytoscape";
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import { formatNumber, runArtifactBaseUrl } from "./run-data.js";
+import {
+  buildRunHash,
+  formatRunLabel,
+  formatNumber,
+  runArtifactBaseUrl,
+} from "./run-data.js";
 import {
   buildMessageGraphData,
   extractPrReferences,
@@ -122,12 +127,16 @@ export function TracePage({ route }: { route: TraceRoute }) {
   }, [baseUrl]);
 
   return (
-    <article data-page="trace" data-trace-topology={route.topology}>
+    <article
+      data-page="trace"
+      data-trace-topology={route.topology}
+      data-trace-suite={route.suite}
+    >
       <p>
         <a href="#">{"<-"} All runs</a> ·{" "}
-        <a href={`#run/${route.topology}`}>Run overview</a>
+        <a href={buildRunHash(route)}>Run overview</a>
       </p>
-      <h1>Trace: {route.topology}</h1>
+      <h1>Trace: {formatRunLabel(route)}</h1>
       {state.status === "loading" && <p>Loading trace...</p>}
       {state.status === "error" && (
         <p data-testid="trace-error">Failed to load trace: {state.error}</p>

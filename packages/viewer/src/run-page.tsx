@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 
 import {
   extractRubricRows,
+  formatRunLabel,
   formatDurationMs,
   formatNumber,
   runArtifactBaseUrl,
@@ -61,14 +62,14 @@ export function RunPage({ route }: { route: RunRoute }) {
   }, [baseUrl]);
 
   return (
-    <article data-run-topology={route.topology}>
+    <article data-run-topology={route.topology} data-run-suite={route.suite}>
       <p>
         <a href="#">{"<-"} All runs</a> ·{" "}
         <a data-testid="trace-link" href={buildTraceHash(route)}>
           View trace
         </a>
       </p>
-      <h1>{route.topology}</h1>
+      <h1>{formatRunLabel(route)}</h1>
       {state.status === "loading" && <p>Loading run...</p>}
       {state.status === "error" && (
         <p data-testid="run-error">Failed to load run: {state.error}</p>

@@ -1,9 +1,15 @@
+import type { RunRoute } from "./run-data.js";
+
 export interface TopologyRoute {
   topology: string;
 }
 
 export interface TopologyRunSummary {
+  runKey: string;
+  label: string;
+  route: RunRoute;
   topology: string;
+  model: string;
   totalTokens: number | null;
   wallClockMs: number | null;
   buildSuccess: boolean | null;

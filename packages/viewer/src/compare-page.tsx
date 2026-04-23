@@ -1,7 +1,11 @@
 import { useMemo, useState } from "preact/hooks";
 
 import type { ComparePair } from "./compare-data.js";
-import { runArtifactBaseUrl, type RunRoute } from "./run-data.js";
+import {
+  formatRunLabel,
+  runArtifactBaseUrl,
+  type RunRoute,
+} from "./run-data.js";
 import {
   buildVoteRecord,
   buildVoteSubmissionUrl,
@@ -35,13 +39,13 @@ export function ComparePage({ pair }: { pair: ComparePair }) {
         <BlindRunPanel
           slot="a"
           route={pair.a}
-          label={revealed ? pair.a.topology : "Run A"}
+          label={revealed ? formatRunLabel(pair.a) : "Run A"}
           revealed={revealed}
         />
         <BlindRunPanel
           slot="b"
           route={pair.b}
-          label={revealed ? pair.b.topology : "Run B"}
+          label={revealed ? formatRunLabel(pair.b) : "Run B"}
           revealed={revealed}
         />
       </div>
@@ -66,8 +70,9 @@ export function ComparePage({ pair }: { pair: ComparePair }) {
             </p>
             <p>
               Run A was{" "}
-              <strong data-testid="reveal-a">{pair.a.topology}</strong>. Run B
-              was <strong data-testid="reveal-b">{pair.b.topology}</strong>.
+              <strong data-testid="reveal-a">{formatRunLabel(pair.a)}</strong>.
+              Run B was{" "}
+              <strong data-testid="reveal-b">{formatRunLabel(pair.b)}</strong>.
             </p>
             {submissionUrl && (
               <p>
@@ -96,7 +101,7 @@ export function ComparePage({ pair }: { pair: ComparePair }) {
 function describeVote(vote: VoteChoice, pair: ComparePair): string {
   if (vote === "tie") return "tie";
   const route = vote === "a" ? pair.a : pair.b;
-  return `${vote.toUpperCase()} (${route.topology})`;
+  return `${vote.toUpperCase()} (${formatRunLabel(route)})`;
 }
 
 function BlindRunPanel({

@@ -1,9 +1,11 @@
 import type { ComparePair } from "./compare-data.js";
+import { runRouteKey } from "./run-data.js";
 
 export type VoteChoice = "a" | "b" | "tie";
 
 export interface VoteRunRef {
   topology: string;
+  suite?: string;
 }
 
 export interface VoteRecord {
@@ -41,15 +43,27 @@ export function buildVoteRecord({
   return {
     schema_version: "vote-v1",
     cast_at: castAtIso,
-    run_a: { topology: pair.a.topology },
-    run_b: { topology: pair.b.topology },
+    run_a: {
+      ...(pair.a.suite === undefined ? {} : { suite: pair.a.suite }),
+      topology: pair.a.topology,
+    },
+    run_b: {
+      ...(pair.b.suite === undefined ? {} : { suite: pair.b.suite }),
+      topology: pair.b.topology,
+    },
     vote,
   };
 }
 
 export function buildVoteFilename(record: VoteRecord): string {
   const stamp = record.cast_at.replace(/[:.]/g, "-");
-  return `docs/votes/${stamp}-${record.run_a.topology}-vs-${record.run_b.topology}.json`;
+  const runA = runRefKey(record.run_a).replace(/\//g, "-");
+  const runB = runRefKey(record.run_b).replace(/\//g, "-");
+  return `docs/votes/${stamp}-${runA}-vs-${runB}.json`;
+}
+
+function runRefKey(ref: VoteRunRef): string {
+  return runRouteKey(ref);
 }
 
 export function buildVoteSubmissionUrl({

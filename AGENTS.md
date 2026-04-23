@@ -19,7 +19,8 @@ configs/
   run-<topo>.ts          # entry point passed to `npm run bench` (run-id = <topo>)
   brief.md               # task brief given to the leader
 
-docs/<topology>/                 # published artifact per topology (Pages root); re-running a topology overwrites it
+docs/<topology>/                 # legacy/default published artifact per topology; re-running default overwrites it
+docs/<suite>/<topology>/         # model-variant artifact per topology, e.g. docs/gpt-5-5/apple/
 $TMPDIR/org-bench-runs/<run-id>/ # per-run scratch; lives OUTSIDE the host repo; wiped at teardown (includes per-run .xdg/opencode/ so topology runs never share opencode state)
 ```
 
@@ -64,21 +65,44 @@ The judge stage spawns its own dedicated `opencode serve` process (separate from
 
 Two durable outputs survive teardown:
 
-- `docs/<topo>/` on host main (deployed artifact + viewer data; one entry per topology)
+- `docs/<topo>/` on host main for default runs, or `docs/<suite>/<topo>/` for suite runs (deployed artifact + viewer data; one entry per topology per suite)
 - `run/<run-id>/main` branch on the remote (source + full post-mortem in `.org-bench-artifacts/`)
 
 ## Orchestrate a run
 
-Run one topology at a time. Each invocation is self-contained: preflight closes any stale `run:<topo>` PRs, `initWorkspace` wipes `docs/<topo>/` and `$TMPDIR/org-bench-runs/<topo>/`, and opencode serve runs with `XDG_DATA_HOME=$TMPDIR/org-bench-runs/<topo>/.xdg` so topology runs never share opencode storage.
+Run one topology at a time. Each invocation is self-contained: preflight closes any stale `run:<run-id>` PRs, `initWorkspace` wipes `$TMPDIR/org-bench-runs/<run-id>/`, and opencode serve runs with `XDG_DATA_HOME=$TMPDIR/org-bench-runs/<run-id>/.xdg` so topology runs never share opencode storage. Default runs publish to `docs/<topo>/`; suite runs publish to `docs/<suite>/<topo>/`.
 
 ```bash
 npm run bench -- configs/run-<topo>.ts
 ```
 
+To rerun the same topology with a different model without touching existing artifacts, set a suite and model at the CLI layer instead of adding new config files:
+
+```bash
+ORG_BENCH_SUITE=gpt-5-5 ORG_BENCH_MODEL=openai/gpt-5.5 npm run bench -- configs/run-<topo>.ts
+```
+
+For a future model, only change those two environment variables, for example `ORG_BENCH_SUITE=gpt-5-6 ORG_BENCH_MODEL=openai/gpt-5.6`. Do not create `configs/run-gpt-...-<topo>.ts` files for model variants. Keep suite names as safe path/label segments such as `gpt-5-5`, not `gpt-5.5`.
+
+Suite behavior is namespaced end to end:
+
+- Run id: `<suite>-<topo>`, e.g. `gpt-5-5-apple`.
+- Published artifact: `docs/<suite>/<topo>/`, e.g. `docs/gpt-5-5/apple/`.
+- Remote trunk: `run/<suite>-<topo>/main`.
+- PR labels: `benchmark-run-<suite>` and `run:<suite>-<topo>`, e.g. `benchmark-run-gpt-5-5` and `run:gpt-5-5-apple`.
+
+Safety rule: `ORG_BENCH_MODEL` requires `ORG_BENCH_SUITE`. This prevents an accidental model override from reusing `run/<topo>/main` and `docs/<topo>/`.
+
 Expect multi-hour runtime per topology. Redirect to a log if you want to background it:
 
 ```bash
 npm run bench -- configs/run-<topo>.ts > /tmp/org-bench-<topo>.log 2>&1 &
+```
+
+For suite runs, include the suite in the log and monitoring run id:
+
+```bash
+ORG_BENCH_SUITE=gpt-5-5 ORG_BENCH_MODEL=openai/gpt-5.5 npm run bench -- configs/run-apple.ts > /tmp/org-bench-gpt-5-5-apple.log 2>&1 &
 ```
 
 ## Monitoring
@@ -102,7 +126,7 @@ while the first turn is still running. To see whether an agent is actually
 making progress mid-turn, read opencode's session DB directly:
 
 ```bash
-RUN=facebook   # topology currently running
+RUN=facebook   # run id currently running, e.g. gpt-5-5-facebook for a suite run
 DB="${TMPDIR:-/tmp}/org-bench-runs/$RUN/.xdg/opencode/opencode.db"
 
 # Which model, and how many messages so far?
@@ -133,11 +157,13 @@ gh pr list --repo kunchenguid/org-bench --state all --limit 100 \
   --json number,state,title,headRefName
 ```
 
+For suite runs, filter by `base:run/<suite>-<topo>/main`, e.g. `base:run/gpt-5-5-apple/main`.
+
 Count by state with `jq`/python if you want merged-vs-open numbers. Never report a PR count without this filter.
 
 ## After a run
 
-1. Check `docs/<topo>/` for `index.html`, `trajectory/meta.json`, `trajectory/judge.json`, `trajectory/analysis.json`. The judge writes one `judge.json`; it does not produce per-scenario jsonl files.
+1. Check `docs/<topo>/` for default runs or `docs/<suite>/<topo>/` for suite runs. Confirm `index.html`, `trajectory/meta.json`, `trajectory/judge.json`, `trajectory/analysis.json`. The judge writes one `judge.json`; it does not produce per-scenario jsonl files.
 2. Rebuild the viewer manifest: `npm run --workspace @org-bench/viewer build:manifest`.
 3. Review any open PRs that didn't close (should be none - preflight and finalize both call `gh pr close` for `run:<topo>`).
 4. Commit the published topology dir under `docs/` + any viewer rebuild artifacts when the user asks.

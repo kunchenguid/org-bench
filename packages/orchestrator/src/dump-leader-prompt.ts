@@ -36,6 +36,7 @@ async function main(): Promise<void> {
         briefPath,
         inboxMessages: inbox,
         perNodeTurnTimeoutMs: config.perNodeTurnTimeoutMs,
+        benchmarkRunLabel: "benchmark-run",
       }),
     );
     process.stdout.write("\n");

@@ -377,7 +377,13 @@ export const OrchestratorEvent = z.discriminatedUnion("type", [
   z.object({
     ...OrchestratorEventBase,
     type: z.literal("stage_failed"),
-    stage: z.enum(["judge", "analyst", "aggregate", "close_prs"]),
+    stage: z.enum([
+      "judge",
+      "analyst",
+      "aggregate",
+      "close_browser_sessions",
+      "close_prs",
+    ]),
     detail: z.string().min(1),
   }),
   z.object({

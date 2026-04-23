@@ -5,7 +5,7 @@ export type ModelThinkingMode = "standard" | "extended";
 export type ModelOutputMode = "text" | "json";
 
 export type ModelProfile = {
-  model: "openai/gpt-5.4";
+  model: string;
   tools: boolean;
   thinking: ModelThinkingMode;
   outputMode: ModelOutputMode;

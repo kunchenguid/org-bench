@@ -1,6 +1,6 @@
-export interface TraceRoute {
-  topology: string;
-}
+import { parseRunPath, runRoutePath, type RunRoute } from "./run-data.js";
+
+export type TraceRoute = RunRoute;
 
 export interface MessageEdge {
   round: number;
@@ -64,12 +64,11 @@ export function parseTraceRoute(hash: string): TraceRoute | null {
     .slice(TRACE_HASH_PREFIX.length)
     .split("/")
     .filter((p) => p.length > 0);
-  if (parts.length !== 1) return null;
-  return { topology: parts[0]! };
+  return parseRunPath(parts);
 }
 
 export function buildTraceHash(route: TraceRoute): string {
-  return `${TRACE_HASH_PREFIX}${route.topology}`;
+  return `${TRACE_HASH_PREFIX}${runRoutePath(route)}`;
 }
 
 export function parseJsonlLines<T>(raw: string): T[] {

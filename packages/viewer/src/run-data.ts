@@ -1,5 +1,8 @@
+import type { RunEntry } from "./runs-manifest.js";
+
 export interface RunRoute {
   topology: string;
+  suite?: string;
 }
 
 export interface RubricRow {
@@ -42,21 +45,53 @@ export interface AnalysisJsonLike {
 }
 
 const RUN_HASH_PREFIX = "#run/";
+export const LEGACY_MODEL = "gpt-5.4";
+
+export function parseRunPath(parts: string[]): RunRoute | null {
+  if (parts.length === 1) return { topology: parts[0]! };
+  if (parts.length === 2) return { suite: parts[0]!, topology: parts[1]! };
+  return null;
+}
+
+export function runRoutePath(route: RunRoute): string {
+  return route.suite === undefined
+    ? route.topology
+    : `${route.suite}/${route.topology}`;
+}
+
+export function runRouteKey(route: RunRoute): string {
+  return runRoutePath(route);
+}
+
+export function formatRunLabel(route: RunRoute): string {
+  return route.suite === undefined
+    ? `${LEGACY_MODEL} / ${route.topology}`
+    : `${route.suite} / ${route.topology}`;
+}
+
+export function entryToRunRoute(entry: RunEntry): RunRoute {
+  return entry.suite === undefined
+    ? { topology: entry.topology }
+    : { suite: entry.suite, topology: entry.topology };
+}
+
+export function runEntryKey(entry: RunEntry): string {
+  return runRouteKey(entryToRunRoute(entry));
+}
 
 export function parseRunRoute(hash: string): RunRoute | null {
   if (!hash.startsWith(RUN_HASH_PREFIX)) return null;
   const remainder = hash.slice(RUN_HASH_PREFIX.length);
   const parts = remainder.split("/").filter((part) => part.length > 0);
-  if (parts.length !== 1) return null;
-  return { topology: parts[0]! };
+  return parseRunPath(parts);
 }
 
 export function buildRunHash(route: RunRoute): string {
-  return `${RUN_HASH_PREFIX}${route.topology}`;
+  return `${RUN_HASH_PREFIX}${runRoutePath(route)}`;
 }
 
 export function runArtifactBaseUrl(route: RunRoute): string {
-  return `./${route.topology}/`;
+  return `./${runRoutePath(route)}/`;
 }
 
 export function formatNumber(value: number): string {

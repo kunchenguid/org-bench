@@ -4,30 +4,52 @@ import { fileURLToPath } from "node:url";
 
 import type { RunEntry } from "../src/runs-manifest.js";
 
+const LEGACY_MODEL = "gpt-5.4";
 const RESERVED_DIRS = new Set(["assets", "votes"]);
 
 export async function discoverRuns(docsDir: string): Promise<RunEntry[]> {
-  let topologies: string[];
+  let names: string[];
   try {
-    topologies = await readdir(docsDir);
+    names = await readdir(docsDir);
   } catch {
     return [];
   }
 
   const entries: RunEntry[] = [];
-  for (const topology of topologies.sort()) {
-    if (RESERVED_DIRS.has(topology)) continue;
-    const topologyDir = join(docsDir, topology);
-    const topologyStat = await stat(topologyDir).catch(() => null);
-    if (!topologyStat?.isDirectory()) continue;
-    const indexStat = await stat(join(topologyDir, "index.html")).catch(
+  for (const name of names.sort()) {
+    if (RESERVED_DIRS.has(name)) continue;
+    const entryDir = join(docsDir, name);
+    const entryStat = await stat(entryDir).catch(() => null);
+    if (!entryStat?.isDirectory()) continue;
+
+    const indexStat = await stat(join(entryDir, "index.html")).catch(
       () => null,
     );
-    if (!indexStat?.isFile()) continue;
-    entries.push({
-      topology,
-      artifactPath: `${topology}/`,
-    });
+    if (indexStat?.isFile()) {
+      entries.push({
+        model: LEGACY_MODEL,
+        topology: name,
+        artifactPath: `${name}/`,
+      });
+      continue;
+    }
+
+    const topologyNames = await readdir(entryDir).catch(() => []);
+    for (const topology of topologyNames.sort()) {
+      const topologyDir = join(entryDir, topology);
+      const topologyStat = await stat(topologyDir).catch(() => null);
+      if (!topologyStat?.isDirectory()) continue;
+      const nestedIndexStat = await stat(join(topologyDir, "index.html")).catch(
+        () => null,
+      );
+      if (!nestedIndexStat?.isFile()) continue;
+      entries.push({
+        model: name,
+        suite: name,
+        topology,
+        artifactPath: `${name}/${topology}/`,
+      });
+    }
   }
   return entries;
 }

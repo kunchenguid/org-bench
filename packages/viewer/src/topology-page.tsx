@@ -2,9 +2,13 @@ import { useEffect, useState } from "preact/hooks";
 
 import {
   buildRunHash,
+  entryToRunRoute,
   formatDurationMs,
   formatNumber,
+  formatRunLabel,
+  LEGACY_MODEL,
   runArtifactBaseUrl,
+  runEntryKey,
   type MetaJsonLike,
 } from "./run-data.js";
 import type { RunEntry } from "./runs-manifest.js";
@@ -45,11 +49,18 @@ async function loadTopologySummaries(
 ): Promise<TopologyRunSummary[]> {
   return await Promise.all(
     entries.map(async (entry) => {
-      const baseUrl = runArtifactBaseUrl({ topology: entry.topology });
+      const route = entryToRunRoute(entry);
+      const runKey = runEntryKey(entry);
+      const label = formatRunLabel(route);
+      const baseUrl = runArtifactBaseUrl(route);
       const meta = await fetchOptionalMeta(`${baseUrl}meta.json`);
       if (!meta) {
         return {
+          runKey,
+          label,
+          route,
           topology: entry.topology,
+          model: entry.model ?? LEGACY_MODEL,
           totalTokens: null,
           wallClockMs: null,
           buildSuccess: null,
@@ -57,7 +68,11 @@ async function loadTopologySummaries(
         };
       }
       return {
+        runKey,
+        label,
+        route,
         topology: entry.topology,
+        model: entry.model ?? LEGACY_MODEL,
         totalTokens: meta.totals.tokens.total,
         wallClockMs: meta.totals.wall_clock_ms,
         buildSuccess: meta.artifact.build_success,
@@ -113,7 +128,6 @@ export function TopologyPage({
         aggregate={state.aggregate}
       />
       <SeedsSection
-        topology={route.topology}
         summaries={state.summaries}
         loading={state.status === "loading"}
         runCount={matching.length}
@@ -183,12 +197,10 @@ function AggregateSection({
 }
 
 function SeedsSection({
-  topology,
   summaries,
   loading,
   runCount,
 }: {
-  topology: string;
   summaries: TopologyRunSummary[];
   loading: boolean;
   runCount: number;
@@ -207,7 +219,7 @@ function SeedsSection({
       <table data-testid="seed-list">
         <thead>
           <tr>
-            <th>Topology</th>
+            <th>Run</th>
             <th>Tokens</th>
             <th>Wall clock</th>
           </tr>
@@ -220,9 +232,9 @@ function SeedsSection({
                 </tr>
               ))
             : summaries.map((summary) => (
-                <tr key={summary.topology}>
+                <tr key={summary.runKey}>
                   <td>
-                    <a href={buildRunHash({ topology })}>{summary.topology}</a>
+                    <a href={buildRunHash(summary.route)}>{summary.label}</a>
                   </td>
                   <td>
                     {summary.totalTokens === null
