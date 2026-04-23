@@ -1,0 +1,46 @@
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --grid: #d9dee8;
+  --header: #eef2f8;
+  --text: #162033;
+  --muted: #647086;
+  --blue: #1877f2;
+  --blue-soft: rgba(24, 119, 242, 0.12);
+  --error: #b42318;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--text); background: linear-gradient(180deg, #fbfcff, var(--bg)); }
+.app { height: 100vh; display: flex; flex-direction: column; }
+.toolbar { height: 52px; display: grid; grid-template-columns: auto 72px minmax(160px, 1fr) auto; gap: 10px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--grid); background: rgba(255,255,255,.9); backdrop-filter: blur(12px); }
+.brand { font-weight: 800; letter-spacing: -.03em; color: var(--blue); }
+.name-box, .formula-bar { border: 1px solid var(--grid); border-radius: 8px; background: var(--panel); height: 34px; }
+.name-box { display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); }
+.formula-bar { padding: 0 12px; font: 14px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; outline: none; }
+.formula-bar:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.hint { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.grid { flex: 1; overflow: auto; display: grid; grid-template-columns: 48px repeat(26, 112px); grid-auto-rows: 28px; align-content: start; outline: none; background: var(--grid); gap: 1px; }
+.corner, .col-header, .row-header, .cell { background: var(--panel); min-width: 0; user-select: none; }
+.corner, .col-header, .row-header { position: sticky; z-index: 3; background: var(--header); color: var(--muted); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.corner { left: 0; top: 0; z-index: 5; }
+.col-header { top: 0; }
+.row-header { left: 0; }
+.col-header.active, .row-header.active { color: var(--blue); background: #e7f0ff; }
+.cell { position: relative; padding: 5px 7px; font-size: 13px; line-height: 18px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: cell; }
+.cell.number { text-align: right; font-variant-numeric: tabular-nums; }
+.cell.error { color: var(--error); font-weight: 700; }
+.cell.in-range { background: #edf5ff; }
+.cell.active { z-index: 2; box-shadow: inset 0 0 0 2px var(--blue); background: #fff; }
+.cell.editing { padding: 0; box-shadow: inset 0 0 0 2px var(--blue); }
+.editor { width: 100%; height: 100%; border: 0; padding: 4px 6px; outline: none; font: inherit; color: var(--text); background: #fff; }
+.context-menu { position: fixed; z-index: 20; min-width: 180px; padding: 6px; border: 1px solid var(--grid); border-radius: 10px; background: #fff; box-shadow: 0 12px 35px rgba(13, 25, 44, .16); }
+.context-menu button { width: 100%; border: 0; background: transparent; border-radius: 7px; padding: 8px 10px; text-align: left; color: var(--text); cursor: pointer; }
+.context-menu button:hover { background: var(--blue-soft); color: var(--blue); }
+
+@media (max-width: 760px) {
+  .toolbar { grid-template-columns: auto 64px 1fr; height: auto; }
+  .hint { grid-column: 1 / -1; }
+  .grid { grid-template-columns: 42px repeat(26, 92px); }
+}
