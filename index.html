@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand">Sheet</div>
+    <button id="undo" title="Cmd/Ctrl+Z">Undo</button>
+    <button id="redo" title="Cmd/Ctrl+Shift+Z or Ctrl+Y">Redo</button>
+    <button id="insert-row">Insert Row Above</button>
+    <button id="delete-row">Delete Row</button>
+    <button id="insert-col">Insert Column Left</button>
+    <button id="delete-col">Delete Column</button>
+    <div class="hint">Enter edit, arrows move, Shift+arrows select, Del clears, copy/paste works</div>
+  </header>
+  <section class="formula">
+    <div id="name-box">A1</div>
+    <input id="formula-input" aria-label="Formula bar" spellcheck="false">
+  </section>
+  <main id="viewport" class="viewport" tabindex="0" aria-label="Spreadsheet grid">
+    <div id="grid" class="grid"></div>
+  </main>
+  <script src="spreadsheet-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

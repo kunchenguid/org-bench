@@ -1,0 +1,26 @@
+:root { --row-h: 28px; --col-w: 104px; --head: #f5f6f7; --grid: #dfe3ea; --blue: #1877f2; --soft: #e7f0ff; --text: #1c1e21; }
+* { box-sizing: border-box; }
+body { margin: 0; height: 100vh; display: flex; flex-direction: column; color: var(--text); font: 13px/1.3 Arial, Helvetica, sans-serif; background: #fff; }
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--grid); background: #fff; }
+.brand { font-weight: 700; font-size: 18px; margin-right: 8px; color: var(--blue); }
+button { height: 30px; border: 1px solid #c8d0dc; border-radius: 6px; background: #fff; color: #20242a; cursor: pointer; }
+button:hover { background: #f4f7fb; }
+.hint { margin-left: auto; color: #667085; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.formula { display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--grid); background: #fafbfc; }
+#name-box { height: 30px; display: grid; place-items: center; border: 1px solid #ccd3dd; border-radius: 6px; background: #fff; font-weight: 700; }
+#formula-input { height: 30px; border: 1px solid #ccd3dd; border-radius: 6px; padding: 0 10px; font: 13px Arial, Helvetica, sans-serif; }
+.viewport { flex: 1; overflow: auto; outline: none; background: #fff; }
+.grid { display: grid; position: relative; width: max-content; user-select: none; }
+.cell, .head, .corner { height: var(--row-h); min-width: var(--col-w); border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); padding: 5px 7px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.corner, .head { position: sticky; z-index: 2; background: var(--head); color: #475467; font-weight: 700; text-align: center; }
+.corner { left: 0; top: 0; min-width: 48px; z-index: 4; }
+.col-head { top: 0; }
+.row-head { left: 0; min-width: 48px; z-index: 3; }
+.cell { background: #fff; text-align: left; }
+.cell.number { text-align: right; font-variant-numeric: tabular-nums; }
+.cell.error { color: #b42318; background: #fff6f5; font-weight: 700; }
+.cell.in-range { background: var(--soft); }
+.cell.active { outline: 2px solid var(--blue); outline-offset: -2px; background: #fff; z-index: 1; }
+.cell.editing { padding: 0; }
+.editor { width: 100%; height: 100%; border: 2px solid var(--blue); padding: 3px 5px; font: inherit; outline: none; }
+@media (max-width: 720px) { .toolbar { flex-wrap: wrap; } .hint { width: 100%; margin-left: 0; } :root { --col-w: 88px; } }
