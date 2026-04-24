@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spreadsheet Row and Column Controls</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+    }
+
+    .sheet-wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      border: 1px solid #d2d2d7;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 18px;
+      border-bottom: 1px solid #d2d2d7;
+      background: linear-gradient(#fbfbfd, #f5f5f7);
+    }
+
+    .toolbar strong {
+      font-size: 15px;
+    }
+
+    .toolbar span {
+      color: #6e6e73;
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border-right: 1px solid #e8e8ed;
+      border-bottom: 1px solid #e8e8ed;
+      height: 38px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f5f5f7;
+      color: #424245;
+      font-weight: 600;
+      position: relative;
+    }
+
+    .corner,
+    .row-head {
+      width: 68px;
+    }
+
+    .cell {
+      background: #fff;
+    }
+
+    .header-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .menu-button {
+      border: 1px solid #c7c7cc;
+      border-radius: 999px;
+      background: #fff;
+      color: #1d1d1f;
+      font-size: 11px;
+      line-height: 1;
+      padding: 4px 7px;
+      cursor: pointer;
+    }
+
+    .menu-button:hover,
+    .menu-button:focus-visible {
+      border-color: #0071e3;
+      outline: none;
+    }
+
+    .menu {
+      position: absolute;
+      z-index: 2;
+      top: 30px;
+      left: 8px;
+      min-width: 154px;
+      padding: 6px;
+      border: 1px solid #d2d2d7;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+    }
+
+    .menu[hidden] {
+      display: none;
+    }
+
+    .menu button {
+      display: block;
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      padding: 8px 9px;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .menu button:hover,
+    .menu button:focus-visible {
+      background: #e8f2ff;
+      outline: none;
+    }
+
+    .menu .danger {
+      color: #b42318;
+    }
+
+    .status {
+      min-height: 18px;
+      color: #6e6e73;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet-wrap" aria-label="Spreadsheet row and column controls demo">
+    <div class="toolbar">
+      <strong>Headers expose structure controls</strong>
+      <span id="status" class="status" aria-live="polite">Use the chevrons in row or column headers.</span>
+    </div>
+    <template id="header-actions-contract">
+      <button data-action="insert-row-above">Insert row above</button>
+      <button data-action="insert-row-below">Insert row below</button>
+      <button data-action="delete-row">Delete row</button>
+      <button data-action="insert-column-left">Insert column left</button>
+      <button data-action="insert-column-right">Insert column right</button>
+      <button data-action="delete-column">Delete column</button>
+    </template>
+    <table id="sheet" aria-label="Spreadsheet grid"></table>
+  </main>
+
+  <script src="rowColumnOperations.js"></script>
+  <script>
+    const ops = window.RowColumnOperations;
+    const sheet = ops.createSheet(6, 6);
+    ops.setCell(sheet, 'A1', 'Data');
+    ops.setCell(sheet, 'B2', '10');
+    ops.setCell(sheet, 'C3', '=B2*2');
+
+    const table = document.getElementById('sheet');
+    const status = document.getElementById('status');
+
+    function render() {
+      table.innerHTML = '';
+      const headRow = document.createElement('tr');
+      headRow.appendChild(headerCell('', 'corner'));
+      for (let column = 0; column < sheet.columns; column += 1) {
+        headRow.appendChild(columnHeader(column));
+      }
+      table.appendChild(headRow);
+
+      for (let row = 0; row < sheet.rows; row += 1) {
+        const tr = document.createElement('tr');
+        tr.appendChild(rowHeader(row));
+        for (let column = 0; column < sheet.columns; column += 1) {
+          const td = document.createElement('td');
+          td.className = 'cell';
+          td.textContent = ops.getCell(sheet, ops.indexToColumnName(column) + String(row + 1));
+          tr.appendChild(td);
+        }
+        table.appendChild(tr);
+      }
+    }
+
+    function headerCell(text, className) {
+      const th = document.createElement('th');
+      th.className = className;
+      th.textContent = text;
+      return th;
+    }
+
+    function columnHeader(column) {
+      const label = ops.indexToColumnName(column);
+      return menuHeader(label, [
+        ['Insert column left', 'insert-column-left', () => ops.insertColumns(sheet, column, 1)],
+        ['Insert column right', 'insert-column-right', () => ops.insertColumns(sheet, column + 1, 1)],
+        ['Delete column', 'delete-column', () => ops.deleteColumns(sheet, column, 1), true],
+      ]);
+    }
+
+    function rowHeader(row) {
+      return menuHeader(String(row + 1), [
+        ['Insert row above', 'insert-row-above', () => ops.insertRows(sheet, row, 1)],
+        ['Insert row below', 'insert-row-below', () => ops.insertRows(sheet, row + 1, 1)],
+        ['Delete row', 'delete-row', () => ops.deleteRows(sheet, row, 1), true],
+      ], 'row-head');
+    }
+
+    function menuHeader(label, actions, extraClass) {
+      const th = document.createElement('th');
+      th.className = extraClass || '';
+      th.innerHTML = '<span class="header-label"><span></span><button class="menu-button" aria-haspopup="menu" aria-expanded="false">v</button></span>';
+      th.querySelector('span span').textContent = label;
+
+      const menu = document.createElement('div');
+      menu.className = 'menu';
+      menu.hidden = true;
+      menu.setAttribute('role', 'menu');
+      actions.forEach(function (action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = action[0];
+        button.dataset.action = action[1];
+        if (action[3]) button.className = 'danger';
+        button.addEventListener('click', function () {
+          action[2]();
+          status.textContent = action[0] + ' applied. Formulas were rewritten with the operation.';
+          render();
+        });
+        menu.appendChild(button);
+      });
+
+      const toggle = th.querySelector('.menu-button');
+      toggle.addEventListener('click', function () {
+        const nextHidden = !menu.hidden;
+        closeMenus();
+        menu.hidden = nextHidden;
+        toggle.setAttribute('aria-expanded', String(!nextHidden));
+      });
+
+      th.appendChild(menu);
+      return th;
+    }
+
+    function closeMenus() {
+      document.querySelectorAll('.menu').forEach(function (menu) { menu.hidden = true; });
+      document.querySelectorAll('.menu-button').forEach(function (button) { button.setAttribute('aria-expanded', 'false'); });
+    }
+
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('th')) closeMenus();
+    });
+
+    render();
+  </script>
+</body>
+</html>
