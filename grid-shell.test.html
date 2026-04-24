@@ -35,6 +35,7 @@
     localStorage.setItem('grid-shell-test:selection', JSON.stringify({ active: { row: 1, col: 1 }, anchor: { row: 1, col: 1 }, focus: { row: 1, col: 1 }, range: { top: 1, left: 1, bottom: 1, right: 1 } }));
   </script>
   <script src="scripts/app-state.js"></script>
+  <script src="rowColumnOperations.js"></script>
   <script src="history-persistence.js"></script>
   <script src="src/historyPersistenceController.js"></script>
   <script src="src/selectionClipboard.js"></script>
@@ -121,6 +122,16 @@
       assert(b1.querySelector('input').value === '=A1+2', 'formula bar mirrors into active in-cell editor');
       key(document, 'Escape');
       assert(b1.textContent === '=A1+1', 'Escape restores raw value after formula bar edit during cell edit');
+
+      const rowsBefore = window.sheetStore.snapshot().dimensions.rows;
+      const rowMenuButton = document.querySelector('[data-row-header="0"] .structure-menu-button');
+      rowMenuButton.click();
+      assert(rowMenuButton.getAttribute('aria-expanded') === 'true', 'row header menu opens');
+      const insertRowButton = document.querySelector('[data-row-header="0"] [data-action="insert-row-above"]');
+      insertRowButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      assert(window.sheetStore.snapshot().dimensions.rows === rowsBefore + 1, 'row header action inserts one row');
+      key(document, 'z', { metaKey: true });
+      assert(window.sheetStore.snapshot().dimensions.rows === rowsBefore, 'Cmd+Z undoes a row header action as one action');
 
       result.className = 'pass';
       result.textContent = 'PASS';
