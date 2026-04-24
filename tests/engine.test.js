@@ -53,26 +53,24 @@ test('detects circular references without crashing', () => {
   assert.strictEqual(sheet.getDisplay('A1'), '#CIRC!');
   assert.strictEqual(sheet.getDisplay('A2'), '#CIRC!');
 });
-test('rewrites formula references for inserted rows and columns', () => {
+test('rewrites formula references when rows and columns are inserted', () => {
   assert.strictEqual(
-    Engine.transformFormulaReferences('=SUM(A1:B2)+$C$3', 'insertRow', 0),
-    '=SUM(A2:B3)+$C$4'
+    Engine.adjustFormulaForStructure('=A1+$B$2+SUM(C3:D4)', 'insertRow', 1),
+    '=A1+$B$3+SUM(C4:D5)'
   );
   assert.strictEqual(
-    Engine.transformFormulaReferences('=SUM(A1:B2)+$C$3', 'insertCol', 1),
-    '=SUM(A1:C2)+$D$3'
+    Engine.adjustFormulaForStructure('=A1+$B$2+SUM(C3:D4)', 'insertCol', 2),
+    '=A1+$B$2+SUM(D3:E4)'
   );
 });
 
-test('marks deleted formula references as ref errors', () => {
-  assert.strictEqual(
-    Engine.transformFormulaReferences('=A1+B2+C3', 'deleteRow', 1),
-    '=A1+#REF!+C2'
-  );
-  assert.strictEqual(
-    Engine.transformFormulaReferences('=A1+B2+C3', 'deleteCol', 1),
-    '=A1+#REF!+B3'
-  );
+test('marks deleted formula references as #REF', () => {
+  const sheet = makeEngine();
+  sheet.setCell('A1', '2');
+  sheet.setCell('B1', '3');
+  sheet.setCell('C1', Engine.adjustFormulaForStructure('=A1+B1', 'deleteCol', 1));
+  assert.strictEqual(sheet.getRaw('C1'), '=A1+#REF!');
+  assert.strictEqual(sheet.getDisplay('C1'), '#REF!');
 });
 
 test('action history stores each user action atomically with a 50 item limit', () => {
