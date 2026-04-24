@@ -4,7 +4,11 @@
   const DEFAULT_ROWS = 100;
   const DEFAULT_COLS = 26;
   const MAX_HISTORY = 50;
-  const NS = (window.SPREADSHEET_STORAGE_NAMESPACE || window.__STORAGE_NAMESPACE__ || 'facebook-sheet') + ':';
+
+  function storageNamespace(opts) {
+    const raw = opts.namespace || window.SPREADSHEET_STORAGE_NAMESPACE || window.__SPREADSHEET_STORAGE_NAMESPACE__ || window.__STORAGE_NAMESPACE__ || window.__RUN_STORAGE_NAMESPACE__ || window.__ORG_BENCH_STORAGE_NAMESPACE__ || 'facebook-sheet';
+    return String(raw).replace(/:+$/, '') + ':';
+  }
 
   function colName(col) {
     let n = col + 1;
@@ -36,7 +40,7 @@
       opts = opts || {};
       this.rows = opts.rows || DEFAULT_ROWS;
       this.cols = opts.cols || DEFAULT_COLS;
-      this.storageKey = NS + (opts.storageKey || 'state');
+      this.storageKey = storageNamespace(opts) + (opts.storageKey || 'state');
       this.cells = new Map();
       this.cache = new Map();
       this.errors = new Map();
@@ -72,7 +76,7 @@
     }
     valueForContext(row, col, mode, stack) {
       const v = this.evaluateCell(row, col, stack);
-      if (v === '') return mode === 'text' ? '' : 0;
+      if (v === '') return '';
       return v;
     }
     evaluateCell(row, col, stack) {
@@ -316,6 +320,7 @@
     number() { this.ws(); const m = /^\d+(\.\d+)?/.exec(this.text.slice(this.i)); if (!m) return null; this.i += m[0].length; return Number(m[0]); }
     ident() { this.ws(); const m = /^(\$?[A-Z]+\$?\d+|[A-Z_][A-Z0-9_]*)/i.exec(this.text.slice(this.i)); if (!m) return ''; this.i += m[0].length; return m[0]; }
     fn(name) {
+      if (name === 'IF') return this.lazyIf();
       const args = [];
       this.ws();
       if (!this.eat(')')) {
@@ -327,8 +332,7 @@
       if (name === 'AVERAGE') return flat.length ? flat.reduce((a, b) => a + num(b), 0) / flat.length : 0;
       if (name === 'MIN') return Math.min(...flat.map(num));
       if (name === 'MAX') return Math.max(...flat.map(num));
-      if (name === 'COUNT') return flat.filter(v => typeof v === 'number' && !Number.isNaN(v)).length;
-      if (name === 'IF') return truthy(args[0]) ? args[1] : args[2];
+      if (name === 'COUNT') return flat.filter(v => v !== '' && typeof v === 'number' && !Number.isNaN(v)).length;
       if (name === 'AND') return flat.every(truthy);
       if (name === 'OR') return flat.some(truthy);
       if (name === 'NOT') return !truthy(args[0]);
@@ -336,6 +340,39 @@
       if (name === 'ROUND') return Number(num(args[0]).toFixed(args[1] == null ? 0 : num(args[1])));
       if (name === 'CONCAT') return flat.map(textOf).join('');
       throw new Error('#NAME?');
+    }
+    lazyIf() {
+      const args = this.readArgTexts();
+      if (args.length !== 3) throw new Error('#ERR!');
+      const condition = this.evalSubexpr(args[0]);
+      return this.evalSubexpr(truthy(condition) ? args[1] : args[2]);
+    }
+    evalSubexpr(text) {
+      return new FormulaParser(this.model, this.row, this.col, this.stack, text).parse();
+    }
+    readArgTexts() {
+      const args = [];
+      let start = this.i;
+      let depth = 0;
+      let quoted = false;
+      while (this.i < this.text.length) {
+        const ch = this.text[this.i];
+        if (ch === '"') quoted = !quoted;
+        else if (!quoted && ch === '(') depth++;
+        else if (!quoted && ch === ')') {
+          if (depth === 0) {
+            args.push(this.text.slice(start, this.i).trim());
+            this.i++;
+            return args;
+          }
+          depth--;
+        } else if (!quoted && depth === 0 && ch === ',') {
+          args.push(this.text.slice(start, this.i).trim());
+          start = this.i + 1;
+        }
+        this.i++;
+      }
+      throw new Error('#ERR!');
     }
     rangeOrExpr() {
       this.ws();
@@ -347,7 +384,7 @@
         if (!ra || !rb) throw new Error('#REF!');
         const vals = [];
         for (let r = Math.min(ra.row, rb.row); r <= Math.max(ra.row, rb.row); r++) {
-          for (let c = Math.min(ra.col, rb.col); c <= Math.max(ra.col, rb.col); c++) vals.push(this.model.valueForContext(r, c, 'number', this.stack));
+          for (let c = Math.min(ra.col, rb.col); c <= Math.max(ra.col, rb.col); c++) vals.push(this.model.getRaw(r, c) === '' ? '' : this.model.valueForContext(r, c, 'number', this.stack));
         }
         return vals;
       }
@@ -361,9 +398,40 @@
   function truthy(v) { return v === true || (typeof v === 'number' && v !== 0) || (typeof v === 'string' && v !== '' && v !== 'FALSE'); }
   function coerce(v) { return typeof v === 'string' && /^[-+]?\d+(\.\d+)?$/.test(v) ? Number(v) : v; }
 
-  window.SpreadsheetModel = SpreadsheetModel;
+  function coreCreateModel() { return { cells: {}, selection: { row: 1, col: 1 } }; }
+  function coreAddressOf(selection) { return colName(selection.col - 1) + selection.row; }
+  function coreMoveSelection(selection, key) {
+    const next = { row: selection.row, col: selection.col };
+    if (key === 'ArrowUp') next.row--;
+    if (key === 'ArrowDown') next.row++;
+    if (key === 'ArrowLeft') next.col--;
+    if (key === 'ArrowRight') next.col++;
+    return { row: Math.max(1, Math.min(DEFAULT_ROWS, next.row)), col: Math.max(1, Math.min(DEFAULT_COLS, next.col)) };
+  }
+  function coreGetRaw(model, selection) { return model.cells[coreAddressOf(selection)] || ''; }
+  function coreSetRaw(model, selection, value) {
+    const address = coreAddressOf(selection);
+    if (value === '') delete model.cells[address];
+    else model.cells[address] = value;
+  }
+  function coreBeginEdit(model, selection, replace) {
+    return { selection: { row: selection.row, col: selection.col }, previous: coreGetRaw(model, selection), value: replace ? '' : coreGetRaw(model, selection) };
+  }
+  function coreCommitEdit(model, edit, value) { coreSetRaw(model, edit.selection, value); }
+  function coreCancelEdit(model, edit) { coreSetRaw(model, edit.selection, edit.previous); }
+  function coreNextAfterCommit(selection, key) { return coreMoveSelection(selection, key === 'Tab' ? 'ArrowRight' : 'ArrowDown'); }
 
-  if (!document.getElementById('grid')) return;
+  window.SpreadsheetModel = SpreadsheetModel;
+  window.SpreadsheetCore = {
+    createModel: coreCreateModel,
+    moveSelection: coreMoveSelection,
+    beginEdit: coreBeginEdit,
+    commitEdit: coreCommitEdit,
+    cancelEdit: coreCancelEdit,
+    nextAfterCommit: coreNextAfterCommit,
+  };
+
+  if (!window.document || !document.getElementById || !document.getElementById('grid')) return;
 
   const model = new SpreadsheetModel();
   const grid = document.getElementById('grid');
@@ -410,6 +478,8 @@
   function renderSelection() {
     const s = normSel();
     nameBox.textContent = refName(s.activeRow, s.activeCol);
+    grid.querySelectorAll('.col-head').forEach(th => th.classList.toggle('selected', Number(th.dataset.col) >= s.c1 && Number(th.dataset.col) <= s.c2));
+    grid.querySelectorAll('.row-head').forEach(th => th.classList.toggle('selected', Number(th.dataset.row) >= s.r1 && Number(th.dataset.row) <= s.r2));
     grid.querySelectorAll('td').forEach(td => {
       const r = Number(td.dataset.row), c = Number(td.dataset.col);
       td.classList.toggle('range', r >= s.r1 && r <= s.r2 && c >= s.c1 && c <= s.c2);
@@ -429,8 +499,10 @@
     const input = td.firstChild;
     input.value = preserve ? before : seed;
     editing = { row, col, before, input };
+    formulaBar.value = input.value;
     input.focus(); input.select();
     input.addEventListener('keydown', onEditorKey);
+    input.addEventListener('input', () => { formulaBar.value = input.value; });
     input.addEventListener('blur', () => commitEdit(false));
   }
   function commitEdit(cancel, move) {
@@ -498,8 +570,10 @@
   formulaBar.addEventListener('focus', updateFormulaBar);
   formulaBar.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); setSelection(model.selection.activeRow + 1, model.selection.activeCol); wrap.focus(); }
+    if (e.key === 'Tab') { e.preventDefault(); model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); setSelection(model.selection.activeRow, model.selection.activeCol + 1); wrap.focus(); }
     if (e.key === 'Escape') { e.preventDefault(); updateFormulaBar(); wrap.focus(); }
   });
+  formulaBar.addEventListener('input', () => { model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); renderSelection(); });
   formulaBar.addEventListener('change', () => { model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); renderSelection(); });
   document.getElementById('insertRow').onclick = () => { model.insertRow(model.selection.activeRow); render(); };
   document.getElementById('deleteRow').onclick = () => { model.deleteRow(model.selection.activeRow); setSelection(Math.min(model.selection.activeRow, model.rows - 1), model.selection.activeCol); render(); };

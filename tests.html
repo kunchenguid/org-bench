@@ -37,6 +37,14 @@
       assertEqual(sheet.adjustFormulaForMove('=A1+$A1+A$1+$A$1', 0, 1, 2, 2), '=B3+$A3+B$1+$A$1', 'adjusted formula');
     });
 
+    test('IF only evaluates the selected branch', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-if' });
+      sheet.setRaw(0, 0, '=IF(FALSE,1/0,7)');
+      sheet.setRaw(1, 0, '=IF(TRUE,9,1/0)');
+      assertEqual(sheet.getDisplay(0, 0), '7', 'false branch');
+      assertEqual(sheet.getDisplay(1, 0), '9', 'true branch');
+    });
+
     test('copies formula blocks relative to the copied source', () => {
       const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-d' });
       const pasted = sheet.adjustFormulaForMove('=A1', 0, 0, 1, 1);
@@ -78,6 +86,70 @@
       sheet.undo();
       assertEqual(sheet.getRaw(0, 0), 'a', 'undo paste first cell');
       assertEqual(sheet.getRaw(0, 1), 'b', 'undo paste second cell');
+    });
+
+    test('hardens comparisons, concat, booleans, numeric functions, and errors', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-formula-hardening', skipLoad: true });
+      sheet.setRaw(0, 0, '');
+      sheet.setRaw(1, 0, '=1=1');
+      sheet.setRaw(2, 0, '=1<>2');
+      sheet.setRaw(3, 0, '=2<=1');
+      sheet.setRaw(4, 0, '="Total: "&A1');
+      sheet.setRaw(5, 0, '=CONCAT("A", 1, TRUE)');
+      sheet.setRaw(6, 0, '=IF(AND(TRUE, NOT(FALSE)), "yes", "no")');
+      sheet.setRaw(7, 0, '=IF(OR(FALSE, FALSE), 1, 2)');
+      sheet.setRaw(8, 0, '=ABS(-4)+ROUND(2.345, 2)+A1');
+      sheet.setRaw(9, 0, '=1/0');
+      sheet.setRaw(0, 1, '=NOPE(1)');
+      sheet.setRaw(1, 1, '=1+');
+      assertEqual(sheet.getDisplay(1, 0), 'TRUE', 'equal comparison');
+      assertEqual(sheet.getDisplay(2, 0), 'TRUE', 'not-equal comparison');
+      assertEqual(sheet.getDisplay(3, 0), 'FALSE', 'lte comparison');
+      assertEqual(sheet.getDisplay(4, 0), 'Total: ', 'empty ref in text concat');
+      assertEqual(sheet.getDisplay(5, 0), 'A1TRUE', 'CONCAT function');
+      assertEqual(sheet.getDisplay(6, 0), 'yes', 'IF AND NOT');
+      assertEqual(sheet.getDisplay(7, 0), '2', 'IF OR false branch');
+      assertEqual(sheet.getDisplay(8, 0), '6.35', 'ABS ROUND empty numeric ref');
+      assertEqual(sheet.getDisplay(9, 0), '#DIV/0!', 'divide by zero');
+      assertEqual(sheet.getDisplay(0, 1), '#NAME?', 'unknown function');
+      assertEqual(sheet.getDisplay(1, 1), '#ERR!', 'bad syntax');
+    });
+
+    test('persists raw formulas and selection per run namespace without collisions', () => {
+      localStorage.removeItem('run-one:shared-state');
+      localStorage.removeItem('run-two:shared-state');
+
+      const runOne = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-one' });
+      runOne.setRaw(0, 0, '4');
+      runOne.setRaw(0, 1, '=A1*3');
+      runOne.selection = { r1: 0, c1: 1, r2: 0, c2: 1, activeRow: 0, activeCol: 1 };
+      runOne.save();
+
+      const runTwo = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-two' });
+      runTwo.setRaw(0, 0, '99');
+      runTwo.selection = { r1: 2, c1: 2, r2: 2, c2: 2, activeRow: 2, activeCol: 2 };
+      runTwo.save();
+
+      const reloadedOne = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-one' });
+      const reloadedTwo = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-two' });
+
+      assertEqual(reloadedOne.storageKey, 'run-one:shared-state', 'run one storage key');
+      assertEqual(reloadedTwo.storageKey, 'run-two:shared-state', 'run two storage key');
+      assertEqual(reloadedOne.getRaw(0, 1), '=A1*3', 'raw formula survives reload');
+      assertEqual(reloadedOne.getDisplay(0, 1), '12', 'formula recalculates after reload');
+      assertEqual(reloadedOne.selection.activeRow, 0, 'run one selection row');
+      assertEqual(reloadedOne.selection.activeCol, 1, 'run one selection col');
+      assertEqual(reloadedTwo.getRaw(0, 0), '99', 'run two cell survives separately');
+      assertEqual(reloadedTwo.selection.activeRow, 2, 'run two selection row');
+      assertEqual(reloadedTwo.selection.activeCol, 2, 'run two selection col');
+    });
+
+    test('COUNT ignores empty cells in ranges', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-e' });
+      sheet.setRaw(0, 0, '3');
+      sheet.setRaw(2, 0, 'text');
+      sheet.setRaw(3, 0, '=COUNT(A1:A3)');
+      assertEqual(sheet.getDisplay(3, 0), '1', 'count display');
     });
 
     (async function run() {
