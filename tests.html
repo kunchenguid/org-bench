@@ -43,6 +43,35 @@
       assertEqual(pasted, '=B2', 'copied formula');
     });
 
+    test('persists raw formulas and selection per run namespace without collisions', () => {
+      localStorage.removeItem('run-one:shared-state');
+      localStorage.removeItem('run-two:shared-state');
+
+      const runOne = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-one' });
+      runOne.setRaw(0, 0, '4');
+      runOne.setRaw(0, 1, '=A1*3');
+      runOne.selection = { r1: 0, c1: 1, r2: 0, c2: 1, activeRow: 0, activeCol: 1 };
+      runOne.save();
+
+      const runTwo = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-two' });
+      runTwo.setRaw(0, 0, '99');
+      runTwo.selection = { r1: 2, c1: 2, r2: 2, c2: 2, activeRow: 2, activeCol: 2 };
+      runTwo.save();
+
+      const reloadedOne = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-one' });
+      const reloadedTwo = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-two' });
+
+      assertEqual(reloadedOne.storageKey, 'run-one:shared-state', 'run one storage key');
+      assertEqual(reloadedTwo.storageKey, 'run-two:shared-state', 'run two storage key');
+      assertEqual(reloadedOne.getRaw(0, 1), '=A1*3', 'raw formula survives reload');
+      assertEqual(reloadedOne.getDisplay(0, 1), '12', 'formula recalculates after reload');
+      assertEqual(reloadedOne.selection.activeRow, 0, 'run one selection row');
+      assertEqual(reloadedOne.selection.activeCol, 1, 'run one selection col');
+      assertEqual(reloadedTwo.getRaw(0, 0), '99', 'run two cell survives separately');
+      assertEqual(reloadedTwo.selection.activeRow, 2, 'run two selection row');
+      assertEqual(reloadedTwo.selection.activeCol, 2, 'run two selection col');
+    });
+
     test('COUNT ignores empty cells in ranges', () => {
       const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-e' });
       sheet.setRaw(0, 0, '3');
