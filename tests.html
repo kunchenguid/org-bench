@@ -117,6 +117,15 @@
       delete window.__BENCHMARK_STORAGE_NAMESPACE__;
     });
 
+    test('normalizes storage namespaces that already include a trailing colon', () => {
+      localStorage.removeItem('run-colon:cells');
+      localStorage.removeItem('run-colon::cells');
+      const sheet = new SpreadsheetModel(10, 10, 'run-colon:');
+      sheet.setCell(0, 0, '42');
+      equal(localStorage.getItem('run-colon:cells').includes('42'), true);
+      equal(localStorage.getItem('run-colon::cells'), null);
+    });
+
     test('restores cells and selected cell without cross-run collisions', () => {
       localStorage.removeItem('run-b:cells');
       localStorage.removeItem('run-b:ui');

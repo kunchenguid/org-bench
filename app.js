@@ -8,7 +8,7 @@
 
   function storagePrefix(namespace) {
     const injected = root.SPREADSHEET_STORAGE_NAMESPACE || root.__SPREADSHEET_STORAGE_NAMESPACE__ || root.__BENCHMARK_STORAGE_NAMESPACE__ || '';
-    return String(namespace || injected || 'facebook-sheet') + ':';
+    return String(namespace || injected || 'facebook-sheet').replace(/:+$/, '') + ':';
   }
   function colName(col) {
     let n = col + 1;
