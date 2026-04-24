@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Tests</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; }
+    .pass { color: #0a7f36; }
+    .fail { color: #b42318; }
+  </style>
+</head>
+<body>
+  <h1>Spreadsheet Tests</h1>
+  <ol id="results"></ol>
+  <script src="app.js"></script>
+  <script>
+    const results = document.getElementById('results');
+
+    function test(name, fn) {
+      const item = document.createElement('li');
+      try {
+        fn();
+        item.className = 'pass';
+        item.textContent = 'PASS ' + name;
+      } catch (error) {
+        item.className = 'fail';
+        item.textContent = 'FAIL ' + name + ': ' + error.message;
+        window.__TEST_FAILURES__ = (window.__TEST_FAILURES__ || 0) + 1;
+      }
+      results.appendChild(item);
+    }
+
+    function assertEqual(actual, expected) {
+      if (actual !== expected) {
+        throw new Error('expected ' + expected + ', got ' + actual);
+      }
+    }
+
+    test('evaluates arithmetic, ranges, and dependent formulas', function () {
+      const sheet = new window.SpreadsheetCore(26, 100, 'test-formulas');
+      sheet.setCellRaw('A1', '2');
+      sheet.setCellRaw('A2', '3');
+      sheet.setCellRaw('B1', '=A1+A2*4');
+      sheet.setCellRaw('B2', '=SUM(A1:A2)');
+      assertEqual(sheet.getDisplayValue('B1'), '14');
+      assertEqual(sheet.getDisplayValue('B2'), '5');
+      sheet.setCellRaw('A2', '5');
+      assertEqual(sheet.getDisplayValue('B1'), '22');
+      assertEqual(sheet.getDisplayValue('B2'), '7');
+    });
+
+    test('copies relative formulas while preserving absolute references', function () {
+      const sheet = new window.SpreadsheetCore(26, 100, 'test-copy');
+      sheet.setCellRaw('A1', '10');
+      sheet.setCellRaw('A2', '20');
+      sheet.setCellRaw('C1', '=A1+$A$2');
+      sheet.copyRange('C1', 'C1');
+      sheet.pasteRange('D2');
+      assertEqual(sheet.getRaw('D2'), '=B2+$A$2');
+      assertEqual(sheet.getDisplayValue('D2'), '20');
+    });
+
+    test('detects circular references and supports undo after paste', function () {
+      const sheet = new window.SpreadsheetCore(26, 100, 'test-undo');
+      sheet.setCellRaw('A1', '=B1');
+      sheet.setCellRaw('B1', '=A1');
+      assertEqual(sheet.getDisplayValue('A1'), '#CIRC!');
+      sheet.setCellRaw('C1', '=A1');
+      sheet.copyRange('C1', 'C1');
+      sheet.pasteRange('C2');
+      assertEqual(sheet.getRaw('C2'), '=A2');
+      sheet.undo();
+      assertEqual(sheet.getRaw('C2'), '');
+      sheet.redo();
+      assertEqual(sheet.getRaw('C2'), '=A2');
+    });
+  </script>
+</body>
+</html>

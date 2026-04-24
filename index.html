@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amazon Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">Amazon Sheet</div>
+      <label class="formula">
+        <span id="nameBox">A1</span>
+        <input id="formulaInput" autocomplete="off" spellcheck="false" aria-label="Formula bar">
+      </label>
+      <div class="actions" aria-label="Row and column actions">
+        <button id="insertRow">Insert row above</button>
+        <button id="deleteRow">Delete row</button>
+        <button id="insertCol">Insert col left</button>
+        <button id="deleteCol">Delete col</button>
+      </div>
+    </header>
+    <section id="gridWrap" class="grid-wrap" tabindex="0" aria-label="Spreadsheet grid"></section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
