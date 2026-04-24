@@ -334,12 +334,12 @@
       if (!raw || raw[0] !== '=') return raw;
       return raw.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, (m, absC, letters, absR, rowText) => {
         let row = Number(rowText) - 1, col = colIndex(letters);
-        if (axis === 'row' && !absR) {
+        if (axis === 'row') {
           if (delta > 0 && row >= index) row += 1;
           if (delta < 0 && row === index) return '#REF!';
           if (delta < 0 && row > index) row -= 1;
         }
-        if (axis === 'col' && !absC) {
+        if (axis === 'col') {
           if (delta > 0 && col >= index) col += 1;
           if (delta < 0 && col === index) return '#REF!';
           if (delta < 0 && col > index) col -= 1;

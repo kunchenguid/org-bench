@@ -46,6 +46,24 @@
       equal(sheet.getDisplay(0, 0), '#CIRC!');
     });
 
+    test('insert row updates relative and absolute row references to moved data', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-insert-row-refs');
+      sheet.setCell(0, 0, '10');
+      sheet.setCell(1, 1, '=A1+$A$1+A$1+$A1');
+      sheet.insertRow(0);
+      equal(sheet.getCell(2, 1), '=A2+$A$2+A$2+$A2');
+      equal(sheet.getDisplay(2, 1), '40');
+    });
+
+    test('delete column renders formulas that referenced deleted cells as #REF', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-delete-col-refs');
+      sheet.setCell(0, 0, '7');
+      sheet.setCell(0, 2, '=A1+$A$1');
+      sheet.deleteCol(0);
+      equal(sheet.getCell(0, 1), '=#REF!+#REF!');
+      equal(sheet.getDisplay(0, 1), '#REF!');
+    });
+
     if (failures.length) {
       out.textContent = failures.join('\n');
       throw new Error(failures.length + ' tests failed');
