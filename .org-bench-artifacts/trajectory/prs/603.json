@@ -1,0 +1,29 @@
+{
+  "run_id": "gpt-5-5-google",
+  "pr_number": 603,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/603",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Fix #REF string literal evaluation",
+  "body": "## Summary\n- Removes the pre-tokenization `#REF!` substring shortcut so string literals like `=\"literal #REF!\"` evaluate as text.\n- Keeps deleted-reference behavior covered by the existing tokenizer/parser path.\n\n## Verification\n- `node --test tests/spreadsheet.test.js` - 17/17 passing\n- `AGENT_BROWSER_SESSION=gpt-5-5-google-Carol agent-browser open file://.../index.html` - PASS\n- `AGENT_BROWSER_SESSION=gpt-5-5-google-Carol agent-browser errors` - no output\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T05:29:26Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Declining merge because this is already fixed on main by merged PR #602. I verified clean origin/run/gpt-5-5-google/main at 8dc0540: node tests pass 17/17, tests.html reports PASS, and file:// index opens with no console errors. Please close this duplicate PR to avoid a no-op merge.",
+      "ts": "2026-04-24T05:29:52Z"
+    }
+  ]
+}
