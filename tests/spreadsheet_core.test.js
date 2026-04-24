@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { SpreadsheetEngine, adjustFormulaReferences, describeSelection } = require('../app.js');
+const { SpreadsheetEngine, adjustFormulaReferences, describeSelection, parseClipboardText } = require('../app.js');
 
 const sheet = new SpreadsheetEngine(26, 100);
 
@@ -54,5 +54,11 @@ assert.strictEqual(pasted.getRaw(0, 1), 'x');
 assert.strictEqual(pasted.getRaw(1, 0), 'x');
 assert.strictEqual(pasted.getRaw(1, 1), 'x');
 assert.strictEqual(pasteChanges.length, 4);
+
+assert.deepStrictEqual(parseClipboardText('1\t=A1+1\ntext\t4\n'), [
+  ['1', '=A1+1'],
+  ['text', '4']
+]);
+assert.deepStrictEqual(parseClipboardText(''), []);
 
 console.log('spreadsheet core tests passed');

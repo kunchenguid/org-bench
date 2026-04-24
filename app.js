@@ -54,6 +54,12 @@
     return selection;
   }
 
+  function parseClipboardText(text) {
+    var rows = String(text || '').replace(/\r/g, '').split('\n');
+    if (rows[rows.length - 1] === '') rows.pop();
+    return rows.filter(function (line) { return line.length > 0; }).map(function (line) { return line.split('\t'); });
+  }
+
   function eachCellInRange(range, callback) {
     var startRow = Math.min(range.r1, range.r2);
     var endRow = Math.max(range.r1, range.r2);
@@ -608,12 +614,6 @@
       return engine.copyRange(nr).map(function (line) { return line.join('\t'); }).join('\n');
     }
 
-    function parseClipboardText(text) {
-      var rows = text.replace(/\r/g, '').split('\n');
-      if (rows[rows.length - 1] === '') rows.pop();
-      return rows.map(function (line) { return line.split('\t'); });
-    }
-
     function pasteText(text) {
       var block = parseClipboardText(text);
       if (!block.length) return;
@@ -719,8 +719,10 @@
         return;
       }
       if (meta && event.key.toLowerCase() === 'v') {
-        event.preventDefault();
-        if (navigator.clipboard) navigator.clipboard.readText().then(pasteText);
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          event.preventDefault();
+          navigator.clipboard.readText().then(pasteText).catch(function () { wrap.focus(); });
+        }
         return;
       }
       if (event.key === 'Enter' || event.key === 'F2') { event.preventDefault(); startEdit(true); return; }
@@ -746,6 +748,18 @@
       if (event.key === 'Escape') { event.preventDefault(); formulaInput.value = engine.getRaw(active.row, active.col); wrap.focus(); }
     });
     formulaInput.addEventListener('change', function () { if (!formulaInputCommitted) commitFormulaInput(); });
+    wrap.addEventListener('copy', function (event) {
+      if (document.activeElement === formulaInput) return;
+      event.preventDefault();
+      internalClipboard = { range: normalizedRange(), cut: false };
+      event.clipboardData.setData('text/plain', clipboardText());
+    });
+    wrap.addEventListener('cut', function (event) {
+      if (document.activeElement === formulaInput) return;
+      event.preventDefault();
+      internalClipboard = { range: normalizedRange(), cut: true };
+      event.clipboardData.setData('text/plain', clipboardText());
+    });
     wrap.addEventListener('paste', function (event) {
       if (document.activeElement === formulaInput) return;
       event.preventDefault();
@@ -756,7 +770,7 @@
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { SpreadsheetEngine: SpreadsheetEngine, adjustFormulaReferences: adjustFormulaReferences, parseRef: parseRef, colName: colName, describeSelection: describeSelection };
+    module.exports = { SpreadsheetEngine: SpreadsheetEngine, adjustFormulaReferences: adjustFormulaReferences, parseRef: parseRef, colName: colName, describeSelection: describeSelection, parseClipboardText: parseClipboardText };
   }
 
   if (global.document) {
