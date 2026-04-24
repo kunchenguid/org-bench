@@ -36,4 +36,23 @@ assert.deepStrictEqual(
 );
 assert.strictEqual(describeSelection({ row: 4, col: 1 }, { row: 4, col: 1 }, 100, 26).label, 'B5');
 
+const moved = new SpreadsheetEngine(26, 100);
+moved.setCell(0, 0, '10');
+moved.setCell(0, 1, '=A1*2');
+const moveChanges = moved.moveRange({ r1: 0, c1: 0, r2: 0, c2: 1 }, 2, 0);
+assert.strictEqual(moved.getRaw(0, 0), '');
+assert.strictEqual(moved.getRaw(0, 1), '');
+assert.strictEqual(moved.getRaw(2, 0), '10');
+assert.strictEqual(moved.getRaw(2, 1), '=A3*2');
+assert.strictEqual(moved.getDisplay(2, 1), '20');
+assert.strictEqual(moveChanges.length, 4);
+
+const pasted = new SpreadsheetEngine(26, 100);
+const pasteChanges = pasted.pasteBlock([['x']], 0, 0, null, { rows: 2, cols: 2 });
+assert.strictEqual(pasted.getRaw(0, 0), 'x');
+assert.strictEqual(pasted.getRaw(0, 1), 'x');
+assert.strictEqual(pasted.getRaw(1, 0), 'x');
+assert.strictEqual(pasted.getRaw(1, 1), 'x');
+assert.strictEqual(pasteChanges.length, 4);
+
 console.log('spreadsheet core tests passed');
