@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Tests</title>
+</head>
+<body>
+  <pre id="out">Running...</pre>
+  <script src="app.js"></script>
+  <script>
+    const out = document.getElementById('out');
+    const tests = [];
+    function test(name, fn) { tests.push({ name, fn }); }
+    function assertEqual(actual, expected, label) {
+      if (actual !== expected) throw new Error(`${label || 'value'}: expected ${expected}, got ${actual}`);
+    }
+
+    test('evaluates formulas with references and ranges', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-a' });
+      sheet.setRaw(0, 0, '10');
+      sheet.setRaw(1, 0, '5');
+      sheet.setRaw(2, 0, '=A1+A2*2');
+      sheet.setRaw(3, 0, '=SUM(A1:A3)');
+      assertEqual(sheet.getDisplay(2, 0), '20', 'formula display');
+      assertEqual(sheet.getDisplay(3, 0), '35', 'range formula');
+    });
+
+    test('detects circular references', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-b' });
+      sheet.setRaw(0, 0, '=B1');
+      sheet.setRaw(0, 1, '=A1');
+      assertEqual(sheet.getDisplay(0, 0), '#CIRC!', 'circular display');
+    });
+
+    test('adjusts relative references when copied', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-c' });
+      assertEqual(sheet.adjustFormulaForMove('=A1+$A1+A$1+$A$1', 0, 1, 2, 2), '=B3+$A3+B$1+$A$1', 'adjusted formula');
+    });
+
+    test('copies formula blocks relative to the copied source', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-d' });
+      const pasted = sheet.adjustFormulaForMove('=A1', 0, 0, 1, 1);
+      assertEqual(pasted, '=B2', 'copied formula');
+    });
+
+    (async function run() {
+      const failures = [];
+      for (const t of tests) {
+        try { await t.fn(); }
+        catch (e) { failures.push(`${t.name}: ${e.message}`); }
+      }
+      out.textContent = failures.length ? `FAIL\n${failures.join('\n')}` : `PASS ${tests.length}`;
+      document.title = failures.length ? 'FAIL' : 'PASS';
+    })();
+  </script>
+</body>
+</html>
