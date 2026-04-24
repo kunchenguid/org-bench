@@ -123,7 +123,11 @@
   function applyStructureAction(type, index) {
     if (editing) commitEdit(false);
 
-    var payload = store.applyStructureAction({ type: type, index: index, count: 1 }, "header-control");
+    var payload;
+
+    recordAction(type, function () {
+      payload = store.applyStructureAction({ type: type, index: index, count: 1 }, "header-control");
+    });
     closeStructureMenus();
     renderShellGrid();
     syncSelectionChrome(store.snapshot().selection);
