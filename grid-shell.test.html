@@ -112,7 +112,7 @@
 
       formula.value = '=A1+1';
       formula.dispatchEvent(new Event('input', { bubbles: true }));
-      assert(b1.textContent === '=A1+1', 'formula bar edits selected cell raw value');
+      assert(window.sheetStore.getCellRaw({ row: 0, col: 1 }) === '=A1+1', 'formula bar edits selected cell raw value');
 
       key(document, 'F2');
       formula.value = '=A1+2';
@@ -120,7 +120,7 @@
       assert(b1.classList.contains('editing'), 'formula bar preserves an active in-cell editor');
       assert(b1.querySelector('input').value === '=A1+2', 'formula bar mirrors into active in-cell editor');
       key(document, 'Escape');
-      assert(b1.textContent === '=A1+1', 'Escape restores raw value after formula bar edit during cell edit');
+      assert(window.sheetStore.getCellRaw({ row: 0, col: 1 }) === '=A1+1', 'Escape restores raw value after formula bar edit during cell edit');
 
       result.className = 'pass';
       result.textContent = 'PASS';

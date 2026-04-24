@@ -20,6 +20,7 @@
     ? historyController.recordAction
     : function (label, mutate) { mutate(); };
   var formulaEditBefore = null;
+  var formulaSheet = null;
 
   window.sheetStore = store;
   if (window.SpreadsheetClipboardController && window.SelectionClipboard) {
@@ -49,6 +50,39 @@
 
   function rowHeaderAt(row) {
     return gridRoot.querySelector("[data-row-header='" + row + "']");
+  }
+
+  function recalculateDisplayValues() {
+    if (!window.FormulaEngine) return null;
+    formulaSheet = window.FormulaEngine.createSheet(store.snapshot().cells);
+    window.FormulaEngine.recalculate(formulaSheet);
+    return formulaSheet;
+  }
+
+  function formatDisplayValue(value) {
+    if (value === true) return "TRUE";
+    if (value === false) return "FALSE";
+    if (value === null || value === undefined) return "";
+    return String(value);
+  }
+
+  function displayRecordFor(row, col) {
+    var key = cellKey(row, col);
+    if (!formulaSheet || !formulaSheet.values[key]) {
+      return { raw: store.getCellRaw({ row: row, col: col }), display: store.getCellRaw({ row: row, col: col }) };
+    }
+    return formulaSheet.values[key];
+  }
+
+  function applyCellDisplayClasses(cell, record) {
+    cell.classList.remove("number", "text", "error", "cell-error");
+    if (record && record.error) {
+      cell.classList.add("error", "cell-error");
+    } else if (record && record.type === "number") {
+      cell.classList.add("number");
+    } else if (record && record.type === "text") {
+      cell.classList.add("text");
+    }
   }
 
   function clearSelectionChrome() {
@@ -176,7 +210,9 @@
   function renderCellRaw(row, col) {
     var cell = cellAt(row, col);
     if (cell && (!editing || editing.row !== row || editing.col !== col)) {
-      cell.textContent = store.getCellRaw({ row: row, col: col });
+      var record = displayRecordFor(row, col);
+      cell.textContent = formatDisplayValue(record.display);
+      applyCellDisplayClasses(cell, record);
     }
   }
 
@@ -191,6 +227,13 @@
         col = col * 26 + colName.charCodeAt(index) - 64;
       }
       renderCellRaw(Number(match[2]) - 1, col - 1);
+    });
+  }
+
+  function renderAllCellDisplays() {
+    var cells = gridRoot.querySelectorAll(".cell");
+    Array.prototype.forEach.call(cells, function (cell) {
+      renderCellRaw(Number(cell.dataset.row), Number(cell.dataset.col));
     });
   }
 
@@ -213,7 +256,6 @@
         store.setCellRaw({ row: state.row, col: state.col }, nextRaw, "cell-edit");
       });
     }
-    renderCellRaw(state.row, state.col);
     formulaInput.value = store.getCellRaw(activeCell());
   }
 
@@ -305,7 +347,6 @@
       return;
     }
     store.setCellRaw(active, formulaInput.value, "formula-bar");
-    renderCellRaw(active.row, active.col);
   }
 
   function handleFormulaKeydown(event) {
@@ -388,7 +429,9 @@
         cell.dataset.row = String(row);
         cell.dataset.col = String(col);
         cell.dataset.cell = cellKey(row, col);
-        cell.textContent = store.getCellRaw({ row: row, col: col });
+        var record = displayRecordFor(row, col);
+        cell.textContent = formatDisplayValue(record.display);
+        applyCellDisplayClasses(cell, record);
         cell.addEventListener("mousedown", function (event) {
           event.preventDefault();
           var targetCell = { row: Number(this.dataset.row), col: Number(this.dataset.col) };
@@ -420,23 +463,22 @@
   });
 
   store.on("cellchange", function (event) {
-    renderCellRaw(event.detail.cell.row, event.detail.cell.col);
+    recalculateDisplayValues();
+    renderAllCellDisplays();
     if (spreadsheet.cellKey(activeCell()) === event.detail.key && !editing) {
       formulaInput.value = event.detail.raw;
     }
   });
 
   store.on("structurechange", function () {
+    recalculateDisplayValues();
     renderShellGrid();
-    renderPopulatedCells();
     syncSelectionChrome(store.snapshot().selection);
   });
 
   store.on("hydrate", function (event) {
-    Array.prototype.forEach.call(gridRoot.querySelectorAll(".cell"), function (cell) {
-      cell.textContent = "";
-    });
-    renderPopulatedCells();
+    recalculateDisplayValues();
+    renderAllCellDisplays();
     syncSelectionChrome(event.detail.state.selection);
   });
 
@@ -446,8 +488,8 @@
   document.addEventListener("mouseup", function () { draggingAnchor = null; });
   document.addEventListener("click", closeStructureMenus);
 
+  recalculateDisplayValues();
   renderShellGrid();
-  renderPopulatedCells();
   syncSelectionChrome(store.snapshot().selection);
   document.dispatchEvent(new CustomEvent("spreadsheet:ready", { detail: { store: store } }));
 }());
