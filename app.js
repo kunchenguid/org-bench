@@ -154,7 +154,6 @@
         cell.className = 'cell';
         cell.dataset.row = row;
         cell.dataset.col = col;
-        cell.setAttribute('aria-label', formatAddress(row, col));
         cell.setAttribute('role', 'gridcell');
         grid.appendChild(cell);
       }
@@ -203,6 +202,8 @@
       const display = sheet.getDisplay(row, col);
       const raw = sheet.getRaw(row, col);
       cell.textContent = display;
+      const address = formatAddress(row, col);
+      cell.setAttribute('aria-label', display ? `${address} ${display}` : address);
       cell.className = 'cell';
       if (display.startsWith('#')) cell.classList.add('error');
       else if (raw.trim() !== '' && !Number.isNaN(Number(display))) cell.classList.add('number');
