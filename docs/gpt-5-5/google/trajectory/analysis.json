@@ -1,0 +1,230 @@
+{
+  "run_id": "gpt-5-5-google",
+  "schema_version": 1,
+  "narrative": "Eric used the brief as a design-doc-first coordination problem rather than immediately coding. In round 2 he split the spreadsheet into four tracks: Alice was asked to coordinate Emma on formula parsing/evaluation and reference shifting, Ben to coordinate Frank on grid interactions and undo/redo, Carol to coordinate Grace on persistence plus structural row/column edits, and Dave to coordinate Henry on UI polish and browser verification. The decomposition fanned out one more level in round 3, when each middle integrator forwarded a more detailed design-doc request to the assigned worker. That made the maximum delegation depth two hops from Eric to middle integrator to worker.\n\nThe active topology was leader-to-middle plus a subset of middle-to-worker and worker-to-middle review edges. Eric maintained regular status pressure on Alice, Ben, Carol, and Dave. Alice became the busiest middle integrator because multiple workers sent baseline or follow-up PRs through her, including Emma, Frank, Grace, and Henry. Ben mainly handled Frank's grid-interaction stream, Carol handled Grace's persistence/structural stream and later a duplicate #REF fix, and Dave handled Henry's UI/evidence stream. Several configured consensus edges were idle: Ben never exchanged messages with Emma, Grace, or Henry; Carol never exchanged messages with Emma or Henry; Dave never exchanged messages with Emma or Grace.\n\nThe first major integration decision happened in round 3. Multiple workers produced overlapping first-artifact PRs: Frank #594, Grace #595, Henry #596, and Emma #597. Alice verified Henry's #596 with Node tests, browser tests, file:// load, and no console errors, then approved it as the baseline. The event log records Alice approving and merging #596, and round 4 messages show Eric and Alice treating it as the shared baseline while asking the other workers to rebase or narrow their work.\n\nAfter the baseline landed, integration shifted to narrow deltas. Henry's #598 added header context menus and gridcell labels for UI/evidence. Grace's #599 fixed deleted row/column references to render #REF!, and Grace's #600 added storage namespace and reload behavior. Frank's stale #594 was closed or superseded by docs-only #601, then Frank later opened #604 for evaluator-facing undo hardening. Emma's #597 was merged for formula coverage but left current main red on a quoted #REF! string-literal case; Eric identified the red-main state and asked for a focused formula fix. Henry's #602 fixed that regression and improved cell-value evidence, while Carol's #603 attempted the same #REF literal fix after #602 had already landed and was declined as duplicate.\n\nDecision flow got stuck mainly around duplicate baseline work and the #REF regression. The duplicate baseline work was resolved by choosing #596, declining #594 and #595 as stale/overlapping, and turning Frank's contribution into a design-doc-only PR. The #REF regression was resolved by merging #602, then declining #603 as already fixed. There is no recorded revert; churn came from superseded PRs and rebased/narrowed follow-ups rather than undoing merged commits.\n\nEric's final submission in round 5 states that current main was verified green after #602 and #604: Node tests passed 21/21, tests.html passed over file://, index.html opened over file:// with no console errors, and stale or duplicate PRs were declined. The final shipped artifact was a vanilla static spreadsheet with a 26 by 100 grid, formula bar, formula engine, dependency recalculation, persistence helpers, row/column insertion and deletion, #REF handling, header context menus, accessibility/evidence labels, clipboard/range behavior, and undo hardening. The judge later confirmed that the deployed artifact loaded without console errors, evaluated formulas including SUM, AVERAGE, IF, CONCAT, and ROUND, recalculated dependents, and persisted data across reloads, while noting limited discoverability and incomplete live coverage of every advanced interaction path.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Eric",
+        "to": "Alice",
+        "forward_messages": 5,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Eric",
+        "to": "Ben",
+        "forward_messages": 5,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Eric",
+        "to": "Carol",
+        "forward_messages": 5,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Eric",
+        "to": "Dave",
+        "forward_messages": 5,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Alice",
+        "to": "Emma",
+        "forward_messages": 4,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Alice",
+        "to": "Frank",
+        "forward_messages": 3,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Alice",
+        "to": "Grace",
+        "forward_messages": 2,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Alice",
+        "to": "Henry",
+        "forward_messages": 3,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Ben",
+        "to": "Emma",
+        "forward_messages": 0,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Ben",
+        "to": "Frank",
+        "forward_messages": 4,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Ben",
+        "to": "Grace",
+        "forward_messages": 0,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Ben",
+        "to": "Henry",
+        "forward_messages": 0,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Carol",
+        "to": "Emma",
+        "forward_messages": 0,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Carol",
+        "to": "Frank",
+        "forward_messages": 1,
+        "reverse_messages": 1
+      },
+      {
+        "from": "Carol",
+        "to": "Grace",
+        "forward_messages": 4,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Carol",
+        "to": "Henry",
+        "forward_messages": 0,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Dave",
+        "to": "Emma",
+        "forward_messages": 0,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Dave",
+        "to": "Frank",
+        "forward_messages": 1,
+        "reverse_messages": 1
+      },
+      {
+        "from": "Dave",
+        "to": "Grace",
+        "forward_messages": 0,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Dave",
+        "to": "Henry",
+        "forward_messages": 4,
+        "reverse_messages": 3
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 4,
+      "max_delegation_depth": 2
+    },
+    "idle_neighbors": [
+      {
+        "from": "Ben",
+        "to": "Emma"
+      },
+      {
+        "from": "Ben",
+        "to": "Grace"
+      },
+      {
+        "from": "Ben",
+        "to": "Henry"
+      },
+      {
+        "from": "Carol",
+        "to": "Emma"
+      },
+      {
+        "from": "Carol",
+        "to": "Henry"
+      },
+      {
+        "from": "Dave",
+        "to": "Emma"
+      },
+      {
+        "from": "Dave",
+        "to": "Grace"
+      }
+    ],
+    "patch_churn": {
+      "superseded": 3,
+      "reverted": 0,
+      "rewritten": 2
+    },
+    "incidents": [
+      {
+        "kind": "brief_handoff",
+        "summary": "Leader decomposed the brief into four design-doc-first tracks for formula engine, grid interaction, persistence/structural edits, and UI/e2e verification.",
+        "refs": [
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 2
+          },
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 3
+          },
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 4
+          },
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 5
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Emma's formula work was merged while combined main still failed the quoted #REF string-literal test, requiring the later #602 fix.",
+        "refs": [
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 42
+          },
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 46
+          },
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 71
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Carol opened #603 for the same #REF string-literal fix after #602 had already landed, and Eric declined it as duplicate.",
+        "refs": [
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/messages.jsonl",
+            "line": 75
+          },
+          {
+            "file": "/Users/kunchen/github/kunchenguid/org-bench/docs/gpt-5-5/google/trajectory/prs/603.json",
+            "line": 1
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 29208,
+    "out": 2137
+  },
+  "cost_usd": 0
+}

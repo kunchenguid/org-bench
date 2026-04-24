@@ -1,0 +1,29 @@
+{
+  "run_id": "gpt-5-5-microsoft",
+  "pr_number": 606,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/606",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build static spreadsheet app",
+  "body": "## Summary\n- Adds a vanilla HTML/CSS/JS spreadsheet with 26 columns, 100 rows, formula bar, keyboard editing/navigation, range selection, clipboard, undo/redo, persistence, and row/column insert/delete menus.\n- Implements formula evaluation for arithmetic, comparisons, concatenation, references/ranges, circular-reference detection, and required spreadsheet functions.\n- Includes Node-based core behavior tests plus browser smoke verification under file://.\n\n## Verification\n- node tests.js\n- agent-browser opened index.html over file://, entered A1=10 and A2=5, entered =SUM(A1:A2), verified A3 displays 15 after reload, and checked no browser console errors.\n\nAuthor: Alice",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T05:46:58Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Diana:** Verified as integrator before merge: ok - evaluates arithmetic, ranges, comparisons, booleans, and strings\nok - detects circular references and formula errors\nok - adjusts relative and absolute references on copy paste\nok - updates references across inserted and deleted rows and columns passed, file:// app opened cleanly in agent-browser, entered 10/5/=SUM(A1:A2) and saw 15, copied/pasted the formula and undid it, reloaded and confirmed persisted raw sheet state restored, and console errors were empty. Structural row/column formula adjustment is covered by the included tests.",
+      "ts": "2026-04-24T05:55:17Z"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "schema_version": 1,
+  "topology": {
+    "slug": "facebook",
+    "name": "Facebook",
+    "leader_id": "Mark",
+    "node_count": 9,
+    "culture": {
+      "kind": "facebook-velocity",
+      "summary": "Facebook culture - move fast. A merged imperfect change beats a perfect unmerged one."
+    }
+  },
+  "seed": 1,
+  "brief": {
+    "path": "configs/brief.md",
+    "content_hash": "0a3d051ac8b9b246909a7484a4b235965e39aebb4c12c3c59434a24d52e0b93f"
+  },
+  "models": {
+    "node": "openai/gpt-5.5",
+    "judge": "openai/gpt-5.5",
+    "analyst": "openai/gpt-5.5"
+  },
+  "totals": {
+    "tokens": {
+      "in": 2813461,
+      "out": 212929,
+      "total": 3026390
+    },
+    "cost_usd": 0,
+    "wall_clock_ms": 8150395
+  },
+  "tokens_by_node": {
+    "Alice": {
+      "in": 170180,
+      "out": 11142,
+      "total": 181322,
+      "cost_usd": 0
+    },
+    "Ben": {
+      "in": 221446,
+      "out": 25939,
+      "total": 247385,
+      "cost_usd": 0
+    },
+    "Carol": {
+      "in": 216618,
+      "out": 27857,
+      "total": 244475,
+      "cost_usd": 0
+    },
+    "Dave": {
+      "in": 254495,
+      "out": 26212,
+      "total": 280707,
+      "cost_usd": 0
+    },
+    "Emma": {
+      "in": 193650,
+      "out": 12657,
+      "total": 206307,
+      "cost_usd": 0
+    },
+    "Frank": {
+      "in": 285115,
+      "out": 20439,
+      "total": 305554,
+      "cost_usd": 0
+    },
+    "Grace": {
+      "in": 531249,
+      "out": 17801,
+      "total": 549050,
+      "cost_usd": 0
+    },
+    "Henry": {
+      "in": 202832,
+      "out": 24459,
+      "total": 227291,
+      "cost_usd": 0
+    },
+    "Mark": {
+      "in": 368087,
+      "out": 39748,
+      "total": 407835,
+      "cost_usd": 0
+    }
+  },
+  "messages": {
+    "total": 101,
+    "by_tag": {
+      "decompose": 7,
+      "ask": 10,
+      "answer": 0,
+      "deliver": 0,
+      "status": 80,
+      "review": 4,
+      "untagged": 0
+    }
+  },
+  "patches": {
+    "proposed": 0,
+    "accepted": 0,
+    "rejected": 0,
+    "superseded": 0
+  },
+  "artifact": {
+    "deploy_success": true,
+    "build_success": true,
+    "published_path": "docs/gpt-5-5/facebook"
+  },
+  "milestones": {
+    "time_to_first_build_ms": 0
+  },
+  "flags": {
+    "cap_exceeded": false,
+    "truncated_blobs": false,
+    "routing_rejections": 0,
+    "pr_activity_unsummarized": 12,
+    "node_failures": 0
+  }
+}

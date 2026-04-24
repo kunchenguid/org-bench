@@ -1,0 +1,21 @@
+{
+  "run_id": "gpt-5-5-microsoft",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 3,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 3,
+    "aesthetics": 4,
+    "interaction_feel": 3,
+    "practical_utility": 3
+  },
+  "rationale": "Grid rendered with A-Z headers and 1-100 row headers, formula bar/name box, action buttons, and no console errors on load or after testing. Keyboard editing and formula-bar entry worked, and reload restored entered raw contents/evaluated cells. I observed values around G/H: G16=10, G17=20, G18=30; H16 = SUM(G15:G17) showed 30; H17 = AVERAGE(G15:G17) showed 10 because blanks are counted as 0, which differs from spreadsheet expectations; H18 = IF(G15>5,\"big\",\"small\") showed small; H19 CONCAT showed total=30; H20 ROUND over an empty precedent showed 0. Copying H16 and pasting to H17 shifted the relative range and displayed 60, and undo restored H17 to 10. A self-reference in H17 rendered #CIRC! rather than crashing, and persisted after reload. The source supports SUM/AVERAGE/MIN/MAX/COUNT/IF/AND/OR/NOT/ABS/ROUND/CONCAT, comparison operators, &, relative/absolute reference shifting, insert/delete row/column, copy/cut/paste and undo/redo, but I also saw rough edges: initial direct typing after clicking the grid landed in an unexpected scrolled position, cells have weak accessibility labels in the snapshot, range selection/copy affordances are not very discoverable, and formula errors are terse. Visual design is cohesive and clean Microsoft-like chrome, with readable grid rhythm and strong active-cell outline, but it remains a fairly minimal spreadsheet rather than a fully polished production tool.",
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 169465,
+    "out": 5263
+  },
+  "cost_usd": 0
+}

@@ -1,0 +1,153 @@
+{
+  "run_id": "gpt-5-5-oracle",
+  "schema_version": 1,
+  "narrative": "Larry used the brief to set up a staged, review-gated workflow rather than asking engineers to write directly to main. He delegated implementation coordination to Quinn, told Quinn to split the spreadsheet into non-overlapping subsystems, and held Alice, Ben, Carol, and Dave as angle reviewers for the eventual Quinn-to-main integration PR. The initial implementation fan-out was Larry to Quinn, then Quinn to Emma, Frank, and Grace: Emma owned the formula/model layer, Frank owned the app shell and later composition in index.html/app.js, and Grace owned clipboard, history, persistence, and row/column command infrastructure.\n\nThe first handoff was briefly out of phase. Emma, Frank, and Grace reported no delegation in their inboxes, and Frank/Grace/Emma also hit a missing remote Quinn branch when trying to open staging PRs. Quinn re-sent explicit subsystem boundaries and published origin/run/gpt-5-5-oracle/Quinn, after which the three initial PRs landed: Emma #613, Grace #614, and Frank #615. Quinn merged those into staging, verified the unit/browser tests, and correctly held integration because the shell still used a memory fallback rather than the core/action APIs.\n\nThe next fan-out stayed mostly through Frank, with Emma and Grace on standby. Frank opened wiring PR #616, Emma added core adapter PR #617, and Quinn caught a visible dependent-recalculation bug before merging #616. Frank updated the same PR so commits triggered a full render and added a B1=A1+A2 test. Quinn then merged #617 and #616, verified formula entry and dependent recalculation manually in index.html, but held integration again because row/column delete was not reachable from the UI. Frank opened #618 for row/column header insert/delete menus and formula reference coverage; Quinn merged it and opened the single integration PR #619.\n\nThe review edges were idle until #619 existed, then all four reviewers became active. Legal, security, and privacy approved the first head. Dave blocked accessibility because autofocus placed focus in the grid and Tab/Shift+Tab were captured for cell navigation, leaving no keyboard path to the formula bar or row/column action controls. Larry and Quinn treated this as a blocking current-head review, routed it back to Frank, and kept #619 open. Frank opened #620 with a documented Tab path to the formula bar and Alt+Shift+C/R shortcuts for column/row actions. Quinn merged #620 into staging, which updated #619 to a new head and made the earlier approvals stale. Larry requested fresh legal, security, privacy, and accessibility approvals for the new head; all four were reposted, and Dave’s earlier block was superseded by a current-head accessibility approval.\n\nThere was no final code revert recorded. Work was refined through follow-up PRs: #616 was updated after Quinn’s dependent-render finding, #618 added missing row/column delete affordances, and #620 fixed the accessibility block. Larry finally verified #619 was mergeable at head 856993323b0e4e81da67cdf7fe305544cc28ce6c with current-head approvals from all four reviewers and squash-merged it to main as merge commit 57daf29e710372e39be98e9a27541a90e32033ad. The shipped artifact was a static vanilla spreadsheet app with grid UI, formula bar, formula core, action infrastructure, persistence, undo/redo, clipboard/range behavior, row/column insert-delete menus, and a post-review keyboard escape path. The judge later found the visual shell present and persistence working, but browser interaction remained unreliable enough that formula workflows could not be fully exercised.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Larry",
+        "to": "Quinn",
+        "forward_messages": 16,
+        "reverse_messages": 15
+      },
+      {
+        "from": "Larry",
+        "to": "Alice",
+        "forward_messages": 4,
+        "reverse_messages": 5
+      },
+      {
+        "from": "Larry",
+        "to": "Ben",
+        "forward_messages": 4,
+        "reverse_messages": 5
+      },
+      {
+        "from": "Larry",
+        "to": "Carol",
+        "forward_messages": 4,
+        "reverse_messages": 5
+      },
+      {
+        "from": "Larry",
+        "to": "Dave",
+        "forward_messages": 6,
+        "reverse_messages": 6
+      },
+      {
+        "from": "Quinn",
+        "to": "Emma",
+        "forward_messages": 15,
+        "reverse_messages": 12
+      },
+      {
+        "from": "Quinn",
+        "to": "Frank",
+        "forward_messages": 15,
+        "reverse_messages": 15
+      },
+      {
+        "from": "Quinn",
+        "to": "Grace",
+        "forward_messages": 15,
+        "reverse_messages": 12
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 5,
+      "max_delegation_depth": 2
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 1,
+      "reverted": 0,
+      "rewritten": 3
+    },
+    "incidents": [
+      {
+        "kind": "brief_handoff",
+        "summary": "Initial worker turns reported no delegated subsystem or no delegation in inbox before Quinn re-sent explicit boundaries.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 16
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 17
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 18
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Engineer PR creation was blocked until Quinn published the missing remote staging branch.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 25
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 26
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Frank's wiring PR was held because committed edits re-rendered only the edited cell, leaving dependent formula displays stale.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 60
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 63
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "After wiring merged, Quinn found row/column delete was not reachable from the header UI even though the brief required insert and delete workflows.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 69
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 71
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Accessibility review blocked integration PR #619 because grid Tab handling trapped keyboard focus away from the formula bar and row/column controls.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 103
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 107
+          },
+          {
+            "file": "trajectory/nodes/Dave.jsonl",
+            "line": 11
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 236886,
+    "out": 1490
+  },
+  "cost_usd": 0
+}

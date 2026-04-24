@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-amazon",
+  "pr_number": 571,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/571",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Harden native clipboard events",
+  "body": "This makes spreadsheet clipboard behavior less dependent on browser permission prompts. Customers can use the ordinary copy, cut, and paste events on the focused grid, while the existing keyboard shortcuts remain as a convenience when the Clipboard API is available. I also pulled the text parser into the tested core path so pasted tab/newline data is handled consistently for formulas and multi-cell blocks.\n\nVerified with the core Node test and a file:// agent-browser smoke check with no console errors.\n\nAuthor: Carol",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T03:44:12Z"
+    }
+  ],
+  "comments": []
+}

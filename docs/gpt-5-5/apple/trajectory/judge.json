@@ -1,0 +1,21 @@
+{
+  "run_id": "gpt-5-5-apple",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 3,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 4,
+    "aesthetics": 4,
+    "interaction_feel": 3,
+    "practical_utility": 3
+  },
+  "rationale": "Grid loaded with A-Z headers, row headers, a formula bar, and no console errors on load. Editing via the formula bar worked: A1/A2/A3 accepted 10/20/30 and Enter advanced selection. Formulas evaluated correctly in observed cells: SUM(A1:A3)=60, AVERAGE=20, IF(A1>5,\"big\",\"small\")=big, CONCAT(\"total=\",SUM(...))=total=60, ROUND(A1/3,2)=3.33. Updating A1 to 15 recomputed dependents to 65, 21.666666666666668, total=65, and 5. Selecting a formula cell showed the raw formula in the formula bar. Division by zero rendered #DIV/0! rather than crashing, and after reload A1=15, A2=20, A3=30, and #DIV/0! persisted. Visual design is coherent and polished: clean spreadsheet grid, sticky-looking headers, clear formula bar, and readable status footer. I could not reliably operate empty target cells by snapshot refs, and did not verify range selection, copy/paste relative/absolute formula shifting, undo/redo, or row/column insertion/deletion through the browser, so completeness and interaction feel are capped at midrange despite the formula engine and persistence working for the tested paths.",
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 165171,
+    "out": 3456
+  },
+  "cost_usd": 0
+}

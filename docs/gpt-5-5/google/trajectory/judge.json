@@ -1,0 +1,21 @@
+{
+  "run_id": "gpt-5-5-google",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 4,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 4,
+    "aesthetics": 4,
+    "interaction_feel": 3,
+    "practical_utility": 4
+  },
+  "rationale": "Observed a full A-Z by 100 grid with row/column headers, formula toolbar, formula bar, and insert/delete row/column buttons. No console errors on load or after testing. Clicking/selecting cells worked, formula bar showed the active address, and Enter advanced selection. I entered A1=10, A2=20, A3=30 and formulas evaluated correctly: B1 =SUM(A1:A3) showed 60, B2 =AVERAGE(A1:A3) showed 20, B3 =IF(A1>5,\"big\",\"small\") showed big, B4 =CONCAT(\"total=\",SUM(A1:A3)) showed total=60, and B5 =ROUND(A1/3,2) showed 3.33. After changing A1 to 5, dependents recomputed to B1=55, B2=18.3333333333, B3=small, B4=total=55, B5=1.67. Reload preserved raw contents/evaluated cells: A1 5, A2 20, A3 30, B1 55, B4 total=55, C1 5 were still present. The implementation/source also exposes copy/cut/paste, undo/redo, insert/delete row/column, required functions, reference shifting, #REF!, and persistence, but I did not fully complete live interaction coverage for every advanced path. Interaction is mostly spreadsheet-like, but direct click-type initially left an inline editor until an extra Enter/fill step, and discoverability is limited to a formula bar, buttons, and header titles with no visible guidance. Visual design is clean and cohesive, with readable spreadsheet chrome and state reflected clearly in the grid/formula area, though it is fairly minimal.",
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 226427,
+    "out": 3859
+  },
+  "cost_usd": 0
+}

@@ -354,6 +354,8 @@ export const OrchestratorEvent = z.discriminatedUnion("type", [
     node_id: z.string().min(1),
     failure_kind: z.enum(["timeout", "crash", "malformed_envelope"]),
     detail: z.string().min(1),
+    raw_output: z.string().optional(),
+    diagnostics: z.string().optional(),
   }),
   z.object({
     ...OrchestratorEventBase,
@@ -385,6 +387,8 @@ export const OrchestratorEvent = z.discriminatedUnion("type", [
       "close_prs",
     ]),
     detail: z.string().min(1),
+    raw_output: z.string().optional(),
+    diagnostics: z.string().optional(),
   }),
   z.object({
     ...OrchestratorEventBase,

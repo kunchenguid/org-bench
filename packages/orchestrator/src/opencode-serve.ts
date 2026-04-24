@@ -478,6 +478,78 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
+// Opencode's StructuredOutput tool enforces JSON via tool_choice: required,
+// but gpt-5-class models sometimes skip the tool call on the final attempt
+// and emit prose instead. When that happens opencode hands us the raw text.
+// Try plain JSON.parse first; if that fails, scan for the first balanced
+// `{...}` block and try each candidate. On total failure, throw an error
+// carrying the full raw text so the caller can persist it for debugging.
+function parseStructuredOutputLenient<T>(text: string): T {
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // fall through to balanced-brace extraction
+  }
+
+  let searchFrom = 0;
+  while (searchFrom < text.length) {
+    const start = text.indexOf("{", searchFrom);
+    if (start < 0) {
+      break;
+    }
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let end = -1;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) {
+        continue;
+      }
+      if (ch === "{") {
+        depth++;
+      } else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+
+    if (end < 0) {
+      break;
+    }
+
+    const candidate = text.slice(start, end + 1);
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {
+      searchFrom = start + 1;
+    }
+  }
+
+  const preview = text.length > 200 ? `${text.slice(0, 200)}...` : text;
+  const error = new Error(
+    `Structured-output response contained no parseable JSON (${text.length} chars). Preview: ${preview}`,
+  );
+  (error as Error & { finalText?: string }).finalText = text;
+  throw error;
+}
+
 interface OpenCodeProviderCatalogEntry {
   id?: string;
   models?: Record<string, unknown>;
@@ -599,7 +671,7 @@ export async function sendOpenCodePrompt<TStructured>(input: {
         format: {
           type: "json_schema",
           schema: input.schema,
-          retryCount: 1,
+          retryCount: 2,
         },
       }),
       signal: input.signal,
@@ -611,7 +683,7 @@ export async function sendOpenCodePrompt<TStructured>(input: {
     response.info?.structured !== undefined
       ? (response.info.structured as TStructured)
       : finalText
-        ? (JSON.parse(finalText) as TStructured)
+        ? parseStructuredOutputLenient<TStructured>(finalText)
         : null;
 
   return {
@@ -639,6 +711,7 @@ export async function sendOpenCodePromptStreamed<TStructured>(input: {
   }>;
   tokens: { in: number; out: number };
 }> {
+  const dispatchStartedAtMs = Date.now();
   const streamAbortController = new AbortController();
   const eventSignal = input.signal
     ? AbortSignal.any([input.signal, streamAbortController.signal])
@@ -706,7 +779,7 @@ export async function sendOpenCodePromptStreamed<TStructured>(input: {
           format: {
             type: "json_schema",
             schema: input.schema,
-            retryCount: 1,
+            retryCount: 2,
           },
         }),
         signal: input.signal,
@@ -749,13 +822,36 @@ export async function sendOpenCodePromptStreamed<TStructured>(input: {
 
   const snapshot = collector.snapshot();
   const finalText = snapshot.finalText ?? selectOpenCodeFinalText(response.parts);
-  const structured =
-    snapshot.structured ??
-    (response.info?.structured !== undefined
-      ? (response.info.structured as TStructured)
-      : finalText
-        ? (JSON.parse(finalText) as TStructured)
-        : null);
+  let structured: TStructured | null;
+  if (snapshot.structured !== null) {
+    structured = snapshot.structured;
+  } else if (response.info?.structured !== undefined) {
+    structured = response.info.structured as TStructured;
+  } else if (finalText) {
+    try {
+      structured = parseStructuredOutputLenient<TStructured>(finalText);
+    } catch (parseError) {
+      if (parseError instanceof Error) {
+        (parseError as Error & { diagnostics?: string }).diagnostics =
+          JSON.stringify({
+            reason: "parse_failed_no_structured_output",
+            sawSessionIdle: snapshot.sawSessionIdle,
+            textPartPhases: snapshot.textPartPhases,
+            toolCallsAttempted: snapshot.toolCalls.map((t) => ({
+              tool: t.tool,
+              status: t.status,
+            })),
+            structuredFromInfo: response.info?.structured !== undefined,
+            finalTextLength: finalText.length,
+            tokens: snapshot.tokens,
+            durationMs: Date.now() - dispatchStartedAtMs,
+          });
+      }
+      throw parseError;
+    }
+  } else {
+    structured = null;
+  }
 
   return {
     response,
@@ -833,6 +929,12 @@ export function createOpenCodeStreamCollector<TStructured>(sessionId: string): {
       duration_ms?: number;
     }>;
     tokens: { in: number; out: number };
+    textPartPhases: Array<{
+      id: string;
+      phase: string | null;
+      length: number;
+    }>;
+    sawSessionIdle: boolean;
   };
 } {
   const textParts = new Map<
@@ -853,6 +955,7 @@ export function createOpenCodeStreamCollector<TStructured>(sessionId: string): {
   let lastText: string | null = null;
   let lastFinalAnswerText: string | null = null;
   let structured: TStructured | null = null;
+  let sawSessionIdle = false;
 
   const updateText = (partId: string, nextText: string, phase?: string) => {
     textParts.set(partId, {
@@ -972,14 +1075,27 @@ export function createOpenCodeStreamCollector<TStructured>(sessionId: string): {
         return false;
       }
 
-      return payload?.type === "session.idle";
+      if (payload?.type === "session.idle") {
+        sawSessionIdle = true;
+        return true;
+      }
+      return false;
     },
     snapshot() {
+      const textPartPhases = Array.from(textParts.entries()).map(
+        ([id, part]) => ({
+          id,
+          phase: part.phase ?? null,
+          length: part.text.length,
+        }),
+      );
       return {
         finalText: lastFinalAnswerText ?? lastText,
         structured,
         toolCalls: Array.from(toolCallsByCallId.values()),
         tokens: sumOpenCodeUsage(usageByMessageId),
+        textPartPhases,
+        sawSessionIdle,
       };
     },
   };

@@ -1,0 +1,171 @@
+{
+  "run_id": "gpt-5-5-microsoft",
+  "schema_version": 1,
+  "narrative": "Bill read the brief and converted it into a full-surface contest rather than a sliced implementation plan. He sent the same core acceptance surface to Diana and Edward: a vanilla file:// spreadsheet with A-Z by 100 grid, formula bar, editing/navigation, persistence, formulas, range clipboard, undo/redo, and row/column insert-delete. He also required a short browser sanity summary before merge and later added time pressure by telling both division heads to ship a runnable PR even if polish remained.\n\nThe decomposition fanned out in two layers. Bill delegated directly only to Diana and Edward. Diana's side produced three competing complete implementations from Diana, Alice, and Ben, while Carol acted as verifier/triage after her worktree moved onto other branches. Edward's side produced Edward, Dave, and Emma PRs, while Frank stopped his own hardening branch because of worktree movement and then reviewed Edward's PR instead. This created parallel full-app duplication rather than composable work: six PRs targeted the same static spreadsheet surface.\n\nAll intended tree edges carried messages. Bill-Diana and Bill-Edward were active for assignment, urgency, and final merge/close decisions. Diana exchanged status with Alice, Ben, and Carol; Edward exchanged status and review messages with Dave, Emma, and Frank. No adjacent team edge in the published tree appears idle.\n\nDecision-making concentrated at Bill. Diana and Edward both reported integration-ready PRs in the same round. Bill compared PR #607 and #611, ran tests/browser checks, inspected implementation details, and merged Diana's #607. His stated reasons were broader formula/structure coverage, visible structural controls, persisted row/column dimensions, and more defensive storage namespace fallback. Edward's #611 was closed unmerged. Diana later reviewed Alice's #606 but did not merge it because #607 had already landed and Alice's PR was conflict-dirty. Edward attempted integrator turnaround for Dave #609 and Emma #610, but after main advanced to Diana's artifact those PRs became dirty/conflicting and were left unmerged.\n\nWork was duplicated heavily across the full spreadsheet artifact. Alice #606, Ben #608, Diana #607, Edward #611, Dave #609, and Emma #610 each implemented a complete or near-complete vanilla spreadsheet. Frank and Carol also started or inspected work but stopped because their worktrees were not on the expected branches. The shipped artifact was Diana's PR #607, merged into run/gpt-5-5-microsoft/main. Bill verified node tests and file:// browser load with no console errors, and the final judge observed a functional spreadsheet with formulas, persistence, copy/paste, undo, structural operations, and some rough edges around spreadsheet semantics and discoverability.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "orchestrator",
+        "to": "Bill",
+        "forward_messages": 1,
+        "reverse_messages": 0
+      },
+      {
+        "from": "Bill",
+        "to": "Diana",
+        "forward_messages": 3,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Bill",
+        "to": "Edward",
+        "forward_messages": 3,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Diana",
+        "to": "Alice",
+        "forward_messages": 1,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Diana",
+        "to": "Ben",
+        "forward_messages": 1,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Diana",
+        "to": "Carol",
+        "forward_messages": 1,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Edward",
+        "to": "Dave",
+        "forward_messages": 2,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Edward",
+        "to": "Emma",
+        "forward_messages": 2,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Edward",
+        "to": "Frank",
+        "forward_messages": 2,
+        "reverse_messages": 2
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 2,
+      "max_delegation_depth": 2
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 5,
+      "reverted": 0,
+      "rewritten": 0
+    },
+    "incidents": [
+      {
+        "kind": "brief_handoff",
+        "summary": "Bill briefed Diana and Edward to implement the entire spreadsheet surface independently, creating a contested full-app race rather than partitioned work.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 2
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 3
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Carol and Frank reported that their worktrees moved onto other agents' branches, so they avoided committing or pushing from the wrong branch.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 13
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 16
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 29
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "After Diana's PR #607 landed, Alice #606 was not merged because it became conflict-dirty against the landed artifact.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 19
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 20
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Edward attempted to review and merge Dave #609, but main advanced to Diana's implementation and Dave #609 and Emma #610 became dirty/conflicting against the selected artifact.",
+        "refs": [
+          {
+            "file": "trajectory/events.jsonl",
+            "line": 2
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 23
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 24
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 25
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Bill merged Diana's #607 and closed Edward's competing #611 unmerged, citing namespace robustness, visible structural controls, and persisted sheet shape as differentiators.",
+        "refs": [
+          {
+            "file": "trajectory/events.jsonl",
+            "line": 1
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 17
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 18
+          },
+          {
+            "file": "trajectory/events.jsonl",
+            "line": 3
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 199893,
+    "out": 1366
+  },
+  "cost_usd": 0
+}

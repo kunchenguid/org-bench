@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apple Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="sheet-app" aria-label="Spreadsheet">
+    <header class="sheet-chrome" aria-label="Spreadsheet controls">
+      <label class="name-box" for="formula-input">
+        <span id="active-address">A1</span>
+      </label>
+      <div class="formula-bar">
+        <span class="formula-prefix" aria-hidden="true">fx</span>
+        <input id="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="Formula bar" data-spreadsheet-slot="formula-bar">
+      </div>
+    </header>
+
+    <section class="grid-shell" aria-label="Grid workspace">
+      <div id="grid-root" class="grid-root" data-spreadsheet-slot="grid-root"></div>
+    </section>
+
+    <footer class="status-bar" aria-live="polite">
+      <span data-spreadsheet-slot="status">Ready</span>
+    </footer>
+  </main>
+
+  <script src="rowColumnOperations.js"></script>
+  <script src="formula-engine.js"></script>
+  <script src="scripts/app-state.js"></script>
+  <script src="history-persistence.js"></script>
+  <script src="src/historyPersistenceController.js"></script>
+  <script src="src/selectionClipboard.js"></script>
+  <script src="src/clipboardController.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

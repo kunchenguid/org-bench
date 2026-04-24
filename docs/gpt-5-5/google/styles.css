@@ -1,0 +1,172 @@
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --grid: #d8dee9;
+  --header: #eef2f7;
+  --text: #1f2937;
+  --muted: #667085;
+  --active: #1a73e8;
+  --range: rgba(26, 115, 232, 0.14);
+  --error: #b42318;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: 48px 1fr;
+  height: 100vh;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 112px 72px 34px minmax(220px, 1fr) repeat(4, max-content);
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--grid);
+  box-shadow: 0 1px 8px rgba(16, 24, 40, 0.06);
+}
+
+.brand {
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  color: #174ea6;
+}
+
+.name-box, .fx, #formula-input, button {
+  border: 1px solid var(--grid);
+  border-radius: 8px;
+  background: #fff;
+  height: 32px;
+}
+
+.name-box, .fx {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#formula-input {
+  width: 100%;
+  padding: 0 10px;
+  font: inherit;
+}
+
+button {
+  padding: 0 10px;
+  color: #344054;
+  cursor: pointer;
+}
+
+button:hover { background: #f8fafc; }
+
+.grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px repeat(var(--cols), 96px);
+  grid-auto-rows: 28px;
+  align-content: start;
+  overflow: auto;
+  background: var(--panel);
+  outline: none;
+  user-select: none;
+}
+
+.corner, .col-header, .row-header, .cell {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  min-width: 0;
+}
+
+.corner, .col-header, .row-header {
+  position: sticky;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: var(--header);
+  color: #475467;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.col-header, .row-header { cursor: context-menu; }
+
+.corner { left: 0; top: 0; z-index: 4; }
+.col-header { top: 0; }
+.row-header { left: 0; z-index: 3; }
+
+.cell {
+  position: relative;
+  padding: 5px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 18px;
+  background: #fff;
+}
+
+.cell.number { text-align: right; font-variant-numeric: tabular-nums; }
+.cell.error { color: var(--error); font-weight: 650; }
+.cell.in-range { background: var(--range); }
+.cell.active {
+  box-shadow: inset 0 0 0 2px var(--active);
+  z-index: 1;
+}
+
+.cell.editing {
+  padding: 0;
+  background: #fff;
+}
+
+.cell input {
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--active);
+  padding: 3px 6px;
+  font: inherit;
+  outline: none;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 10;
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.18);
+}
+
+.context-menu button {
+  width: 100%;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  text-align: left;
+  background: transparent;
+}
+
+.context-menu button:hover { background: #eef4ff; }
+
+@media (max-width: 900px) {
+  .toolbar {
+    grid-template-columns: 84px 56px 28px 1fr;
+  }
+  button { display: none; }
+  .grid { grid-template-columns: 42px repeat(var(--cols), 84px); }
+}

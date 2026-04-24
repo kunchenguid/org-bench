@@ -1,0 +1,21 @@
+{
+  "run_id": "gpt-5-5-oracle",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 2,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 3,
+    "aesthetics": 4,
+    "interaction_feel": 2,
+    "practical_utility": 2
+  },
+  "rationale": "Grid rendered with A-Z column headers, numbered row headers, a formula bar labeled fx, cell action buttons, and no console errors on load. I was able to enter A1=10 and Enter advanced selection to A2; after reload, A1 still showed 10, and a later B3=20 value also persisted, so raw values are saved. However, interaction became unreliable: attempts to fill A2/A3 and B1:B5 formulas instead left A2/A3/B1/B2 blank and put 20 into B3; clicking A2 from that state did not move selection, with the snapshot still showing B3 selected and the formula bar reading B3/20. Because I could not reliably enter the required formula set through the browser, I did not observe SUM/AVERAGE/IF/CONCAT/ROUND results, copy/paste, undo/redo, or row/column formula adjustment working. The UI looks cohesive and polished, with clear headers, selection state, formula bar, hints, and row/column menus, but keyboard/cell focus behavior had enough dead ends that the artifact is only partially practical for real spreadsheet use.",
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 199740,
+    "out": 3232
+  },
+  "cost_usd": 0
+}

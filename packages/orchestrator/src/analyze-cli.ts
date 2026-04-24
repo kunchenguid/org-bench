@@ -20,14 +20,22 @@ async function main(): Promise<void> {
   const artifactDir = process.argv[2];
 
   if (artifactDir === undefined || artifactDir.trim().length === 0) {
-    throw new Error("Usage: npm run analyze -- <run-dir>");
+    throw new Error(
+      "Usage: npm run analyze -- <run-dir>  (override model via ORG_BENCH_ANALYST_MODEL)",
+    );
   }
+
+  const modelOverride = process.env.ORG_BENCH_ANALYST_MODEL;
 
   const result = await regenerateTrajectoryAnalysis({
     artifactDir: resolveAnalyzeArtifactPath(artifactDir, {
       cwd: process.cwd(),
       initCwd: process.env.INIT_CWD,
     }),
+    model:
+      modelOverride !== undefined && modelOverride.trim().length > 0
+        ? modelOverride
+        : undefined,
   });
 
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

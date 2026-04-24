@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Tests</title>
+</head>
+<body>
+  <pre id="out">Running...</pre>
+  <script src="app.js"></script>
+  <script>
+    const out = document.getElementById('out');
+    const tests = [];
+    function test(name, fn) { tests.push({ name, fn }); }
+    function assertEqual(actual, expected, label) {
+      if (actual !== expected) throw new Error(`${label || 'value'}: expected ${expected}, got ${actual}`);
+    }
+
+    test('evaluates formulas with references and ranges', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-a' });
+      sheet.setRaw(0, 0, '10');
+      sheet.setRaw(1, 0, '5');
+      sheet.setRaw(2, 0, '=A1+A2*2');
+      sheet.setRaw(3, 0, '=SUM(A1:A3)');
+      assertEqual(sheet.getDisplay(2, 0), '20', 'formula display');
+      assertEqual(sheet.getDisplay(3, 0), '35', 'range formula');
+    });
+
+    test('detects circular references', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-b' });
+      sheet.setRaw(0, 0, '=B1');
+      sheet.setRaw(0, 1, '=A1');
+      assertEqual(sheet.getDisplay(0, 0), '#CIRC!', 'circular display');
+    });
+
+    test('adjusts relative references when copied', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-c' });
+      assertEqual(sheet.adjustFormulaForMove('=A1+$A1+A$1+$A$1', 0, 1, 2, 2), '=B3+$A3+B$1+$A$1', 'adjusted formula');
+    });
+
+    test('IF only evaluates the selected branch', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-if' });
+      sheet.setRaw(0, 0, '=IF(FALSE,1/0,7)');
+      sheet.setRaw(1, 0, '=IF(TRUE,9,1/0)');
+      assertEqual(sheet.getDisplay(0, 0), '7', 'false branch');
+      assertEqual(sheet.getDisplay(1, 0), '9', 'true branch');
+    });
+
+    test('copies formula blocks relative to the copied source', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-d' });
+      const pasted = sheet.adjustFormulaForMove('=A1', 0, 0, 1, 1);
+      assertEqual(pasted, '=B2', 'copied formula');
+    });
+
+    test('hardens comparisons, concat, booleans, numeric functions, and errors', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-formula-hardening', skipLoad: true });
+      sheet.setRaw(0, 0, '');
+      sheet.setRaw(1, 0, '=1=1');
+      sheet.setRaw(2, 0, '=1<>2');
+      sheet.setRaw(3, 0, '=2<=1');
+      sheet.setRaw(4, 0, '="Total: "&A1');
+      sheet.setRaw(5, 0, '=CONCAT("A", 1, TRUE)');
+      sheet.setRaw(6, 0, '=IF(AND(TRUE, NOT(FALSE)), "yes", "no")');
+      sheet.setRaw(7, 0, '=IF(OR(FALSE, FALSE), 1, 2)');
+      sheet.setRaw(8, 0, '=ABS(-4)+ROUND(2.345, 2)+A1');
+      sheet.setRaw(9, 0, '=1/0');
+      sheet.setRaw(0, 1, '=NOPE(1)');
+      sheet.setRaw(1, 1, '=1+');
+      assertEqual(sheet.getDisplay(1, 0), 'TRUE', 'equal comparison');
+      assertEqual(sheet.getDisplay(2, 0), 'TRUE', 'not-equal comparison');
+      assertEqual(sheet.getDisplay(3, 0), 'FALSE', 'lte comparison');
+      assertEqual(sheet.getDisplay(4, 0), 'Total: ', 'empty ref in text concat');
+      assertEqual(sheet.getDisplay(5, 0), 'A1TRUE', 'CONCAT function');
+      assertEqual(sheet.getDisplay(6, 0), 'yes', 'IF AND NOT');
+      assertEqual(sheet.getDisplay(7, 0), '2', 'IF OR false branch');
+      assertEqual(sheet.getDisplay(8, 0), '6.35', 'ABS ROUND empty numeric ref');
+      assertEqual(sheet.getDisplay(9, 0), '#DIV/0!', 'divide by zero');
+      assertEqual(sheet.getDisplay(0, 1), '#NAME?', 'unknown function');
+      assertEqual(sheet.getDisplay(1, 1), '#ERR!', 'bad syntax');
+    });
+
+    test('persists raw formulas and selection per run namespace without collisions', () => {
+      localStorage.removeItem('run-one:shared-state');
+      localStorage.removeItem('run-two:shared-state');
+
+      const runOne = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-one' });
+      runOne.setRaw(0, 0, '4');
+      runOne.setRaw(0, 1, '=A1*3');
+      runOne.selection = { r1: 0, c1: 1, r2: 0, c2: 1, activeRow: 0, activeCol: 1 };
+      runOne.save();
+
+      const runTwo = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-two' });
+      runTwo.setRaw(0, 0, '99');
+      runTwo.selection = { r1: 2, c1: 2, r2: 2, c2: 2, activeRow: 2, activeCol: 2 };
+      runTwo.save();
+
+      const reloadedOne = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-one' });
+      const reloadedTwo = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'shared-state', namespace: 'run-two' });
+
+      assertEqual(reloadedOne.storageKey, 'run-one:shared-state', 'run one storage key');
+      assertEqual(reloadedTwo.storageKey, 'run-two:shared-state', 'run two storage key');
+      assertEqual(reloadedOne.getRaw(0, 1), '=A1*3', 'raw formula survives reload');
+      assertEqual(reloadedOne.getDisplay(0, 1), '12', 'formula recalculates after reload');
+      assertEqual(reloadedOne.selection.activeRow, 0, 'run one selection row');
+      assertEqual(reloadedOne.selection.activeCol, 1, 'run one selection col');
+      assertEqual(reloadedTwo.getRaw(0, 0), '99', 'run two cell survives separately');
+      assertEqual(reloadedTwo.selection.activeRow, 2, 'run two selection row');
+      assertEqual(reloadedTwo.selection.activeCol, 2, 'run two selection col');
+    });
+
+    test('COUNT ignores empty cells in ranges', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-e' });
+      sheet.setRaw(0, 0, '3');
+      sheet.setRaw(2, 0, 'text');
+      sheet.setRaw(3, 0, '=COUNT(A1:A3)');
+      assertEqual(sheet.getDisplay(3, 0), '1', 'count display');
+    });
+
+    test('serializes rectangular ranges as raw tab separated values', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-range-a', skipLoad: true });
+      sheet.setRaw(0, 0, '1');
+      sheet.setRaw(0, 1, '=A1+1');
+      sheet.setRaw(1, 0, 'left');
+      sheet.setRaw(1, 1, 'right');
+      assertEqual(sheet.serializeRange({ r1: 0, c1: 0, r2: 1, c2: 1 }), '1\t=A1+1\nleft\tright', 'serialized range');
+    });
+
+    test('pastes blocks and shifts relative formulas from the copied source', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 6, storageKey: 'test-range-b', skipLoad: true });
+      sheet.setRaw(0, 0, '10');
+      sheet.setRaw(0, 1, '=A1+$A$1+A$1+$A1');
+      const payload = sheet.serializeRange({ r1: 0, c1: 0, r2: 0, c2: 1 });
+      sheet.pasteBlock(payload, { r1: 2, c1: 2, r2: 2, c2: 3 }, { r1: 0, c1: 0 });
+      assertEqual(sheet.getRaw(2, 2), '10', 'first pasted cell');
+      assertEqual(sheet.getRaw(2, 3), '=C3+$A$1+C$1+$A3', 'relative formula paste');
+    });
+
+    test('range delete and paste undo as single actions', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-range-c', skipLoad: true });
+      sheet.setRaw(0, 0, 'a');
+      sheet.setRaw(0, 1, 'b');
+      sheet.clearRange({ r1: 0, c1: 0, r2: 0, c2: 1 });
+      assertEqual(sheet.getRaw(0, 0), '', 'deleted first cell');
+      assertEqual(sheet.getRaw(0, 1), '', 'deleted second cell');
+      sheet.undo();
+      assertEqual(sheet.getRaw(0, 0), 'a', 'undo delete first cell');
+      assertEqual(sheet.getRaw(0, 1), 'b', 'undo delete second cell');
+      sheet.pasteBlock('x\ty', { r1: 0, c1: 0, r2: 0, c2: 0 });
+      assertEqual(sheet.getRaw(0, 0), 'x', 'pasted first cell');
+      assertEqual(sheet.getRaw(0, 1), 'y', 'pasted second cell');
+      sheet.undo();
+      assertEqual(sheet.getRaw(0, 0), 'a', 'undo paste first cell');
+      assertEqual(sheet.getRaw(0, 1), 'b', 'undo paste second cell');
+    });
+
+    test('ROUND supports negative digit counts', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-round-negative', skipLoad: true });
+      sheet.setRaw(0, 0, '=ROUND(1234, -2)');
+      assertEqual(sheet.getDisplay(0, 0), '1200', 'round to hundreds');
+    });
+
+    test('insert and delete update structural formula references', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-structural-refs', skipLoad: true });
+      sheet.setRaw(0, 0, '1');
+      sheet.setRaw(1, 0, '2');
+      sheet.setRaw(2, 0, '=SUM(A1:A2)+B1');
+      sheet.insertRow(1);
+      assertEqual(sheet.getRaw(3, 0), '=SUM(A1:A3)+B1', 'insert row shifts range endpoint');
+      sheet.deleteCol(1);
+      assertEqual(sheet.getRaw(3, 0), '=SUM(A1:A3)+#REF!', 'delete col marks removed ref');
+    });
+
+    test('undo and redo restore row and column counts for structural edits', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-structural-undo', skipLoad: true });
+      sheet.setRaw(0, 0, 'x');
+      sheet.insertRow(0);
+      sheet.deleteCol(1);
+      assertEqual(sheet.rows, 11, 'row inserted');
+      assertEqual(sheet.cols, 4, 'column deleted');
+      sheet.undo();
+      assertEqual(sheet.rows, 11, 'undo delete keeps inserted row');
+      assertEqual(sheet.cols, 5, 'undo delete restores column count');
+      sheet.undo();
+      assertEqual(sheet.rows, 10, 'undo insert restores row count');
+      assertEqual(sheet.cols, 5, 'undo insert keeps column count');
+      sheet.redo();
+      assertEqual(sheet.rows, 11, 'redo insert restores row count');
+      sheet.redo();
+      assertEqual(sheet.cols, 4, 'redo delete restores column count');
+    });
+
+    (async function run() {
+      const failures = [];
+      for (const t of tests) {
+        try { await t.fn(); }
+        catch (e) { failures.push(`${t.name}: ${e.message}`); }
+      }
+      out.textContent = failures.length ? `FAIL\n${failures.join('\n')}` : `PASS ${tests.length}`;
+      document.title = failures.length ? 'FAIL' : 'PASS';
+    })();
+  </script>
+</body>
+</html>

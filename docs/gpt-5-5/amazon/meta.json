@@ -1,0 +1,122 @@
+{
+  "run_id": "gpt-5-5-amazon",
+  "schema_version": 1,
+  "topology": {
+    "slug": "amazon",
+    "name": "Amazon",
+    "leader_id": "Jeff",
+    "node_count": 9,
+    "culture": {
+      "kind": "amazon-writing",
+      "summary": "Amazon culture - PR/FAQ writing + customer obsession + frugality. Hierarchical staging: each tech lead owns a staging branch and integrates upward."
+    }
+  },
+  "seed": 1,
+  "brief": {
+    "path": "configs/brief.md",
+    "content_hash": "0a3d051ac8b9b246909a7484a4b235965e39aebb4c12c3c59434a24d52e0b93f"
+  },
+  "models": {
+    "node": "openai/gpt-5.5",
+    "judge": "openai/gpt-5.5",
+    "analyst": "openai/gpt-5.5"
+  },
+  "totals": {
+    "tokens": {
+      "in": 3379217,
+      "out": 247726,
+      "total": 3626943
+    },
+    "cost_usd": 0,
+    "wall_clock_ms": 8897149
+  },
+  "tokens_by_node": {
+    "Alice": {
+      "in": 501868,
+      "out": 33453,
+      "total": 535321,
+      "cost_usd": 0
+    },
+    "Ben": {
+      "in": 368990,
+      "out": 26328,
+      "total": 395318,
+      "cost_usd": 0
+    },
+    "Carol": {
+      "in": 415900,
+      "out": 33396,
+      "total": 449296,
+      "cost_usd": 0
+    },
+    "Dave": {
+      "in": 392669,
+      "out": 41698,
+      "total": 434367,
+      "cost_usd": 0
+    },
+    "Emma": {
+      "in": 295751,
+      "out": 35602,
+      "total": 331353,
+      "cost_usd": 0
+    },
+    "Frank": {
+      "in": 200367,
+      "out": 20212,
+      "total": 220579,
+      "cost_usd": 0
+    },
+    "Grace": {
+      "in": 222772,
+      "out": 20710,
+      "total": 243482,
+      "cost_usd": 0
+    },
+    "Henry": {
+      "in": 314705,
+      "out": 22119,
+      "total": 336824,
+      "cost_usd": 0
+    },
+    "Jeff": {
+      "in": 227175,
+      "out": 10654,
+      "total": 237829,
+      "cost_usd": 0
+    }
+  },
+  "messages": {
+    "total": 64,
+    "by_tag": {
+      "decompose": 6,
+      "ask": 0,
+      "answer": 0,
+      "deliver": 0,
+      "status": 50,
+      "review": 8,
+      "untagged": 0
+    }
+  },
+  "patches": {
+    "proposed": 0,
+    "accepted": 0,
+    "rejected": 0,
+    "superseded": 0
+  },
+  "artifact": {
+    "deploy_success": true,
+    "build_success": true,
+    "published_path": "docs/gpt-5-5/amazon"
+  },
+  "milestones": {
+    "time_to_first_build_ms": 0
+  },
+  "flags": {
+    "cap_exceeded": false,
+    "truncated_blobs": false,
+    "routing_rejections": 0,
+    "pr_activity_unsummarized": 1,
+    "node_failures": 0
+  }
+}

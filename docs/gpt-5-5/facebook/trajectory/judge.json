@@ -1,0 +1,21 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "schema_version": 1,
+  "rubric": {
+    "functional_completeness": 2,
+    "learnability": 3,
+    "visual_cohesion": 4,
+    "visual_polish": 4,
+    "state_legibility": 3,
+    "aesthetics": 4,
+    "interaction_feel": 2,
+    "practical_utility": 2
+  },
+  "rationale": "Grid loaded with A-Z headers, 100 rows, formula bar, and +Row/-Row/+Col/-Col controls; no console errors on load or after reload. I entered A1=10, A2=20, A3=30 and formulas B1=SUM(A1:A3), B2=AVERAGE(A1:A3), B3=IF(A1>5,\"big\",\"small\"), B4=CONCAT(\"total=\",SUM(A1:A3)), B5=ROUND(A1/3,2); snapshot showed 60, 20, big, total=60, and 3.33. Updating A1 to 100 recomputed dependents to 150, 50, total=150, and 33.33. However, after reopening http://127.0.0.1:50259, the snapshot showed A1/B1/etc. empty again, so raw cell contents did not persist across reload, triggering the functional hard floor. Clipboard testing was also unreliable: after copying C1 and pressing Meta+V into C2, the next snapshot returned an empty page before reopening. The visual design is cohesive and polished for a simple sheet, with sticky headers, clean toolbar, blue selection styling, and readable grid rhythm, but learnability is limited to basic visible affordances and toolbar titles, with no in-grid guidance for formulas, range selection, copy/paste, or errors.",
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 131630,
+    "out": 5089
+  },
+  "cost_usd": 0
+}

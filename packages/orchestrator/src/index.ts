@@ -2864,6 +2864,21 @@ export async function runNodeRoundWithTimeout<T>({
           ? result.error.message
           : String(result.error);
 
+      const rawOutput =
+        result.error !== null &&
+        typeof result.error === "object" &&
+        typeof (result.error as { finalText?: unknown }).finalText === "string"
+          ? ((result.error as { finalText: string }).finalText)
+          : undefined;
+
+      const diagnostics =
+        result.error !== null &&
+        typeof result.error === "object" &&
+        typeof (result.error as { diagnostics?: unknown }).diagnostics ===
+          "string"
+          ? ((result.error as { diagnostics: string }).diagnostics)
+          : undefined;
+
       await appendOrchestratorEvent(validatedRunDir, {
         run_id: validatedRunId,
         round: validatedRound,
@@ -2871,6 +2886,8 @@ export async function runNodeRoundWithTimeout<T>({
         node_id: validatedNodeId,
         failure_kind: "crash",
         detail: errorDetail.length > 0 ? errorDetail : "node turn crashed",
+        ...(rawOutput !== undefined ? { raw_output: rawOutput } : {}),
+        ...(diagnostics !== undefined ? { diagnostics } : {}),
       });
       logEvent("turn_error", {
         runId: validatedRunId,
@@ -3389,6 +3406,7 @@ export async function runTrajectoryAnalysis({
 export type RegenerateTrajectoryAnalysisInput = {
   artifactDir: string;
   repoRoot?: string;
+  model?: string;
   openCodeClient?: RunTrajectoryAnalysisInput["openCodeClient"];
   startOpenCodeServe?: RunTrajectoryAnalysisInput["startOpenCodeServe"];
   shutdownOpenCodeServe?: RunTrajectoryAnalysisInput["shutdownOpenCodeServe"];
@@ -3398,6 +3416,7 @@ export type RegenerateTrajectoryAnalysisInput = {
 export async function regenerateTrajectoryAnalysis({
   artifactDir,
   repoRoot,
+  model,
   openCodeClient,
   startOpenCodeServe,
   shutdownOpenCodeServe,
@@ -3420,7 +3439,7 @@ export async function regenerateTrajectoryAnalysis({
   return runTrajectoryAnalysis({
     artifactDir: validatedArtifactDir,
     runId,
-    model: DEFAULT_ANALYST_MODEL,
+    model: model ?? DEFAULT_ANALYST_MODEL,
     openCodeClient,
     startOpenCodeServe,
     shutdownOpenCodeServe,
@@ -4385,6 +4404,20 @@ async function runFinalizeStage<T>({
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
 
+    const rawOutput =
+      error !== null &&
+      typeof error === "object" &&
+      typeof (error as { finalText?: unknown }).finalText === "string"
+        ? ((error as { finalText: string }).finalText)
+        : undefined;
+
+    const diagnostics =
+      error !== null &&
+      typeof error === "object" &&
+      typeof (error as { diagnostics?: unknown }).diagnostics === "string"
+        ? ((error as { diagnostics: string }).diagnostics)
+        : undefined;
+
     process.stderr.write(
       `[finalize] stage "${stage}" failed for ${runId}: ${detail}\n`,
     );
@@ -4395,6 +4428,8 @@ async function runFinalizeStage<T>({
       type: "stage_failed",
       stage,
       detail: detail.length > 0 ? detail : `${stage} stage failed`,
+      ...(rawOutput !== undefined ? { raw_output: rawOutput } : {}),
+      ...(diagnostics !== undefined ? { diagnostics } : {}),
     });
 
     return null;
@@ -4511,20 +4546,31 @@ async function runAnalystAgainstArtifact({
   });
 }
 
-async function buildTrajectorySummary(artifactDir: string): Promise<string> {
+// Hard cap on total trajectory-summary size in bytes. gpt-5.5's context is
+// ~272K tokens; at ~4 chars/token that's ~1MB, but we need headroom for the
+// prompt shell and the schema. A full run like google produces ~900KB of
+// node jsonls alone, which tips the prompt into context_length_exceeded.
+// When over-budget, drop per-node jsonls first (their content is largely
+// redundant with messages.jsonl + events.jsonl + prs/).
+const TRAJECTORY_SUMMARY_BUDGET_BYTES = 400_000;
+
+export async function buildTrajectorySummary(
+  artifactDir: string,
+): Promise<string> {
   const trajectoryDir = path.join(artifactDir, "trajectory");
   const entries = (
     await collectFileEntries(trajectoryDir, trajectoryDir)
   ).filter(({ relativePath }) =>
     shouldIncludeTrajectorySummaryEntry(relativePath),
   );
-  const sections = await Promise.all(
-    entries.map(async ({ absolutePath, relativePath }) => {
-      const content = await readFile(absolutePath, "utf8");
 
-      return [`Trajectory file: ${relativePath}`, content].join("\n\n");
+  const sized = await Promise.all(
+    entries.map(async (entry) => {
+      const content = await readFile(entry.absolutePath, "utf8");
+      return { ...entry, content };
     }),
   );
+
   const metaPath = path.join(artifactDir, "meta.json");
   const metaSection = (await pathExists(metaPath))
     ? ["Artifact file: meta.json", await readFile(metaPath, "utf8")].join(
@@ -4532,9 +4578,31 @@ async function buildTrajectorySummary(artifactDir: string): Promise<string> {
       )
     : null;
 
-  return [
+  const totalBytes = sized.reduce((sum, e) => sum + e.content.length, 0);
+  const keep =
+    totalBytes > TRAJECTORY_SUMMARY_BUDGET_BYTES
+      ? sized.filter(
+          ({ relativePath }) => !relativePath.startsWith(`nodes${path.sep}`),
+        )
+      : sized;
+  const droppedNodes = keep.length < sized.length;
+
+  const sections = keep.map(({ relativePath, content }) =>
+    [`Trajectory file: ${relativePath}`, content].join("\n\n"),
+  );
+
+  const header = [
     `Artifact directory: ${artifactDir}`,
     `Trajectory directory: ${trajectoryDir}`,
+    ...(droppedNodes
+      ? [
+          `Note: per-node trajectory/nodes/*.jsonl files were omitted because the total trajectory size (${totalBytes} bytes) exceeded the budget (${TRAJECTORY_SUMMARY_BUDGET_BYTES}). The node-level tool-call detail is redundant with messages.jsonl + events.jsonl + prs/ which are still included.`,
+        ]
+      : []),
+  ];
+
+  return [
+    ...header,
     ...(metaSection === null ? [] : [metaSection]),
     ...sections,
   ].join("\n\n");
@@ -5402,13 +5470,18 @@ function renderReplyFormatSection(
   return [
     `## Reply format`,
     ``,
-    `Reply with **only valid JSON**. No markdown fences. Shape:`,
+    `Every turn MUST end by emitting a single JSON object matching this exact shape as your **terminal output**:`,
     ``,
     "```json",
     `{"messages":[{"to":"${recipientHint}","tag":"status","content":"..."}],"summary":"..."}`,
     "```",
     ``,
-    `Use an empty \`messages\` array when there is nothing to send. ${allowedRecipientsNote}`,
+    `**Critical rules:**`,
+    `- The JSON is the turn's terminal output. If your turn ends with plain text, markdown, narration, or any prose instead of this JSON, the turn is discarded as a failure and all your tool-call work this turn is wasted.`,
+    `- After you finish your tool calls and any work, your FINAL action is to produce this JSON envelope. Do not narrate "I'll do X next" at the end - either do X now or put that note in the \`summary\` field.`,
+    `- Put any progress notes, findings, or status updates inside the \`summary\` string - never as free-standing commentary text.`,
+    `- Use an empty \`messages\` array when there is nothing to send. ${allowedRecipientsNote}`,
+    `- No markdown fences around the JSON. No prose before or after it.`,
   ].join("\n");
 }
 
@@ -5655,6 +5728,15 @@ export async function selectActiveNodesForRound({
     throw new Error(
       `leader ${validatedLeader} is not listed in nodes [${validatedNodes.join(", ")}]`,
     );
+  }
+
+  // Round 1 is a leader-only planning turn: the leader reads the brief,
+  // decomposes the work, and messages peers. Peers first wake in round 2
+  // with an inbox. Without this, all nodes wake in parallel in round 1,
+  // each sees an empty inbox plus the shared brief, and independently
+  // ships a full skeleton - we saw this in the first Facebook pilot.
+  if (round === 1) {
+    return [validatedLeader];
   }
 
   return [...validatedNodes];

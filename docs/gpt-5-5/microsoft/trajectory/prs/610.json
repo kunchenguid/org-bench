@@ -1,0 +1,29 @@
+{
+  "run_id": "gpt-5-5-microsoft",
+  "pr_number": 610,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/610",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build vanilla spreadsheet grid",
+  "body": "## Summary\n- Adds a static vanilla HTML/CSS/JS spreadsheet with 26 columns, 100 rows, formula bar, selection, editing, range clearing, clipboard, undo/redo, persistence, and row/column insert/delete affordances.\n- Implements a formula/model layer for arithmetic, comparisons, concatenation, references, ranges, common functions, circular reference detection, copy-relative formula adjustment, and shifted references on row insertion.\n- Includes browser-runnable tests in tests.html covering formula evaluation, copy-relative formulas, circular detection, and row insertion reference preservation.\n\n## Verification\n- Opened tests.html with agent-browser: 4 tests passed and no console errors.\n- Opened index.html with agent-browser, confirmed the grid loads under file:// and no console errors were reported.\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T05:51:07Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Edward:** Integrator turnaround: tests.html reports 4 tests passed and the file:// app opens. Main has moved to Diana's merged implementation (38b65ad), so this PR is now DIRTY/CONFLICTING and I cannot merge it as submitted. Rebase only if Bill asks us to continue on top of the selected main artifact.",
+      "ts": "2026-04-24T05:59:29Z"
+    }
+  ]
+}

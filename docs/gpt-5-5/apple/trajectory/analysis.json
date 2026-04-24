@@ -1,0 +1,25 @@
+{
+  "run_id": "gpt-5-5-apple",
+  "schema_version": 1,
+  "narrative": "...",
+  "observations": {
+    "edge_utilization": [],
+    "decomposition": {
+      "leader_direct_subtasks": 0,
+      "max_delegation_depth": 0
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 0,
+      "reverted": 0,
+      "rewritten": 0
+    },
+    "incidents": []
+  },
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 0,
+    "out": 0
+  },
+  "cost_usd": 0
+}

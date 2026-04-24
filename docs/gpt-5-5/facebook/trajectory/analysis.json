@@ -1,0 +1,251 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "schema_version": 1,
+  "narrative": "Mark used the brief by first building a broad vanilla spreadsheet baseline and then decomposing the remaining work by product surface: formulas to Ben, clipboard/ranges to Carol, structural row/column behavior to Dave, persistence to Emma, editing/navigation to Frank, E2E to Grace, and polish/performance to Henry. Alice was initially used as the baseline integrator. The decomposition fanned out directly from Mark to seven implementer/verifier roles plus Alice for review; there was no second-level delegation chain deeper than peer review and integration requests.\n\nThe early phase shipped PR #547 as the baseline spreadsheet, then follow-up PR #548 for COUNT blank handling. Mainline integration then pulled in Emma's persistence namespace work (#549), Frank's editing/navigation work (#551), Ben's formula hardening (#552), and Henry's IF lazy-evaluation/visual polish (#554). These merges were actively reviewed by several peers, often with redundant merge attempts after another integrator had already landed the PR.\n\nThe active coordination edges were mostly Mark to every teammate, plus review edges through Alice, Carol, Dave, Emma, Frank, Grace, and Henry. Grace's edge to Mark was active as an E2E reporting channel rather than an implementation channel. No neighbor was completely idle: every named teammate sent or received task-relevant messages. The busiest stuck area was the range/structural overlap between Carol #553 and Dave #550. Both branches repeatedly became DIRTY after main advanced. Reviewers asked for rebases and narrowing; Emma, Frank, Henry, Alice, and Mark all commented that these PRs could not safely merge while conflicted or overlapping the new baseline.\n\nWork was duplicated in two main places. Carol's #553 and Mark's #556 both implemented range clipboard helpers and undoable range operations; #556 kept the same direction but added the missing one-cell source normalization fix. Dave's #550 and Mark's #556 both covered structural undo/redo snapshots; #556 folded the critical structural behavior onto current main, while #550 was eventually closed as superseded. There were also repeated merge attempts on the same PRs after other integrators had already merged them, especially #548 and #556, but these did not create divergent shipped code.\n\nIntegration happened through GitHub PRs into run/gpt-5-5-facebook/main. Mark acted as the main integrator in round 3 by merging #549, #551, #554, and #552, then created #556 in round 4 to replace the conflicting range/structural branches. In round 5, multiple peers verified #556 and at least one integrator merged it; Carol then closed #553 as superseded and Dave closed #550 as superseded. Mark performed final verification on current main and declared final submission at commit 7c9b9d2.\n\nWhat finally shipped was a static spreadsheet app with a 26-column/100-row baseline, formula evaluation and formula hardening, COUNT blank-cell handling, run-scoped persistence namespace behavior, editing/navigation improvements, visual polish and lazy IF handling, negative ROUND digit support, range clipboard helpers with relative formula shifting, range delete/paste undo, and structural row/column undo snapshots. The final self-reported verification was tests.html PASS under file://, node tests/editing-navigation.test.js PASS, index.html opening under file://, and no open PRs targeting main. The judge later reported that the grid loaded and formulas recomputed during interaction, but persistence across an HTTP reload was not observed and clipboard testing was unreliable.",
+  "observations": {
+    "edge_utilization": [
+      {
+        "from": "Mark",
+        "to": "Alice",
+        "forward_messages": 4,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Mark",
+        "to": "Ben",
+        "forward_messages": 5,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Mark",
+        "to": "Carol",
+        "forward_messages": 5,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Mark",
+        "to": "Dave",
+        "forward_messages": 5,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Mark",
+        "to": "Emma",
+        "forward_messages": 3,
+        "reverse_messages": 5
+      },
+      {
+        "from": "Mark",
+        "to": "Frank",
+        "forward_messages": 3,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Mark",
+        "to": "Grace",
+        "forward_messages": 5,
+        "reverse_messages": 5
+      },
+      {
+        "from": "Mark",
+        "to": "Henry",
+        "forward_messages": 3,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Alice",
+        "to": "Frank",
+        "forward_messages": 3,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Alice",
+        "to": "Dave",
+        "forward_messages": 3,
+        "reverse_messages": 2
+      },
+      {
+        "from": "Alice",
+        "to": "Henry",
+        "forward_messages": 3,
+        "reverse_messages": 4
+      },
+      {
+        "from": "Alice",
+        "to": "Emma",
+        "forward_messages": 2,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Ben",
+        "to": "Carol",
+        "forward_messages": 5,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Carol",
+        "to": "Dave",
+        "forward_messages": 4,
+        "reverse_messages": 3
+      },
+      {
+        "from": "Emma",
+        "to": "Carol",
+        "forward_messages": 3,
+        "reverse_messages": 1
+      },
+      {
+        "from": "Emma",
+        "to": "Dave",
+        "forward_messages": 2,
+        "reverse_messages": 1
+      },
+      {
+        "from": "Frank",
+        "to": "Carol",
+        "forward_messages": 3,
+        "reverse_messages": 1
+      },
+      {
+        "from": "Frank",
+        "to": "Dave",
+        "forward_messages": 2,
+        "reverse_messages": 1
+      },
+      {
+        "from": "Henry",
+        "to": "Carol",
+        "forward_messages": 3,
+        "reverse_messages": 1
+      },
+      {
+        "from": "Henry",
+        "to": "Dave",
+        "forward_messages": 2,
+        "reverse_messages": 1
+      }
+    ],
+    "decomposition": {
+      "leader_direct_subtasks": 8,
+      "max_delegation_depth": 1
+    },
+    "idle_neighbors": [],
+    "patch_churn": {
+      "superseded": 2,
+      "reverted": 0,
+      "rewritten": 2
+    },
+    "incidents": [
+      {
+        "kind": "integration_failure",
+        "summary": "Carol's range clipboard PR #553 became dirty after main advanced and reviewers asked for rebase while preserving COUNT and persistence changes.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 27
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 38
+          },
+          {
+            "file": "trajectory/events.jsonl",
+            "line": 6
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Dave's structural PR #550 conflicted with current main and was described as an older alternate app/core split that could regress merged baseline behavior.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 28
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 61
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 65
+          }
+        ]
+      },
+      {
+        "kind": "miscommunication",
+        "summary": "Emma's PR comments initially used shell backticks inside a double-quoted body, causing branch names to be stripped; she added clarification comments afterward.",
+        "refs": [
+          {
+            "file": "trajectory/nodes/Emma.jsonl",
+            "line": 4
+          },
+          {
+            "file": "trajectory/events.jsonl",
+            "line": 6
+          }
+        ]
+      },
+      {
+        "kind": "brief_handoff",
+        "summary": "Mark replaced the stuck Carol and Dave branches with PR #556, telling Carol that #553 had a source normalization bug and Dave that structural undo behavior had been folded into #556.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 46
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 47
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 48
+          }
+        ]
+      },
+      {
+        "kind": "brief_handoff",
+        "summary": "Carol closed #553 and Dave closed #550 as superseded after #556 landed.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 79
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 84
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 86
+          }
+        ]
+      },
+      {
+        "kind": "integration_failure",
+        "summary": "Grace repeatedly found UI formula copy/paste with Meta+C/Meta+V inconclusive because agent-browser returned an empty page without console errors.",
+        "refs": [
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 21
+          },
+          {
+            "file": "trajectory/messages.jsonl",
+            "line": 70
+          },
+          {
+            "file": "trajectory/nodes/Grace.jsonl",
+            "line": 4
+          }
+        ]
+      }
+    ]
+  },
+  "model": "openai/gpt-5.5",
+  "tokens": {
+    "in": 238159,
+    "out": 1586
+  },
+  "cost_usd": 0
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-amazon",
+  "pr_number": 570,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/570",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Let native clipboard shortcuts fire",
+  "body": "This is a narrow follow-up to the clipboard port. The current keydown handler still prevents default handling for Cmd/Ctrl+C, X, and V, which can stop the native copy/cut/paste events from firing. This removes those keydown interceptions so the existing native clipboard event handlers become the single reliable path for OS clipboard data and internal formula metadata.\\n\\nAuthor: Henry",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T03:42:55Z"
+    }
+  ],
+  "comments": []
+}

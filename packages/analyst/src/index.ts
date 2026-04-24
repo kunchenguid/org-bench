@@ -318,9 +318,13 @@ function buildAnalystPrompt(
 ): string {
   return [
     systemPrompt,
-    "Reply with only valid JSON.",
-    "Do not wrap the JSON in markdown fences.",
-    'Return exactly this shape: {"narrative":"...","observations":{"edge_utilization":[],"decomposition":{"leader_direct_subtasks":0,"max_delegation_depth":0},"idle_neighbors":[],"patch_churn":{"superseded":0,"reverted":0,"rewritten":0},"incidents":[]}}.',
+    "Your terminal output MUST be a single JSON object matching the shape below. Do NOT emit markdown fences, commentary, or prose before/after the JSON - only the JSON itself. Fill the fields based on the trajectory summary - write a substantive narrative grounded in what actually happened; do NOT echo the placeholder strings you see in these instructions.",
+    'Shape: {"narrative":"...","observations":{"edge_utilization":[],"decomposition":{"leader_direct_subtasks":0,"max_delegation_depth":0},"idle_neighbors":[],"patch_churn":{"superseded":0,"reverted":0,"rewritten":0},"incidents":[]}}',
+    "Field rules (arrays may be empty; when non-empty, every object must include every required key):",
+    "- `edge_utilization[]` objects require all four keys: `from` (node id string), `to` (node id string), `forward_messages` (non-negative integer), `reverse_messages` (non-negative integer).",
+    "- `idle_neighbors[]` objects require: `from` (node id string), `to` (node id string).",
+    "- `incidents[]` objects require: `kind` (EXACTLY one of the three literal strings `brief_handoff`, `miscommunication`, `integration_failure` - pick one), `summary` (short description string), `refs` (array of `{file, line}` where `file` is a real path and `line` is a positive integer >= 1).",
+    "- When in doubt about an incident, prefer an empty `incidents` array over a malformed entry.",
     "Trajectory summary:",
     trajectorySummary,
   ].join("\n\n");
