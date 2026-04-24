@@ -34,6 +34,26 @@
     return Math.max(min, Math.min(max, value));
   }
 
+  function describeSelection(anchor, active, maxRows, maxCols) {
+    var activeRow = clamp(active.row, 0, maxRows - 1);
+    var activeCol = clamp(active.col, 0, maxCols - 1);
+    var anchorRow = clamp(anchor.row, 0, maxRows - 1);
+    var anchorCol = clamp(anchor.col, 0, maxCols - 1);
+    var selection = {
+      r1: Math.min(anchorRow, activeRow),
+      c1: Math.min(anchorCol, activeCol),
+      r2: Math.max(anchorRow, activeRow),
+      c2: Math.max(anchorCol, activeCol),
+      activeRow: activeRow,
+      activeCol: activeCol,
+      label: ''
+    };
+    var start = refName(selection.r1, selection.c1);
+    var end = refName(selection.r2, selection.c2);
+    selection.label = start === end ? start : start + ':' + end;
+    return selection;
+  }
+
   function eachCellInRange(range, callback) {
     var startRow = Math.min(range.r1, range.r2);
     var endRow = Math.max(range.r1, range.r2);
@@ -305,6 +325,7 @@
     contextMenu.className = 'context-menu';
     contextMenu.hidden = true;
     document.body.appendChild(contextMenu);
+    var formulaInputCommitted = false;
 
     function persist() {
       localStorage.setItem(storageKey, JSON.stringify({ sheet: engine.toJSON(), active: active }));
@@ -414,12 +435,7 @@
     }
 
     function normalizedRange() {
-      return {
-        r1: Math.min(range.r1, range.r2),
-        r2: Math.max(range.r1, range.r2),
-        c1: Math.min(range.c1, range.c2),
-        c2: Math.max(range.c1, range.c2)
-      };
+      return describeSelection({ row: range.r1, col: range.c1 }, { row: range.r2, col: range.c2 }, ROWS, COLS);
     }
 
     function renderValues() {
@@ -445,8 +461,18 @@
         td.classList.toggle('active', row === active.row && col === active.col);
         td.classList.toggle('in-range', row >= nr.r1 && row <= nr.r2 && col >= nr.c1 && col <= nr.c2);
       });
-      cellName.textContent = refName(active.row, active.col);
-      formulaInput.value = engine.getRaw(active.row, active.col);
+      grid.querySelectorAll('[data-col-header]').forEach(function (th) {
+        var col = Number(th.dataset.colHeader);
+        th.classList.toggle('selected-header', col >= nr.c1 && col <= nr.c2);
+        th.classList.toggle('active-header', col === active.col);
+      });
+      grid.querySelectorAll('[data-row-header]').forEach(function (th) {
+        var row = Number(th.dataset.rowHeader);
+        th.classList.toggle('selected-header', row >= nr.r1 && row <= nr.r2);
+        th.classList.toggle('active-header', row === active.row);
+      });
+      cellName.textContent = nr.label;
+      if (document.activeElement !== formulaInput) formulaInput.value = engine.getRaw(active.row, active.col);
       var current = getCell(active.row, active.col);
       if (current) current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
@@ -468,6 +494,16 @@
       setMany([{ row: active.row, col: active.col, raw: value }]);
       if (move === 'down') selectCell(active.row + 1, active.col, false);
       if (move === 'right') selectCell(active.row, active.col + 1, false);
+      wrap.focus();
+    }
+
+    function commitFormulaInput(move) {
+      var row = active.row;
+      var col = active.col;
+      setMany([{ row: row, col: col, raw: formulaInput.value }]);
+      if (move === 'down') selectCell(row + 1, col, false);
+      if (move === 'right') selectCell(row, col + 1, false);
+      if (move === 'left') selectCell(row, col - 1, false);
       wrap.focus();
     }
 
@@ -539,6 +575,7 @@
     grid.addEventListener('mousedown', function (event) {
       var td = event.target.closest('.cell');
       if (!td) return;
+      event.preventDefault();
       selectCell(Number(td.dataset.row), Number(td.dataset.col), event.shiftKey);
       dragSelecting = true;
       wrap.focus();
@@ -645,17 +682,17 @@
 
     formulaInput.addEventListener('focus', function () { formulaInput.value = engine.getRaw(active.row, active.col); });
     formulaInput.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') { event.preventDefault(); commitEdit(formulaInput.value, 'down'); }
-      if (event.key === 'Tab') { event.preventDefault(); commitEdit(formulaInput.value, 'right'); }
+      if (event.key === 'Enter') { event.preventDefault(); formulaInputCommitted = true; commitFormulaInput('down'); setTimeout(function () { formulaInputCommitted = false; }, 0); }
+      if (event.key === 'Tab') { event.preventDefault(); formulaInputCommitted = true; commitFormulaInput(event.shiftKey ? 'left' : 'right'); setTimeout(function () { formulaInputCommitted = false; }, 0); }
       if (event.key === 'Escape') { event.preventDefault(); formulaInput.value = engine.getRaw(active.row, active.col); wrap.focus(); }
     });
-    formulaInput.addEventListener('change', function () { commitEdit(formulaInput.value); });
+    formulaInput.addEventListener('change', function () { if (!formulaInputCommitted) commitFormulaInput(); });
 
     selectCell(active.row, active.col, false);
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { SpreadsheetEngine: SpreadsheetEngine, adjustFormulaReferences: adjustFormulaReferences, parseRef: parseRef, colName: colName };
+    module.exports = { SpreadsheetEngine: SpreadsheetEngine, adjustFormulaReferences: adjustFormulaReferences, parseRef: parseRef, colName: colName, describeSelection: describeSelection };
   }
 
   if (global.document) {

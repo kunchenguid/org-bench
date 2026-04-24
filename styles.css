@@ -130,6 +130,17 @@ body {
   z-index: 2;
 }
 
+.grid th.selected-header {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.grid th.active-header {
+  background: #bfdbfe;
+  color: #172554;
+  box-shadow: inset 0 -2px 0 var(--active);
+}
+
 .cell {
   cursor: cell;
   background: #fff;
@@ -142,12 +153,21 @@ body {
 
 .cell.in-range {
   background: var(--range);
+  position: relative;
+}
+
+.cell.in-range::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(20, 115, 230, .16);
+  pointer-events: none;
 }
 
 .cell.active {
   position: relative;
   background: #fff;
-  box-shadow: inset 0 0 0 2px var(--active);
+  box-shadow: inset 0 0 0 2px var(--active), 0 0 0 1px rgba(20, 115, 230, .35);
 }
 
 .cell.editing {
