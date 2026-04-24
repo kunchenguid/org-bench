@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spreadsheet Smoke Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f7;
+      --panel: #ffffff;
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --line: #d2d2d7;
+      --blue: #0071e3;
+      --green: #22863a;
+      --red: #c62828;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    header {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: -0.03em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    a, button {
+      font: inherit;
+    }
+
+    .toolbar, .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar a, button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 13px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .toolbar a.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .progress {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card {
+      overflow: hidden;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      padding: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .step:first-child {
+      border-top: 0;
+    }
+
+    .step h2 {
+      margin: 0 0 6px;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+
+    .step p {
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .status-pass {
+      border-color: rgba(34, 134, 58, 0.35);
+      background: rgba(34, 134, 58, 0.08);
+    }
+
+    .status-fail {
+      border-color: rgba(198, 40, 40, 0.35);
+      background: rgba(198, 40, 40, 0.08);
+    }
+
+    .pass {
+      color: var(--green);
+    }
+
+    .fail {
+      color: var(--red);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 92px;
+      margin-top: 16px;
+      box-sizing: border-box;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      resize: vertical;
+      font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    @media (max-width: 640px) {
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .progress {
+        width: 100%;
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Spreadsheet Smoke Test</h1>
+        <p>Open the app in another tab, run the judge-path scenario first, then record each pass/fail result here. This page is QA-only and works from file URLs.</p>
+      </div>
+    </header>
+
+    <section class="toolbar" aria-label="Smoke test controls">
+      <a class="primary" href="../index.html" target="_blank" rel="noopener">Open app</a>
+      <button type="button" id="reset">Reset results</button>
+      <button type="button" id="export">Export JSON</button>
+      <span class="progress" id="progress">0 of 0 complete</span>
+    </section>
+
+    <section class="card" id="steps" aria-label="Smoke test scenarios"></section>
+    <textarea id="output" aria-label="Exported smoke test results" placeholder="Exported results appear here."></textarea>
+  </main>
+
+  <script>
+    (function () {
+      var namespace = new URLSearchParams(location.search).get("ns") || "spreadsheet-smoke";
+      var storageKey = namespace + ":qa-smoke-results";
+      var steps = [
+        ["Judge path", "Open index.html by file URL. Type 10 in A1, Enter, type 20 in A2, navigate, enter =A1+A2 in A3, change A1 to 15, clear A1:A3, copy a relative formula and undo the paste, insert a row above referenced data, then reload and confirm persistence."],
+        ["Launch", "Open index.html by file URL. Confirm the grid appears quickly, no splash or modal blocks typing, and the console has no uncaught errors."],
+        ["Edit and navigate", "Type values into A1 and A2, commit with Enter and Tab, then verify arrow-key navigation and Escape cancel behavior."],
+        ["Formula and dependents", "Enter =A1+A2 and =SUM(A1:A3). Change a precedent and confirm dependent formulas recalculate."],
+        ["Formula coverage", "Check arithmetic precedence, parentheses, comparisons, booleans, concatenation, required functions, invalid formulas, and circular references."],
+        ["Range delete", "Select a rectangle by drag or keyboard extension, press Delete or Backspace, and confirm the whole range clears as one action."],
+        ["Clipboard", "Copy and paste a range. Copy a relative formula to a new location and confirm references shift. Check absolute reference components stay fixed."],
+        ["Undo and redo", "Undo and redo cell edits, range delete, and paste. Confirm grouped actions restore in one step."],
+        ["Rows and columns", "Use visible header affordances to insert and delete rows or columns. Confirm formulas update or show reference errors correctly."],
+        ["Persistence", "Reload after entering text, numbers, formulas, errors, and a non-default selection. Confirm raw contents and selection restore."],
+        ["Polish", "Confirm active cell, range selection, formula bar, headers, values, and errors share one coherent visual language."]
+      ];
+
+      var results = loadResults();
+      var list = document.getElementById("steps");
+      var progress = document.getElementById("progress");
+      var output = document.getElementById("output");
+
+      function loadResults() {
+        try {
+          return JSON.parse(localStorage.getItem(storageKey)) || {};
+        } catch (error) {
+          return {};
+        }
+      }
+
+      function saveResults() {
+        localStorage.setItem(storageKey, JSON.stringify(results));
+      }
+
+      function render() {
+        list.innerHTML = "";
+        steps.forEach(function (step, index) {
+          var state = results[index] || "";
+          var row = document.createElement("article");
+          row.className = "step" + (state ? " status-" + state : "");
+
+          var copy = document.createElement("div");
+          var title = document.createElement("h2");
+          title.textContent = (index + 1) + ". " + step[0];
+          var desc = document.createElement("p");
+          desc.textContent = step[1];
+          copy.appendChild(title);
+          copy.appendChild(desc);
+
+          var actions = document.createElement("div");
+          actions.className = "actions";
+          actions.appendChild(makeButton("Pass", "pass", index));
+          actions.appendChild(makeButton("Fail", "fail", index));
+          row.appendChild(copy);
+          row.appendChild(actions);
+          list.appendChild(row);
+        });
+        updateProgress();
+      }
+
+      function makeButton(label, state, index) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.className = state;
+        button.setAttribute("aria-pressed", results[index] === state ? "true" : "false");
+        button.addEventListener("click", function () {
+          results[index] = results[index] === state ? "" : state;
+          saveResults();
+          render();
+        });
+        return button;
+      }
+
+      function updateProgress() {
+        var complete = Object.keys(results).filter(function (key) { return results[key]; }).length;
+        progress.textContent = complete + " of " + steps.length + " complete";
+      }
+
+      document.getElementById("reset").addEventListener("click", function () {
+        results = {};
+        saveResults();
+        output.value = "";
+        render();
+      });
+
+      document.getElementById("export").addEventListener("click", function () {
+        var exported = {
+          namespace: namespace,
+          createdAt: new Date().toISOString(),
+          results: steps.map(function (step, index) {
+            return { name: step[0], status: results[index] || "untested", notes: step[1] };
+          })
+        };
+        output.value = JSON.stringify(exported, null, 2);
+        output.select();
+      });
+
+      render();
+    }());
+  </script>
+</body>
+</html>

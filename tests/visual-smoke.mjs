@@ -4,23 +4,24 @@ const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 
 const requiredHtml = [
-  'class="app-shell"',
+  'class="sheet-app"',
+  'class="sheet-chrome"',
   'class="formula-bar"',
-  'class="sheet-grid"',
-  "cell.className = 'cell active'",
-  'value=""',
-  '>A1<'
+  'id="grid-root"',
+  'scripts/app-state.js',
+  'scripts/app.js'
 ];
 
 const requiredCss = [
-  '.sheet-grid',
-  '.column-header',
-  '.row-header',
-  '.cell.active',
-  '.cell.range-selected',
-  '.cell.number',
-  '.cell.text',
-  '.cell.error',
+  '.sheet-app',
+  '.sheet-chrome',
+  '.grid-shell',
+  '.grid-root',
+  '.is-active-cell',
+  '.is-selected',
+  '.cell-value-number',
+  '.cell-value-text',
+  '.cell-value-error',
   '@media (max-width: 720px)'
 ];
 
@@ -36,7 +37,7 @@ for (const needle of requiredCss) {
   }
 }
 
-const demoContent = ['visual-state-contract', '=SUM(A1:A5)', 'Revenue', '#DIV/0!'];
+const demoContent = ['visual-state-contract', 'renderVisualGrid', '=SUM(A1:A5)', 'Revenue', '#DIV/0!'];
 
 for (const needle of demoContent) {
   if (html.includes(needle)) {
