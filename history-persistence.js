@@ -80,12 +80,18 @@
       return explicitNamespace;
     }
 
-    const root = typeof window !== 'undefined' ? window : globalThis;
+    const root = typeof window !== 'undefined' ? window : globalThis.window || globalThis;
     return (
+      root.__ORG_BENCH_STORAGE_NAMESPACE__ ||
+      root.ORG_BENCH_STORAGE_NAMESPACE ||
+      root.__BENCHMARK_STORAGE_NAMESPACE__ ||
+      root.BENCHMARK_STORAGE_NAMESPACE ||
       root.SPREADSHEET_STORAGE_NAMESPACE ||
       root.__SPREADSHEET_STORAGE_NAMESPACE__ ||
       root.RUN_STORAGE_NAMESPACE ||
       root.__RUN_STORAGE_NAMESPACE__ ||
+      root.STORAGE_NAMESPACE ||
+      root.__STORAGE_NAMESPACE__ ||
       'spreadsheet:'
     );
   }

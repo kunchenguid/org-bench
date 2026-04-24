@@ -107,6 +107,28 @@ function testPersistenceUsesNamespaceAndRestoresRawCellsAndSelection() {
   assert.deepStrictEqual(persistence.restore(), state);
 }
 
+function testPersistenceUsesInjectedRunNamespaceWhenOmitted() {
+  const storage = createMemoryStorage();
+  const previousWindow = global.window;
+  global.window = { __ORG_BENCH_STORAGE_NAMESPACE__: 'bench-run-99:' };
+
+  try {
+    const persistence = createPersistence({ storage });
+    persistence.save({ cells: { A1: '=A2' }, selection: { active: 'A1' } });
+
+    assert.strictEqual(persistence.namespace, 'bench-run-99:');
+    assert.ok(storage.getItem('bench-run-99:cells'));
+    assert.ok(storage.getItem('bench-run-99:selection'));
+    assert.strictEqual(storage.getItem('spreadsheet:cells'), null);
+  } finally {
+    if (previousWindow === undefined) {
+      delete global.window;
+    } else {
+      global.window = previousWindow;
+    }
+  }
+}
+
 function createKeyboardTarget() {
   const handlers = new Set();
   return {
@@ -150,6 +172,7 @@ function testKeyboardShortcutsUndoAndRedoByAction() {
 testHistoryRetainsLastFiftyActions();
 testRedoIsClearedAfterNewUserAction();
 testPersistenceUsesNamespaceAndRestoresRawCellsAndSelection();
+testPersistenceUsesInjectedRunNamespaceWhenOmitted();
 testKeyboardShortcutsUndoAndRedoByAction();
 
 console.log('history-persistence tests passed');
