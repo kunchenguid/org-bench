@@ -100,3 +100,48 @@ test('serializes and restores raw contents and selection', () => {
 test('standalone formula rewrite handles ranges', () => {
   assert.strictEqual(rewriteFormulaReferences('=SUM(A1:B2)', 1, 2), '=SUM(C2:D3)');
 });
+
+test('honors arithmetic precedence and required functions', () => {
+  const book = new Workbook({ rows: 10, cols: 5 });
+  book.setCell('A1', '1');
+  book.setCell('A2', '2');
+  book.setCell('A3', '3');
+  book.setCell('B1', '=1+2*3-4/2');
+  book.setCell('B2', '=AVERAGE(A1:A3)');
+  book.setCell('B3', '=MIN(A1:A3)&":"&MAX(A1:A3)&":"&COUNT(A1:A3)');
+  book.setCell('B4', '=AND(TRUE,A1<A2,NOT(FALSE))');
+  book.setCell('B5', '=OR(FALSE,A3=3)');
+  book.setCell('C1', '=ABS(-4)+ROUND(2.345,2)');
+  book.setCell('C2', '=CONCAT("A",A1,"B")');
+
+  assert.strictEqual(book.getDisplay('B1'), '5');
+  assert.strictEqual(book.getDisplay('B2'), '2');
+  assert.strictEqual(book.getDisplay('B3'), '1:3:3');
+  assert.strictEqual(book.getDisplay('B4'), 'TRUE');
+  assert.strictEqual(book.getDisplay('B5'), 'TRUE');
+  assert.strictEqual(book.getDisplay('C1'), '6.35');
+  assert.strictEqual(book.getDisplay('C2'), 'A1B');
+});
+
+test('renders syntax errors, divide by zero, and circular ranges clearly', () => {
+  const book = new Workbook({ rows: 10, cols: 5 });
+  book.setCell('A1', '=1+');
+  book.setCell('A2', '=10/(5-5)');
+  book.setCell('A3', '=SUM(A1:)');
+  book.setCell('B1', '=SUM(B1:B2)');
+  book.setCell('B2', '1');
+
+  assert.strictEqual(book.getDisplay('A1'), '#ERR!');
+  assert.strictEqual(book.getDisplay('A2'), '#DIV/0!');
+  assert.strictEqual(book.getDisplay('A3'), '#ERR!');
+  assert.strictEqual(book.getDisplay('B1'), '#CIRC!');
+});
+
+test('IF evaluates only the selected branch', () => {
+  const book = new Workbook({ rows: 10, cols: 5 });
+  book.setCell('A1', '=IF(FALSE,1/0,7)');
+  book.setCell('A2', '=IF(TRUE,"safe",1/0)');
+
+  assert.strictEqual(book.getDisplay('A1'), '7');
+  assert.strictEqual(book.getDisplay('A2'), 'safe');
+});

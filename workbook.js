@@ -200,6 +200,7 @@
         if (t.value === 'TRUE') return true;
         if (t.value === 'FALSE') return false;
         this.expect('(');
+        if (t.value === 'IF') return this.ifFunction();
         const args = [];
         if (!this.peek(')')) {
           do { args.push(this.compare()); } while (this.take(','));
@@ -214,6 +215,28 @@
           return this.workbook.rangeValues(t.value, end.value, this.stack);
         }
         return this.workbook.valueAt(t.value, this.stack);
+      }
+      throw new Error(ERR);
+    }
+    ifFunction() {
+      const condition = this.compare();
+      this.expect(',');
+      const thenTokens = this.collectBranch(',');
+      this.expect(',');
+      const elseTokens = this.collectBranch(')');
+      this.expect(')');
+      return new Parser(truthy(condition) ? thenTokens : elseTokens, this.workbook, this.stack).parse();
+    }
+    collectBranch(stop) {
+      const start = this.i;
+      let depth = 0;
+      while (this.i < this.tokens.length) {
+        const t = this.tokens[this.i];
+        if (depth === 0 && t.value === stop) return this.tokens.slice(start, this.i);
+        if (t.value === '(') depth++;
+        if (t.value === ')') depth--;
+        if (depth < 0) throw new Error(ERR);
+        this.i++;
       }
       throw new Error(ERR);
     }
@@ -236,12 +259,11 @@
     if (name === 'MIN') return Math.min(...vals.map(num));
     if (name === 'MAX') return Math.max(...vals.map(num));
     if (name === 'COUNT') return vals.filter((v) => !Number.isNaN(Number(v)) && v !== '').length;
-    if (name === 'IF') return truthy(args[0]) ? args[1] : args[2];
     if (name === 'AND') return vals.every(truthy);
     if (name === 'OR') return vals.some(truthy);
     if (name === 'NOT') return !truthy(args[0]);
     if (name === 'ABS') return Math.abs(num(args[0]));
-    if (name === 'ROUND') return Math.round(num(args[0]));
+    if (name === 'ROUND') return Number(num(args[0]).toFixed(args[1] == null ? 0 : Math.trunc(num(args[1]))));
     if (name === 'CONCAT') return vals.map((v) => String(scalar(v))).join('');
     throw new Error(ERR);
   }
