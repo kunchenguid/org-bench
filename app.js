@@ -233,11 +233,7 @@
   }
 
   function clearCurrentRange() {
-    const r = currentRange();
-    sheet.record();
-    for (let row = r.row1; row <= r.row2; row++) {
-      for (let col = r.col1; col <= r.col2; col++) sheet.setCell(row, col, '');
-    }
+    sheet.clearRange(currentRange());
   }
 
   function syncFormulaBar() {

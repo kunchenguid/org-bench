@@ -61,6 +61,7 @@
         if (!options || !options.silent) this.record();
         return super.setCell(address.row, address.col, colOrRaw);
       }
+      if (!options || !options.silent) this.record();
       return super.setCell(addressOrRow, colOrRaw, rawMaybe);
     }
 
