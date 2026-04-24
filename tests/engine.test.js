@@ -53,3 +53,23 @@ test('detects circular references without crashing', () => {
   assert.strictEqual(sheet.getDisplay('A1'), '#CIRC!');
   assert.strictEqual(sheet.getDisplay('A2'), '#CIRC!');
 });
+
+test('rewrites formula references when rows and columns are inserted', () => {
+  assert.strictEqual(
+    Engine.adjustFormulaForStructure('=A1+$B$2+SUM(C3:D4)', 'insertRow', 1),
+    '=A1+$B$3+SUM(C4:D5)'
+  );
+  assert.strictEqual(
+    Engine.adjustFormulaForStructure('=A1+$B$2+SUM(C3:D4)', 'insertCol', 2),
+    '=A1+$B$2+SUM(D3:E4)'
+  );
+});
+
+test('marks deleted formula references as #REF', () => {
+  const sheet = makeEngine();
+  sheet.setCell('A1', '2');
+  sheet.setCell('B1', '3');
+  sheet.setCell('C1', Engine.adjustFormulaForStructure('=A1+B1', 'deleteCol', 1));
+  assert.strictEqual(sheet.getRaw('C1'), '=A1+#REF!');
+  assert.strictEqual(sheet.getDisplay('C1'), '#REF!');
+});
