@@ -58,24 +58,39 @@
       window.sheetStore.selectCell({ row: Number(ref[2]) - 1, col: ref[1].charCodeAt(0) - 65 });
     }
 
+    function key(target, keyName) {
+      target.dispatchEvent(new KeyboardEvent('keydown', { key: keyName, bubbles: true, cancelable: true }));
+    }
+
+    function enterRaw(address, raw) {
+      select(address);
+      key(document, 'Enter');
+      const editor = cell(address).querySelector('input');
+      assert(editor, address + ' enters edit mode');
+      editor.value = raw;
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+      key(document, 'Enter');
+    }
+
     function run() {
       const formula = document.querySelector('#formula-input');
 
       assert(window.FormulaEngine, 'FormulaEngine is loaded');
       assert(window.sheetStore, 'shared store is available');
 
-      setRaw('A1', '10');
-      setRaw('A2', '20');
-      setRaw('A3', '=A1+A2');
+      enterRaw('A1', '10');
+      enterRaw('A2', '20');
+      enterRaw('A3', '=A1+A2');
       assert(cell('A1').textContent === '10', 'literal number displays as itself');
       assert(cell('A2').textContent === '20', 'second literal number displays as itself');
-      assert(cell('A3').textContent === '30', 'formula result displays evaluated value');
+      assert(cell('A3').textContent === '30', 'formula result displays evaluated value after Enter commit flow');
 
       select('A3');
       assert(formula.value === '=A1+A2', 'formula bar preserves raw formula');
 
-      setRaw('A1', '15');
+      enterRaw('A1', '15');
       assert(cell('A3').textContent === '35', 'dependent formula updates when precedent changes');
+      select('A3');
       assert(formula.value === '=A1+A2', 'selected formula raw value stays recoverable after recalculation');
 
       setRaw('A4', '=1/0');
