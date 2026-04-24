@@ -250,7 +250,7 @@
     formulaInput.setAttribute('spellcheck', 'false');
     formulaWrap.append(formulaLabel, formulaInput);
 
-    const hint = createElement('div', 'hint', 'Enter edits/commits. Shift+arrows extends selection. Delete clears selection.');
+    const hint = createElement('div', 'hint', 'Enter edits/commits. Shift+arrows extends selection. Delete clears selection. Tab moves to formula bar. Alt+Shift+C/R opens column or row actions.');
     toolbar.append(cellNameBox, formulaWrap, hint);
 
     const headerActionMenu = createElement('div', 'header-action-menu');
@@ -556,13 +556,31 @@
       if (firstItem) firstItem.focus();
     }
 
+    function hideHeaderMenu(focusCell) {
+      headerActionMenu.hidden = true;
+      headerActionMenu.textContent = '';
+      if (focusCell) getCell(state.selected.row, state.selected.col).focus();
+    }
+
+    function openSelectedHeaderMenu(isRow) {
+      const header = isRow ? rowHeaders[state.selected.row] : columnHeaders[state.selected.col];
+      const button = header && header.querySelector('.header-menu');
+      if (button) showHeaderMenu(button);
+    }
+
     function handleCellKeydown(event, cell) {
       if (maybeHandleCommandKey(event)) {
         return;
       }
       const row = Number(cell.dataset.row);
       const col = Number(cell.dataset.col);
-      if (event.key === 'Enter' || event.key === 'F2') {
+      if (event.altKey && event.shiftKey && (event.key === 'C' || event.key === 'c')) {
+        event.preventDefault();
+        openSelectedHeaderMenu(false);
+      } else if (event.altKey && event.shiftKey && (event.key === 'R' || event.key === 'r')) {
+        event.preventDefault();
+        openSelectedHeaderMenu(true);
+      } else if (event.key === 'Enter' || event.key === 'F2') {
         event.preventDefault();
         beginEditing(row, col, 'preserve');
       } else if (event.key === 'ArrowDown') {
@@ -579,7 +597,7 @@
         moveSelection(0, -1, event.shiftKey);
       } else if (event.key === 'Tab') {
         event.preventDefault();
-        moveSelection(0, event.shiftKey ? -1 : 1, false);
+        formulaInput.focus();
       } else if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
         clearRange();
@@ -661,6 +679,13 @@
       }
       event.preventDefault();
       showHeaderMenu(headerButton);
+    });
+
+    headerActionMenu.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        hideHeaderMenu(true);
+      }
     });
 
     grid.addEventListener('copy', function (event) {
