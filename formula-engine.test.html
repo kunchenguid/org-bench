@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Formula Engine Tests</title>
+  <style>
+    body { font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; }
+    .pass { color: #0a7a28; }
+    .fail { color: #b00020; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Formula Engine Tests</h1>
+  <div id="result">Running...</div>
+  <script src="formula-engine.js"></script>
+  <script src="formula-engine.test.js"></script>
+  <script>
+    var result = document.getElementById('result');
+    try {
+      runFormulaEngineTests();
+      result.className = 'pass';
+      result.textContent = 'All formula engine tests passed.';
+    } catch (error) {
+      result.className = 'fail';
+      result.textContent = error && error.stack ? error.stack : String(error);
+      throw error;
+    }
+  </script>
+</body>
+</html>
