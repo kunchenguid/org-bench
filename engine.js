@@ -97,6 +97,12 @@
           tokens.push({ type: 'string', value: s });
           continue;
         }
+        if (ch === '#') {
+          let error = '';
+          while (i < input.length && /[A-Za-z0-9#!?/]/.test(input[i])) error += input[i++];
+          tokens.push({ type: 'error', value: error.toUpperCase() });
+          continue;
+        }
         const two = input.slice(i, i + 2);
         if (['<=', '>=', '<>'].includes(two)) {
           tokens.push({ type: 'op', value: two });
@@ -194,6 +200,7 @@
     parsePrimary() {
       const token = this.next();
       if (!token) throw new Error('#ERR!');
+      if (token.type === 'error') throw new Error(token.value === '#REF!' ? '#REF!' : '#ERR!');
       if (token.type === 'number' || token.type === 'string') return token.value;
       if (token.value === '(') { const value = this.parseCompare(); this.expect(')'); return value; }
       if (token.type === 'id') {
@@ -340,7 +347,29 @@
     }));
   }
 
-  const api = { SpreadsheetEngine, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula, getPasteOrigin, adjustFormulaBlock };
+  function adjustFormulaForStructure(raw, type, index) {
+    if (!raw || raw[0] !== '=') return raw;
+    return raw.replace(/\$?[A-Z]+\$?[1-9][0-9]*/g, (match) => {
+      const ref = parseRef(match);
+      if (!ref) return match;
+      let row = ref.row;
+      let col = ref.col;
+      if (type === 'insertRow' && row >= index) row++;
+      if (type === 'deleteRow') {
+        if (row === index) return '#REF!';
+        if (row > index) row--;
+      }
+      if (type === 'insertCol' && col >= index) col++;
+      if (type === 'deleteCol') {
+        if (col === index) return '#REF!';
+        if (col > index) col--;
+      }
+      if (row < 0 || col < 0) return '#REF!';
+      return refToA1(row, col, ref.rowAbs, ref.colAbs);
+    });
+  }
+
+  const api = { SpreadsheetEngine, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula, getPasteOrigin, adjustFormulaBlock, adjustFormulaForStructure };
   root.SpreadsheetEngine = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
