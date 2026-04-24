@@ -238,9 +238,17 @@
       this.applyChanges([{ row: r.row, col: r.col, value }], opts);
     }
     applyChanges(changes, opts) {
-      const before = changes.map((c) => ({ row: c.row, col: c.col, value: this.rawAt(c.row, c.col) }));
-      changes.forEach((c) => { const k = this.key(c.row, c.col); if (c.value) this.cells[k] = String(c.value); else delete this.cells[k]; });
-      if (!opts || !opts.silent) this.pushUndo(before, changes);
+      const beforeByKey = new Map();
+      const afterByKey = new Map();
+      changes.forEach((c) => {
+        const k = this.key(c.row, c.col);
+        if (!beforeByKey.has(k)) beforeByKey.set(k, { row: c.row, col: c.col, value: this.rawAt(c.row, c.col) });
+        afterByKey.set(k, { row: c.row, col: c.col, value: c.value });
+      });
+      const before = Array.from(beforeByKey.values());
+      const after = Array.from(afterByKey.values());
+      after.forEach((c) => { const k = this.key(c.row, c.col); if (c.value) this.cells[k] = String(c.value); else delete this.cells[k]; });
+      if (!opts || !opts.silent) this.pushUndo(before, after);
       this.save();
     }
     pushUndo(before, after) {
@@ -264,11 +272,26 @@
       }
       return out;
     }
-    pasteRange(startRow, startCol, block, source) {
+    pasteRange(startRow, startCol, block, source, target) {
       const changes = [];
-      for (let r = 0; r < block.length; r += 1) for (let c = 0; c < block[r].length; c += 1) {
-        const value = source ? adjustFormulaReferences(block[r][c], startRow + r - source.row, startCol + c - source.col) : block[r][c];
+      const rows = target && target.rows ? target.rows : block.length;
+      const cols = target && target.cols ? target.cols : block[0].length;
+      for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+        const raw = block[r % block.length][c % block[r % block.length].length];
+        const value = source ? adjustFormulaReferences(raw, startRow + r - source.row, startCol + c - source.col) : raw;
         if (startRow + r < ROWS && startCol + c < COLS) changes.push({ row: startRow + r, col: startCol + c, value });
+      }
+      this.applyChanges(changes);
+    }
+    moveRange(r1, c1, r2, c2, toRow, toCol) {
+      const source = this.copyRange(r1, c1, r2, c2);
+      const rows = source.length;
+      const cols = source[0].length;
+      const changes = [];
+      for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) changes.push({ row: Math.min(r1, r2) + r, col: Math.min(c1, c2) + c, value: '' });
+      for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+        const row = toRow + r, col = toCol + c;
+        if (row < ROWS && col < COLS) changes.push({ row, col, value: adjustFormulaReferences(source[r][c], row - (Math.min(r1, r2) + r), col - (Math.min(c1, c2) + c)) });
       }
       this.applyChanges(changes);
     }
@@ -302,6 +325,7 @@
         const n = Number(raw);
         return raw.trim() !== '' && Number.isFinite(n) ? n : raw;
       }
+      if (raw.includes('#REF!')) return { error: '#REF!' };
       const next = new Set(visiting || []);
       next.add(k);
       try {

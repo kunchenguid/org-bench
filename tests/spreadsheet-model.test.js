@@ -39,6 +39,35 @@ test('range clear is one undoable action', () => {
   assert.strictEqual(sheet.getRaw('B1'), '2');
 });
 
+test('cut and paste moves cells as one undoable action', () => {
+  const sheet = new SpreadsheetModel({ storage: null });
+  sheet.setCell('A1', '10');
+  sheet.setCell('B1', '=A1*2');
+  sheet.moveRange(0, 0, 0, 1, 2, 0);
+  assert.strictEqual(sheet.getRaw('A1'), '');
+  assert.strictEqual(sheet.getRaw('B1'), '');
+  assert.strictEqual(sheet.getRaw('A3'), '10');
+  assert.strictEqual(sheet.getRaw('B3'), '=A3*2');
+  assert.strictEqual(sheet.getDisplay('B3'), '20');
+  sheet.undo();
+  assert.strictEqual(sheet.getRaw('A1'), '10');
+  assert.strictEqual(sheet.getRaw('B1'), '=A1*2');
+  assert.strictEqual(sheet.getRaw('A3'), '');
+  assert.strictEqual(sheet.getRaw('B3'), '');
+  sheet.redo();
+  assert.strictEqual(sheet.getRaw('A3'), '10');
+  assert.strictEqual(sheet.getRaw('B3'), '=A3*2');
+});
+
+test('pasting a smaller block into a matching selected range repeats over the target', () => {
+  const sheet = new SpreadsheetModel({ storage: null });
+  sheet.pasteRange(0, 0, [['x']], null, { rows: 2, cols: 2 });
+  assert.strictEqual(sheet.getRaw('A1'), 'x');
+  assert.strictEqual(sheet.getRaw('B1'), 'x');
+  assert.strictEqual(sheet.getRaw('A2'), 'x');
+  assert.strictEqual(sheet.getRaw('B2'), 'x');
+});
+
 test('inserting a row keeps formulas pointing at moved data', () => {
   const sheet = new SpreadsheetModel({ storage: null });
   sheet.setCell('A2', '7');
@@ -47,4 +76,28 @@ test('inserting a row keeps formulas pointing at moved data', () => {
   assert.strictEqual(sheet.getRaw('A3'), '7');
   assert.strictEqual(sheet.getRaw('B1'), '=A3');
   assert.strictEqual(sheet.getDisplay('B1'), '7');
+});
+
+test('deleting a column marks references to deleted cells as ref errors', () => {
+  const sheet = new SpreadsheetModel({ storage: null });
+  sheet.setCell('A1', '5');
+  sheet.setCell('B1', '=A1');
+  sheet.deleteColumn(0);
+  assert.strictEqual(sheet.getRaw('A1'), '=#REF!');
+  assert.strictEqual(sheet.getDisplay('A1'), '#REF!');
+});
+
+test('storage restores raw formulas and selected cell', () => {
+  const storage = new Map();
+  const adapter = {
+    getItem: (key) => storage.has(key) ? storage.get(key) : null,
+    setItem: (key, value) => storage.set(key, value)
+  };
+  const first = new SpreadsheetModel({ storage: adapter, storageKey: 'test-state' });
+  first.setCell('C4', '=SUM(A1:A2)');
+  first.selected = { row: 3, col: 2 };
+  first.save();
+  const restored = new SpreadsheetModel({ storage: adapter, storageKey: 'test-state' });
+  assert.strictEqual(restored.getRaw('C4'), '=SUM(A1:A2)');
+  assert.deepStrictEqual(restored.selected, { row: 3, col: 2 });
 });

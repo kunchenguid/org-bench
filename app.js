@@ -83,6 +83,7 @@
 
   function parseClipboard(text) { return text.split(/\r?\n/).filter((line, i, a) => line || i < a.length - 1).map((line) => line.split('\t')); }
   function copyText() { const n = norm(); return sheet.copyRange(n.r1, n.c1, n.r2, n.c2).map((row) => row.join('\t')).join('\n'); }
+  function selectionSize() { const n = norm(); return { rows: n.r2 - n.r1 + 1, cols: n.c2 - n.c1 + 1 }; }
 
   grid.addEventListener('mousedown', (event) => {
     const cell = event.target.closest('.cell');
@@ -123,9 +124,17 @@
     if (internalClipboard) { block = internalClipboard.block; source = internalClipboard; }
     else block = parseClipboard(event.clipboardData.getData('text/plain'));
     if (!block || !block.length) return;
-    if (internalClipboard && internalClipboard.cut) { sheet.clearRange(source.row, source.col, source.row + block.length - 1, source.col + block[0].length - 1); internalClipboard.cut = false; }
-    sheet.pasteRange(active.row, active.col, block, source);
-    range = { r1: active.row, c1: active.col, r2: active.row + block.length - 1, c2: active.col + block[0].length - 1 };
+    const target = selectionSize();
+    const targetSize = target.rows === 1 && target.cols === 1 ? null : target;
+    if (internalClipboard && internalClipboard.cut) {
+      sheet.moveRange(source.row, source.col, source.row + block.length - 1, source.col + block[0].length - 1, active.row, active.col);
+      internalClipboard = null;
+    } else {
+      sheet.pasteRange(active.row, active.col, block, source, targetSize);
+    }
+    const rows = targetSize ? targetSize.rows : block.length;
+    const cols = targetSize ? targetSize.cols : block[0].length;
+    range = { r1: active.row, c1: active.col, r2: active.row + rows - 1, c2: active.col + cols - 1 };
     render();
   });
 
