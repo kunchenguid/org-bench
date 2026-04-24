@@ -239,6 +239,31 @@ test('undo and redo restore structural edits as one action', () => {
   assert.equal(raw(sheet, 'A2'), '7');
 });
 
+test('undo and redo restore a single cell edit from the UI row-col path', () => {
+  const sheet = new AppSpreadsheetModel({ rows: 10, cols: 5 });
+
+  sheet.setCell(0, 0, 'alpha');
+  assert.equal(raw(sheet, 'A1'), 'alpha');
+
+  assert.equal(sheet.undo(), true);
+  assert.equal(raw(sheet, 'A1'), '');
+
+  assert.equal(sheet.redo(), true);
+  assert.equal(raw(sheet, 'A1'), 'alpha');
+});
+
+test('undo retains the latest 50 single cell edit actions', () => {
+  const sheet = new AppSpreadsheetModel({ rows: 10, cols: 5 });
+
+  for (let i = 1; i <= 55; i++) sheet.setCell(0, 0, String(i));
+
+  let undoCount = 0;
+  while (sheet.undo()) undoCount += 1;
+
+  assert.equal(undoCount, 50);
+  assert.equal(raw(sheet, 'A1'), '5');
+});
+
 test('circular references render an error marker', () => {
   const sheet = new SpreadsheetModel(10, 5);
 
