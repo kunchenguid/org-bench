@@ -4,7 +4,11 @@
   const DEFAULT_ROWS = 100;
   const DEFAULT_COLS = 26;
   const MAX_HISTORY = 50;
-  const NS = (window.SPREADSHEET_STORAGE_NAMESPACE || window.__STORAGE_NAMESPACE__ || 'facebook-sheet') + ':';
+
+  function storageNamespace(opts) {
+    const raw = opts.namespace || window.SPREADSHEET_STORAGE_NAMESPACE || window.__SPREADSHEET_STORAGE_NAMESPACE__ || window.__STORAGE_NAMESPACE__ || window.__RUN_STORAGE_NAMESPACE__ || window.__ORG_BENCH_STORAGE_NAMESPACE__ || 'facebook-sheet';
+    return String(raw).replace(/:+$/, '') + ':';
+  }
 
   function colName(col) {
     let n = col + 1;
@@ -36,7 +40,7 @@
       opts = opts || {};
       this.rows = opts.rows || DEFAULT_ROWS;
       this.cols = opts.cols || DEFAULT_COLS;
-      this.storageKey = NS + (opts.storageKey || 'state');
+      this.storageKey = storageNamespace(opts) + (opts.storageKey || 'state');
       this.cells = new Map();
       this.cache = new Map();
       this.errors = new Map();
