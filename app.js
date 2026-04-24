@@ -169,6 +169,22 @@
     else delete this.cells[key];
   };
 
+  SpreadsheetEngine.prototype.applyRawChanges = function (updates) {
+    var byKey = {};
+    var self = this;
+    updates.forEach(function (item) {
+      if (item.row < 0 || item.col < 0 || item.row >= self.rows || item.col >= self.cols) return;
+      var itemKey = self.key(item.row, item.col);
+      if (!byKey[itemKey]) byKey[itemKey] = { row: item.row, col: item.col, oldRaw: self.getRaw(item.row, item.col), newRaw: '' };
+      byKey[itemKey].newRaw = String(item.raw == null ? '' : item.raw);
+    });
+    return Object.keys(byKey).map(function (itemKey) {
+      var change = byKey[itemKey];
+      self.setCell(change.row, change.col, change.newRaw);
+      return change;
+    }).filter(function (change) { return change.oldRaw !== change.newRaw; });
+  };
+
   SpreadsheetEngine.prototype.getRaw = function (row, col) {
     return this.cells[this.key(row, col)] || '';
   };
@@ -241,6 +257,52 @@
 
   SpreadsheetEngine.prototype.deleteCols = function (atCol, count) {
     this.shiftStructure('col', atCol, count || 1, 'delete');
+  };
+
+  SpreadsheetEngine.prototype.copyRange = function (range) {
+    var data = [];
+    var r1 = Math.min(range.r1, range.r2);
+    var r2 = Math.max(range.r1, range.r2);
+    var c1 = Math.min(range.c1, range.c2);
+    var c2 = Math.max(range.c1, range.c2);
+    for (var row = r1; row <= r2; row += 1) {
+      var line = [];
+      for (var col = c1; col <= c2; col += 1) line.push(this.getRaw(row, col));
+      data.push(line);
+    }
+    return data;
+  };
+
+  SpreadsheetEngine.prototype.pasteBlock = function (block, startRow, startCol, sourceRange, targetSize) {
+    var rows = targetSize && targetSize.rows ? targetSize.rows : block.length;
+    var cols = targetSize && targetSize.cols ? targetSize.cols : block[0].length;
+    var updates = [];
+    for (var r = 0; r < rows; r += 1) {
+      var sourceRow = block[r % block.length];
+      for (var c = 0; c < cols; c += 1) {
+        var raw = sourceRow[c % sourceRow.length];
+        var fromRow = sourceRange ? sourceRange.r1 + (r % block.length) : startRow + r;
+        var fromCol = sourceRange ? sourceRange.c1 + (c % sourceRow.length) : startCol + c;
+        updates.push({ row: startRow + r, col: startCol + c, raw: adjustFormulaReferences(raw, fromRow, fromCol, startRow + r, startCol + c) });
+      }
+    }
+    return this.applyRawChanges(updates);
+  };
+
+  SpreadsheetEngine.prototype.moveRange = function (range, startRow, startCol) {
+    var source = this.copyRange(range);
+    var r1 = Math.min(range.r1, range.r2);
+    var c1 = Math.min(range.c1, range.c2);
+    var updates = [];
+    for (var r = 0; r < source.length; r += 1) {
+      for (var c = 0; c < source[r].length; c += 1) updates.push({ row: r1 + r, col: c1 + c, raw: '' });
+    }
+    for (var pr = 0; pr < source.length; pr += 1) {
+      for (var pc = 0; pc < source[pr].length; pc += 1) {
+        updates.push({ row: startRow + pr, col: startCol + pc, raw: adjustFormulaReferences(source[pr][pc], r1 + pr, c1 + pc, startRow + pr, startCol + pc) });
+      }
+    }
+    return this.applyRawChanges(updates);
   };
 
   SpreadsheetEngine.prototype.rangeValues = function (startRef, endRef, stack) {
@@ -353,14 +415,13 @@
     }
 
     function setMany(updates) {
-      var changes = [];
-      updates.forEach(function (item) {
-        var oldRaw = engine.getRaw(item.row, item.col);
-        if (oldRaw !== item.raw) {
-          changes.push({ row: item.row, col: item.col, oldRaw: oldRaw, newRaw: item.raw });
-          engine.setCell(item.row, item.col, item.raw);
-        }
-      });
+      var changes = engine.applyRawChanges(updates);
+      record(changes);
+      renderValues();
+      persist();
+    }
+
+    function recordEngineChanges(changes) {
       record(changes);
       renderValues();
       persist();
@@ -544,29 +605,28 @@
 
     function clipboardText() {
       var nr = normalizedRange();
-      var lines = [];
-      for (var row = nr.r1; row <= nr.r2; row += 1) {
-        var cells = [];
-        for (var col = nr.c1; col <= nr.c2; col += 1) cells.push(engine.getRaw(row, col));
-        lines.push(cells.join('\t'));
-      }
-      return lines.join('\n');
+      return engine.copyRange(nr).map(function (line) { return line.join('\t'); }).join('\n');
+    }
+
+    function parseClipboardText(text) {
+      var rows = text.replace(/\r/g, '').split('\n');
+      if (rows[rows.length - 1] === '') rows.pop();
+      return rows.map(function (line) { return line.split('\t'); });
     }
 
     function pasteText(text) {
-      var rows = text.replace(/\r/g, '').split('\n');
-      if (rows[rows.length - 1] === '') rows.pop();
-      var updates = [];
-      rows.forEach(function (line, rOffset) {
-        line.split('\t').forEach(function (raw, cOffset) {
-          var row = active.row + rOffset;
-          var col = active.col + cOffset;
-          var fromRow = internalClipboard ? internalClipboard.r1 + rOffset : row;
-          var fromCol = internalClipboard ? internalClipboard.c1 + cOffset : col;
-          if (row < ROWS && col < COLS) updates.push({ row: row, col: col, raw: adjustFormulaReferences(raw, fromRow, fromCol, row, col) });
-        });
-      });
-      setMany(updates);
+      var block = parseClipboardText(text);
+      if (!block.length) return;
+      var target = normalizedRange();
+      var targetRows = target.r2 - target.r1 + 1;
+      var targetCols = target.c2 - target.c1 + 1;
+      var targetSize = targetRows === 1 && targetCols === 1 ? null : { rows: targetRows, cols: targetCols };
+      if (internalClipboard && internalClipboard.cut) {
+        recordEngineChanges(engine.moveRange(internalClipboard.range, active.row, active.col));
+        internalClipboard = null;
+        return;
+      }
+      recordEngineChanges(engine.pasteBlock(block, active.row, active.col, internalClipboard && internalClipboard.range, targetSize));
     }
 
     buildGrid();
@@ -648,15 +708,14 @@
       }
       if (meta && event.key.toLowerCase() === 'c') {
         event.preventDefault();
-        internalClipboard = normalizedRange();
+        internalClipboard = { range: normalizedRange(), cut: false };
         navigator.clipboard && navigator.clipboard.writeText(clipboardText());
         return;
       }
       if (meta && event.key.toLowerCase() === 'x') {
         event.preventDefault();
-        internalClipboard = normalizedRange();
+        internalClipboard = { range: normalizedRange(), cut: true };
         navigator.clipboard && navigator.clipboard.writeText(clipboardText());
-        clearRange();
         return;
       }
       if (meta && event.key.toLowerCase() === 'v') {
@@ -687,6 +746,11 @@
       if (event.key === 'Escape') { event.preventDefault(); formulaInput.value = engine.getRaw(active.row, active.col); wrap.focus(); }
     });
     formulaInput.addEventListener('change', function () { if (!formulaInputCommitted) commitFormulaInput(); });
+    wrap.addEventListener('paste', function (event) {
+      if (document.activeElement === formulaInput) return;
+      event.preventDefault();
+      pasteText(event.clipboardData.getData('text/plain'));
+    });
 
     selectCell(active.row, active.col, false);
   }
