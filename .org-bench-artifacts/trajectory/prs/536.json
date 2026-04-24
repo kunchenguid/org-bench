@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "pr_number": 536,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/536",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Normalize storage namespace prefixes",
+  "body": "## Summary\n- Normalize storage namespace prefixes so injected or explicit namespaces ending in `:` do not write double-colon localStorage keys.\n- Add a browser test covering trailing-colon namespace inputs.\n\n## Verification\n- Opened tests.html with agent-browser and verified: All tests passed\n- Checked browser console errors for tests.html\n- Opened index.html with agent-browser and checked for console errors\n\nAuthor: Emma",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T01:24:13Z"
+    }
+  ],
+  "comments": []
+}

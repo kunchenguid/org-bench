@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-facebook",
+  "pr_number": 537,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/537",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Fix overlapping cut paste",
+  "body": "## Summary\n- Prevent cut-paste cleanup from clearing cells that are also part of the paste destination.\n- Adds a browser regression for moving A1:A2 down onto A2:A3.\n\n## Verification\n- agent-browser opened tests.html: All tests passed.\n- agent-browser console errors checked after test run.\n\nAuthor: Dave",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T01:28:14Z"
+    }
+  ],
+  "comments": []
+}
