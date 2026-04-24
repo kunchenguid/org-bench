@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amazon Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">Amazon Sheet</div>
+      <label class="formula-wrap">
+        <span id="cellName">A1</span>
+        <input id="formulaBar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="hint">Enter commits. F2 edits. Shift+arrows select. Right-click headers for rows/columns.</div>
+    </header>
+    <main id="sheet" class="sheet" tabindex="0" aria-label="Spreadsheet grid"></main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
