@@ -1,0 +1,45 @@
+{
+  "run_id": "gpt-5-5-google",
+  "pr_number": 595,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/595",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build initial spreadsheet app",
+  "body": "## Summary\n- Adds a file://-safe vanilla HTML/CSS/JS spreadsheet with 26 columns, 100 rows, visible formula bar, keyboard navigation, editing, range clearing, clipboard, undo/redo, persistence, and row/column controls.\n- Implements formula evaluation for arithmetic, comparison, concatenation, references, ranges, circular-reference errors, and required functions.\n- Adds browser-runnable tests covering formula evaluation, circular references, copied relative/absolute references, and row insertion reference preservation.\n\n## Verification\n- agent-browser opened tests.html: PASS\n- agent-browser opened index.html: PASS\n\nAuthor: Grace",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T05:03:54Z"
+    }
+  ],
+  "comments": [
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Grace:** Design doc for persistence and structural edits\n\nProblem statement\n- The spreadsheet must survive reloads with raw formulas intact, keep selected cell/range, and support row/column insert/delete without corrupting formulas.\n- Structural edits need clear user affordances and deterministic formula rewrites: references to moved data should keep pointing at that data, while references to deleted cells should surface #REF!.\n\nOptions considered\n- Storage shape: sparse map of non-empty cells vs dense 2D raw-value array. Sparse is smaller for empty sheets but adds row/column shifting complexity and more edge cases. Dense 2D is larger but simple and deterministic for the required 100x26 baseline. Chosen: dense raw-value array plus rows, cols, active selection, and range selection.\n- Namespace injection: fixed localStorage key vs injected prefix with fallback. Fixed key collides across benchmark runs. Injected prefix isolates runs; fallback keeps local manual use working. Chosen: prefix every persisted key with window.SPREADSHEET_STORAGE_NAMESPACE or window.__STORAGE_NAMESPACE__, falling back to a local dev namespace.\n- Structural model: stable row/column IDs vs physical array insertion/deletion. Stable IDs can preserve references more exactly over many edits but requires an indirection layer and visible header mapping. Physical arrays match spreadsheet mental model and keep DOM rendering simple. Chosen: physical 2D array edits with formula rewrites on every structural action.\n- Formula rewrite strategy: parse formulas into AST vs targeted reference-token rewrite. AST is more robust but higher implementation risk in vanilla JS for this milestone. Token rewrite is bounded and testable for A1/range refs, absolute markers, and #REF propagation. Chosen: targeted regex rewrite for references/range endpoints, plus evaluator support for #REF! markers.\n\nChosen approach\n- Persist {rows, cols, raw cells, active, selection} under one namespaced localStorage key.\n- Row/column toolbar buttons provide discoverable insert/delete controls tied to the active cell row/column.\n- Insert rewrites references at or after the inserted index forward, including range endpoints, so moved data remains referenced.\n- Delete rewrites references after the deleted index backward and turns references to deleted cells/endpoints into #REF!.\n- Structural edits are stored as one undoable history snapshot, matching the brief's user-action granularity.\n\nSuccess metrics\n- agent-browser opens index.html over file:// with no runtime crash and renders a 26 x 100 grid.\n- tests.html passes formula, copy-reference, circular-reference, persistence/namespace, and structural rewrite tests.\n- Matrix coverage includes insert/delete row above/inside/below referenced data, delete referenced row, insert/delete column left/inside/right of referenced data, delete referenced column, range references, mixed absolute/relative refs, formulas in moved cells, undo/redo of structural edits, and reload after structural edit.\n\nTest matrix to add/maintain\n- Insert row above referenced data: =A2 becomes =A3 and still displays moved value.\n- Insert row below referenced data: =A1 remains =A1.\n- Insert row inside range: SUM(A1:A2) becomes SUM(A1:A3).\n- Delete row above referenced data: =A2 becomes =A1.\n- Delete referenced row: =A2 becomes =#REF! and displays #REF!.\n- Insert column left of referenced data: =B1 becomes =C1.\n- Insert column right of referenced data: =A1 remains =A1.\n- Insert column inside range: SUM(A1:B1) becomes SUM(A1:C1).\n- Delete column left of referenced data: =B1 becomes =A1.\n- Delete referenced column: =B1 becomes =#REF! and displays #REF!.\n- Mixed absolute/relative copy: A1, $A1, A$1, $A$1 shift only relative components.\n- Formulas in moved cells: formula cell moves with row/column and its internal refs rewrite to preserve target data.\n- Undo/redo structural edit: one Cmd/Ctrl+Z restores pre-edit raw grid, redo reapplies.\n- Reload after structural edit: persisted raw formulas and active selection restore from namespaced storage.",
+      "ts": "2026-04-24T05:12:53Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "**Alice:** Same-round review response: declining merge for now because this overlaps the same first-artifact slot and PR #596 has broader Node plus browser verification evidence. Please rebase any unique improvements onto the selected baseline after Eric's merge decision.",
+      "ts": "2026-04-24T05:13:32Z"
+    },
+    {
+      "author": {
+        "agent_name": "kunchenguid",
+        "node_id": "unknown"
+      },
+      "body": "Declining merge because this PR is a stale duplicate baseline from before #596/#598/#599/#597/#602. Current main already contains the launchable spreadsheet plus newer fixes and tests; this PR adds overlapping app files and does not include the latest merged behavior. Please close it or replace with a narrow rebased PR if there is a specific missing delta.",
+      "ts": "2026-04-24T05:30:16Z"
+    }
+  ]
+}
