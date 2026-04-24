@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { SpreadsheetModel, adjustFormulaReferences } = require('../spreadsheet-core.js');
+const { SpreadsheetModel: AppSpreadsheetModel } = require('../spreadsheet.js');
 
 function set(sheet, ref, raw) {
   const match = /^([A-Z]+)(\d+)$/.exec(ref);
@@ -96,6 +97,58 @@ test('inserting a column preserves references to moved data', () => {
   assert.equal(raw(sheet, 'C1'), '11');
   assert.equal(raw(sheet, 'A2'), '=C1');
   assert.equal(display(sheet, 'A2'), '11');
+});
+
+test('deleting a referenced row renders #REF!', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'A2', '9');
+  set(sheet, 'B1', '=A2');
+  sheet.deleteRow(1);
+
+  assert.equal(raw(sheet, 'B1'), '=#REF!');
+  assert.equal(display(sheet, 'B1'), '#REF!');
+});
+
+test('deleting a referenced column renders #REF!', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'B1', '11');
+  set(sheet, 'A2', '=B1');
+  sheet.deleteCol(1);
+
+  assert.equal(raw(sheet, 'A2'), '=#REF!');
+  assert.equal(display(sheet, 'A2'), '#REF!');
+});
+
+test('structural edits update ranges and formulas in moved cells', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'A1', '1');
+  set(sheet, 'A2', '2');
+  set(sheet, 'B1', '=SUM(A1:A2)');
+  set(sheet, 'B2', '=A2');
+  sheet.insertRow(1);
+
+  assert.equal(raw(sheet, 'B1'), '=SUM(A1:A3)');
+  assert.equal(raw(sheet, 'B3'), '=A3');
+  assert.equal(display(sheet, 'B1'), '3');
+  assert.equal(display(sheet, 'B3'), '2');
+});
+
+test('undo and redo restore structural edits as one action', () => {
+  const sheet = new AppSpreadsheetModel({ rows: 10, cols: 5 });
+
+  set(sheet, 'A1', '7');
+  sheet.insertRow(1);
+  assert.equal(raw(sheet, 'A2'), '7');
+
+  assert.equal(sheet.undo(), true);
+  assert.equal(raw(sheet, 'A1'), '7');
+  assert.equal(raw(sheet, 'A2'), '');
+
+  assert.equal(sheet.redo(), true);
+  assert.equal(raw(sheet, 'A2'), '7');
 });
 
 test('circular references render an error marker', () => {
