@@ -68,11 +68,23 @@
         const formulaInput = root.querySelector('#formula-input');
         assert(formulaInput && formulaInput.getAttribute('aria-label'), 'formula bar has labeled input');
         assert(formulaInput.value === '', 'formula bar starts empty');
+        assert(root.querySelector('.hint').textContent.indexOf('Tab moves to formula bar') !== -1, 'keyboard escape path is documented');
 
         const columnMenu = root.querySelector('[data-command="column-menu"]');
         const rowMenu = root.querySelector('[data-command="row-menu"]');
         assert(columnMenu && columnMenu.getAttribute('aria-label').indexOf('Column A') !== -1, 'column header exposes command affordance');
         assert(rowMenu && rowMenu.getAttribute('aria-label').indexOf('Row 1') !== -1, 'row header exposes command affordance');
+
+        key(a1, 'Tab');
+        assert(document.activeElement === formulaInput, 'Tab moves focus from grid to formula bar');
+        key(formulaInput, 'Escape');
+        key(a1, 'C', { altKey: true, shiftKey: true });
+        assert(root.querySelector('[data-menu-action="insert-column-before"]') === document.activeElement, 'Alt+Shift+C opens selected column actions');
+        key(document.activeElement, 'Escape');
+        a1.focus();
+        key(a1, 'R', { altKey: true, shiftKey: true });
+        assert(root.querySelector('[data-menu-action="insert-row-before"]') === document.activeElement, 'Alt+Shift+R opens selected row actions');
+        key(document.activeElement, 'Escape');
 
         a1.focus();
         key(a1, '7');
