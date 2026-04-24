@@ -1,0 +1,25 @@
+:root { color-scheme: light; --line: #d9dee7; --head: #f3f5f8; --sel: #ff9900; --range: rgba(255,153,0,.16); --text: #17202a; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 13px/1.35 Arial, Helvetica, sans-serif; color: var(--text); background: #f8fafc; }
+.app { height: 100vh; display: flex; flex-direction: column; }
+.toolbar { min-height: 48px; display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #232f3e; color: white; box-shadow: 0 1px 5px rgba(0,0,0,.2); }
+.brand { font-weight: 700; letter-spacing: .2px; margin-right: 6px; white-space: nowrap; }
+.formula-label { font-weight: 700; color: #ff9900; }
+.name-box { width: 64px; text-align: center; border: 0; border-radius: 4px; padding: 8px; background: #eef2f7; }
+.formula { flex: 1; min-width: 120px; border: 0; border-radius: 4px; padding: 8px 10px; font: 14px Menlo, Consolas, monospace; }
+button { border: 0; border-radius: 4px; padding: 8px 10px; background: #ff9900; color: #1b2430; font-weight: 700; cursor: pointer; white-space: nowrap; }
+button:hover { background: #ffad33; }
+.grid { flex: 1; overflow: auto; display: grid; grid-template-columns: 48px repeat(26, 104px); grid-auto-rows: 28px; border-top: 1px solid var(--line); background: white; outline: none; }
+.cell, .head, .corner { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; padding: 5px 7px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.head, .corner { position: sticky; z-index: 2; background: var(--head); font-weight: 700; color: #4b5563; user-select: none; text-align: center; }
+.col-head { top: 0; }
+.row-head { left: 0; z-index: 3; }
+.corner { top: 0; left: 0; z-index: 4; }
+.cell { background: white; cursor: cell; text-align: left; }
+.cell.number { text-align: right; font-variant-numeric: tabular-nums; }
+.cell.error { color: #b42318; font-weight: 700; }
+.cell.in-range { background: var(--range); }
+.cell.active { outline: 2px solid var(--sel); outline-offset: -2px; background: #fffaf0; z-index: 1; }
+.cell.editing { padding: 0; }
+.cell-input { width: 100%; height: 100%; border: 2px solid var(--sel); padding: 3px 5px; font: inherit; outline: none; }
+@media (max-width: 760px) { .toolbar { flex-wrap: wrap; } button { padding: 6px 8px; } .grid { grid-template-columns: 42px repeat(26, 92px); } }
