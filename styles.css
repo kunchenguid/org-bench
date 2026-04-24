@@ -1,0 +1,63 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --grid: #d8dee9;
+  --header: #eef3fa;
+  --text: #172033;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --range: rgba(37, 99, 235, .14);
+  --danger: #b42318;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.35 "Segoe UI", Arial, sans-serif;
+}
+.topbar {
+  display: grid;
+  grid-template-columns: 150px 72px minmax(220px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #cbd5e1;
+  background: linear-gradient(#ffffff, #f8fafc);
+}
+.brand { font-weight: 700; color: #0f4aa0; }
+.name-box, .formula-bar, button {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  min-height: 32px;
+}
+.name-box { display: grid; place-items: center; font-weight: 600; }
+.formula-bar { width: 100%; padding: 0 10px; font: inherit; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+button { padding: 0 10px; color: #1e293b; cursor: pointer; }
+button:hover { border-color: var(--accent); color: var(--accent); }
+.sheet-wrap { height: calc(100vh - 54px); overflow: auto; outline: none; background: var(--panel); }
+.grid { border-collapse: collapse; table-layout: fixed; user-select: none; }
+.grid th, .grid td { border: 1px solid var(--grid); min-width: 96px; width: 96px; height: 26px; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid th { position: sticky; z-index: 2; background: var(--header); color: var(--muted); font-weight: 600; text-align: center; }
+.grid thead th { top: 0; }
+.grid .corner { left: 0; min-width: 48px; width: 48px; z-index: 4; }
+.grid tbody th { left: 0; min-width: 48px; width: 48px; z-index: 3; }
+.grid td { background: #fff; cursor: cell; text-align: right; }
+.grid td.text { text-align: left; }
+.grid td.error { color: var(--danger); font-weight: 600; }
+.grid td.in-range { background: var(--range); }
+.grid td.active { outline: 2px solid var(--accent); outline-offset: -2px; background: #fff; }
+.grid td.editing { padding: 0; outline: 2px solid #0f4aa0; }
+.cell-editor { width: 100%; height: 100%; border: 0; padding: 0 6px; font: inherit; outline: none; background: #fff; }
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: 1fr 64px; }
+  .brand { display: none; }
+  .formula-bar { grid-column: span 2; }
+  .actions { grid-column: span 2; justify-content: flex-start; }
+}
