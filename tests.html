@@ -37,6 +37,14 @@
       assertEqual(sheet.adjustFormulaForMove('=A1+$A1+A$1+$A$1', 0, 1, 2, 2), '=B3+$A3+B$1+$A$1', 'adjusted formula');
     });
 
+    test('IF only evaluates the selected branch', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-if' });
+      sheet.setRaw(0, 0, '=IF(FALSE,1/0,7)');
+      sheet.setRaw(1, 0, '=IF(TRUE,9,1/0)');
+      assertEqual(sheet.getDisplay(0, 0), '7', 'false branch');
+      assertEqual(sheet.getDisplay(1, 0), '9', 'true branch');
+    });
+
     test('copies formula blocks relative to the copied source', () => {
       const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-d' });
       const pasted = sheet.adjustFormulaForMove('=A1', 0, 0, 1, 1);
