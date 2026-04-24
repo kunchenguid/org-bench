@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="shell">
+    <header class="topbar">
+      <div class="brand">Sheet</div>
+      <div class="cell-name" id="cellName">A1</div>
+      <label class="formula-wrap" aria-label="Formula bar">
+        <span>fx</span>
+        <input id="formulaBar" autocomplete="off" spellcheck="false" aria-label="Formula bar">
+      </label>
+      <div class="actions" aria-label="Row and column actions">
+        <button id="insertRow" title="Insert row above selected cell">Insert Row</button>
+        <button id="deleteRow" title="Delete selected row">Delete Row</button>
+        <button id="insertCol" title="Insert column left of selected cell">Insert Col</button>
+        <button id="deleteCol" title="Delete selected column">Delete Col</button>
+      </div>
+    </header>
+    <main class="grid-shell" id="gridShell" tabindex="0" aria-label="Spreadsheet grid"></main>
+    <div class="hint">Enter/F2 edit - Tab/Enter commit - Shift+arrows select range - Cmd/Ctrl+C/V/Z - Delete clears selection</div>
+  </div>
+  <script src="spreadsheet.js"></script>
+</body>
+</html>

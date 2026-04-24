@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Tests</title>
+</head>
+<body>
+  <pre id="results"></pre>
+  <script src="spreadsheet.js"></script>
+  <script>
+    const results = document.getElementById('results');
+    const tests = [];
+    function test(name, fn) { tests.push({ name, fn }); }
+    function assertEqual(actual, expected, message) {
+      if (actual !== expected) throw new Error(`${message || 'assertEqual'}: expected ${expected}, got ${actual}`);
+    }
+    function assertDeepEqual(actual, expected, message) {
+      const a = JSON.stringify(actual);
+      const e = JSON.stringify(expected);
+      if (a !== e) throw new Error(`${message || 'assertDeepEqual'}: expected ${e}, got ${a}`);
+    }
+
+    test('evaluates arithmetic, ranges, booleans, strings, and references', () => {
+      const sheet = SpreadsheetCore.createSheet(10, 10);
+      SpreadsheetCore.setCell(sheet, 0, 0, '2');
+      SpreadsheetCore.setCell(sheet, 1, 0, '3');
+      SpreadsheetCore.setCell(sheet, 2, 0, '=SUM(A1:A2)*2');
+      SpreadsheetCore.setCell(sheet, 3, 0, '=IF(A3>=10,"ok","bad")');
+      SpreadsheetCore.recalculate(sheet);
+      assertEqual(SpreadsheetCore.displayValue(sheet, 2, 0), '10', 'SUM arithmetic');
+      assertEqual(SpreadsheetCore.displayValue(sheet, 3, 0), 'ok', 'IF comparison');
+    });
+
+    test('detects circular references without crashing', () => {
+      const sheet = SpreadsheetCore.createSheet(5, 5);
+      SpreadsheetCore.setCell(sheet, 0, 0, '=B1');
+      SpreadsheetCore.setCell(sheet, 0, 1, '=A1');
+      SpreadsheetCore.recalculate(sheet);
+      assertEqual(SpreadsheetCore.displayValue(sheet, 0, 0), '#CIRC!', 'A1 circular marker');
+      assertEqual(SpreadsheetCore.displayValue(sheet, 0, 1), '#CIRC!', 'B1 circular marker');
+    });
+
+    test('adjusts relative and absolute references when copying formulas', () => {
+      const adjusted = SpreadsheetCore.adjustFormulaReferences('=A1+$A1+A$1+$A$1+SUM(B1:B2)', 0, 0, 2, 3);
+      assertEqual(adjusted, '=D3+$A3+D$1+$A$1+SUM(E3:E4)', 'reference adjustment');
+    });
+
+    test('inserting a row preserves references to existing data', () => {
+      const sheet = SpreadsheetCore.createSheet(10, 10);
+      SpreadsheetCore.setCell(sheet, 0, 0, '5');
+      SpreadsheetCore.setCell(sheet, 1, 0, '=A1');
+      SpreadsheetCore.insertRow(sheet, 0);
+      SpreadsheetCore.recalculate(sheet);
+      assertEqual(SpreadsheetCore.rawValue(sheet, 2, 0), '=A2', 'formula shifted to moved data');
+      assertEqual(SpreadsheetCore.displayValue(sheet, 2, 0), '5', 'formula still resolves');
+    });
+
+    (async function run() {
+      let passed = 0;
+      const lines = [];
+      for (const item of tests) {
+        try {
+          await item.fn();
+          passed += 1;
+          lines.push(`PASS ${item.name}`);
+        } catch (error) {
+          lines.push(`FAIL ${item.name}: ${error.message}`);
+        }
+      }
+      lines.push(`${passed}/${tests.length} passed`);
+      results.textContent = lines.join('\n');
+      document.title = passed === tests.length ? 'PASS' : 'FAIL';
+      if (passed !== tests.length) throw new Error(results.textContent);
+    })();
+  </script>
+</body>
+</html>
