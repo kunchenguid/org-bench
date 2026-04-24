@@ -40,6 +40,10 @@
     return refToA1(row, col, false, false);
   }
 
+  function refInBounds(engine, ref) {
+    return ref.row >= 0 && ref.row < engine.rows && ref.col >= 0 && ref.col < engine.cols;
+  }
+
   function normalizeValue(value) {
     if (value === true) return 'TRUE';
     if (value === false) return 'FALSE';
@@ -201,7 +205,10 @@
         if (token.value === 'FALSE') return false;
         if (this.peek('(')) return this.parseFunction(token.value);
         const ref = parseRef(token.value);
-        if (ref) return this.engine.evaluateCell(coordToA1(ref.row, ref.col), this.visiting);
+        if (ref) {
+          if (!refInBounds(this.engine, ref)) throw new Error('#REF!');
+          return this.engine.evaluateCell(coordToA1(ref.row, ref.col), this.visiting);
+        }
       }
       throw new Error('#ERR!');
     }
@@ -228,6 +235,7 @@
         const start = parseRef(first.value);
         const end = parseRef(third.value);
         if (start && end) {
+          if (!refInBounds(this.engine, start) || !refInBounds(this.engine, end)) throw new Error('#REF!');
           this.pos += 3;
           return this.engine.getRangeValues(start, end, this.visiting);
         }

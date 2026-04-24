@@ -53,3 +53,55 @@ test('detects circular references without crashing', () => {
   assert.strictEqual(sheet.getDisplay('A1'), '#CIRC!');
   assert.strictEqual(sheet.getDisplay('A2'), '#CIRC!');
 });
+
+test('evaluates comparisons, string concatenation, and boolean functions', () => {
+  const sheet = makeEngine();
+  sheet.setCell('A1', '5');
+  sheet.setCell('A2', 'text');
+  sheet.setCell('B1', '=A1>=5');
+  sheet.setCell('B2', '=A2<>"other"');
+  sheet.setCell('B3', '="Total: "&A1&" "&B1');
+  sheet.setCell('B4', '=AND(B1,B2,NOT(FALSE))');
+  sheet.setCell('B5', '=OR(FALSE,A1<3,A2="text")');
+
+  assert.strictEqual(sheet.getDisplay('B1'), 'TRUE');
+  assert.strictEqual(sheet.getDisplay('B2'), 'TRUE');
+  assert.strictEqual(sheet.getDisplay('B3'), 'Total: 5 TRUE');
+  assert.strictEqual(sheet.getDisplay('B4'), 'TRUE');
+  assert.strictEqual(sheet.getDisplay('B5'), 'TRUE');
+});
+
+test('returns clear errors for bad syntax, unknown functions, and divide by zero', () => {
+  const sheet = makeEngine();
+  sheet.setCell('A1', '=1+');
+  sheet.setCell('A2', '=MISSING(1)');
+  sheet.setCell('A3', '=10/0');
+
+  assert.strictEqual(sheet.getDisplay('A1'), '#ERR!');
+  assert.strictEqual(sheet.getDisplay('A2'), '#NAME?');
+  assert.strictEqual(sheet.getDisplay('A3'), '#DIV/0!');
+});
+
+test('propagates errors through boolean functions', () => {
+  const sheet = makeEngine();
+  sheet.setCell('A1', '=AND(TRUE,1/0)');
+  sheet.setCell('A2', '=OR(FALSE,UNKNOWN())');
+  sheet.setCell('A3', '=NOT(1/0)');
+
+  assert.strictEqual(sheet.getDisplay('A1'), '#DIV/0!');
+  assert.strictEqual(sheet.getDisplay('A2'), '#NAME?');
+  assert.strictEqual(sheet.getDisplay('A3'), '#DIV/0!');
+});
+
+test('returns ref errors for out-of-bounds references and ranges', () => {
+  const sheet = makeEngine();
+  sheet.setCell('A1', '=Z100');
+  sheet.setCell('A2', '=AA1');
+  sheet.setCell('A3', '=A101');
+  sheet.setCell('A4', '=SUM(Y99:AA101)');
+
+  assert.strictEqual(sheet.getDisplay('A1'), '');
+  assert.strictEqual(sheet.getDisplay('A2'), '#REF!');
+  assert.strictEqual(sheet.getDisplay('A3'), '#REF!');
+  assert.strictEqual(sheet.getDisplay('A4'), '#REF!');
+});
