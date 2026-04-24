@@ -1,67 +1,48 @@
 :root {
-  color-scheme: light;
   --bg: #f5f7fb;
   --panel: #ffffff;
-  --grid: #d9dee8;
-  --header: #eef2f8;
+  --grid: #dfe5ee;
+  --header: #edf1f7;
   --text: #1f2937;
-  --muted: #667085;
-  --blue: #1877f2;
-  --blue-soft: rgba(24, 119, 242, .13);
-  --danger: #b42318;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --range: rgba(37, 99, 235, .13);
+  --range-border: rgba(37, 99, 235, .32);
+  --error: #b91c1c;
+  --error-bg: #fff1f2;
 }
-
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 13px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-}
-
-.topbar {
-  display: grid;
-  grid-template-columns: auto minmax(260px, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 12px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--grid);
-  box-shadow: 0 1px 6px rgba(16, 24, 40, .06);
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.brand { font-weight: 750; letter-spacing: -.02em; font-size: 16px; }
-.formula-wrap { display: flex; min-width: 0; border: 1px solid var(--grid); border-radius: 8px; overflow: hidden; background: white; }
-.name-box { width: 64px; padding: 8px 10px; border-right: 1px solid var(--grid); color: var(--muted); font-variant-numeric: tabular-nums; }
-#formula { flex: 1; border: 0; outline: 0; padding: 8px 10px; font: inherit; min-width: 0; }
-.tools { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-button { border: 1px solid var(--grid); background: #fff; color: var(--text); border-radius: 7px; padding: 7px 9px; cursor: pointer; font: inherit; }
-button:hover { border-color: var(--blue); color: var(--blue); }
-
-.sheet-wrap { overflow: auto; padding: 12px; }
-table { border-collapse: separate; border-spacing: 0; background: white; box-shadow: 0 8px 24px rgba(16, 24, 40, .08); }
-th, td { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); min-width: 96px; height: 28px; padding: 0 8px; }
-th { position: sticky; background: var(--header); color: var(--muted); font-weight: 650; text-align: center; z-index: 2; user-select: none; }
-thead th { top: 0; }
-tbody th { left: 0; min-width: 48px; width: 48px; font-variant-numeric: tabular-nums; }
-thead th:first-child { left: 0; z-index: 3; min-width: 48px; width: 48px; }
-td { cursor: cell; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: white; text-align: left; }
-td.number { text-align: right; font-variant-numeric: tabular-nums; }
-td.error { color: var(--danger); font-weight: 650; }
-td.in-range { background: var(--blue-soft); }
-td.active { outline: 2px solid var(--blue); outline-offset: -2px; background: #fff; }
-th.header-active { background: #dceaff; color: #0b5bd3; }
-.cell-editor { width: 100%; height: 100%; border: 0; outline: 0; padding: 0; font: inherit; background: white; }
-.hint { padding: 8px 12px; color: var(--muted); background: var(--panel); border-top: 1px solid var(--grid); }
-
-@media (max-width: 760px) {
-  .topbar { grid-template-columns: 1fr; }
-  .tools { justify-content: flex-start; }
-  th, td { min-width: 82px; }
+body { margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font: 13px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.app { height: 100vh; display: flex; flex-direction: column; }
+.toolbar { position: sticky; top: 0; z-index: 10; min-height: 48px; display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: linear-gradient(#fff, #f8fafc); border-bottom: 1px solid var(--grid); box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+.brand { font-weight: 750; font-size: 16px; margin-right: 4px; }
+.name-box { width: 62px; padding: 6px 8px; border: 1px solid var(--grid); border-radius: 7px; background: #f8fafc; text-align: center; font-weight: 650; }
+.formula-bar { flex: 1; min-width: 140px; height: 32px; border: 1px solid var(--grid); border-radius: 7px; padding: 0 10px; font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+button { height: 32px; border: 1px solid var(--grid); background: #f8fafc; border-radius: 7px; padding: 0 10px; color: var(--text); cursor: pointer; }
+button:hover { border-color: #b8c4d6; background: #eef4ff; }
+.sheet-wrap { flex: 1; overflow: auto; outline: none; background: var(--panel); overscroll-behavior: contain; }
+.sheet-wrap:focus { box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .08); }
+.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 2440px; }
+.grid th, .grid td { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); height: 28px; padding: 0 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid th { position: sticky; top: 0; z-index: 2; background: var(--header); color: var(--muted); font-weight: 650; text-align: center; user-select: none; }
+.grid .corner { left: 0; z-index: 4; width: 48px; }
+.grid .row-head { position: sticky; left: 0; top: auto; z-index: 1; width: 48px; background: var(--header); color: var(--muted); text-align: right; padding-right: 8px; user-select: none; box-shadow: 1px 0 0 var(--grid); }
+.grid .col-head { width: 92px; box-shadow: 0 1px 0 var(--grid); }
+.grid .row-head.selected, .grid .col-head.selected { background: #dbeafe; color: #1e3a8a; }
+.grid td { width: 92px; background: #fff; cursor: cell; vertical-align: middle; }
+.grid td.number { text-align: right; font-variant-numeric: tabular-nums; }
+.grid td.error { color: var(--error); background: var(--error-bg); font-weight: 650; }
+.grid td.range { background: var(--range); box-shadow: inset 0 0 0 1px var(--range-border); }
+.grid td.active { position: relative; outline: 2px solid var(--accent-strong); outline-offset: -2px; background: #fff; z-index: 3; box-shadow: inset 0 0 0 1px #fff, 0 0 0 1px rgba(37, 99, 235, .24); }
+.grid td.editing { padding: 0; outline: 2px solid var(--accent); outline-offset: -2px; }
+.cell-editor { width: 100%; height: 100%; border: 0; padding: 0 7px; font: inherit; outline: none; background: #fff; }
+@media (max-width: 720px) {
+  .toolbar { flex-wrap: wrap; height: auto; }
+  .brand { width: 100%; }
+  .formula-bar { order: 3; flex-basis: 100%; }
+  button { padding: 0 8px; }
+  .grid { min-width: 1970px; }
+  .grid .col-head, .grid td { width: 74px; }
 }

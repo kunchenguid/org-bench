@@ -1,32 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>QuickSheet</title>
+  <title>Sheet</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">QuickSheet</div>
-    <div class="formula-wrap">
-      <span id="name-box" class="name-box">A1</span>
-      <input id="formula" aria-label="Formula bar" autocomplete="off" spellcheck="false" placeholder="Select a cell and type a value or =SUM(A1:A5)">
-    </div>
-    <div class="tools" aria-label="Spreadsheet controls">
-      <button data-action="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
-      <button data-action="redo" title="Redo (Ctrl/Cmd+Y)">Redo</button>
-      <button data-action="insert-row-above">Row above</button>
-      <button data-action="insert-row-below">Row below</button>
-      <button data-action="delete-row">Delete row</button>
-      <button data-action="insert-col-left">Col left</button>
-      <button data-action="insert-col-right">Col right</button>
-      <button data-action="delete-col">Delete col</button>
-    </div>
-  </header>
-  <main id="sheet-wrap" class="sheet-wrap" aria-label="Spreadsheet grid"></main>
-  <div id="hint" class="hint">Tip: right-click row or column headers for insert/delete. Shift+arrows extend selection. Copy/paste formulas shifts relative references.</div>
-  <script src="spreadsheet-core.js"></script>
+  <div class="app">
+    <header class="toolbar">
+      <div class="brand">Sheet</div>
+      <div id="nameBox" class="name-box">A1</div>
+      <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <button id="insertRow" title="Insert row above selected cell">+ Row</button>
+      <button id="deleteRow" title="Delete selected row">- Row</button>
+      <button id="insertCol" title="Insert column left of selected cell">+ Col</button>
+      <button id="deleteCol" title="Delete selected column">- Col</button>
+    </header>
+    <main id="sheetWrap" class="sheet-wrap" tabindex="0" aria-label="Spreadsheet grid">
+      <table id="grid" class="grid"></table>
+    </main>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
