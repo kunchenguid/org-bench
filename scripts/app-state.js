@@ -227,7 +227,7 @@
     };
   }
 
-  window.Spreadsheet = {
+  window.App = {
     constants: {
       rows: DEFAULT_ROWS,
       columns: DEFAULT_COLUMNS,
