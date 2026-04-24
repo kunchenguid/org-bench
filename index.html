@@ -3,17 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sheet</title>
+  <title>Amazon Sheet</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="toolbar">
-    <div class="brand">Sheet</div>
-    <div id="nameBox" class="name-box">A1</div>
-    <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off">
-    <div class="hint">Enter/F2 edit · Shift+arrows range · Ctrl/Cmd+C/V/Z</div>
-  </header>
-  <main id="sheet" class="sheet" tabindex="0" aria-label="Spreadsheet grid"></main>
+  <main class="app">
+    <header class="toolbar">
+      <strong class="brand">Amazon Sheet</strong>
+      <label for="formula">fx</label>
+      <input id="nameBox" class="name-box" value="A1" readonly>
+      <input id="formula" class="formula" autocomplete="off" spellcheck="false" aria-label="Formula bar">
+      <button id="insertRow">Insert row above</button>
+      <button id="insertCol">Insert column left</button>
+      <button id="deleteRow">Delete row</button>
+      <button id="deleteCol">Delete column</button>
+    </header>
+    <section id="grid" class="grid" aria-label="Spreadsheet grid"></section>
+  </main>
+  <script src="spreadsheet-core.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
