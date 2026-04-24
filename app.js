@@ -20,6 +20,11 @@
     return columnName(col) + String(row + 1);
   }
 
+  function pointFromCellName(name) {
+    const parsed = window.SpreadsheetCore.parseAddress(name);
+    return { row: parsed.row - 1, col: parsed.col - 1 };
+  }
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -47,12 +52,148 @@
     };
   }
 
+  function createCoreSheetAdapter(options) {
+    const coreApi = window.SpreadsheetCore;
+    const actionsApi = window.SpreadsheetActions;
+    const core = new coreApi.SpreadsheetCore({ rows: options.rows, cols: options.cols });
+    const sheet = {
+      rows: core.rows,
+      cols: core.cols,
+      active: { row: 0, col: 0 },
+      getCell(row, col) {
+        return core.getRawCell(cellName(row, col));
+      },
+      setCell(row, col, value) {
+        core.setCell(cellName(row, col), value);
+      },
+      clearCell(row, col) {
+        core.setCell(cellName(row, col), '');
+      },
+      snapshot() {
+        const snapshot = {};
+        core.cells.forEach(function (raw, address) {
+          const point = pointFromCellName(address);
+          snapshot[point.row + ',' + point.col] = raw;
+        });
+        return snapshot;
+      },
+      load(snapshot) {
+        core.cells.clear();
+        this.resize(snapshot.rows || this.rows, snapshot.cols || this.cols);
+        Object.keys(snapshot.cells || {}).forEach(function (key) {
+          const parts = key.split(',').map(Number);
+          core.setCell(cellName(parts[0], parts[1]), snapshot.cells[key]);
+        });
+        this.active = snapshot.active || { row: 0, col: 0 };
+      },
+      resize(rows, cols) {
+        this.rows = rows;
+        this.cols = cols;
+        core.rows = rows;
+        core.cols = cols;
+      },
+      setActive(row, col) {
+        this.active = { row, col };
+      }
+    };
+
+    const actions = actionsApi.createSpreadsheetActions({
+      sheet,
+      namespace: options.namespace || options.storageKey,
+      storage: options.storage,
+      shiftFormulaReferences(formula, source, destination) {
+        return coreApi.adjustFormulaForMove(formula, cellName(source.row, source.col), cellName(destination.row, destination.col));
+      },
+      transformFormulaForStructureChange(formula, change) {
+        const index = change.index + 1;
+        if (change.type === 'insert-row') return coreApi.adjustFormulaForRowInsert(formula, index, change.count);
+        if (change.type === 'delete-row') return coreApi.adjustFormulaForRowDelete(formula, index, change.count);
+        if (change.type === 'insert-col') return coreApi.adjustFormulaForColumnInsert(formula, index, change.count);
+        if (change.type === 'delete-col') return coreApi.adjustFormulaForColumnDelete(formula, index, change.count);
+        return formula;
+      }
+    });
+
+    const adapter = {
+      actions,
+      getRaw(name) {
+        return core.getRawCell(name);
+      },
+      setRaw(name, value) {
+        const point = pointFromCellName(name);
+        actions.setCell(point.row, point.col, value);
+        actions.save();
+      },
+      getDisplay(name) {
+        return core.getDisplayValue(name);
+      },
+      getActive() {
+        return sheet.active || { row: 0, col: 0 };
+      },
+      setActive(row, col) {
+        sheet.setActive(row, col);
+        actions.save();
+      },
+      getRangeValues(range) {
+        return actions.serializeRange(range);
+      },
+      clearRange(range) {
+        actions.clearRange(range);
+        actions.save();
+      },
+      copy(range, event) {
+        return actions.copy(range, event);
+      },
+      cut(range, event) {
+        const result = actions.cut(range, event);
+        actions.save();
+        return result;
+      },
+      paste(range, eventOrText) {
+        const didPaste = actions.paste(range, eventOrText);
+        if (didPaste) actions.save();
+        return didPaste;
+      },
+      undo() {
+        const changed = actions.undo();
+        if (changed) actions.save();
+        return changed;
+      },
+      redo() {
+        const changed = actions.redo();
+        if (changed) actions.save();
+        return changed;
+      },
+      insertRows(index, count) {
+        actions.insertRows(index, count);
+        actions.save();
+      },
+      deleteRows(index, count) {
+        actions.deleteRows(index, count);
+        actions.save();
+      },
+      insertColumns(index, count) {
+        actions.insertColumns(index, count);
+        actions.save();
+      },
+      deleteColumns(index, count) {
+        actions.deleteColumns(index, count);
+        actions.save();
+      },
+      load() {
+        return actions.load();
+      }
+    };
+    adapter.load();
+    return adapter;
+  }
+
   function resolveSheet(options) {
     if (options && options.sheet) {
       return options.sheet;
     }
-    if (window.OracleSpreadsheetModel && typeof window.OracleSpreadsheetModel.createSheet === 'function') {
-      return window.OracleSpreadsheetModel.createSheet(options || {});
+    if (window.SpreadsheetCore && window.SpreadsheetActions) {
+      return createCoreSheetAdapter(options || {});
     }
     return createMemorySheet();
   }
@@ -73,6 +214,7 @@
     const rowCount = config.rows || DEFAULT_ROWS;
     const colCount = config.cols || DEFAULT_COLS;
     const sheet = resolveSheet(config);
+    const hasActions = Boolean(sheet.actions);
     const state = {
       selected: { row: 0, col: 0 },
       anchor: { row: 0, col: 0 },
@@ -80,6 +222,12 @@
       editing: null,
       dragSelecting: false
     };
+    const savedActive = sheet.getActive ? sheet.getActive() : null;
+    if (savedActive) {
+      state.selected = { row: clamp(savedActive.row, 0, rowCount - 1), col: clamp(savedActive.col, 0, colCount - 1) };
+      state.anchor = state.selected;
+      state.rangeEnd = state.selected;
+    }
     const cellElements = new Map();
     const columnHeaders = [];
     const rowHeaders = [];
@@ -234,6 +382,9 @@
       if (!extend) {
         state.anchor = next;
       }
+      if (!extend && sheet.setActive) {
+        sheet.setActive(next.row, next.col);
+      }
       renderSelection(focusCell !== false);
     }
 
@@ -244,7 +395,7 @@
     function commitCell(row, col, value) {
       const name = cellName(row, col);
       sheet.setRaw(name, value);
-      renderCell(row, col);
+      renderAll();
     }
 
     function stopEditing(commit, move) {
@@ -285,15 +436,84 @@
 
     function clearRange() {
       const bounds = rangeBounds();
-      for (let row = bounds.top; row <= bounds.bottom; row += 1) {
-        for (let col = bounds.left; col <= bounds.right; col += 1) {
-          commitCell(row, col, '');
+      if (hasActions && sheet.clearRange) {
+        sheet.clearRange({ startRow: bounds.top, startCol: bounds.left, endRow: bounds.bottom, endCol: bounds.right });
+      } else {
+        for (let row = bounds.top; row <= bounds.bottom; row += 1) {
+          for (let col = bounds.left; col <= bounds.right; col += 1) {
+            commitCell(row, col, '');
+          }
         }
       }
+      renderAll();
       renderSelection(true);
     }
 
+    function selectedRange() {
+      const bounds = rangeBounds();
+      return { startRow: bounds.top, startCol: bounds.left, endRow: bounds.bottom, endCol: bounds.right };
+    }
+
+    function refreshAfterAction() {
+      renderAll();
+      renderSelection(true);
+    }
+
+    function maybeHandleCommandKey(event) {
+      const modifier = event.metaKey || event.ctrlKey;
+      if (!modifier) return false;
+      const key = event.key.toLowerCase();
+      if (key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) sheet.redo && sheet.redo();
+        else sheet.undo && sheet.undo();
+        refreshAfterAction();
+        return true;
+      }
+      if (key === 'y') {
+        event.preventDefault();
+        sheet.redo && sheet.redo();
+        refreshAfterAction();
+        return true;
+      }
+      if (key === 'c') {
+        sheet.copy && sheet.copy(selectedRange(), event);
+        return Boolean(sheet.copy);
+      }
+      if (key === 'x') {
+        if (sheet.cut) {
+          sheet.cut(selectedRange(), event);
+          refreshAfterAction();
+          return true;
+        }
+      }
+      if (key === 'v') {
+        if (sheet.paste) {
+          sheet.paste(selectedRange(), event);
+          refreshAfterAction();
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function runHeaderCommand(button) {
+      const isRow = button.dataset.command === 'row-menu';
+      const index = Number(isRow ? button.dataset.row : button.dataset.col);
+      if (isRow) {
+        sheet.insertRows && sheet.insertRows(index, 1);
+        setSelection(index, state.selected.col, false, false);
+      } else {
+        sheet.insertColumns && sheet.insertColumns(index, 1);
+        setSelection(state.selected.row, index, false, false);
+      }
+      refreshAfterAction();
+    }
+
     function handleCellKeydown(event, cell) {
+      if (maybeHandleCommandKey(event)) {
+        return;
+      }
       const row = Number(cell.dataset.row);
       const col = Number(cell.dataset.col);
       if (event.key === 'Enter' || event.key === 'F2') {
@@ -340,6 +560,10 @@
     }
 
     grid.addEventListener('mousedown', function (event) {
+      const headerButton = event.target.closest('.header-menu');
+      if (headerButton) {
+        return;
+      }
       const cell = event.target.closest('[role="gridcell"]');
       if (!cell || state.editing) {
         return;
@@ -371,6 +595,9 @@
     });
 
     grid.addEventListener('keydown', function (event) {
+      if (maybeHandleCommandKey(event)) {
+        return;
+      }
       if (event.target.classList.contains('cell-editor')) {
         handleEditorKeydown(event);
         return;
@@ -381,7 +608,37 @@
       }
     });
 
+    grid.addEventListener('click', function (event) {
+      const headerButton = event.target.closest('.header-menu');
+      if (!headerButton) {
+        return;
+      }
+      event.preventDefault();
+      runHeaderCommand(headerButton);
+    });
+
+    grid.addEventListener('copy', function (event) {
+      if (sheet.copy) sheet.copy(selectedRange(), event);
+    });
+
+    grid.addEventListener('cut', function (event) {
+      if (sheet.cut) {
+        sheet.cut(selectedRange(), event);
+        refreshAfterAction();
+      }
+    });
+
+    grid.addEventListener('paste', function (event) {
+      if (sheet.paste) {
+        sheet.paste(selectedRange(), event);
+        refreshAfterAction();
+      }
+    });
+
     formulaInput.addEventListener('keydown', function (event) {
+      if (maybeHandleCommandKey(event)) {
+        return;
+      }
       if (event.key === 'Enter') {
         event.preventDefault();
         commitCell(state.selected.row, state.selected.col, formulaInput.value);
