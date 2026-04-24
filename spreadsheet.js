@@ -158,6 +158,24 @@
   function displayValue(sheet, row, col) { return sheet.getDisplay(formatAddress(row, col)); }
   function recalculate() {}
   function insertRow(sheet, index) { sheet.insertRow(index + 1); }
+  function storageKey(namespace) { return `${namespace || 'gridline-default'}:state`; }
+  function loadState(storage, namespace) {
+    try {
+      const raw = storage && storage.getItem(storageKey(namespace));
+      if (raw) {
+        const data = JSON.parse(raw);
+        const sheet = SpreadsheetModel.fromJSON(data.sheet);
+        sheet.undoStack = [];
+        sheet.redoStack = [];
+        return { sheet, selection: data.selection || { row: 0, col: 0 } };
+      }
+    } catch (error) {}
+    return { sheet: new SpreadsheetModel({ rows: 100, cols: 26 }), selection: { row: 0, col: 0 } };
+  }
+  function saveState(storage, namespace, sheet, selection) {
+    if (!storage) return;
+    storage.setItem(storageKey(namespace), JSON.stringify({ sheet: sheet.toJSON(), selection }));
+  }
   function adjustFormulaReferences(raw, sourceRow, sourceCol, targetRow, targetCol) {
     return adjustByDelta(raw, targetRow - sourceRow, targetCol - sourceCol);
   }
@@ -170,6 +188,9 @@
     displayValue,
     recalculate,
     insertRow,
+    storageKey,
+    loadState,
+    saveState,
     adjustFormulaReferences,
     parseAddress,
     formatAddress,
