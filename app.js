@@ -11,6 +11,7 @@
   let range = { start: { ...active }, end: { ...active } };
   let editing = null;
   let clipboard = null;
+  let contextMenu = null;
 
   grid.style.setProperty('--cols', sheet.cols);
   render();
@@ -64,6 +65,31 @@
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
+
+  grid.addEventListener('contextmenu', (event) => {
+    const header = event.target.closest('.row-header, .col-header');
+    if (!header) return;
+    event.preventDefault();
+    closeContextMenu();
+    const row = header.dataset.row == null ? null : Number(header.dataset.row);
+    const col = header.dataset.col == null ? null : Number(header.dataset.col);
+    contextMenu = document.createElement('div');
+    contextMenu.className = 'context-menu';
+    if (row != null) {
+      addMenuItem(`Insert row above ${row + 1}`, () => { active.row = row; mutate(() => sheet.insertRow(row + 1)); });
+      addMenuItem(`Delete row ${row + 1}`, () => { active.row = row; mutate(() => sheet.deleteRow(row + 1)); });
+    }
+    if (col != null) {
+      addMenuItem(`Insert column left of ${colName(col)}`, () => { active.col = col; mutate(() => sheet.insertCol(col + 1)); });
+      addMenuItem(`Delete column ${colName(col)}`, () => { active.col = col; mutate(() => sheet.deleteCol(col + 1)); });
+    }
+    contextMenu.style.left = `${event.clientX}px`;
+    contextMenu.style.top = `${event.clientY}px`;
+    document.body.appendChild(contextMenu);
+  });
+
+  document.addEventListener('click', closeContextMenu);
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeContextMenu(); });
 
   grid.addEventListener('dblclick', (event) => {
     const cell = event.target.closest('.cell');
@@ -120,13 +146,15 @@
     for (let col = 0; col < sheet.cols; col++) grid.appendChild(header('col-header', colName(col)));
     for (let row = 0; row < sheet.rows; row++) {
       const rowHeader = header('row-header', String(row + 1));
-      rowHeader.title = 'Buttons above insert/delete the selected row';
+      rowHeader.dataset.row = row;
+      rowHeader.title = 'Right-click to insert or delete this row';
       grid.appendChild(rowHeader);
       for (let col = 0; col < sheet.cols; col++) {
         const cell = document.createElement('div');
         cell.className = 'cell';
         cell.dataset.row = row;
         cell.dataset.col = col;
+        cell.setAttribute('aria-label', formatAddress(row, col));
         cell.setAttribute('role', 'gridcell');
         grid.appendChild(cell);
       }
@@ -138,7 +166,34 @@
     const node = document.createElement('div');
     node.className = className;
     node.textContent = text;
+    if (className === 'col-header') {
+      node.dataset.col = colIndexFromName(text);
+      node.title = 'Right-click to insert or delete this column';
+    }
     return node;
+  }
+
+  function addMenuItem(label, action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      closeContextMenu();
+      action();
+    });
+    contextMenu.appendChild(button);
+  }
+
+  function closeContextMenu() {
+    if (contextMenu) contextMenu.remove();
+    contextMenu = null;
+  }
+
+  function colIndexFromName(name) {
+    let n = 0;
+    for (const ch of name) n = n * 26 + ch.charCodeAt(0) - 64;
+    return n - 1;
   }
 
   function repaintCells() {
