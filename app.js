@@ -220,12 +220,55 @@
         this.cells = next; this.cols = Math.max(1, this.cols - 1); this.shiftFormulasForDelete('col', col);
       });
     }
+    serializeRange(range) {
+      const s = normalizeSelection(range);
+      const rows = [];
+      for (let r = s.r1; r <= s.r2; r++) {
+        const cols = [];
+        for (let c = s.c1; c <= s.c2; c++) cols.push(this.getRaw(r, c));
+        rows.push(cols.join('\t'));
+      }
+      return rows.join('\n');
+    }
+    clearRange(range) {
+      const s = normalizeSelection(range);
+      this.transact(() => {
+        for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) this.setRaw(r, c, '');
+      });
+    }
+    pasteBlock(text, targetRange, source) {
+      const s = normalizeSelection(targetRange);
+      const rows = String(text || '').replace(/\r/g, '').split('\n').filter((line, i, a) => line !== '' || i < a.length - 1).map(line => line.split('\t'));
+      this.transact(() => {
+        rows.forEach((rowVals, rr) => rowVals.forEach((raw, cc) => {
+          const tr = s.r1 + rr, tc = s.c1 + cc;
+          if (!this.inBounds(tr, tc)) return;
+          const adjusted = raw.startsWith('=') && source ? this.adjustFormulaForMove(raw, source.r1 + rr, source.c1 + cc, tr, tc) : raw;
+          this.setRaw(tr, tc, adjusted);
+        }));
+        if (source && source.cut) {
+          const from = normalizeSelection(source);
+          for (let r = from.r1; r <= from.r2; r++) for (let c = from.c1; c <= from.c2; c++) {
+            if (r < s.r1 || r >= s.r1 + rows.length || c < s.c1 || c >= s.c1 + (rows[r - s.r1] || []).length) this.setRaw(r, c, '');
+          }
+        }
+      });
+    }
   }
 
   function mapsEqual(a, b) {
     if (a.size !== b.size) return false;
     for (const [k, v] of a) if (b.get(k) !== v) return false;
     return true;
+  }
+
+  function normalizeSelection(range) {
+    return {
+      r1: Math.min(range.r1, range.r2),
+      c1: Math.min(range.c1, range.c2),
+      r2: Math.max(range.r1, range.r2),
+      c2: Math.max(range.c1, range.c2),
+    };
   }
 
   class FormulaParser {
@@ -407,38 +450,20 @@
   }
   function clearSelection() {
     const s = normSel();
-    model.transact(() => { for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) model.setRaw(r, c, ''); });
+    model.clearRange(s);
     renderValues(); renderSelection(); updateFormulaBar();
   }
   function serializeSelection(cut) {
     const s = normSel();
-    const rows = [];
-    for (let r = s.r1; r <= s.r2; r++) {
-      const cols = [];
-      for (let c = s.c1; c <= s.c2; c++) cols.push(model.getRaw(r, c));
-      rows.push(cols.join('\t'));
-    }
     clipboardSource = { range: s, cut };
-    return rows.join('\n');
+    return model.serializeRange(s);
   }
   function pasteText(text) {
-    const rows = text.replace(/\r/g, '').split('\n').filter((line, i, a) => line !== '' || i < a.length - 1).map(line => line.split('\t'));
-    const startR = model.selection.activeRow, startC = model.selection.activeCol;
-    model.transact(() => {
-      rows.forEach((rowVals, rr) => rowVals.forEach((raw, cc) => {
-        const tr = startR + rr, tc = startC + cc;
-        if (!model.inBounds(tr, tc)) return;
-        const src = clipboardSource && clipboardSource.range;
-        const adjusted = raw.startsWith('=') ? model.adjustFormulaForMove(raw, src ? src.r1 + rr : startR, src ? src.c1 + cc : startC, tr, tc) : raw;
-        model.setRaw(tr, tc, adjusted);
-      }));
-      if (clipboardSource && clipboardSource.cut) {
-        const s = clipboardSource.range;
-        for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) model.setRaw(r, c, '');
-        clipboardSource = null;
-      }
-    });
-    renderValues(); setSelection(startR, startC); renderSelection(); updateFormulaBar();
+    const target = normSel();
+    const source = clipboardSource && { ...clipboardSource.range, cut: clipboardSource.cut };
+    model.pasteBlock(text, target, source);
+    clipboardSource = null;
+    renderValues(); setSelection(target.r1, target.c1); renderSelection(); updateFormulaBar();
   }
 
   grid.addEventListener('mousedown', e => {

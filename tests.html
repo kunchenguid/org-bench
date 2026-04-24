@@ -43,6 +43,43 @@
       assertEqual(pasted, '=B2', 'copied formula');
     });
 
+    test('serializes rectangular ranges as raw tab separated values', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-e', skipLoad: true });
+      sheet.setRaw(0, 0, '1');
+      sheet.setRaw(0, 1, '=A1+1');
+      sheet.setRaw(1, 0, 'left');
+      sheet.setRaw(1, 1, 'right');
+      assertEqual(sheet.serializeRange({ r1: 0, c1: 0, r2: 1, c2: 1 }), '1\t=A1+1\nleft\tright', 'serialized range');
+    });
+
+    test('pastes into selected range top-left and shifts relative formulas', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 6, storageKey: 'test-f', skipLoad: true });
+      sheet.setRaw(0, 0, '10');
+      sheet.setRaw(0, 1, '=A1+$A$1+A$1+$A1');
+      const payload = sheet.serializeRange({ r1: 0, c1: 0, r2: 0, c2: 1 });
+      sheet.pasteBlock(payload, { r1: 2, c1: 2, r2: 2, c2: 3 }, { r1: 0, c1: 0 });
+      assertEqual(sheet.getRaw(2, 2), '10', 'first pasted cell');
+      assertEqual(sheet.getRaw(2, 3), '=C3+$A$1+C$1+$A3', 'relative formula paste');
+    });
+
+    test('delete and paste each undo as one action', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-g', skipLoad: true });
+      sheet.setRaw(0, 0, 'a');
+      sheet.setRaw(0, 1, 'b');
+      sheet.clearRange({ r1: 0, c1: 0, r2: 0, c2: 1 });
+      assertEqual(sheet.getRaw(0, 0), '', 'deleted first cell');
+      assertEqual(sheet.getRaw(0, 1), '', 'deleted second cell');
+      sheet.undo();
+      assertEqual(sheet.getRaw(0, 0), 'a', 'undo delete first cell');
+      assertEqual(sheet.getRaw(0, 1), 'b', 'undo delete second cell');
+      sheet.pasteBlock('x\ty', { r1: 0, c1: 0, r2: 0, c2: 0 });
+      assertEqual(sheet.getRaw(0, 0), 'x', 'pasted first cell');
+      assertEqual(sheet.getRaw(0, 1), 'y', 'pasted second cell');
+      sheet.undo();
+      assertEqual(sheet.getRaw(0, 0), 'a', 'undo paste first cell');
+      assertEqual(sheet.getRaw(0, 1), 'b', 'undo paste second cell');
+    });
+
     (async function run() {
       const failures = [];
       for (const t of tests) {
