@@ -70,6 +70,14 @@
       assertEqual(sheet.getDisplay(1, 1), '#ERR!', 'bad syntax');
     });
 
+    test('COUNT ignores empty cells in ranges', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-e' });
+      sheet.setRaw(0, 0, '3');
+      sheet.setRaw(2, 0, 'text');
+      sheet.setRaw(3, 0, '=COUNT(A1:A3)');
+      assertEqual(sheet.getDisplay(3, 0), '1', 'count display');
+    });
+
     (async function run() {
       const failures = [];
       for (const t of tests) {
