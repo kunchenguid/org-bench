@@ -19,8 +19,7 @@
   let editing = false;
   let editOriginal = '';
   let clipboard = null;
-  const undo = [];
-  const redo = [];
+  const history = new Engine.ActionHistory(50);
 
   function key(row, col) { return Engine.coordToA1(row, col); }
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
@@ -31,16 +30,13 @@
   function restore(state) {
     sheet.cells = { ...(state.cells || {}) };
     active = { ...(state.active || { row: 0, col: 0 }) };
-    anchor = { row: selection.r1, col: selection.c1 };
     selection = { ...(state.selection || selectedBounds(active, active)) };
+    anchor = { row: selection.r1, col: selection.c1 };
     renderAll();
     save();
   }
   function pushHistory(before, after) {
-    if (JSON.stringify(before) === JSON.stringify(after)) return;
-    undo.push({ before, after });
-    if (undo.length > 50) undo.shift();
-    redo.length = 0;
+    history.push(before, after);
   }
 
   function save() {
@@ -261,8 +257,8 @@
   grid.addEventListener('keydown', (event) => {
     if (event.metaKey || event.ctrlKey) {
       const k = event.key.toLowerCase();
-      if (k === 'z') { event.preventDefault(); const item = event.shiftKey ? redo.pop() : undo.pop(); if (item) { (event.shiftKey ? undo : redo).push(item); restore(event.shiftKey ? item.after : item.before); } }
-      if (k === 'y') { event.preventDefault(); const item = redo.pop(); if (item) { undo.push(item); restore(item.after); } }
+      if (k === 'z') { event.preventDefault(); const item = event.shiftKey ? history.redoLast() : history.undoLast(); if (item) restore(event.shiftKey ? item.after : item.before); }
+      if (k === 'y') { event.preventDefault(); const item = history.redoLast(); if (item) restore(item.after); }
       if (k === 'c' || k === 'x') { clipboard = { data: getSelectionData(), r1: selection.r1, c1: selection.c1, r2: selection.r2, c2: selection.c2, cut: k === 'x' }; navigator.clipboard && navigator.clipboard.writeText(clipboard.data.map((r) => r.join('\t')).join('\n')).catch(() => {}); event.preventDefault(); }
       if (k === 'v') { event.preventDefault(); if (clipboard) pasteData(clipboard.data); else if (navigator.clipboard) navigator.clipboard.readText().then((text) => pasteData(text.split(/\r?\n/).map((r) => r.split('\t')))); }
       return;

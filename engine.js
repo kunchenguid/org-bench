@@ -344,7 +344,34 @@
     });
   }
 
-  const api = { SpreadsheetEngine, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula, transformFormulaReferences };
+  class ActionHistory {
+    constructor(limit) {
+      this.limit = limit || 50;
+      this.undo = [];
+      this.redo = [];
+    }
+
+    push(before, after) {
+      if (JSON.stringify(before) === JSON.stringify(after)) return;
+      this.undo.push({ before, after });
+      if (this.undo.length > this.limit) this.undo.shift();
+      this.redo.length = 0;
+    }
+
+    undoLast() {
+      const item = this.undo.pop();
+      if (item) this.redo.push(item);
+      return item || null;
+    }
+
+    redoLast() {
+      const item = this.redo.pop();
+      if (item) this.undo.push(item);
+      return item || null;
+    }
+  }
+
+  const api = { SpreadsheetEngine, ActionHistory, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula, transformFormulaReferences };
   root.SpreadsheetEngine = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

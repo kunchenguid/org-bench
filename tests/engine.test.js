@@ -53,7 +53,6 @@ test('detects circular references without crashing', () => {
   assert.strictEqual(sheet.getDisplay('A1'), '#CIRC!');
   assert.strictEqual(sheet.getDisplay('A2'), '#CIRC!');
 });
-
 test('rewrites formula references for inserted rows and columns', () => {
   assert.strictEqual(
     Engine.transformFormulaReferences('=SUM(A1:B2)+$C$3', 'insertRow', 0),
@@ -74,4 +73,27 @@ test('marks deleted formula references as ref errors', () => {
     Engine.transformFormulaReferences('=A1+B2+C3', 'deleteCol', 1),
     '=A1+#REF!+B3'
   );
+});
+
+test('action history stores each user action atomically with a 50 item limit', () => {
+  const history = new Engine.ActionHistory(50);
+  for (let i = 0; i < 55; i++) {
+    history.push({ cells: { A1: String(i) } }, { cells: { A1: String(i + 1) } });
+  }
+
+  assert.strictEqual(history.undo.length, 50);
+  assert.deepStrictEqual(history.undoLast().before, { cells: { A1: '54' } });
+  assert.deepStrictEqual(history.redoLast().after, { cells: { A1: '55' } });
+});
+
+test('action history ignores no-op actions and clears redo on new actions', () => {
+  const history = new Engine.ActionHistory(50);
+  history.push({ cells: { A1: '1' } }, { cells: { A1: '1' } });
+  assert.strictEqual(history.undo.length, 0);
+
+  history.push({ cells: {} }, { cells: { A1: '2' } });
+  history.undoLast();
+  assert.strictEqual(history.redo.length, 1);
+  history.push({ cells: { A2: '3' } }, { cells: { A2: '4' } });
+  assert.strictEqual(history.redo.length, 0);
 });
