@@ -46,6 +46,28 @@
       equal(sheet.getDisplay(0, 0), '#CIRC!');
     });
 
+    test('compares empty cells as zero against numeric values', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-empty-comparison');
+      sheet.setCell(0, 1, '=A1=0');
+      sheet.setCell(1, 1, '=A1<1');
+      equal(sheet.getDisplay(0, 1), 'TRUE');
+      equal(sheet.getDisplay(1, 1), 'TRUE');
+    });
+
+    test('IF does not evaluate errors from unused branches', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-if-lazy-errors');
+      sheet.setCell(0, 0, '=IF(TRUE,"ok",1/0)');
+      sheet.setCell(1, 0, '=IF(FALSE,1/0,"safe")');
+      equal(sheet.getDisplay(0, 0), 'ok');
+      equal(sheet.getDisplay(1, 0), 'safe');
+    });
+
+    test('IF propagates errors from the condition', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-if-condition-error');
+      sheet.setCell(0, 0, '=IF(1/0,"ok","safe")');
+      equal(sheet.getDisplay(0, 0), '#DIV/0!');
+    });
+
     if (failures.length) {
       out.textContent = failures.join('\n');
       throw new Error(failures.length + ' tests failed');

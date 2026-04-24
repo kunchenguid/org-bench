@@ -43,6 +43,10 @@
     if (v === false) return 'FALSE';
     return String(v);
   }
+  function canCompareAsNumber(v) {
+    if (v === '' || v == null || typeof v === 'number' || typeof v === 'boolean') return true;
+    return typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v));
+  }
   function display(v) {
     if (v === true) return 'TRUE';
     if (v === false) return 'FALSE';
@@ -101,8 +105,9 @@
         const right = this.concat();
         if (isError(left)) return left;
         if (isError(right)) return right;
-        const l = typeof left === 'number' && typeof right === 'number' ? left : asText(left);
-        const r = typeof left === 'number' && typeof right === 'number' ? right : asText(right);
+        const numeric = canCompareAsNumber(left) && canCompareAsNumber(right);
+        const l = numeric ? asNumber(left) : asText(left);
+        const r = numeric ? asNumber(right) : asText(right);
         if (t.value === '=') return l === r;
         if (t.value === '<>') return l !== r;
         if (t.value === '<') return l < r;
@@ -181,6 +186,7 @@
     }
     call(name) {
       this.take('(');
+      if (name === 'IF') return this.lazyIf();
       const args = [];
       if (!this.peek(')')) {
         do { args.push(this.comparison()); } while (this.take(','));
@@ -204,6 +210,44 @@
         case 'CONCAT': return flat.map(asText).join('');
         default: return ERROR.err;
       }
+    }
+    lazyIf() {
+      const condition = this.comparison();
+      if (!this.take(',')) return ERROR.err;
+      if (isError(condition)) return this.skipRestOfCall(condition);
+      if (condition) {
+        const value = this.comparison();
+        if (this.take(',')) this.skipArgument();
+        return this.take(')') ? value : ERROR.err;
+      }
+      this.skipArgument();
+      if (!this.take(',')) return this.take(')') ? '' : ERROR.err;
+      const value = this.comparison();
+      return this.take(')') ? value : ERROR.err;
+    }
+    skipArgument() {
+      let depth = 0;
+      while (this.pos < this.tokens.length) {
+        const t = this.tokens[this.pos];
+        if (t.value === '(') depth++;
+        else if (t.value === ')') {
+          if (depth === 0) return;
+          depth--;
+        } else if (t.value === ',' && depth === 0) return;
+        this.pos++;
+      }
+    }
+    skipRestOfCall(value) {
+      let depth = 0;
+      while (this.pos < this.tokens.length) {
+        const t = this.tokens[this.pos++];
+        if (t.value === '(') depth++;
+        else if (t.value === ')') {
+          if (depth === 0) return value;
+          depth--;
+        }
+      }
+      return ERROR.err;
     }
     parseRef(text) {
       const m = String(text).match(/^\$?([A-Z]+)\$?(\d+)$/);
