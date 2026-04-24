@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">Sheet</div>
+      <button id="insert-row-above" type="button">Insert Row Above</button>
+      <button id="insert-row-below" type="button">Insert Row Below</button>
+      <button id="delete-row" type="button">Delete Row</button>
+      <button id="insert-col-left" type="button">Insert Column Left</button>
+      <button id="insert-col-right" type="button">Insert Column Right</button>
+      <button id="delete-col" type="button">Delete Column</button>
+      <span class="hint">Enter/F2 edit, Shift+arrows select, Cmd/Ctrl+C/V/Z</span>
+    </header>
+    <section class="formula-row">
+      <div id="name-box" class="name-box">A1</div>
+      <input id="formula-bar" class="formula-bar" aria-label="Formula bar" autocomplete="off">
+    </section>
+    <main id="viewport" class="viewport">
+      <div id="grid" class="grid" role="grid" aria-label="Spreadsheet grid"></div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

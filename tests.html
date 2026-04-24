@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet tests</title>
+</head>
+<body>
+  <pre id="out">Running...</pre>
+  <script src="app.js"></script>
+  <script>
+    const out = document.getElementById('out');
+    const failures = [];
+    function test(name, fn) {
+      try { fn(); }
+      catch (error) { failures.push(name + ': ' + error.message); }
+    }
+    function equal(actual, expected) {
+      if (actual !== expected) throw new Error('expected ' + expected + ', got ' + actual);
+    }
+
+    test('evaluates arithmetic and SUM ranges', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-arithmetic');
+      sheet.setCell(0, 0, '2');
+      sheet.setCell(1, 0, '3');
+      sheet.setCell(2, 0, '=SUM(A1:A2)*2');
+      equal(sheet.getDisplay(2, 0), '10');
+    });
+
+    test('recomputes dependents when precedents change', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-recompute');
+      sheet.setCell(0, 0, '4');
+      sheet.setCell(0, 1, '=A1+1');
+      sheet.setCell(0, 0, '9');
+      equal(sheet.getDisplay(0, 1), '10');
+    });
+
+    test('copies relative references by destination offset', () => {
+      const adjusted = SpreadsheetModel.adjustFormula('=A1+$B$2+A$3+$C4', 2, 3);
+      equal(adjusted, '=D3+$B$2+D$3+$C6');
+    });
+
+    test('detects circular references', () => {
+      const sheet = new SpreadsheetModel(10, 10, 'test-circ');
+      sheet.setCell(0, 0, '=B1');
+      sheet.setCell(0, 1, '=A1');
+      equal(sheet.getDisplay(0, 0), '#CIRC!');
+    });
+
+    if (failures.length) {
+      out.textContent = failures.join('\n');
+      throw new Error(failures.length + ' tests failed');
+    }
+    out.textContent = 'All tests passed';
+  </script>
+</body>
+</html>
