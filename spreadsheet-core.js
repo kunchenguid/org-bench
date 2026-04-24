@@ -219,6 +219,7 @@
   }
 
   function evaluateFormula(source, model, stack) {
+    if (source.includes(REF)) return { error: REF, value: REF };
     try {
       const parser = new Parser(tokenize(source), model, stack);
       const value = parser.parseExpression();
