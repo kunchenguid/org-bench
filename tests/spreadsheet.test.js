@@ -170,3 +170,21 @@ test('formula errors render stable markers', () => {
   assert.equal(display(sheet, 'A3'), '#ERR!');
   assert.equal(display(sheet, 'B1'), '#REF!');
 });
+
+test('IF evaluates only the selected branch', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'A1', '=IF(TRUE,1,1/0)');
+  set(sheet, 'A2', '=IF(FALSE,1/0,2)');
+
+  assert.equal(display(sheet, 'A1'), '1');
+  assert.equal(display(sheet, 'A2'), '2');
+});
+
+test('string literals containing deleted-reference text remain strings', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'A1', '="literal #REF!"');
+
+  assert.equal(display(sheet, 'A1'), 'literal #REF!');
+});
