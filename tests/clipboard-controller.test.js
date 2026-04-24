@@ -80,6 +80,7 @@ function event(overrides) {
 function run() {
   const target = createTarget();
   const store = createStore();
+  const actions = [];
   const remove = installClipboardController({ target, store, selectionTools });
 
   const del = event({ key: 'Delete' });
@@ -141,6 +142,22 @@ function run() {
   remove();
   target.dispatch('keydown', event({ key: 'Backspace' }));
   assert.strictEqual(store.calls.length, 5);
+
+  const actionTarget = createTarget();
+  installClipboardController({
+    target: actionTarget,
+    store,
+    selectionTools,
+    recordAction(label, mutate) {
+      actions.push(label);
+      mutate();
+    },
+  });
+  actionTarget.dispatch('keydown', event({ key: 'Delete' }));
+  actionTarget.dispatch('paste', event({ clipboardData: createDataTransfer('1\t2\n3\t4') }));
+  actionTarget.dispatch('cut', event({ clipboardData: createDataTransfer() }));
+
+  assert.deepStrictEqual(actions, ['range-delete', 'range-paste', 'range-cut']);
 }
 
 run();
