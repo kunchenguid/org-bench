@@ -20,12 +20,13 @@
         }
       }
 
-      var store = window.Spreadsheet.createStore();
+      var store = window.App.createStore();
       var events = [];
       store.on("selectionchange", function (event) { events.push(event.detail.selection.active); });
 
       assert("default grid has 100 rows", store.snapshot().dimensions.rows === 100);
       assert("default grid has 26 columns", store.snapshot().dimensions.columns === 26);
+      assert("legacy namespace aliases App", window.Spreadsheet === window.App);
       assert("column naming supports Z", window.Spreadsheet.colToName(25) === "Z");
       assert("column naming supports AA", window.Spreadsheet.colToName(26) === "AA");
       assert("cell keys are A1 based", window.Spreadsheet.cellKey({ row: 4, col: 2 }) === "C5");

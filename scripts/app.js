@@ -1,18 +1,20 @@
 (function () {
   "use strict";
 
-  var spreadsheet = window.Spreadsheet;
-  var store = spreadsheet.createStore();
+  var app = window.App;
+  var store = app.createStore();
   var activeAddress = document.getElementById("active-address");
   var formulaInput = document.getElementById("formula-input");
   var gridRoot = document.getElementById("grid-root");
   var status = document.querySelector("[data-spreadsheet-slot='status']");
   var editing = null;
 
+  app.store = store;
+  window.Spreadsheet = app;
   window.sheetStore = store;
 
   function cellKey(row, col) {
-    return spreadsheet.cellKey({ row: row, col: col });
+    return app.cellKey({ row: row, col: col });
   }
 
   function activeCell() {
@@ -46,7 +48,7 @@
     if (cell) cell.classList.add("active");
     if (colHeaderAt(active.col)) colHeaderAt(active.col).classList.add("active-header");
     if (rowHeaderAt(active.row)) rowHeaderAt(active.row).classList.add("active-header");
-    activeAddress.textContent = spreadsheet.cellKey(active);
+    activeAddress.textContent = app.cellKey(active);
     formulaInput.value = store.getCellRaw(active);
     if (status) status.textContent = "Ready";
     if (cell) cell.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -99,7 +101,7 @@
     cell.appendChild(input);
     editing = { row: active.row, col: active.col, original: original, input: input };
     formulaInput.value = input.value;
-    if (status) status.textContent = "Editing " + spreadsheet.cellKey(active);
+    if (status) status.textContent = "Editing " + app.cellKey(active);
 
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
@@ -174,8 +176,8 @@
   }
 
   function renderShellGrid() {
-    var rows = spreadsheet.constants.rows;
-    var columns = spreadsheet.constants.columns;
+    var rows = app.constants.rows;
+    var columns = app.constants.columns;
     var fragment = document.createDocumentFragment();
     var corner = document.createElement("div");
     var row;
@@ -195,7 +197,7 @@
       var columnHeader = document.createElement("div");
       columnHeader.className = "column-header";
       columnHeader.dataset.colHeader = String(col);
-      columnHeader.textContent = spreadsheet.colToName(col);
+      columnHeader.textContent = app.colToName(col);
       fragment.appendChild(columnHeader);
     }
 
@@ -235,7 +237,7 @@
 
   store.on("cellchange", function (event) {
     renderCellRaw(event.detail.cell.row, event.detail.cell.col);
-    if (spreadsheet.cellKey(activeCell()) === event.detail.key && !editing) {
+    if (app.cellKey(activeCell()) === event.detail.key && !editing) {
       formulaInput.value = event.detail.raw;
     }
   });

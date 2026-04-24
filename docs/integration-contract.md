@@ -7,7 +7,7 @@ This scaffold owns the app shell only. Feature owners should plug into the slots
 - `index.html` owns the one-page document structure, formula bar slot, grid root slot, and status slot.
 - `styles.css` owns shared shell tokens and chrome layout. Feature styling should extend existing classes or add feature-local classes.
 - `scripts/app-state.js` owns shared state primitives and event names.
-- `scripts/app.js` wires the shell to the shared store and publishes `window.sheetStore`.
+- `scripts/app.js` wires the shell to the shared store and publishes `window.App.store` plus compatibility aliases.
 
 ## DOM slots
 
@@ -17,8 +17,10 @@ This scaffold owns the app shell only. Feature owners should plug into the slots
 
 ## Store API
 
-- `window.Spreadsheet.createStore(options)` creates an isolated store.
-- `window.sheetStore` is the app-wide store instance.
+- `window.App.createStore(options)` creates an isolated store.
+- `window.App.store` is the app-wide store instance.
+- `window.Spreadsheet` aliases `window.App` for existing integrated features.
+- `window.sheetStore` aliases `window.App.store` for existing integrated features.
 - `store.snapshot()` returns a defensive copy of dimensions, raw cell values, and selection.
 - `store.hydrate(snapshot, source)` replaces raw state from persistence or tests.
 - `store.selectCell(cell)` selects one cell.
