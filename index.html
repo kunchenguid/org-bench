@@ -3,21 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Local Spreadsheet</title>
+  <title>Spreadsheet</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app" aria-label="Spreadsheet">
-    <section class="toolbar" aria-label="Formula editor">
-      <div class="brand">Sheet</div>
-      <label class="name-box" for="formula-input" id="cell-name">A1</label>
-      <input id="formula-input" class="formula-input" autocomplete="off" spellcheck="false" aria-label="Formula bar">
-      <div class="hint">Enter edits, Tab moves right, Shift+arrows select, Delete clears</div>
-    </section>
-    <section class="sheet-wrap" id="sheet-wrap" tabindex="0" aria-label="Spreadsheet grid">
-      <table id="grid" class="grid" aria-label="Spreadsheet cells"></table>
-    </section>
-  </main>
+  <header class="toolbar">
+    <div class="brand">Sheet</div>
+    <div id="cellName" class="cell-name">A1</div>
+    <input id="formulaBar" class="formula-bar" aria-label="Formula bar" spellcheck="false">
+    <div class="hint">Enter commits, Esc cancels, Shift+arrows selects, Ctrl/Cmd+Z undo</div>
+  </header>
+  <main id="sheet" class="sheet" aria-label="Spreadsheet grid"></main>
   <script src="app.js"></script>
 </body>
 </html>

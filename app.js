@@ -1,765 +1,446 @@
-(function (global) {
-  'use strict';
+(function () {
+  if (typeof module === 'object' && module.exports && typeof window === 'undefined') {
+    var workbookApi = require('./workbook.js');
+    var Workbook = workbookApi.Workbook;
+    var rewriteFormulaReferences = workbookApi.rewriteFormulaReferences;
+    var indexToCol = workbookApi.indexToCol;
 
-  var COLS = 26;
-  var ROWS = 100;
-  var MAX_HISTORY = 50;
-
-  function colName(col) {
-    var name = '';
-    var n = col + 1;
-    while (n > 0) {
-      var rem = (n - 1) % 26;
-      name = String.fromCharCode(65 + rem) + name;
-      n = Math.floor((n - 1) / 26);
-    }
-    return name;
-  }
-
-  function parseRef(ref) {
-    var match = /^([A-Z]+)(\d+)$/.exec(ref.replace(/\$/g, ''));
-    if (!match) return null;
-    var col = 0;
-    for (var i = 0; i < match[1].length; i += 1) {
-      col = col * 26 + match[1].charCodeAt(i) - 64;
-    }
-    return { row: Number(match[2]) - 1, col: col - 1 };
-  }
-
-  function refName(row, col) {
-    return colName(col) + String(row + 1);
-  }
-
-  function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  function describeSelection(anchor, active, maxRows, maxCols) {
-    var activeRow = clamp(active.row, 0, maxRows - 1);
-    var activeCol = clamp(active.col, 0, maxCols - 1);
-    var anchorRow = clamp(anchor.row, 0, maxRows - 1);
-    var anchorCol = clamp(anchor.col, 0, maxCols - 1);
-    var selection = {
-      r1: Math.min(anchorRow, activeRow),
-      c1: Math.min(anchorCol, activeCol),
-      r2: Math.max(anchorRow, activeRow),
-      c2: Math.max(anchorCol, activeCol),
-      activeRow: activeRow,
-      activeCol: activeCol,
-      label: ''
+    function nodeAddr(row, col) { return indexToCol(col) + (row + 1); }
+    function SpreadsheetEngine(cols, rows) { this.book = new Workbook({ rows: rows, cols: cols }); }
+    SpreadsheetEngine.prototype.setCell = function (row, col, raw) { this.book.setCell(nodeAddr(row, col), raw); };
+    SpreadsheetEngine.prototype.getRaw = function (row, col) { return this.book.getCell(nodeAddr(row, col)); };
+    SpreadsheetEngine.prototype.getDisplay = function (row, col) {
+      var display = this.book.getDisplay(nodeAddr(row, col));
+      return display === '#REF!' ? '#ERR!' : display;
     };
-    var start = refName(selection.r1, selection.c1);
-    var end = refName(selection.r2, selection.c2);
-    selection.label = start === end ? start : start + ':' + end;
-    return selection;
-  }
+    SpreadsheetEngine.prototype.insertRows = function (atRow, count) { this.book.insertRows(atRow, count || 1); };
+    SpreadsheetEngine.prototype.deleteRows = function (atRow, count) { this.book.deleteRows(atRow, count || 1); };
+    SpreadsheetEngine.prototype.insertCols = function (atCol, count) { this.book.insertCols(atCol, count || 1); };
+    SpreadsheetEngine.prototype.deleteCols = function (atCol, count) { this.book.deleteCols(atCol, count || 1); };
 
-  function eachCellInRange(range, callback) {
-    var startRow = Math.min(range.r1, range.r2);
-    var endRow = Math.max(range.r1, range.r2);
-    var startCol = Math.min(range.c1, range.c2);
-    var endCol = Math.max(range.c1, range.c2);
-    for (var row = startRow; row <= endRow; row += 1) {
-      for (var col = startCol; col <= endCol; col += 1) {
-        callback(row, col);
+    SpreadsheetEngine.prototype.applyRawChanges = function (updates) {
+      var byAddress = {};
+      var self = this;
+      updates.forEach(function (item) {
+        var address = nodeAddr(item.row, item.col);
+        if (!byAddress[address]) byAddress[address] = { row: item.row, col: item.col, oldRaw: self.book.getCell(address), newRaw: '' };
+        byAddress[address].newRaw = String(item.raw == null ? '' : item.raw);
+      });
+      var changes = Object.keys(byAddress).map(function (address) { return byAddress[address]; }).filter(function (change) { return change.oldRaw !== change.newRaw; });
+      this.book.applyCells(changes.map(function (change) { return [nodeAddr(change.row, change.col), change.newRaw]; }), true);
+      return changes;
+    };
+
+    SpreadsheetEngine.prototype.copyRange = function (range) {
+      var data = [];
+      for (var row = Math.min(range.r1, range.r2); row <= Math.max(range.r1, range.r2); row++) {
+        var line = [];
+        for (var col = Math.min(range.c1, range.c2); col <= Math.max(range.c1, range.c2); col++) line.push(this.getRaw(row, col));
+        data.push(line);
       }
-    }
-  }
+      return data;
+    };
 
-  function replaceOutsideStrings(source, pattern, replacer) {
-    var out = '';
-    var chunk = '';
-    var inString = false;
-    for (var i = 0; i < source.length; i += 1) {
-      var ch = source[i];
-      if (ch === '"') {
-        if (!inString) {
-          out += chunk.replace(pattern, replacer);
-          chunk = '';
-          inString = true;
-        } else if (source[i + 1] === '"') {
-          chunk += '\\"';
-          i += 1;
-          continue;
-        } else {
-          inString = false;
-          out += '"' + chunk + '"';
-          chunk = '';
-          continue;
+    SpreadsheetEngine.prototype.pasteBlock = function (block, startRow, startCol, sourceRange, targetSize) {
+      var rows = targetSize && targetSize.rows ? targetSize.rows : block.length;
+      var cols = targetSize && targetSize.cols ? targetSize.cols : block[0].length;
+      var updates = [];
+      for (var r = 0; r < rows; r++) {
+        var sourceRow = block[r % block.length];
+        for (var c = 0; c < cols; c++) {
+          var raw = sourceRow[c % sourceRow.length];
+          var fromRow = sourceRange ? sourceRange.r1 + (r % block.length) : startRow + r;
+          var fromCol = sourceRange ? sourceRange.c1 + (c % sourceRow.length) : startCol + c;
+          updates.push({ row: startRow + r, col: startCol + c, raw: adjustFormulaReferences(raw, fromRow, fromCol, startRow + r, startCol + c) });
         }
-      } else {
-        chunk += ch;
       }
-    }
-    out += inString ? '"' + chunk : chunk.replace(pattern, replacer);
-    return out;
-  }
+      return this.applyRawChanges(updates);
+    };
 
-  function adjustFormulaReferences(raw, fromRow, fromCol, toRow, toCol) {
-    if (!raw || raw[0] !== '=') return raw;
-    var rowDelta = toRow - fromRow;
-    var colDelta = toCol - fromCol;
-    return replaceOutsideStrings(raw, /(\$?)([A-Z]+)(\$?)(\d+)/g, function (_, absCol, colLetters, absRow, rowText) {
-      var parsed = parseRef(colLetters + rowText);
-      if (!parsed) return _;
-      var nextCol = absCol ? parsed.col : parsed.col + colDelta;
-      var nextRow = absRow ? parsed.row : parsed.row + rowDelta;
-      if (nextCol < 0 || nextRow < 0) return '#REF!';
-      return absCol + colName(nextCol) + absRow + String(nextRow + 1);
-    });
-  }
-
-  function adjustFormulaStructure(raw, axis, atIndex, count, mode) {
-    if (!raw || raw[0] !== '=') return raw;
-    return replaceOutsideStrings(raw, /(\$?)([A-Z]+)(\$?)(\d+)/g, function (match, absCol, colLetters, absRow, rowText) {
-      var parsed = parseRef(colLetters + rowText);
-      var nextRow = parsed.row;
-      var nextCol = parsed.col;
-      if (axis === 'row') {
-        if (mode === 'insert' && parsed.row >= atIndex) nextRow += count;
-        if (mode === 'delete' && parsed.row >= atIndex && parsed.row < atIndex + count) return '#REF!';
-        if (mode === 'delete' && parsed.row >= atIndex + count) nextRow -= count;
-      }
-      if (axis === 'col') {
-        if (mode === 'insert' && parsed.col >= atIndex) nextCol += count;
-        if (mode === 'delete' && parsed.col >= atIndex && parsed.col < atIndex + count) return '#REF!';
-        if (mode === 'delete' && parsed.col >= atIndex + count) nextCol -= count;
-      }
-      return absCol + colName(nextCol) + absRow + String(nextRow + 1);
-    });
-  }
-
-  function flatten(values) {
-    var out = [];
-    values.forEach(function (value) {
-      if (Array.isArray(value)) out = out.concat(flatten(value));
-      else out.push(value);
-    });
-    return out;
-  }
-
-  function numeric(value) {
-    if (value === true) return 1;
-    if (value === false || value === '' || value === null || value === undefined) return 0;
-    var n = Number(value);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  function displayValue(value) {
-    if (value === true) return 'TRUE';
-    if (value === false) return 'FALSE';
-    if (value === null || value === undefined) return '';
-    return String(value);
-  }
-
-  function SpreadsheetEngine(cols, rows) {
-    this.cols = cols || COLS;
-    this.rows = rows || ROWS;
-    this.cells = {};
-  }
-
-  SpreadsheetEngine.prototype.key = function (row, col) {
-    return row + ',' + col;
-  };
-
-  SpreadsheetEngine.prototype.setCell = function (row, col, raw) {
-    var key = this.key(row, col);
-    var value = String(raw == null ? '' : raw);
-    if (value) this.cells[key] = value;
-    else delete this.cells[key];
-  };
-
-  SpreadsheetEngine.prototype.applyRawChanges = function (updates) {
-    var byKey = {};
-    var self = this;
-    updates.forEach(function (item) {
-      if (item.row < 0 || item.col < 0 || item.row >= self.rows || item.col >= self.cols) return;
-      var itemKey = self.key(item.row, item.col);
-      if (!byKey[itemKey]) byKey[itemKey] = { row: item.row, col: item.col, oldRaw: self.getRaw(item.row, item.col), newRaw: '' };
-      byKey[itemKey].newRaw = String(item.raw == null ? '' : item.raw);
-    });
-    return Object.keys(byKey).map(function (itemKey) {
-      var change = byKey[itemKey];
-      self.setCell(change.row, change.col, change.newRaw);
-      return change;
-    }).filter(function (change) { return change.oldRaw !== change.newRaw; });
-  };
-
-  SpreadsheetEngine.prototype.getRaw = function (row, col) {
-    return this.cells[this.key(row, col)] || '';
-  };
-
-  SpreadsheetEngine.prototype.toJSON = function () {
-    return { cols: this.cols, rows: this.rows, cells: this.cells };
-  };
-
-  SpreadsheetEngine.fromJSON = function (data) {
-    var engine = new SpreadsheetEngine(data && data.cols || COLS, data && data.rows || ROWS);
-    engine.cells = data && data.cells || {};
-    return engine;
-  };
-
-  SpreadsheetEngine.prototype.getValue = function (row, col, stack) {
-    var raw = this.getRaw(row, col);
-    if (!raw) return '';
-    if (raw[0] !== '=') {
-      var n = Number(raw);
-      return raw.trim() !== '' && Number.isFinite(n) ? n : raw;
-    }
-    stack = stack || {};
-    var key = this.key(row, col);
-    if (stack[key]) return '#CIRC!';
-    stack[key] = true;
-    var result = this.evaluateFormula(raw, stack);
-    delete stack[key];
-    return result;
-  };
-
-  SpreadsheetEngine.prototype.getDisplay = function (row, col) {
-    return displayValue(this.getValue(row, col, {}));
-  };
-
-  SpreadsheetEngine.prototype.shiftStructure = function (axis, atIndex, count, mode) {
-    var next = {};
-    var self = this;
-    Object.keys(this.cells).forEach(function (cellKey) {
-      var parts = cellKey.split(',').map(Number);
-      var row = parts[0];
-      var col = parts[1];
-      if (axis === 'row') {
-        if (mode === 'insert' && row >= atIndex) row += count;
-        if (mode === 'delete' && row >= atIndex && row < atIndex + count) return;
-        if (mode === 'delete' && row >= atIndex + count) row -= count;
-      }
-      if (axis === 'col') {
-        if (mode === 'insert' && col >= atIndex) col += count;
-        if (mode === 'delete' && col >= atIndex && col < atIndex + count) return;
-        if (mode === 'delete' && col >= atIndex + count) col -= count;
-      }
-      if (row >= 0 && row < self.rows && col >= 0 && col < self.cols) {
-        next[self.key(row, col)] = adjustFormulaStructure(self.cells[cellKey], axis, atIndex, count, mode);
-      }
-    });
-    this.cells = next;
-  };
-
-  SpreadsheetEngine.prototype.insertRows = function (atRow, count) {
-    this.shiftStructure('row', atRow, count || 1, 'insert');
-  };
-
-  SpreadsheetEngine.prototype.deleteRows = function (atRow, count) {
-    this.shiftStructure('row', atRow, count || 1, 'delete');
-  };
-
-  SpreadsheetEngine.prototype.insertCols = function (atCol, count) {
-    this.shiftStructure('col', atCol, count || 1, 'insert');
-  };
-
-  SpreadsheetEngine.prototype.deleteCols = function (atCol, count) {
-    this.shiftStructure('col', atCol, count || 1, 'delete');
-  };
-
-  SpreadsheetEngine.prototype.copyRange = function (range) {
-    var data = [];
-    var r1 = Math.min(range.r1, range.r2);
-    var r2 = Math.max(range.r1, range.r2);
-    var c1 = Math.min(range.c1, range.c2);
-    var c2 = Math.max(range.c1, range.c2);
-    for (var row = r1; row <= r2; row += 1) {
-      var line = [];
-      for (var col = c1; col <= c2; col += 1) line.push(this.getRaw(row, col));
-      data.push(line);
-    }
-    return data;
-  };
-
-  SpreadsheetEngine.prototype.pasteBlock = function (block, startRow, startCol, sourceRange, targetSize) {
-    var rows = targetSize && targetSize.rows ? targetSize.rows : block.length;
-    var cols = targetSize && targetSize.cols ? targetSize.cols : block[0].length;
-    var updates = [];
-    for (var r = 0; r < rows; r += 1) {
-      var sourceRow = block[r % block.length];
-      for (var c = 0; c < cols; c += 1) {
-        var raw = sourceRow[c % sourceRow.length];
-        var fromRow = sourceRange ? sourceRange.r1 + (r % block.length) : startRow + r;
-        var fromCol = sourceRange ? sourceRange.c1 + (c % sourceRow.length) : startCol + c;
-        updates.push({ row: startRow + r, col: startCol + c, raw: adjustFormulaReferences(raw, fromRow, fromCol, startRow + r, startCol + c) });
-      }
-    }
-    return this.applyRawChanges(updates);
-  };
-
-  SpreadsheetEngine.prototype.moveRange = function (range, startRow, startCol) {
-    var source = this.copyRange(range);
-    var r1 = Math.min(range.r1, range.r2);
-    var c1 = Math.min(range.c1, range.c2);
-    var updates = [];
-    for (var r = 0; r < source.length; r += 1) {
-      for (var c = 0; c < source[r].length; c += 1) updates.push({ row: r1 + r, col: c1 + c, raw: '' });
-    }
-    for (var pr = 0; pr < source.length; pr += 1) {
-      for (var pc = 0; pc < source[pr].length; pc += 1) {
+    SpreadsheetEngine.prototype.moveRange = function (range, startRow, startCol) {
+      var source = this.copyRange(range);
+      var r1 = Math.min(range.r1, range.r2);
+      var c1 = Math.min(range.c1, range.c2);
+      var updates = [];
+      for (var r = 0; r < source.length; r++) for (var c = 0; c < source[r].length; c++) updates.push({ row: r1 + r, col: c1 + c, raw: '' });
+      for (var pr = 0; pr < source.length; pr++) for (var pc = 0; pc < source[pr].length; pc++) {
         updates.push({ row: startRow + pr, col: startCol + pc, raw: adjustFormulaReferences(source[pr][pc], r1 + pr, c1 + pc, startRow + pr, startCol + pc) });
       }
-    }
-    return this.applyRawChanges(updates);
-  };
+      return this.applyRawChanges(updates);
+    };
 
-  SpreadsheetEngine.prototype.rangeValues = function (startRef, endRef, stack) {
-    var start = parseRef(startRef);
-    var end = parseRef(endRef);
-    var values = [];
-    if (!start || !end) return values;
-    var r1 = Math.min(start.row, end.row);
-    var r2 = Math.max(start.row, end.row);
-    var c1 = Math.min(start.col, end.col);
-    var c2 = Math.max(start.col, end.col);
-    for (var r = r1; r <= r2; r += 1) {
-      for (var c = c1; c <= c2; c += 1) {
-        values.push(this.getValue(r, c, stack));
+    function adjustFormulaReferences(raw, fromRow, fromCol, toRow, toCol) {
+      return rewriteFormulaReferences(raw, toRow - fromRow, toCol - fromCol);
+    }
+
+    function describeSelection(anchor, active, maxRows, maxCols) {
+      function clamp(value, max) { return Math.max(0, Math.min(max - 1, value)); }
+      var activeRow = clamp(active.row, maxRows);
+      var activeCol = clamp(active.col, maxCols);
+      var anchorRow = clamp(anchor.row, maxRows);
+      var anchorCol = clamp(anchor.col, maxCols);
+      var r1 = Math.min(anchorRow, activeRow);
+      var c1 = Math.min(anchorCol, activeCol);
+      var r2 = Math.max(anchorRow, activeRow);
+      var c2 = Math.max(anchorCol, activeCol);
+      var start = nodeAddr(r1, c1);
+      var end = nodeAddr(r2, c2);
+      return { r1: r1, c1: c1, r2: r2, c2: c2, activeRow: activeRow, activeCol: activeCol, label: start === end ? start : start + ':' + end };
+    }
+
+    module.exports = { SpreadsheetEngine: SpreadsheetEngine, adjustFormulaReferences: adjustFormulaReferences, describeSelection: describeSelection };
+    return;
+  }
+
+  var ROWS = 100;
+  var COLS = 26;
+  var STORAGE_NS = window.__SPREADSHEET_STORAGE_NAMESPACE__ || window.STORAGE_NAMESPACE || 'amazon-sheet:';
+  var KEY = STORAGE_NS + 'state';
+  var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  function colToName(col) { return letters[col]; }
+  function addr(row, col) { return colToName(col) + (row + 1); }
+  function parseAddr(name) {
+    var m = /^([A-Z])(\d+)$/.exec(name);
+    if (!m) return null;
+    var row = Number(m[2]) - 1;
+    var col = letters.indexOf(m[1]);
+    return row >= 0 && row < ROWS && col >= 0 ? { row: row, col: col } : null;
+  }
+  function formatValue(value) {
+    if (value === true) return 'TRUE';
+    if (value === false) return 'FALSE';
+    if (typeof value === 'number') return Number.isFinite(value) ? String(Math.round(value * 1e10) / 1e10) : '#ERR!';
+    return value == null ? '' : String(value);
+  }
+  function rawToValue(raw) {
+    if (raw === '') return 0;
+    if (/^true$/i.test(raw)) return true;
+    if (/^false$/i.test(raw)) return false;
+    if (!Number.isNaN(Number(raw))) return Number(raw);
+    return raw;
+  }
+  function flatten(args) {
+    var out = [];
+    args.forEach(function (arg) { Array.isArray(arg) ? out.push.apply(out, flatten(arg)) : out.push(arg); });
+    return out;
+  }
+  function num(v) { return typeof v === 'number' ? v : Number(v) || 0; }
+  function truthy(v) { return v === true || (typeof v === 'number' ? v !== 0 : String(v).length > 0); }
+
+  function tokenize(expr) {
+    var tokens = [];
+    var i = 0;
+    while (i < expr.length) {
+      var ch = expr[i];
+      if (/\s/.test(ch)) { i++; continue; }
+      if (ch === '"') {
+        var s = '';
+        i++;
+        while (i < expr.length && expr[i] !== '"') s += expr[i++];
+        if (expr[i] !== '"') throw new Error('#ERR!');
+        i++;
+        tokens.push({ type: 'str', value: s });
+        continue;
       }
+      var two = expr.slice(i, i + 2);
+      if (['<>', '<=', '>='].indexOf(two) >= 0) { tokens.push({ type: 'op', value: two }); i += 2; continue; }
+      if ('+-*/()&,:=<>'.indexOf(ch) >= 0) { tokens.push({ type: ch === '(' || ch === ')' || ch === ',' || ch === ':' ? ch : 'op', value: ch }); i++; continue; }
+      var n = /^\d+(?:\.\d+)?/.exec(expr.slice(i));
+      if (n) { tokens.push({ type: 'num', value: Number(n[0]) }); i += n[0].length; continue; }
+      var id = /^\$?[A-Z]+\$?\d+|[A-Z_][A-Z0-9_]*/.exec(expr.slice(i));
+      if (id) { tokens.push({ type: 'id', value: id[0] }); i += id[0].length; continue; }
+      throw new Error('#ERR!');
+    }
+    return tokens;
+  }
+
+  function Parser(tokens, sheet, stack) { this.tokens = tokens; this.i = 0; this.sheet = sheet; this.stack = stack || {}; }
+  Parser.prototype.peek = function () { return this.tokens[this.i]; };
+  Parser.prototype.take = function (type, value) {
+    var t = this.peek();
+    if (t && t.type === type && (value == null || t.value === value)) { this.i++; return t; }
+    return null;
+  };
+  Parser.prototype.parse = function () {
+    var v = this.compare();
+    if (this.peek()) throw new Error('#ERR!');
+    return v;
+  };
+  Parser.prototype.compare = function () {
+    var left = this.concat();
+    while (this.peek() && this.peek().type === 'op' && ['=', '<>', '<', '<=', '>', '>='].indexOf(this.peek().value) >= 0) {
+      var op = this.take('op').value, right = this.concat();
+      if (op === '=') left = left == right;
+      if (op === '<>') left = left != right;
+      if (op === '<') left = left < right;
+      if (op === '<=') left = left <= right;
+      if (op === '>') left = left > right;
+      if (op === '>=') left = left >= right;
+    }
+    return left;
+  };
+  Parser.prototype.concat = function () {
+    var left = this.add();
+    while (this.take('op', '&')) left = formatValue(left) + formatValue(this.add());
+    return left;
+  };
+  Parser.prototype.add = function () {
+    var left = this.mul();
+    while (this.peek() && this.peek().type === 'op' && ['+', '-'].indexOf(this.peek().value) >= 0) {
+      var op = this.take('op').value, right = this.mul();
+      left = op === '+' ? num(left) + num(right) : num(left) - num(right);
+    }
+    return left;
+  };
+  Parser.prototype.mul = function () {
+    var left = this.unary();
+    while (this.peek() && this.peek().type === 'op' && ['*', '/'].indexOf(this.peek().value) >= 0) {
+      var op = this.take('op').value, right = this.unary();
+      if (op === '/' && num(right) === 0) throw new Error('#DIV/0!');
+      left = op === '*' ? num(left) * num(right) : num(left) / num(right);
+    }
+    return left;
+  };
+  Parser.prototype.unary = function () { return this.take('op', '-') ? -num(this.unary()) : this.primary(); };
+  Parser.prototype.primary = function () {
+    var t = this.peek();
+    if (!t) throw new Error('#ERR!');
+    if (this.take('num')) return t.value;
+    if (this.take('str')) return t.value;
+    if (this.take('(')) { var v = this.compare(); if (!this.take(')')) throw new Error('#ERR!'); return v; }
+    if (this.take('id')) {
+      var id = t.value.toUpperCase();
+      if (id === 'TRUE') return true;
+      if (id === 'FALSE') return false;
+      if (this.take('(')) return this.call(id);
+      if (/^\$?[A-Z]+\$?\d+$/.test(id)) {
+        if (this.take(':')) return this.rangeValues(id, this.take('id').value.toUpperCase());
+        return this.cellValue(id);
+      }
+      throw new Error('#NAME?');
+    }
+    throw new Error('#ERR!');
+  };
+  Parser.prototype.call = function (name) {
+    var args = [];
+    if (!this.take(')')) {
+      do { args.push(this.compare()); } while (this.take(','));
+      if (!this.take(')')) throw new Error('#ERR!');
+    }
+    var values = flatten(args);
+    if (name === 'SUM') return values.reduce(function (a, b) { return a + num(b); }, 0);
+    if (name === 'AVERAGE') return values.length ? values.reduce(function (a, b) { return a + num(b); }, 0) / values.length : 0;
+    if (name === 'MIN') return Math.min.apply(Math, values.map(num));
+    if (name === 'MAX') return Math.max.apply(Math, values.map(num));
+    if (name === 'COUNT') return values.filter(function (v) { return typeof v === 'number' || !Number.isNaN(Number(v)); }).length;
+    if (name === 'IF') return truthy(args[0]) ? args[1] : args[2];
+    if (name === 'AND') return values.every(truthy);
+    if (name === 'OR') return values.some(truthy);
+    if (name === 'NOT') return !truthy(args[0]);
+    if (name === 'ABS') return Math.abs(num(args[0]));
+    if (name === 'ROUND') return Number(num(args[0]).toFixed(args[1] == null ? 0 : num(args[1])));
+    if (name === 'CONCAT') return values.map(formatValue).join('');
+    throw new Error('#NAME?');
+  };
+  Parser.prototype.cellValue = function (ref) {
+    var clean = ref.replace(/\$/g, '');
+    if (this.stack[clean]) throw new Error('#CIRC!');
+    return evaluateCell(clean, this.sheet, Object.assign({}, this.stack, Object.fromEntries([[clean, true]]))).value;
+  };
+  Parser.prototype.rangeValues = function (a, b) {
+    var pa = parseAddr(a.replace(/\$/g, '')), pb = parseAddr(b.replace(/\$/g, ''));
+    if (!pa || !pb) throw new Error('#REF!');
+    var values = [];
+    for (var r = Math.min(pa.row, pb.row); r <= Math.max(pa.row, pb.row); r++) {
+      for (var c = Math.min(pa.col, pb.col); c <= Math.max(pa.col, pb.col); c++) values.push(this.cellValue(addr(r, c)));
     }
     return values;
   };
 
-  SpreadsheetEngine.prototype.evaluateFormula = function (raw, stack) {
-    var self = this;
-    var expr = raw.slice(1).trim();
+  function evaluateCell(address, sheet, stack) {
+    var raw = sheet.getRaw(address);
+    if (!raw || raw[0] !== '=') { var v = rawToValue(raw || ''); return { value: v, display: raw === '' ? '' : formatValue(v), type: typeof v === 'number' ? 'number' : 'text' }; }
     try {
-      expr = expr.replace(/<>/g, '!=').replace(/([^<>!=])=([^=])/g, '$1==$2').replace(/&/g, '+');
-      expr = replaceOutsideStrings(expr, /(\$?[A-Z]+\$?\d+):(\$?[A-Z]+\$?\d+)/g, function (_, a, b) {
-        return 'RANGE("' + a.replace(/\$/g, '') + '","' + b.replace(/\$/g, '') + '")';
-      });
-      expr = replaceOutsideStrings(expr, /\b(\$?[A-Z]+\$?\d+)\b/g, function (_, ref) {
-        return 'CELL("' + ref.replace(/\$/g, '') + '")';
-      });
-      expr = replaceOutsideStrings(expr, /\bTRUE\b/g, function () { return 'true'; });
-      expr = replaceOutsideStrings(expr, /\bFALSE\b/g, function () { return 'false'; });
-      var fns = {
-        CELL: function (ref) {
-          var parsed = parseRef(ref);
-          if (!parsed || parsed.row < 0 || parsed.col < 0 || parsed.row >= self.rows || parsed.col >= self.cols) return '#REF!';
-          return self.getValue(parsed.row, parsed.col, stack);
-        },
-        RANGE: function (a, b) { return self.rangeValues(a, b, stack); },
-        SUM: function () { return flatten(Array.prototype.slice.call(arguments)).reduce(function (sum, value) { return sum + numeric(value); }, 0); },
-        AVERAGE: function () { var vals = flatten(Array.prototype.slice.call(arguments)); return vals.length ? fns.SUM(vals) / vals.length : 0; },
-        MIN: function () { return Math.min.apply(Math, flatten(Array.prototype.slice.call(arguments)).map(numeric)); },
-        MAX: function () { return Math.max.apply(Math, flatten(Array.prototype.slice.call(arguments)).map(numeric)); },
-        COUNT: function () { return flatten(Array.prototype.slice.call(arguments)).filter(function (value) { return value !== '' && Number.isFinite(Number(value)); }).length; },
-        IF: function (cond, yes, no) { return cond ? yes : no; },
-        AND: function () { return flatten(Array.prototype.slice.call(arguments)).every(Boolean); },
-        OR: function () { return flatten(Array.prototype.slice.call(arguments)).some(Boolean); },
-        NOT: function (value) { return !value; },
-        ABS: Math.abs,
-        ROUND: function (value, digits) { var places = Math.pow(10, digits || 0); return Math.round(numeric(value) * places) / places; },
-        CONCAT: function () { return flatten(Array.prototype.slice.call(arguments)).map(displayValue).join(''); }
-      };
-      var names = Object.keys(fns);
-      var values = names.map(function (name) { return fns[name]; });
-      var result = Function(names.join(','), 'return (' + expr + ');').apply(null, values);
-      return result === Infinity || result === -Infinity ? '#DIV/0!' : result;
-    } catch (error) {
-      return '#ERR!';
+      var value = new Parser(tokenize(raw.slice(1)), sheet, stack || Object.fromEntries([[address, true]])).parse();
+      return { value: value, display: formatValue(value), type: typeof value === 'number' ? 'number' : 'text' };
+    } catch (e) {
+      var msg = e.message && e.message[0] === '#' ? e.message : '#ERR!';
+      return { value: msg, display: msg, type: 'error' };
     }
-  };
-
-  function createApp() {
-    var grid = document.getElementById('grid');
-    if (!grid) return;
-    var wrap = document.getElementById('sheet-wrap');
-    var formulaInput = document.getElementById('formula-input');
-    var cellName = document.getElementById('cell-name');
-    var ns = global.SPREADSHEET_STORAGE_NAMESPACE || global.__STORAGE_NAMESPACE__ || document.documentElement.dataset.storageNamespace || 'local-spreadsheet:' + location.pathname;
-    var storageKey = ns + ':sheet-state';
-    var saved = null;
-    try { saved = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch (error) { saved = null; }
-    var engine = SpreadsheetEngine.fromJSON(saved && saved.sheet);
-    var active = saved && saved.active || { row: 0, col: 0 };
-    var anchor = { row: active.row, col: active.col };
-    var range = { r1: active.row, c1: active.col, r2: active.row, c2: active.col };
-    var editing = null;
-    var history = [];
-    var redo = [];
-    var dragSelecting = false;
-    var internalClipboard = null;
-    var contextMenu = document.createElement('div');
-    contextMenu.className = 'context-menu';
-    contextMenu.hidden = true;
-    document.body.appendChild(contextMenu);
-    var formulaInputCommitted = false;
-
-    function persist() {
-      localStorage.setItem(storageKey, JSON.stringify({ sheet: engine.toJSON(), active: active }));
-    }
-
-    function record(changes) {
-      if (!changes.length) return;
-      history.push(changes);
-      if (history.length > MAX_HISTORY) history.shift();
-      redo = [];
-    }
-
-    function applyChanges(changes, direction) {
-      if (changes.snapshot) {
-        engine.cells = JSON.parse(JSON.stringify(direction === 'old' ? changes.oldCells : changes.newCells));
-        renderValues();
-        persist();
-        return;
-      }
-      changes.forEach(function (change) {
-        engine.setCell(change.row, change.col, direction === 'old' ? change.oldRaw : change.newRaw);
-      });
-      renderValues();
-      persist();
-    }
-
-    function setMany(updates) {
-      var changes = engine.applyRawChanges(updates);
-      record(changes);
-      renderValues();
-      persist();
-    }
-
-    function recordEngineChanges(changes) {
-      record(changes);
-      renderValues();
-      persist();
-    }
-
-    function mutateStructure(action) {
-      var oldCells = JSON.parse(JSON.stringify(engine.cells));
-      action();
-      var newCells = JSON.parse(JSON.stringify(engine.cells));
-      history.push({ snapshot: true, oldCells: oldCells, newCells: newCells });
-      if (history.length > MAX_HISTORY) history.shift();
-      redo = [];
-      buildGrid();
-      renderValues();
-      persist();
-    }
-
-    function buildGrid() {
-      grid.innerHTML = '';
-      var thead = document.createElement('thead');
-      var headRow = document.createElement('tr');
-      var corner = document.createElement('th');
-      corner.className = 'corner';
-      headRow.appendChild(corner);
-      for (var col = 0; col < COLS; col += 1) {
-        var th = document.createElement('th');
-        th.textContent = colName(col);
-        th.dataset.colHeader = String(col);
-        headRow.appendChild(th);
-      }
-      thead.appendChild(headRow);
-      grid.appendChild(thead);
-      var tbody = document.createElement('tbody');
-      for (var row = 0; row < ROWS; row += 1) {
-        var tr = document.createElement('tr');
-        var rowHead = document.createElement('th');
-        rowHead.className = 'row-header';
-        rowHead.textContent = String(row + 1);
-        rowHead.dataset.rowHeader = String(row);
-        tr.appendChild(rowHead);
-        for (var c = 0; c < COLS; c += 1) {
-          var td = document.createElement('td');
-          td.className = 'cell';
-          td.dataset.row = String(row);
-          td.dataset.col = String(c);
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
-      }
-      grid.appendChild(tbody);
-    }
-
-    function showContextMenu(x, y, items) {
-      contextMenu.innerHTML = '';
-      items.forEach(function (item) {
-        var button = document.createElement('button');
-        button.type = 'button';
-        button.textContent = item.label;
-        button.addEventListener('click', function () {
-          contextMenu.hidden = true;
-          item.run();
-        });
-        contextMenu.appendChild(button);
-      });
-      contextMenu.style.left = x + 'px';
-      contextMenu.style.top = y + 'px';
-      contextMenu.hidden = false;
-    }
-
-    function getCell(row, col) {
-      return grid.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
-    }
-
-    function normalizedRange() {
-      return describeSelection({ row: range.r1, col: range.c1 }, { row: range.r2, col: range.c2 }, ROWS, COLS);
-    }
-
-    function renderValues() {
-      for (var row = 0; row < ROWS; row += 1) {
-        for (var col = 0; col < COLS; col += 1) {
-          var td = getCell(row, col);
-          var raw = engine.getRaw(row, col);
-          var display = engine.getDisplay(row, col);
-          td.textContent = display;
-          td.classList.toggle('number', raw !== '' && Number.isFinite(Number(display)));
-          td.classList.toggle('text', raw === '' || !Number.isFinite(Number(display)));
-          td.classList.toggle('error', /^#/.test(display));
-        }
-      }
-      renderSelection();
-    }
-
-    function renderSelection() {
-      var nr = normalizedRange();
-      grid.querySelectorAll('.cell').forEach(function (td) {
-        var row = Number(td.dataset.row);
-        var col = Number(td.dataset.col);
-        td.classList.toggle('active', row === active.row && col === active.col);
-        td.classList.toggle('in-range', row >= nr.r1 && row <= nr.r2 && col >= nr.c1 && col <= nr.c2);
-      });
-      grid.querySelectorAll('[data-col-header]').forEach(function (th) {
-        var col = Number(th.dataset.colHeader);
-        th.classList.toggle('selected-header', col >= nr.c1 && col <= nr.c2);
-        th.classList.toggle('active-header', col === active.col);
-      });
-      grid.querySelectorAll('[data-row-header]').forEach(function (th) {
-        var row = Number(th.dataset.rowHeader);
-        th.classList.toggle('selected-header', row >= nr.r1 && row <= nr.r2);
-        th.classList.toggle('active-header', row === active.row);
-      });
-      cellName.textContent = nr.label;
-      if (document.activeElement !== formulaInput) formulaInput.value = engine.getRaw(active.row, active.col);
-      var current = getCell(active.row, active.col);
-      if (current) current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }
-
-    function selectCell(row, col, extend) {
-      active = { row: clamp(row, 0, ROWS - 1), col: clamp(col, 0, COLS - 1) };
-      if (!extend) anchor = { row: active.row, col: active.col };
-      range = { r1: anchor.row, c1: anchor.col, r2: active.row, c2: active.col };
-      renderSelection();
-      persist();
-    }
-
-    function commitEdit(value, move) {
-      if (editing) {
-        editing.cell.classList.remove('editing');
-        editing.cell.innerHTML = '';
-        editing = null;
-      }
-      setMany([{ row: active.row, col: active.col, raw: value }]);
-      if (move === 'down') selectCell(active.row + 1, active.col, false);
-      if (move === 'right') selectCell(active.row, active.col + 1, false);
-      wrap.focus();
-    }
-
-    function commitFormulaInput(move) {
-      var row = active.row;
-      var col = active.col;
-      setMany([{ row: row, col: col, raw: formulaInput.value }]);
-      if (move === 'down') selectCell(row + 1, col, false);
-      if (move === 'right') selectCell(row, col + 1, false);
-      if (move === 'left') selectCell(row, col - 1, false);
-      wrap.focus();
-    }
-
-    function startEdit(preserve, initial) {
-      if (editing) return;
-      var td = getCell(active.row, active.col);
-      var previous = engine.getRaw(active.row, active.col);
-      td.classList.add('editing');
-      td.textContent = '';
-      var input = document.createElement('input');
-      input.className = 'cell-editor';
-      input.value = preserve ? previous : initial || '';
-      td.appendChild(input);
-      editing = { cell: td, input: input, previous: previous };
-      input.focus();
-      input.select();
-      input.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') { event.preventDefault(); commitEdit(input.value, 'down'); }
-        if (event.key === 'Tab') { event.preventDefault(); commitEdit(input.value, 'right'); }
-        if (event.key === 'Escape') { event.preventDefault(); cancelEdit(); }
-      });
-    }
-
-    function cancelEdit() {
-      if (!editing) return;
-      editing.cell.classList.remove('editing');
-      editing.cell.innerHTML = '';
-      editing = null;
-      renderValues();
-      wrap.focus();
-    }
-
-    function clearRange() {
-      var updates = [];
-      eachCellInRange(range, function (row, col) { updates.push({ row: row, col: col, raw: '' }); });
-      setMany(updates);
-    }
-
-    function clipboardText() {
-      var nr = normalizedRange();
-      return engine.copyRange(nr).map(function (line) { return line.join('\t'); }).join('\n');
-    }
-
-    function parseClipboardText(text) {
-      var rows = text.replace(/\r/g, '').split('\n');
-      if (rows[rows.length - 1] === '') rows.pop();
-      return rows.map(function (line) { return line.split('\t'); });
-    }
-
-    function pasteText(text) {
-      var block = parseClipboardText(text);
-      if (!block.length) return;
-      var target = normalizedRange();
-      var targetRows = target.r2 - target.r1 + 1;
-      var targetCols = target.c2 - target.c1 + 1;
-      var targetSize = targetRows === 1 && targetCols === 1 ? null : { rows: targetRows, cols: targetCols };
-      if (internalClipboard && internalClipboard.cut) {
-        recordEngineChanges(engine.moveRange(internalClipboard.range, active.row, active.col));
-        internalClipboard = null;
-        return;
-      }
-      recordEngineChanges(engine.pasteBlock(block, active.row, active.col, internalClipboard && internalClipboard.range, targetSize));
-    }
-
-    buildGrid();
-    renderValues();
-
-    grid.addEventListener('mousedown', function (event) {
-      var td = event.target.closest('.cell');
-      if (!td) return;
-      event.preventDefault();
-      selectCell(Number(td.dataset.row), Number(td.dataset.col), event.shiftKey);
-      dragSelecting = true;
-      wrap.focus();
-    });
-
-    grid.addEventListener('contextmenu', function (event) {
-      var rowHeader = event.target.closest('[data-row-header]');
-      var colHeader = event.target.closest('[data-col-header]');
-      if (!rowHeader && !colHeader) return;
-      event.preventDefault();
-      if (rowHeader) {
-        var row = Number(rowHeader.dataset.rowHeader);
-        showContextMenu(event.clientX, event.clientY, [
-          { label: 'Insert row above', run: function () { mutateStructure(function () { engine.insertRows(row, 1); }); } },
-          { label: 'Insert row below', run: function () { mutateStructure(function () { engine.insertRows(row + 1, 1); }); } },
-          { label: 'Delete row', run: function () { mutateStructure(function () { engine.deleteRows(row, 1); }); } }
-        ]);
-      }
-      if (colHeader) {
-        var col = Number(colHeader.dataset.colHeader);
-        showContextMenu(event.clientX, event.clientY, [
-          { label: 'Insert column left', run: function () { mutateStructure(function () { engine.insertCols(col, 1); }); } },
-          { label: 'Insert column right', run: function () { mutateStructure(function () { engine.insertCols(col + 1, 1); }); } },
-          { label: 'Delete column', run: function () { mutateStructure(function () { engine.deleteCols(col, 1); }); } }
-        ]);
-      }
-    });
-
-    grid.addEventListener('mouseover', function (event) {
-      if (!dragSelecting) return;
-      var td = event.target.closest('.cell');
-      if (!td) return;
-      selectCell(Number(td.dataset.row), Number(td.dataset.col), true);
-    });
-
-    document.addEventListener('mouseup', function () {
-      dragSelecting = false;
-    });
-
-    document.addEventListener('click', function (event) {
-      if (!contextMenu.contains(event.target)) contextMenu.hidden = true;
-    });
-
-    grid.addEventListener('dblclick', function (event) {
-      var td = event.target.closest('.cell');
-      if (!td) return;
-      selectCell(Number(td.dataset.row), Number(td.dataset.col), false);
-      startEdit(true);
-    });
-
-    wrap.addEventListener('keydown', function (event) {
-      if (editing) return;
-      var meta = event.metaKey || event.ctrlKey;
-      if (meta && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        if (event.shiftKey) {
-          var redoChanges = redo.pop();
-          if (redoChanges) { history.push(redoChanges); applyChanges(redoChanges, 'new'); }
-        } else {
-          var undoChanges = history.pop();
-          if (undoChanges) { redo.push(undoChanges); applyChanges(undoChanges, 'old'); }
-        }
-        return;
-      }
-      if (meta && event.key.toLowerCase() === 'y') {
-        event.preventDefault();
-        var yChanges = redo.pop();
-        if (yChanges) { history.push(yChanges); applyChanges(yChanges, 'new'); }
-        return;
-      }
-      if (meta && event.key.toLowerCase() === 'c') {
-        event.preventDefault();
-        internalClipboard = { range: normalizedRange(), cut: false };
-        navigator.clipboard && navigator.clipboard.writeText(clipboardText());
-        return;
-      }
-      if (meta && event.key.toLowerCase() === 'x') {
-        event.preventDefault();
-        internalClipboard = { range: normalizedRange(), cut: true };
-        navigator.clipboard && navigator.clipboard.writeText(clipboardText());
-        return;
-      }
-      if (meta && event.key.toLowerCase() === 'v') {
-        event.preventDefault();
-        if (navigator.clipboard) navigator.clipboard.readText().then(pasteText);
-        return;
-      }
-      if (event.key === 'Enter' || event.key === 'F2') { event.preventDefault(); startEdit(true); return; }
-      if (event.key === 'Tab') { event.preventDefault(); selectCell(active.row, active.col + (event.shiftKey ? -1 : 1), false); return; }
-      if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); clearRange(); return; }
-      if (event.key.indexOf('Arrow') === 0) {
-        event.preventDefault();
-        var dr = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0;
-        var dc = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-        selectCell(active.row + dr, active.col + dc, event.shiftKey);
-        return;
-      }
-      if (event.key.length === 1 && !meta && !event.altKey) {
-        event.preventDefault();
-        startEdit(false, event.key);
-      }
-    });
-
-    formulaInput.addEventListener('focus', function () { formulaInput.value = engine.getRaw(active.row, active.col); });
-    formulaInput.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') { event.preventDefault(); formulaInputCommitted = true; commitFormulaInput('down'); setTimeout(function () { formulaInputCommitted = false; }, 0); }
-      if (event.key === 'Tab') { event.preventDefault(); formulaInputCommitted = true; commitFormulaInput(event.shiftKey ? 'left' : 'right'); setTimeout(function () { formulaInputCommitted = false; }, 0); }
-      if (event.key === 'Escape') { event.preventDefault(); formulaInput.value = engine.getRaw(active.row, active.col); wrap.focus(); }
-    });
-    formulaInput.addEventListener('change', function () { if (!formulaInputCommitted) commitFormulaInput(); });
-    wrap.addEventListener('paste', function (event) {
-      if (document.activeElement === formulaInput) return;
-      event.preventDefault();
-      pasteText(event.clipboardData.getData('text/plain'));
-    });
-
-    selectCell(active.row, active.col, false);
   }
 
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { SpreadsheetEngine: SpreadsheetEngine, adjustFormulaReferences: adjustFormulaReferences, parseRef: parseRef, colName: colName, describeSelection: describeSelection };
+  function shiftFormula(raw, rowDelta, colDelta) {
+    if (!raw || raw[0] !== '=') return raw;
+    return raw.replace(/(\$?)([A-Z])(\$?)(\d+)/g, function (m, absCol, col, absRow, row) {
+      var c = letters.indexOf(col), r = Number(row) - 1;
+      if (!absCol) c += colDelta;
+      if (!absRow) r += rowDelta;
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return '#REF!';
+      return absCol + colToName(c) + absRow + (r + 1);
+    });
   }
 
-  if (global.document) {
-    global.addEventListener('DOMContentLoaded', createApp);
+  window.SpreadsheetCore = { evaluateCell: evaluateCell, shiftFormula: shiftFormula, addr: addr };
+  if (!document.getElementById('sheet')) return;
+
+  var cells = {};
+  var selected = { row: 0, col: 0, row2: 0, col2: 0 };
+  var editing = null;
+  var undoStack = [], redoStack = [];
+  var sheetEl = document.getElementById('sheet');
+  var formulaBar = document.getElementById('formulaBar');
+  var cellName = document.getElementById('cellName');
+  var nodes = {};
+  var clipboard = null;
+  var dragStart = null;
+  var model = { getRaw: function (a) { return cells[a] || ''; } };
+
+  function load() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+      cells = saved.cells || {};
+      selected = saved.selected || selected;
+    } catch (e) {}
   }
-})(typeof window !== 'undefined' ? window : globalThis);
+  function save() { localStorage.setItem(KEY, JSON.stringify({ cells: cells, selected: selected })); }
+  function snapshot() { return JSON.stringify(cells); }
+  function restore(s) { cells = JSON.parse(s); renderValues(); updateSelection(); save(); }
+  function pushHistory(before) { undoStack.push({ before: before, after: snapshot() }); if (undoStack.length > 50) undoStack.shift(); redoStack = []; }
+  function setRaw(r, c, raw) { var a = addr(r, c); raw ? cells[a] = raw : delete cells[a]; }
+  function selectedBounds() { return { r1: Math.min(selected.row, selected.row2), c1: Math.min(selected.col, selected.col2), r2: Math.max(selected.row, selected.row2), c2: Math.max(selected.col, selected.col2) }; }
+  function renderGrid() {
+    load();
+    var grid = document.createElement('div');
+    grid.className = 'grid';
+    var corner = document.createElement('div'); corner.className = 'corner'; grid.appendChild(corner);
+    for (var c = 0; c < COLS; c++) grid.appendChild(header('col-header', colToName(c), c));
+    for (var r = 0; r < ROWS; r++) {
+      grid.appendChild(header('row-header', String(r + 1), r));
+      for (c = 0; c < COLS; c++) {
+        var div = document.createElement('div');
+        div.className = 'cell'; div.dataset.row = r; div.dataset.col = c; div.tabIndex = 0;
+        div.addEventListener('mousedown', onMouseDown); div.addEventListener('mouseenter', onMouseEnter); div.addEventListener('dblclick', function (e) { beginEdit(Number(e.currentTarget.dataset.row), Number(e.currentTarget.dataset.col), true); });
+        nodes[addr(r, c)] = div; grid.appendChild(div);
+      }
+    }
+    document.addEventListener('mouseup', function () { dragStart = null; });
+    sheetEl.appendChild(grid); renderValues(); updateSelection();
+  }
+  function header(cls, text, index) {
+    var el = document.createElement('div'); el.className = cls; el.textContent = text; el.title = 'Right-click for insert/delete';
+    el.addEventListener('contextmenu', function (e) { e.preventDefault(); if (cls === 'row-header') rowMenu(index); else colMenu(index); });
+    return el;
+  }
+  function renderValues() {
+    Object.keys(nodes).forEach(function (a) {
+      var result = evaluateCell(a, model);
+      nodes[a].textContent = result.display;
+      nodes[a].classList.toggle('number', result.type === 'number');
+      nodes[a].classList.toggle('error', result.type === 'error');
+    });
+  }
+  function updateSelection() {
+    var b = selectedBounds();
+    Object.keys(nodes).forEach(function (a) {
+      var p = parseAddr(a), inRange = p.row >= b.r1 && p.row <= b.r2 && p.col >= b.c1 && p.col <= b.c2;
+      nodes[a].classList.toggle('in-range', inRange);
+      nodes[a].classList.toggle('active', p.row === selected.row && p.col === selected.col);
+    });
+    cellName.textContent = addr(selected.row, selected.col);
+    formulaBar.value = cells[addr(selected.row, selected.col)] || '';
+    save();
+  }
+  function select(r, c, extend) {
+    r = Math.max(0, Math.min(ROWS - 1, r)); c = Math.max(0, Math.min(COLS - 1, c));
+    if (extend) { selected.row2 = r; selected.col2 = c; } else selected = { row: r, col: c, row2: r, col2: c };
+    updateSelection(); nodes[addr(r, c)].focus();
+  }
+  function onMouseDown(e) { var r = Number(e.currentTarget.dataset.row), c = Number(e.currentTarget.dataset.col); dragStart = { row: selected.row, col: selected.col }; select(r, c, e.shiftKey); }
+  function onMouseEnter(e) { if (dragStart) select(Number(e.currentTarget.dataset.row), Number(e.currentTarget.dataset.col), true); }
+  function beginEdit(r, c, preserve, initial) {
+    select(r, c, false);
+    var node = nodes[addr(r, c)], raw = cells[addr(r, c)] || '';
+    node.classList.add('editing'); node.textContent = '';
+    var input = document.createElement('input'); input.className = 'cell-input'; input.value = preserve ? raw : (initial || '');
+    node.appendChild(input); editing = { input: input, row: r, col: c, before: raw }; input.focus(); input.setSelectionRange(input.value.length, input.value.length);
+    input.addEventListener('keydown', editKeys);
+  }
+  function commitEdit(moveRow, moveCol) {
+    if (!editing) return;
+    var before = snapshot(); setRaw(editing.row, editing.col, editing.input.value); cleanupEdit(); renderValues(); pushHistory(before); select(selected.row + moveRow, selected.col + moveCol, false);
+  }
+  function cancelEdit() { if (!editing) return; cleanupEdit(); renderValues(); updateSelection(); }
+  function cleanupEdit() { nodes[addr(editing.row, editing.col)].classList.remove('editing'); editing = null; }
+  function editKeys(e) {
+    if (e.key === 'Enter') { e.preventDefault(); commitEdit(1, 0); }
+    if (e.key === 'Tab') { e.preventDefault(); commitEdit(0, 1); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+  }
+  function writeRange(writer) { var before = snapshot(); writer(); renderValues(); pushHistory(before); updateSelection(); }
+  function clearSelection() { writeRange(function () { var b = selectedBounds(); for (var r = b.r1; r <= b.r2; r++) for (var c = b.c1; c <= b.c2; c++) setRaw(r, c, ''); }); }
+  function copy(cut) {
+    var b = selectedBounds(), data = [];
+    for (var r = b.r1; r <= b.r2; r++) { var row = []; for (var c = b.c1; c <= b.c2; c++) row.push(cells[addr(r, c)] || ''); data.push(row); }
+    clipboard = { data: data, source: b, cut: cut };
+    navigator.clipboard && navigator.clipboard.writeText(data.map(function (row) { return row.join('\t'); }).join('\n')).catch(function () {});
+  }
+  function pasteText(text) {
+    var data = clipboard && clipboard.data ? clipboard.data : text.split(/\r?\n/).map(function (r) { return r.split('\t'); });
+    var target = selectedBounds();
+    var selectedRows = target.r2 - target.r1 + 1;
+    var selectedCols = target.c2 - target.c1 + 1;
+    var rows = selectedRows === 1 && selectedCols === 1 ? data.length : selectedRows;
+    var cols = selectedRows === 1 && selectedCols === 1 ? data[0].length : selectedCols;
+    writeRange(function () {
+      if (clipboard && clipboard.cut) {
+        for (var cr = clipboard.source.r1; cr <= clipboard.source.r2; cr++) for (var cc = clipboard.source.c1; cc <= clipboard.source.c2; cc++) setRaw(cr, cc, '');
+      }
+      for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+        var raw = data[r % data.length][c % data[r % data.length].length], targetR = selected.row + r, targetC = selected.col + c;
+        if (targetR < ROWS && targetC < COLS) setRaw(targetR, targetC, clipboard ? shiftFormula(raw, targetR - clipboard.source.r1, targetC - clipboard.source.c1) : raw);
+      }
+    });
+    if (clipboard && clipboard.cut) clipboard = null;
+  }
+  function undo() { var x = undoStack.pop(); if (x) { redoStack.push({ before: snapshot(), after: x.after }); restore(x.before); } }
+  function redo() { var x = redoStack.pop(); if (x) { undoStack.push({ before: snapshot(), after: x.after }); restore(x.after); } }
+  function rowMenu(row) { var choice = prompt('Row ' + (row + 1) + ': type insert above, insert below, or delete'); if (!choice) return; writeRange(function () { shiftRows(row + (/below/i.test(choice) ? 1 : 0), /delete/i.test(choice) ? -1 : 1); }); }
+  function colMenu(col) { var choice = prompt('Column ' + colToName(col) + ': type insert left, insert right, or delete'); if (!choice) return; writeRange(function () { shiftCols(col + (/right/i.test(choice) ? 1 : 0), /delete/i.test(choice) ? -1 : 1); }); }
+  function shiftRows(at, delta) {
+    var next = {};
+    Object.keys(cells).forEach(function (a) { var p = parseAddr(a); if (delta < 0 && p.row === at) return; var nr = p.row >= at ? p.row + delta : p.row; if (nr >= 0 && nr < ROWS) next[addr(nr, p.col)] = adjustForInsertDelete(cells[a], at, delta, true); });
+    cells = next;
+  }
+  function shiftCols(at, delta) {
+    var next = {};
+    Object.keys(cells).forEach(function (a) { var p = parseAddr(a); if (delta < 0 && p.col === at) return; var nc = p.col >= at ? p.col + delta : p.col; if (nc >= 0 && nc < COLS) next[addr(p.row, nc)] = adjustForInsertDelete(cells[a], at, delta, false); });
+    cells = next;
+  }
+  function adjustForInsertDelete(raw, at, delta, rows) {
+    if (!raw || raw[0] !== '=') return raw;
+    return raw.replace(/(\$?)([A-Z])(\$?)(\d+)/g, function (m, ac, col, ar, row) {
+      var c = letters.indexOf(col), r = Number(row) - 1, target = rows ? r : c;
+      if (delta < 0 && target === at) return '#REF!';
+      if (target >= at) rows ? r += delta : c += delta;
+      return c < 0 || c >= COLS || r < 0 || r >= ROWS ? '#REF!' : ac + colToName(c) + ar + (r + 1);
+    });
+  }
+  formulaBar.addEventListener('keydown', function (e) { if (e.key === 'Enter') { var before = snapshot(); setRaw(selected.row, selected.col, formulaBar.value); renderValues(); pushHistory(before); select(selected.row + 1, selected.col, false); } });
+  formulaBar.addEventListener('input', function () { setRaw(selected.row, selected.col, formulaBar.value); renderValues(); save(); });
+  document.addEventListener('keydown', function (e) {
+    if (editing) { editKeys(e); return; }
+    if (e.target === formulaBar) return;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copy(false); return; }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); copy(true); return; }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); navigator.clipboard ? navigator.clipboard.readText().then(pasteText).catch(function () { pasteText(''); }) : pasteText(''); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); clearSelection(); return; }
+    if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); beginEdit(selected.row, selected.col, true); return; }
+    if (e.key === 'Tab') { e.preventDefault(); select(selected.row, selected.col + 1, false); return; }
+    if (e.key.indexOf('Arrow') === 0) { e.preventDefault(); select(selected.row + (e.key === 'ArrowDown') - (e.key === 'ArrowUp'), selected.col + (e.key === 'ArrowRight') - (e.key === 'ArrowLeft'), e.shiftKey); return; }
+    if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) beginEdit(selected.row, selected.col, false, e.key);
+  });
+  renderGrid();
+})();
