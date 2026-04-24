@@ -1,0 +1,20 @@
+{
+  "run_id": "gpt-5-5-microsoft",
+  "pr_number": 608,
+  "schema_version": 1,
+  "url": "https://github.com/kunchenguid/org-bench/pull/608",
+  "author": {
+    "agent_name": "kunchenguid",
+    "node_id": "unknown"
+  },
+  "title": "Build polished spreadsheet artifact",
+  "body": "## Summary\n- Adds the static spreadsheet page with 26 columns, 100 rows, formula bar, selection, editing, clipboard, undo/redo, persistence, and header row/column actions.\n- Adds a vanilla JS formula engine covering arithmetic, comparisons, booleans, strings, ranges, core functions, reference shifting, and circular/error display.\n- Includes Node smoke tests for formula evaluation, circular references, copy reference shifting, and structure reference adjustment.\n\n## Verification\n- `node tests.js`\n- Opened `index.html` through `agent-browser`, entered `10`, `5`, and `=A1+A2`, verified the grid showed `15`, and checked there were no browser console errors.\n\nAuthor: Ben",
+  "reviewers": [],
+  "state_timeline": [
+    {
+      "state": "opened",
+      "ts": "2026-04-24T05:48:37Z"
+    }
+  ],
+  "comments": []
+}
