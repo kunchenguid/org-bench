@@ -248,7 +248,10 @@
       if (type === 'deleteRow') { if (row === index) return; if (row > index) row--; }
       if (type === 'insertCol' && col >= index) col++;
       if (type === 'deleteCol') { if (col === index) return; if (col > index) col--; }
-      if (row < ROWS && col < COLS) next[key(row, col)] = sheet.cells[a1];
+      if (row < ROWS && col < COLS) {
+        const raw = sheet.cells[a1];
+        next[key(row, col)] = raw[0] === '=' ? Engine.transformFormulaReferences(raw, type, index) : raw;
+      }
     });
     sheet.cells = next;
   }

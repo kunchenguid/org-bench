@@ -98,6 +98,11 @@
           continue;
         }
         const two = input.slice(i, i + 2);
+        if (input.slice(i, i + 5).toUpperCase() === '#REF!') {
+          tokens.push({ type: 'error', value: '#REF!' });
+          i += 5;
+          continue;
+        }
         if (['<=', '>=', '<>'].includes(two)) {
           tokens.push({ type: 'op', value: two });
           i += 2;
@@ -194,7 +199,7 @@
     parsePrimary() {
       const token = this.next();
       if (!token) throw new Error('#ERR!');
-      if (token.type === 'number' || token.type === 'string') return token.value;
+      if (token.type === 'number' || token.type === 'string' || token.type === 'error') return token.value;
       if (token.value === '(') { const value = this.parseCompare(); this.expect(')'); return value; }
       if (token.type === 'id') {
         if (token.value === 'TRUE') return true;
@@ -323,7 +328,30 @@
     });
   }
 
-  const api = { SpreadsheetEngine, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula };
+  function transformFormulaReferences(raw, type, index) {
+    if (!raw || raw[0] !== '=') return raw;
+    let deleted = false;
+    const next = raw.replace(/\$?[A-Z]+\$?[1-9][0-9]*/g, (match) => {
+      const ref = parseRef(match);
+      if (!ref) return match;
+      let row = ref.row;
+      let col = ref.col;
+      if (type === 'insertRow' && row >= index) row++;
+      if (type === 'deleteRow') {
+        if (row === index) deleted = true;
+        if (row > index) row--;
+      }
+      if (type === 'insertCol' && col >= index) col++;
+      if (type === 'deleteCol') {
+        if (col === index) deleted = true;
+        if (col > index) col--;
+      }
+      return refToA1(row, col, ref.rowAbs, ref.colAbs);
+    });
+    return deleted ? '=#REF!' : next;
+  }
+
+  const api = { SpreadsheetEngine, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula, transformFormulaReferences };
   root.SpreadsheetEngine = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

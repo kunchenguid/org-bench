@@ -53,3 +53,13 @@ test('detects circular references without crashing', () => {
   assert.strictEqual(sheet.getDisplay('A1'), '#CIRC!');
   assert.strictEqual(sheet.getDisplay('A2'), '#CIRC!');
 });
+
+test('rewrites formulas when inserting rows and columns', () => {
+  assert.strictEqual(Engine.transformFormulaReferences('=A1+$A$1+SUM(A1:B2)', 'insertRow', 0), '=A2+$A$2+SUM(A2:B3)');
+  assert.strictEqual(Engine.transformFormulaReferences('=A1+$A$1+SUM(A1:B2)', 'insertCol', 0), '=B1+$B$1+SUM(B1:C2)');
+});
+
+test('marks formulas as ref errors when deleting referenced rows or columns', () => {
+  assert.strictEqual(Engine.transformFormulaReferences('=A1+B2', 'deleteRow', 0), '=#REF!');
+  assert.strictEqual(Engine.transformFormulaReferences('=A1+B2', 'deleteCol', 0), '=#REF!');
+});
