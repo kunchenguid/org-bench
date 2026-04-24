@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Formula Display Smoke Test</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { overflow: auto; padding: 24px; }
+    .pass { color: #0a7a31; }
+    .fail { color: #b00020; white-space: pre-wrap; }
+    .sheet-app { height: 720px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Formula Display Smoke Test</h1>
+  <div id="result">Running...</div>
+  <main class="sheet-app" aria-label="Spreadsheet">
+    <header class="sheet-chrome" aria-label="Spreadsheet controls">
+      <label class="name-box" for="formula-input">
+        <span id="active-address">A1</span>
+      </label>
+      <div class="formula-bar">
+        <span class="formula-prefix" aria-hidden="true">fx</span>
+        <input id="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="Formula bar">
+      </div>
+    </header>
+    <section class="grid-shell" aria-label="Grid workspace">
+      <div id="grid-root" class="grid-root"></div>
+    </section>
+    <footer class="status-bar" aria-live="polite"><span data-spreadsheet-slot="status">Ready</span></footer>
+  </main>
+  <script src="rowColumnOperations.js"></script>
+  <script src="formula-engine.js"></script>
+  <script src="scripts/app-state.js"></script>
+  <script src="src/selectionClipboard.js"></script>
+  <script src="src/clipboardController.js"></script>
+  <script src="scripts/app.js"></script>
+  <script>
+    const result = document.getElementById('result');
+
+    function assert(condition, message) {
+      if (!condition) throw new Error(message);
+    }
+
+    function cell(address) {
+      return document.querySelector('[data-cell="' + address + '"]');
+    }
+
+    function setRaw(address, raw) {
+      const ref = address.match(/^([A-Z]+)(\d+)$/);
+      const col = ref[1].charCodeAt(0) - 65;
+      const row = Number(ref[2]) - 1;
+      window.sheetStore.setCellRaw({ row, col }, raw, 'test');
+    }
+
+    function select(address) {
+      const ref = address.match(/^([A-Z]+)(\d+)$/);
+      window.sheetStore.selectCell({ row: Number(ref[2]) - 1, col: ref[1].charCodeAt(0) - 65 });
+    }
+
+    function run() {
+      const formula = document.querySelector('#formula-input');
+
+      assert(window.FormulaEngine, 'FormulaEngine is loaded');
+      assert(window.sheetStore, 'shared store is available');
+
+      setRaw('A1', '10');
+      setRaw('A2', '20');
+      setRaw('A3', '=A1+A2');
+      assert(cell('A1').textContent === '10', 'literal number displays as itself');
+      assert(cell('A2').textContent === '20', 'second literal number displays as itself');
+      assert(cell('A3').textContent === '30', 'formula result displays evaluated value');
+
+      select('A3');
+      assert(formula.value === '=A1+A2', 'formula bar preserves raw formula');
+
+      setRaw('A1', '15');
+      assert(cell('A3').textContent === '35', 'dependent formula updates when precedent changes');
+      assert(formula.value === '=A1+A2', 'selected formula raw value stays recoverable after recalculation');
+
+      setRaw('A4', '=1/0');
+      assert(cell('A4').textContent === '#DIV/0!', 'formula errors display visibly');
+      assert(cell('A4').classList.contains('cell-error'), 'formula error receives visual error state');
+      select('A4');
+      assert(formula.value === '=1/0', 'formula bar preserves raw error formula');
+
+      result.className = 'pass';
+      result.textContent = 'PASS';
+    }
+
+    try { run(); }
+    catch (error) {
+      result.className = 'fail';
+      result.textContent = 'FAIL: ' + error.message + '\n' + error.stack;
+    }
+  </script>
+</body>
+</html>
