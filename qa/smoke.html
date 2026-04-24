@@ -171,7 +171,7 @@
     <header>
       <div>
         <h1>Spreadsheet Smoke Test</h1>
-        <p>Open the app in another tab, run each scenario, and record pass/fail here. This page is QA-only and works from file URLs.</p>
+        <p>Open the app in another tab, run the judge-path scenario first, then record each pass/fail result here. This page is QA-only and works from file URLs.</p>
       </div>
     </header>
 
@@ -191,6 +191,7 @@
       var namespace = new URLSearchParams(location.search).get("ns") || "spreadsheet-smoke";
       var storageKey = namespace + ":qa-smoke-results";
       var steps = [
+        ["Judge path", "Open index.html by file URL. Type 10 in A1, Enter, type 20 in A2, navigate, enter =A1+A2 in A3, change A1 to 15, clear A1:A3, copy a relative formula and undo the paste, insert a row above referenced data, then reload and confirm persistence."],
         ["Launch", "Open index.html by file URL. Confirm the grid appears quickly, no splash or modal blocks typing, and the console has no uncaught errors."],
         ["Edit and navigate", "Type values into A1 and A2, commit with Enter and Tab, then verify arrow-key navigation and Escape cancel behavior."],
         ["Formula and dependents", "Enter =A1+A2 and =SUM(A1:A3). Change a precedent and confirm dependent formulas recalculate."],

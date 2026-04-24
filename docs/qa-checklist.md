@@ -2,6 +2,22 @@
 
 This checklist covers the acceptance bar from the project brief. Run it against the delivered `index.html` from a clean browser profile or with a run-scoped storage namespace.
 
+## Judge Path Smoke Pass
+
+Use this as the first acceptance pass before deeper coverage. It follows the path the evaluator is likely to exercise.
+
+- Open `index.html` directly from `file://` and confirm the grid is ready for input with no runtime errors.
+- Click `A1`, type `10`, press `Enter`, and confirm the active cell moves to `A2`.
+- Type `20`, press `Enter`, then use arrow keys to navigate back to `A1` and across nearby cells.
+- Enter `=A1+A2` in `A3` and confirm it evaluates to `30`.
+- Change `A1` to `15` and confirm `A3` recalculates to `35` without a manual refresh.
+- Select `A1:A3`, press `Delete` or `Backspace`, and confirm all three cells clear as one range operation.
+- Re-enter `1` in `A1`, `=A1+1` in `B1`, copy `B1`, paste into `B2`, and confirm the relative reference shifts to row 2.
+- Press `Cmd/Ctrl+Z` and confirm the paste is undone in one step.
+- Create a referenced block, insert a row above it, and confirm dependent formulas keep pointing at the same logical data.
+- Reload the page and confirm cell raw contents, evaluated values, and the active selection restore.
+- Repeat any failing step once from a clean reload to distinguish product bugs from test setup mistakes.
+
 ## Setup
 
 - Open the app directly from `file://.../index.html`.
