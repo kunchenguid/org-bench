@@ -23,6 +23,11 @@ button:hover { border-color: var(--blue); color: var(--blue); }
 .name-box { width: 70px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line-dark); border-radius: 7px; background: #fff; font-weight: 700; color: var(--blue); }
 .formula-bar { flex: 1; height: 32px; border: 1px solid var(--line-dark); border-radius: 7px; padding: 0 10px; font: 14px/32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; outline: none; }
 .formula-bar:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.formula-status { min-width: 150px; height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--line); border-radius: 7px; background: #fff; padding: 0 10px; font-size: 12px; }
+.formula-status-label { color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.formula-status-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula-status.error { border-color: rgba(180, 35, 24, .35); background: #fff6f5; color: var(--error); }
+.formula-status.formula { border-color: rgba(24, 119, 242, .32); background: #f4f8ff; }
 .viewport { flex: 1; overflow: auto; background: #fff; }
 .grid { display: grid; grid-template-columns: 52px repeat(26, 110px); grid-auto-rows: 26px; width: max-content; min-width: 100%; user-select: none; }
 .corner, .col-head, .row-head, .cell { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
@@ -41,5 +46,7 @@ button:hover { border-color: var(--blue); color: var(--blue); }
 @media (max-width: 760px) {
   .topbar { flex-wrap: wrap; }
   .hint { width: 100%; margin-left: 0; }
+  .formula-row { flex-wrap: wrap; }
+  .formula-status { width: 100%; }
   .grid { grid-template-columns: 44px repeat(26, 92px); }
 }

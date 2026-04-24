@@ -1,12 +1,13 @@
 (function () {
   'use strict';
 
+  const root = typeof window !== 'undefined' ? window : globalThis;
   const DEFAULT_ROWS = 100;
   const DEFAULT_COLS = 26;
   const ERROR = Object.freeze({ err: '#ERR!', div: '#DIV/0!', ref: '#REF!', circ: '#CIRC!' });
 
   function storagePrefix(namespace) {
-    const injected = window.SPREADSHEET_STORAGE_NAMESPACE || window.__SPREADSHEET_STORAGE_NAMESPACE__ || '';
+    const injected = root.SPREADSHEET_STORAGE_NAMESPACE || root.__SPREADSHEET_STORAGE_NAMESPACE__ || root.__BENCHMARK_STORAGE_NAMESPACE__ || '';
     return String(namespace || injected || 'facebook-sheet') + ':';
   }
   function colName(col) {
@@ -42,6 +43,16 @@
     if (v === true) return 'TRUE';
     if (v === false) return 'FALSE';
     return String(v);
+  }
+  function canCompareAsNumber(v) {
+    if (v === '' || v == null || typeof v === 'number' || typeof v === 'boolean') return true;
+    return typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v));
+  }
+  function formatFormulaStatus(raw, shown, type) {
+    if (!raw && !shown) return { label: 'Ready', text: 'Blank', state: 'blank' };
+    if (type === 'error') return { label: 'Value', text: shown || 'Error', state: 'error' };
+    if (raw && raw[0] === '=') return { label: 'Value', text: shown || 'Blank', state: 'formula' };
+    return { label: 'Value', text: shown || 'Blank', state: type || 'text' };
   }
   function display(v) {
     if (v === true) return 'TRUE';
@@ -101,8 +112,9 @@
         const right = this.concat();
         if (isError(left)) return left;
         if (isError(right)) return right;
-        const l = typeof left === 'number' && typeof right === 'number' ? left : asText(left);
-        const r = typeof left === 'number' && typeof right === 'number' ? right : asText(right);
+        const numeric = canCompareAsNumber(left) && canCompareAsNumber(right);
+        const l = numeric ? asNumber(left) : asText(left);
+        const r = numeric ? asNumber(right) : asText(right);
         if (t.value === '=') return l === r;
         if (t.value === '<>') return l !== r;
         if (t.value === '<') return l < r;
@@ -181,6 +193,7 @@
     }
     call(name) {
       this.take('(');
+      if (name === 'IF') return this.lazyIf();
       const args = [];
       if (!this.peek(')')) {
         do { args.push(this.comparison()); } while (this.take(','));
@@ -204,6 +217,44 @@
         case 'CONCAT': return flat.map(asText).join('');
         default: return ERROR.err;
       }
+    }
+    lazyIf() {
+      const condition = this.comparison();
+      if (!this.take(',')) return ERROR.err;
+      if (isError(condition)) return this.skipRestOfCall(condition);
+      if (condition) {
+        const value = this.comparison();
+        if (this.take(',')) this.skipArgument();
+        return this.take(')') ? value : ERROR.err;
+      }
+      this.skipArgument();
+      if (!this.take(',')) return this.take(')') ? '' : ERROR.err;
+      const value = this.comparison();
+      return this.take(')') ? value : ERROR.err;
+    }
+    skipArgument() {
+      let depth = 0;
+      while (this.pos < this.tokens.length) {
+        const t = this.tokens[this.pos];
+        if (t.value === '(') depth++;
+        else if (t.value === ')') {
+          if (depth === 0) return;
+          depth--;
+        } else if (t.value === ',' && depth === 0) return;
+        this.pos++;
+      }
+    }
+    skipRestOfCall(value) {
+      let depth = 0;
+      while (this.pos < this.tokens.length) {
+        const t = this.tokens[this.pos++];
+        if (t.value === '(') depth++;
+        else if (t.value === ')') {
+          if (depth === 0) return value;
+          depth--;
+        }
+      }
+      return ERROR.err;
     }
     parseRef(text) {
       const m = String(text).match(/^\$?([A-Z]+)\$?(\d+)$/);
@@ -357,7 +408,7 @@
       });
     }
   }
-  window.SpreadsheetModel = SpreadsheetModel;
+  root.SpreadsheetModel = SpreadsheetModel;
 
   class SpreadsheetApp {
     constructor() {
@@ -366,6 +417,7 @@
       if (!this.grid) return;
       this.viewport = document.getElementById('viewport');
       this.formula = document.getElementById('formula-bar');
+      this.formulaStatus = document.getElementById('formula-status');
       this.nameBox = document.getElementById('name-box');
       const ui = this.model.loadUi();
       this.active = { row: ui.row || 0, col: ui.col || 0 };
@@ -402,7 +454,7 @@
         const cell = e.target.closest('.cell');
         if (!cell) return;
         const row = Number(cell.dataset.row), col = Number(cell.dataset.col);
-        this.select(row, col, e.shiftKey); this.dragging = true; e.preventDefault();
+        this.select(row, col, e.shiftKey); cell.focus({ preventScroll: true }); this.dragging = true; e.preventDefault();
       });
       this.grid.addEventListener('mouseover', e => {
         if (!this.dragging) return;
@@ -448,6 +500,7 @@
       this.selection = { r1: Math.min(this.anchor.row, row), c1: Math.min(this.anchor.col, col), r2: Math.max(this.anchor.row, row), c2: Math.max(this.anchor.col, col) };
       this.model.save(this.active);
       this.refresh();
+      this.scrollActiveIntoView();
     }
     extend(row, col) { this.select(row, col, true); }
     move(dr, dc, extend) { this.select(this.active.row + dr, this.active.col + dc, extend); }
@@ -519,6 +572,15 @@
       if (!this.grid) return;
       this.nameBox.textContent = addr(this.active.row, this.active.col);
       this.formula.value = this.model.getCell(this.active.row, this.active.col);
+      const raw = this.model.getCell(this.active.row, this.active.col);
+      const shown = this.model.getDisplay(this.active.row, this.active.col);
+      const type = this.model.getType(this.active.row, this.active.col);
+      const status = formatFormulaStatus(raw, shown, type);
+      if (this.formulaStatus) {
+        this.formulaStatus.className = 'formula-status ' + status.state;
+        this.formulaStatus.querySelector('.formula-status-label').textContent = status.label;
+        this.formulaStatus.querySelector('.formula-status-value').textContent = status.text;
+      }
       this.grid.querySelectorAll('.cell').forEach(el => {
         const r = Number(el.dataset.row), c = Number(el.dataset.col);
         const inRange = r >= this.selection.r1 && r <= this.selection.r2 && c >= this.selection.c1 && c <= this.selection.c2;
@@ -527,6 +589,22 @@
       });
       this.grid.querySelectorAll('.col-head').forEach(el => el.classList.toggle('active', Number(el.dataset.index) === this.active.col));
       this.grid.querySelectorAll('.row-head').forEach(el => el.classList.toggle('active', Number(el.dataset.index) === this.active.row));
+    }
+    scrollActiveIntoView() {
+      const el = this.getCellEl(this.active.row, this.active.col);
+      if (!el || !this.viewport) return;
+      const cellWidth = el.offsetWidth || 110;
+      const cellHeight = el.offsetHeight || 26;
+      const rowHeaderWidth = 52;
+      const headerHeight = 26;
+      const left = rowHeaderWidth + this.active.col * cellWidth;
+      const right = left + cellWidth;
+      const top = headerHeight + this.active.row * cellHeight;
+      const bottom = top + cellHeight;
+      if (left < this.viewport.scrollLeft) this.viewport.scrollLeft = left;
+      else if (right > this.viewport.scrollLeft + this.viewport.clientWidth) this.viewport.scrollLeft = right - this.viewport.clientWidth;
+      if (top < this.viewport.scrollTop) this.viewport.scrollTop = top;
+      else if (bottom > this.viewport.scrollTop + this.viewport.clientHeight) this.viewport.scrollTop = bottom - this.viewport.clientHeight;
     }
     getCellEl(row, col) { return this.grid.querySelector('.cell[data-row="' + row + '"][data-col="' + col + '"]'); }
   }
