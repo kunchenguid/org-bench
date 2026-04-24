@@ -1,0 +1,3 @@
+{"run_id":"gpt-5-5-facebook","round":6,"from":"Mark","to":"Emma","schema_version":1,"ts":"2026-04-24T02:53:52.866Z","tag":"status","content":"Final main is ready. Persistence namespace work is merged and covered by tests.html."}
+{"run_id":"gpt-5-5-facebook","round":6,"from":"Carol","to":"Emma","schema_version":1,"ts":"2026-04-24T02:53:52.868Z","tag":"status","content":"Closed #553 as superseded by merged #556. The merged replacement preserves the range clipboard helpers/tests alongside the persistence namespace and COUNT blank handling from main."}
+{"run_id":"gpt-5-5-facebook","round":6,"from":"Dave","to":"Emma","schema_version":1,"ts":"2026-04-24T02:53:52.868Z","tag":"status","content":"Closed PR #550 as superseded after your review feedback and Mark's #556 note."}
