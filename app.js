@@ -1,7 +1,6 @@
 (function () {
-  const { SpreadsheetModel, colName, parseAddress, formatAddress } = window.SpreadsheetCore;
+  const { SpreadsheetModel, colName, parseAddress, formatAddress, loadState: loadStoredState, saveState: saveStoredState } = window.SpreadsheetCore;
   const storageNamespace = window.SPREADSHEET_STORAGE_NAMESPACE || window.__SPREADSHEET_STORAGE_NAMESPACE__ || 'gridline-default';
-  const storageKey = `${storageNamespace}:state`;
   const grid = document.getElementById('grid');
   const formulaInput = document.getElementById('formula-input');
   const activeCellLabel = document.getElementById('active-cell');
@@ -120,23 +119,14 @@
   });
 
   function loadState() {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const data = JSON.parse(raw);
-        const model = SpreadsheetModel.fromJSON(data.sheet);
-        model.undoStack = [];
-        model.redoStack = [];
-        model.selection = data.selection || { row: 0, col: 0 };
-        return model;
-      }
-    } catch (error) {}
-    return new SpreadsheetModel({ rows: 100, cols: 26 });
+    const state = loadStoredState(localStorage, storageNamespace);
+    state.sheet.selection = state.selection;
+    return state.sheet;
   }
 
   function persist() {
     sheet.selection = active;
-    localStorage.setItem(storageKey, JSON.stringify({ sheet: sheet.toJSON(), selection: active }));
+    saveStoredState(localStorage, storageNamespace, sheet, active);
   }
 
   function render() {

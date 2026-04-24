@@ -1,7 +1,17 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { SpreadsheetModel, adjustFormulaReferences } = require('../spreadsheet-core.js');
-const { SpreadsheetModel: AppSpreadsheetModel } = require('../spreadsheet.js');
+const { SpreadsheetModel: AppSpreadsheetModel, saveState, loadState, storageKey } = require('../spreadsheet.js');
+
+function memoryStorage() {
+  const data = new Map();
+  return {
+    getItem(key) { return data.has(key) ? data.get(key) : null; },
+    setItem(key, value) { data.set(key, String(value)); },
+    removeItem(key) { data.delete(key); },
+    keys() { return Array.from(data.keys()); },
+  };
+}
 
 function set(sheet, ref, raw) {
   const match = /^([A-Z]+)(\d+)$/.exec(ref);
@@ -120,6 +130,37 @@ test('range clear can be restored from one snapshot', () => {
   assert.equal(raw(sheet, 'A1'), 'one');
   assert.equal(raw(sheet, 'B1'), 'two');
   assert.deepEqual(before, new Map());
+});
+
+test('state storage namespaces isolate runs and preserve raw formulas with selection', () => {
+  const storage = memoryStorage();
+  const sheet = new SpreadsheetModel(10, 5);
+  set(sheet, 'A1', '=SUM(B1:B2)');
+  set(sheet, 'B1', '2');
+
+  saveState(storage, 'run-a', sheet, { row: 4, col: 2 });
+  saveState(storage, 'run-b', new SpreadsheetModel(10, 5), { row: 0, col: 0 });
+  const restored = loadState(storage, 'run-a');
+
+  assert.equal(storageKey('run-a'), 'run-a:state');
+  assert.deepEqual(storage.keys().sort(), ['run-a:state', 'run-b:state']);
+  assert.equal(restored.sheet.getRaw(0, 0), '=SUM(B1:B2)');
+  assert.deepEqual(restored.selection, { row: 4, col: 2 });
+});
+
+test('state loading falls back safely for missing or malformed storage', () => {
+  const storage = memoryStorage();
+  storage.setItem(storageKey('broken'), '{not json');
+
+  const missing = loadState(storage, 'missing');
+  const malformed = loadState(storage, 'broken');
+
+  assert.equal(missing.sheet.rows, 100);
+  assert.equal(missing.sheet.cols, 26);
+  assert.deepEqual(missing.selection, { row: 0, col: 0 });
+  assert.equal(malformed.sheet.rows, 100);
+  assert.equal(malformed.sheet.cols, 26);
+  assert.deepEqual(malformed.selection, { row: 0, col: 0 });
 });
 
 test('inserting a row preserves references to moved data', () => {
