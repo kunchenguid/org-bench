@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Grid Shell Smoke Test</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; padding: 24px; }
+    .pass { color: #0a7a31; }
+    .fail { color: #b00020; white-space: pre-wrap; }
+    .toolbar { display: none; }
+    .sheet { display: grid; grid-template-columns: 48px repeat(26, 32px); }
+    .cell, .column-header, .row-header, .corner { min-height: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Grid Shell Smoke Test</h1>
+  <div id="result">Running...</div>
+  <section class="toolbar" aria-label="Formula bar">
+    <div id="cell-name" class="cell-name">A1</div>
+    <label class="formula-wrap">
+      <span class="formula-label">fx</span>
+      <input id="formula-input" autocomplete="off" spellcheck="false" aria-label="Formula bar raw cell value">
+    </label>
+  </section>
+  <div id="sheet" class="sheet" role="grid" aria-rowcount="100" aria-colcount="26"></div>
+  <script src="app.js"></script>
+  <script>
+    const result = document.getElementById('result');
+
+    function assert(condition, message) {
+      if (!condition) throw new Error(message);
+    }
+
+    function key(target, keyName, options) {
+      target.dispatchEvent(new KeyboardEvent('keydown', {
+        key: keyName,
+        bubbles: true,
+        cancelable: true,
+        ...(options || {})
+      }));
+    }
+
+    function run() {
+      const doc = document;
+      const a1 = doc.querySelector('[data-cell="A1"]');
+      const b1 = doc.querySelector('[data-cell="B1"]');
+      const b2 = doc.querySelector('[data-cell="B2"]');
+      const formula = doc.querySelector('#formula-input');
+
+      assert(doc.querySelectorAll('.column-header').length === 26, 'renders 26 column headers');
+      assert(doc.querySelectorAll('.row-header').length === 100, 'renders 100 row headers');
+      assert(doc.querySelectorAll('.cell').length === 2600, 'renders 26x100 cells');
+      assert(a1 && b1 && b2 && formula, 'basic grid controls exist');
+      assert(a1.classList.contains('active'), 'A1 starts active');
+
+      key(doc, 'x');
+      assert(a1.classList.contains('editing'), 'typing printable key enters edit mode');
+      assert(a1.querySelector('input').value === 'x', 'typing replaces current contents');
+      key(doc, 'Enter');
+      assert(a1.textContent === 'x', 'Enter commits cell edit');
+      assert(doc.querySelector('[data-cell="A2"]').classList.contains('active'), 'Enter moves active cell down');
+
+      key(doc, 'ArrowRight');
+      assert(b2.classList.contains('active'), 'ArrowRight navigates right');
+      key(doc, 'ArrowUp');
+      assert(b1.classList.contains('active'), 'ArrowUp navigates up');
+
+      key(doc, 'Enter');
+      assert(b1.classList.contains('editing'), 'Enter on selected cell preserves existing content for editing');
+      key(doc, 'Escape');
+      assert(!b1.classList.contains('editing'), 'Escape exits edit mode without committing');
+
+      formula.value = '=A1+1';
+      formula.dispatchEvent(new Event('input', { bubbles: true }));
+      assert(b1.textContent === '=A1+1', 'formula bar edits selected cell raw value');
+
+      key(doc, 'F2');
+      formula.value = '=A1+2';
+      formula.dispatchEvent(new Event('input', { bubbles: true }));
+      assert(b1.classList.contains('editing'), 'formula bar preserves an active in-cell editor');
+      assert(b1.querySelector('input').value === '=A1+2', 'formula bar mirrors into active in-cell editor');
+      key(doc, 'Escape');
+      assert(b1.textContent === '=A1+1', 'Escape restores raw value after formula bar edit during cell edit');
+
+      result.className = 'pass';
+      result.textContent = 'PASS';
+    }
+
+    try { run(); }
+    catch (error) {
+      result.className = 'fail';
+      result.textContent = 'FAIL: ' + error.message + '\n' + error.stack;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spreadsheet</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --header: #f0f2f5;
+      --grid: #d9dde5;
+      --grid-soft: #edf0f4;
+      --text: #1d1d1f;
+      --muted: #6e7480;
+      --active: #007aff;
+      --active-soft: rgba(0, 122, 255, 0.12);
+      --row-header-width: 48px;
+      --cell-width: 104px;
+      --cell-height: 28px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: 13px;
+    }
+
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.86);
+      border-bottom: 1px solid var(--grid);
+      backdrop-filter: blur(18px);
+    }
+
+    .cell-name {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--grid);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .formula-wrap {
+      height: 34px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      overflow: hidden;
+      border: 1px solid var(--grid);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    }
+
+    .formula-label {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 11px;
+      border-right: 1px solid var(--grid);
+      color: var(--muted);
+      font-family: "SF Mono", Menlo, monospace;
+      font-weight: 600;
+    }
+
+    #formula-input {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      outline: 0;
+      padding: 0 11px;
+      color: var(--text);
+      font: inherit;
+      background: transparent;
+    }
+
+    .sheet-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 0 14px 14px;
+    }
+
+    .sheet {
+      display: grid;
+      grid-template-columns: var(--row-header-width) repeat(26, var(--cell-width));
+      grid-template-rows: 32px repeat(100, var(--cell-height));
+      width: max-content;
+      min-width: 100%;
+      margin-top: 14px;
+      background: var(--panel);
+      border: 1px solid var(--grid);
+      box-shadow: 0 10px 30px rgba(20, 28, 40, 0.08);
+    }
+
+    .corner,
+    .column-header,
+    .row-header,
+    .cell {
+      border-right: 1px solid var(--grid);
+      border-bottom: 1px solid var(--grid);
+    }
+
+    .corner,
+    .column-header,
+    .row-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--header);
+      color: var(--muted);
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .corner,
+    .column-header {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+
+    .corner,
+    .row-header {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+    }
+
+    .corner { z-index: 4; }
+
+    .cell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      padding: 0 8px;
+      background: var(--panel);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      outline: none;
+      cursor: cell;
+    }
+
+    .cell:hover { background: #fbfcff; }
+
+    .cell.active {
+      z-index: 1;
+      background: var(--active-soft);
+      box-shadow: inset 0 0 0 2px var(--active);
+    }
+
+    .column-header.active-header,
+    .row-header.active-header {
+      color: #fff;
+      background: var(--active);
+      border-color: var(--active);
+    }
+
+    .cell input {
+      position: absolute;
+      inset: 2px;
+      width: calc(100% - 4px);
+      height: calc(100% - 4px);
+      border: 0;
+      outline: 0;
+      padding: 0 6px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      box-shadow: inset 0 0 0 2px var(--active);
+    }
+
+    @media (max-width: 720px) {
+      :root { --cell-width: 92px; }
+      .toolbar { grid-template-columns: 72px 1fr; padding: 10px; }
+      .sheet-wrap { padding: 0 10px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Spreadsheet grid shell">
+    <section class="toolbar" aria-label="Formula bar">
+      <div id="cell-name" class="cell-name">A1</div>
+      <label class="formula-wrap">
+        <span class="formula-label">fx</span>
+        <input id="formula-input" autocomplete="off" spellcheck="false" aria-label="Formula bar raw cell value">
+      </label>
+    </section>
+    <section class="sheet-wrap" aria-label="Worksheet viewport">
+      <div id="sheet" class="sheet" role="grid" aria-rowcount="100" aria-colcount="26"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      if (window.__GRID_SHELL_LOADED__) return;
+      window.__GRID_SHELL_LOADED__ = true;
+
+      const ROWS = 100;
+      const COLS = 26;
+      const columns = Array.from({ length: COLS }, (_, index) => String.fromCharCode(65 + index));
+      const values = new Map();
+      const sheet = document.getElementById('sheet');
+      const formulaInput = document.getElementById('formula-input');
+      const cellName = document.getElementById('cell-name');
+
+      let activeRow = 0;
+      let activeCol = 0;
+      let editing = null;
+
+      function address(row, col) {
+        return columns[col] + String(row + 1);
+      }
+
+      function keyFor(row, col) {
+        return row + ':' + col;
+      }
+
+      function getValue(row, col) {
+        return values.get(keyFor(row, col)) || '';
+      }
+
+      function setValue(row, col, value) {
+        const key = keyFor(row, col);
+        if (value) values.set(key, value);
+        else values.delete(key);
+        cellAt(row, col).textContent = value;
+        if (row === activeRow && col === activeCol) formulaInput.value = value;
+      }
+
+      function cellAt(row, col) {
+        return sheet.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
+      }
+
+      function headerAt(kind, index) {
+        return sheet.querySelector('[data-' + kind + '-header="' + index + '"]');
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function selectCell(row, col) {
+        if (editing) commitEdit(false);
+
+        const previousCell = cellAt(activeRow, activeCol);
+        const previousColHeader = headerAt('col', activeCol);
+        const previousRowHeader = headerAt('row', activeRow);
+        if (previousCell) previousCell.classList.remove('active');
+        if (previousColHeader) previousColHeader.classList.remove('active-header');
+        if (previousRowHeader) previousRowHeader.classList.remove('active-header');
+
+        activeRow = clamp(row, 0, ROWS - 1);
+        activeCol = clamp(col, 0, COLS - 1);
+
+        const currentCell = cellAt(activeRow, activeCol);
+        currentCell.classList.add('active');
+        headerAt('col', activeCol).classList.add('active-header');
+        headerAt('row', activeRow).classList.add('active-header');
+        cellName.textContent = address(activeRow, activeCol);
+        formulaInput.value = getValue(activeRow, activeCol);
+        currentCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+
+      function beginEdit(options) {
+        if (editing) return;
+        const cell = cellAt(activeRow, activeCol);
+        const original = getValue(activeRow, activeCol);
+        const input = document.createElement('input');
+        input.spellcheck = false;
+        input.autocomplete = 'off';
+        input.value = options && options.replaceWith !== undefined ? options.replaceWith : original;
+        cell.classList.add('editing');
+        cell.textContent = '';
+        cell.appendChild(input);
+        editing = { row: activeRow, col: activeCol, original, input };
+        formulaInput.value = input.value;
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+
+        input.addEventListener('input', () => {
+          formulaInput.value = input.value;
+        });
+      }
+
+      function commitEdit(cancel) {
+        if (!editing) return;
+        const state = editing;
+        const cell = cellAt(state.row, state.col);
+        const nextValue = cancel ? state.original : state.input.value;
+        editing = null;
+        cell.classList.remove('editing');
+        cell.textContent = '';
+        setValue(state.row, state.col, nextValue);
+      }
+
+      function move(rowDelta, colDelta) {
+        selectCell(activeRow + rowDelta, activeCol + colDelta);
+      }
+
+      function handleDocumentKeydown(event) {
+        if (event.target === formulaInput) return;
+
+        if (editing) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            commitEdit(false);
+            move(1, 0);
+          } else if (event.key === 'Tab') {
+            event.preventDefault();
+            commitEdit(false);
+            move(0, 1);
+          } else if (event.key === 'Escape') {
+            event.preventDefault();
+            commitEdit(true);
+          }
+          return;
+        }
+
+        if (event.key === 'ArrowUp') { event.preventDefault(); move(-1, 0); return; }
+        if (event.key === 'ArrowDown') { event.preventDefault(); move(1, 0); return; }
+        if (event.key === 'ArrowLeft') { event.preventDefault(); move(0, -1); return; }
+        if (event.key === 'ArrowRight') { event.preventDefault(); move(0, 1); return; }
+        if (event.key === 'Enter' || event.key === 'F2') { event.preventDefault(); beginEdit(); return; }
+        if (event.key === 'Tab') { event.preventDefault(); move(0, 1); return; }
+
+        if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          event.preventDefault();
+          beginEdit({ replaceWith: event.key });
+        }
+      }
+
+      function handleFormulaKeydown(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          setValue(activeRow, activeCol, formulaInput.value);
+          move(1, 0);
+        } else if (event.key === 'Tab') {
+          event.preventDefault();
+          setValue(activeRow, activeCol, formulaInput.value);
+          move(0, 1);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          formulaInput.value = getValue(activeRow, activeCol);
+          cellAt(activeRow, activeCol).focus();
+        }
+      }
+
+      function buildGrid() {
+        const corner = document.createElement('div');
+        corner.className = 'corner';
+        sheet.appendChild(corner);
+
+        columns.forEach((label, col) => {
+          const header = document.createElement('div');
+          header.className = 'column-header';
+          header.dataset.colHeader = col;
+          header.textContent = label;
+          sheet.appendChild(header);
+        });
+
+        for (let row = 0; row < ROWS; row += 1) {
+          const rowHeader = document.createElement('div');
+          rowHeader.className = 'row-header';
+          rowHeader.dataset.rowHeader = row;
+          rowHeader.textContent = String(row + 1);
+          sheet.appendChild(rowHeader);
+
+          for (let col = 0; col < COLS; col += 1) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.role = 'gridcell';
+            cell.tabIndex = -1;
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            cell.dataset.cell = address(row, col);
+            cell.addEventListener('mousedown', event => {
+              event.preventDefault();
+              selectCell(row, col);
+            });
+            cell.addEventListener('dblclick', event => {
+              event.preventDefault();
+              beginEdit();
+            });
+            sheet.appendChild(cell);
+          }
+        }
+      }
+
+      formulaInput.addEventListener('input', () => {
+        if (editing) {
+          editing.input.value = formulaInput.value;
+          return;
+        }
+        setValue(activeRow, activeCol, formulaInput.value);
+      });
+      formulaInput.addEventListener('keydown', handleFormulaKeydown);
+      document.addEventListener('keydown', handleDocumentKeydown);
+
+      buildGrid();
+      selectCell(0, 0);
+    }());
+  </script>
+</body>
+</html>
