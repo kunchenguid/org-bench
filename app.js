@@ -224,12 +224,59 @@
         this.cells = next; this.cols = Math.max(1, this.cols - 1); this.shiftFormulasForDelete('col', col);
       });
     }
+    serializeRange(range) {
+      const s = normalizeSelection(range);
+      const rows = [];
+      for (let r = s.r1; r <= s.r2; r++) {
+        const cols = [];
+        for (let c = s.c1; c <= s.c2; c++) cols.push(this.getRaw(r, c));
+        rows.push(cols.join('\t'));
+      }
+      return rows.join('\n');
+    }
+    clearRange(range) {
+      const s = normalizeSelection(range);
+      this.transact(() => {
+        for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) this.setRaw(r, c, '');
+      });
+    }
+    pasteBlock(text, targetRange, source) {
+      const target = normalizeSelection(targetRange);
+      const sourceRange = source ? normalizeSelection(source) : null;
+      const rows = String(text || '').replace(/\r/g, '').split('\n').filter((line, i, a) => line !== '' || i < a.length - 1).map(line => line.split('\t'));
+      this.transact(() => {
+        rows.forEach((rowVals, rr) => rowVals.forEach((raw, cc) => {
+          const tr = target.r1 + rr;
+          const tc = target.c1 + cc;
+          if (!this.inBounds(tr, tc)) return;
+          const adjusted = raw.startsWith('=') && sourceRange ? this.adjustFormulaForMove(raw, sourceRange.r1 + rr, sourceRange.c1 + cc, tr, tc) : raw;
+          this.setRaw(tr, tc, adjusted);
+        }));
+        if (source && source.cut) {
+          for (let r = sourceRange.r1; r <= sourceRange.r2; r++) for (let c = sourceRange.c1; c <= sourceRange.c2; c++) {
+            const inPaste = r >= target.r1 && r < target.r1 + rows.length && c >= target.c1 && c < target.c1 + (rows[r - target.r1] || []).length;
+            if (!inPaste) this.setRaw(r, c, '');
+          }
+        }
+      });
+    }
   }
 
   function mapsEqual(a, b) {
     if (a.size !== b.size) return false;
     for (const [k, v] of a) if (b.get(k) !== v) return false;
     return true;
+  }
+
+  function normalizeSelection(range) {
+    const r2 = range.r2 == null ? range.r1 : range.r2;
+    const c2 = range.c2 == null ? range.c1 : range.c2;
+    return {
+      r1: Math.min(range.r1, r2),
+      c1: Math.min(range.c1, c2),
+      r2: Math.max(range.r1, r2),
+      c2: Math.max(range.c1, c2),
+    };
   }
 
   class FormulaParser {
@@ -479,38 +526,20 @@
   }
   function clearSelection() {
     const s = normSel();
-    model.transact(() => { for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) model.setRaw(r, c, ''); });
+    model.clearRange(s);
     renderValues(); renderSelection(); updateFormulaBar();
   }
   function serializeSelection(cut) {
     const s = normSel();
-    const rows = [];
-    for (let r = s.r1; r <= s.r2; r++) {
-      const cols = [];
-      for (let c = s.c1; c <= s.c2; c++) cols.push(model.getRaw(r, c));
-      rows.push(cols.join('\t'));
-    }
     clipboardSource = { range: s, cut };
-    return rows.join('\n');
+    return model.serializeRange(s);
   }
   function pasteText(text) {
-    const rows = text.replace(/\r/g, '').split('\n').filter((line, i, a) => line !== '' || i < a.length - 1).map(line => line.split('\t'));
-    const startR = model.selection.activeRow, startC = model.selection.activeCol;
-    model.transact(() => {
-      rows.forEach((rowVals, rr) => rowVals.forEach((raw, cc) => {
-        const tr = startR + rr, tc = startC + cc;
-        if (!model.inBounds(tr, tc)) return;
-        const src = clipboardSource && clipboardSource.range;
-        const adjusted = raw.startsWith('=') ? model.adjustFormulaForMove(raw, src ? src.r1 + rr : startR, src ? src.c1 + cc : startC, tr, tc) : raw;
-        model.setRaw(tr, tc, adjusted);
-      }));
-      if (clipboardSource && clipboardSource.cut) {
-        const s = clipboardSource.range;
-        for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) model.setRaw(r, c, '');
-        clipboardSource = null;
-      }
-    });
-    renderValues(); setSelection(startR, startC); renderSelection(); updateFormulaBar();
+    const target = normSel();
+    const source = clipboardSource && { ...clipboardSource.range, cut: clipboardSource.cut };
+    model.pasteBlock(text, target, source);
+    clipboardSource = null;
+    renderValues(); setSelection(target.r1, target.c1); renderSelection(); updateFormulaBar();
   }
 
   grid.addEventListener('mousedown', e => {
