@@ -62,6 +62,77 @@
     };
   }
 
+  function closeStructureMenus() {
+    var menus = gridRoot.querySelectorAll(".structure-menu");
+    var buttons = gridRoot.querySelectorAll(".structure-menu-button");
+
+    Array.prototype.forEach.call(menus, function (menu) {
+      menu.hidden = true;
+    });
+    Array.prototype.forEach.call(buttons, function (button) {
+      button.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function applyStructureAction(type, index) {
+    if (editing) commitEdit(false);
+
+    var payload = store.applyStructureAction({ type: type, index: index, count: 1 }, "header-control");
+    closeStructureMenus();
+    renderShellGrid();
+    syncSelectionChrome(store.snapshot().selection);
+    if (status) status.textContent = payload.type + " applied. Undo payload: " + payload.undo.type + ".";
+  }
+
+  function createStructureMenu(label, actions) {
+    var wrapper = document.createElement("span");
+    var labelNode = document.createElement("span");
+    var button = document.createElement("button");
+    var menu = document.createElement("div");
+
+    wrapper.className = "structure-header-content";
+    labelNode.className = "structure-header-label";
+    labelNode.textContent = label;
+    button.type = "button";
+    button.className = "structure-menu-button";
+    button.textContent = "v";
+    button.setAttribute("aria-label", label + " structure menu");
+    button.setAttribute("aria-haspopup", "menu");
+    button.setAttribute("aria-expanded", "false");
+    menu.className = "structure-menu";
+    menu.hidden = true;
+    menu.setAttribute("role", "menu");
+
+    actions.forEach(function (action) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.textContent = action.label;
+      item.setAttribute("data-action", action.name);
+      item.setAttribute("role", "menuitem");
+      if (action.danger) item.className = "danger-action";
+      item.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        action.run();
+      });
+      menu.appendChild(item);
+    });
+
+    button.addEventListener("click", function (event) {
+      var shouldOpen = menu.hidden;
+      event.preventDefault();
+      event.stopPropagation();
+      closeStructureMenus();
+      menu.hidden = !shouldOpen;
+      button.setAttribute("aria-expanded", String(shouldOpen));
+    });
+
+    wrapper.appendChild(labelNode);
+    wrapper.appendChild(button);
+    wrapper.appendChild(menu);
+    return wrapper;
+  }
+
   function syncSelectionChrome(selection) {
     var active = selection.active;
     var cell = cellAt(active.row, active.col);
@@ -221,8 +292,9 @@
   }
 
   function renderShellGrid() {
-    var rows = spreadsheet.constants.rows;
-    var columns = spreadsheet.constants.columns;
+    var snapshot = store.snapshot();
+    var rows = snapshot.dimensions.rows;
+    var columns = snapshot.dimensions.columns;
     var fragment = document.createDocumentFragment();
     var corner = document.createElement("div");
     var row;
@@ -240,17 +312,25 @@
 
     for (col = 0; col < columns; col += 1) {
       var columnHeader = document.createElement("div");
-      columnHeader.className = "column-header";
+      columnHeader.className = "column-header structure-header";
       columnHeader.dataset.colHeader = String(col);
-      columnHeader.textContent = spreadsheet.colToName(col);
+      columnHeader.appendChild(createStructureMenu(spreadsheet.colToName(col), [
+        { label: "Insert column left", name: "insert-column-left", run: function (targetCol) { return function () { applyStructureAction("insertColumns", targetCol); }; }(col) },
+        { label: "Insert column right", name: "insert-column-right", run: function (targetCol) { return function () { applyStructureAction("insertColumns", targetCol + 1); }; }(col) },
+        { label: "Delete column", name: "delete-column", danger: true, run: function (targetCol) { return function () { applyStructureAction("deleteColumns", targetCol); }; }(col) }
+      ]));
       fragment.appendChild(columnHeader);
     }
 
     for (row = 0; row < rows; row += 1) {
       var rowHeader = document.createElement("div");
-      rowHeader.className = "row-header";
+      rowHeader.className = "row-header structure-header";
       rowHeader.dataset.rowHeader = String(row);
-      rowHeader.textContent = String(row + 1);
+      rowHeader.appendChild(createStructureMenu(String(row + 1), [
+        { label: "Insert row above", name: "insert-row-above", run: function (targetRow) { return function () { applyStructureAction("insertRows", targetRow); }; }(row) },
+        { label: "Insert row below", name: "insert-row-below", run: function (targetRow) { return function () { applyStructureAction("insertRows", targetRow + 1); }; }(row) },
+        { label: "Delete row", name: "delete-row", danger: true, run: function (targetRow) { return function () { applyStructureAction("deleteRows", targetRow); }; }(row) }
+      ]));
       fragment.appendChild(rowHeader);
 
       for (col = 0; col < columns; col += 1) {
@@ -261,6 +341,7 @@
         cell.dataset.row = String(row);
         cell.dataset.col = String(col);
         cell.dataset.cell = cellKey(row, col);
+        cell.textContent = store.getCellRaw({ row: row, col: col });
         cell.addEventListener("mousedown", function (event) {
           event.preventDefault();
           var targetCell = { row: Number(this.dataset.row), col: Number(this.dataset.col) };
@@ -298,10 +379,15 @@
     }
   });
 
+  store.on("structurechange", function () {
+    renderShellGrid();
+  });
+
   formulaInput.addEventListener("input", handleFormulaInput);
   formulaInput.addEventListener("keydown", handleFormulaKeydown);
   document.addEventListener("keydown", handleDocumentKeydown);
   document.addEventListener("mouseup", function () { draggingAnchor = null; });
+  document.addEventListener("click", closeStructureMenus);
 
   renderShellGrid();
   syncSelectionChrome(store.snapshot().selection);
