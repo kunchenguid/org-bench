@@ -37,6 +37,14 @@
         key(editor, 'Enter');
       }
 
+      function runHeaderAction(root, command, index, action) {
+        const menu = root.querySelector('[data-command="' + command + '"][data-' + (command === 'row-menu' ? 'row' : 'col') + '="' + index + '"]');
+        menu.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        const item = root.querySelector('[data-menu-action="' + action + '"]');
+        assert(item, 'header menu exposes ' + action);
+        item.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      }
+
       function run() {
         assert(window.OracleSpreadsheet, 'OracleSpreadsheet namespace exists');
         assert(typeof window.OracleSpreadsheet.createApp === 'function', 'createApp exists');
@@ -110,6 +118,24 @@
         key(b1, 'z', { metaKey: true });
         assert(b1.textContent.trim() === '7', 'undo restores deleted range as one action');
 
+        editCell(root, 'A2', '10');
+        b1.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+        formulaInput.value = '=A2';
+        formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+        key(formulaInput, 'Enter');
+        assert(b1.textContent.trim() === '10', 'formula points at row before header actions');
+        runHeaderAction(root, 'row-menu', '1', 'insert-row-before');
+        assert(root.querySelector('[data-cell="A3"]').textContent.trim() === '10', 'row insert shifts cell contents down');
+        assert(b1.textContent.trim() === '10', 'row insert keeps formula pointing at same data');
+        runHeaderAction(root, 'row-menu', '1', 'delete-row');
+        assert(root.querySelector('[data-cell="A2"]').textContent.trim() === '10', 'row delete shifts cell contents back up');
+        assert(b1.textContent.trim() === '10', 'row delete keeps formula pointing at same data');
+
+        runHeaderAction(root, 'column-menu', '1', 'insert-column-before');
+        assert(root.querySelector('[data-cell="C1"]').textContent.trim() === '10', 'column insert shifts formula cell right');
+        runHeaderAction(root, 'column-menu', '1', 'delete-column');
+        assert(root.querySelector('[data-cell="B1"]').textContent.trim() === '10', 'column delete shifts formula cell back left');
+
         b2.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
 
         app.destroy();
@@ -118,7 +144,7 @@
           cols: 26,
           namespace: 'oracle-ui-test'
         });
-        assert(root.querySelector('[data-cell="B1"]').textContent.trim() === '7', 'reload restores persisted formula display');
+        assert(root.querySelector('[data-cell="B1"]').textContent.trim() === '10', 'reload restores persisted formula display');
         assert(root.querySelector('[data-cell="B2"]').getAttribute('aria-selected') === 'true', 'reload restores selected cell');
         assert(root.querySelector('#formula-input').value === '=A1+1', 'reload restores raw formula in formula bar');
         restored.destroy();

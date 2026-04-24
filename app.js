@@ -253,6 +253,11 @@
     const hint = createElement('div', 'hint', 'Enter edits/commits. Shift+arrows extends selection. Delete clears selection.');
     toolbar.append(cellNameBox, formulaWrap, hint);
 
+    const headerActionMenu = createElement('div', 'header-action-menu');
+    headerActionMenu.hidden = true;
+    headerActionMenu.setAttribute('role', 'menu');
+    headerActionMenu.setAttribute('aria-label', 'Header actions');
+
     const gridShell = createElement('div', 'grid-shell');
     const grid = createElement('div', 'sheet-grid');
     grid.setAttribute('role', 'grid');
@@ -310,7 +315,7 @@
     }
 
     gridShell.appendChild(grid);
-    app.append(toolbar, gridShell);
+    app.append(toolbar, headerActionMenu, gridShell);
     root.appendChild(app);
 
     function rangeBounds() {
@@ -497,17 +502,58 @@
       return false;
     }
 
-    function runHeaderCommand(button) {
-      const isRow = button.dataset.command === 'row-menu';
-      const index = Number(isRow ? button.dataset.row : button.dataset.col);
-      if (isRow) {
+    function executeHeaderAction(action, isRow, index) {
+      if (action === 'insert-row-before') {
         sheet.insertRows && sheet.insertRows(index, 1);
         setSelection(index, state.selected.col, false, false);
-      } else {
+      } else if (action === 'insert-row-after') {
+        sheet.insertRows && sheet.insertRows(index + 1, 1);
+        setSelection(index + 1, state.selected.col, false, false);
+      } else if (action === 'delete-row') {
+        sheet.deleteRows && sheet.deleteRows(index, 1);
+        setSelection(Math.min(index, rowCount - 1), state.selected.col, false, false);
+      } else if (action === 'insert-column-before') {
         sheet.insertColumns && sheet.insertColumns(index, 1);
         setSelection(state.selected.row, index, false, false);
+      } else if (action === 'insert-column-after') {
+        sheet.insertColumns && sheet.insertColumns(index + 1, 1);
+        setSelection(state.selected.row, index + 1, false, false);
+      } else if (action === 'delete-column') {
+        sheet.deleteColumns && sheet.deleteColumns(index, 1);
+        setSelection(state.selected.row, Math.min(index, colCount - 1), false, false);
       }
       refreshAfterAction();
+    }
+
+    function addHeaderMenuItem(label, action, isRow, index) {
+      const item = createElement('button', 'header-action-item', label);
+      item.type = 'button';
+      item.dataset.menuAction = action;
+      item.setAttribute('role', 'menuitem');
+      item.addEventListener('click', function (event) {
+        event.preventDefault();
+        headerActionMenu.hidden = true;
+        executeHeaderAction(action, isRow, index);
+      });
+      headerActionMenu.appendChild(item);
+    }
+
+    function showHeaderMenu(button) {
+      const isRow = button.dataset.command === 'row-menu';
+      const index = Number(isRow ? button.dataset.row : button.dataset.col);
+      headerActionMenu.textContent = '';
+      if (isRow) {
+        addHeaderMenuItem('Insert row above', 'insert-row-before', true, index);
+        addHeaderMenuItem('Insert row below', 'insert-row-after', true, index);
+        addHeaderMenuItem('Delete row', 'delete-row', true, index);
+      } else {
+        addHeaderMenuItem('Insert column left', 'insert-column-before', false, index);
+        addHeaderMenuItem('Insert column right', 'insert-column-after', false, index);
+        addHeaderMenuItem('Delete column', 'delete-column', false, index);
+      }
+      headerActionMenu.hidden = false;
+      const firstItem = headerActionMenu.querySelector('button');
+      if (firstItem) firstItem.focus();
     }
 
     function handleCellKeydown(event, cell) {
@@ -614,7 +660,7 @@
         return;
       }
       event.preventDefault();
-      runHeaderCommand(headerButton);
+      showHeaderMenu(headerButton);
     });
 
     grid.addEventListener('copy', function (event) {
