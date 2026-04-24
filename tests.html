@@ -46,6 +46,14 @@
       equal(sheet.getDisplay(0, 0), '#CIRC!');
     });
 
+    test('cell clicks restore grid keyboard focus after formula bar use', () => {
+      const formula = document.getElementById('formula-bar');
+      const cell = document.querySelector('.cell[data-row="0"][data-col="0"]');
+      formula.focus();
+      cell.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      if (document.activeElement !== cell) throw new Error('expected clicked cell to receive focus');
+    });
+
     if (failures.length) {
       out.textContent = failures.join('\n');
       throw new Error(failures.length + ' tests failed');
