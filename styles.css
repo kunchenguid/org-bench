@@ -1,0 +1,162 @@
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --grid: #d9dee8;
+  --header: #eef2f7;
+  --text: #172033;
+  --muted: #667085;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.14);
+  --danger: #b42318;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.toolbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--grid);
+  padding: 10px 14px 12px;
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.06);
+  z-index: 2;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.formula-row {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.name-box, .formula-bar {
+  border: 1px solid var(--grid);
+  border-radius: 7px;
+  background: #fff;
+  min-height: 34px;
+}
+
+.name-box {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.formula-bar {
+  width: 100%;
+  padding: 6px 10px;
+  font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text);
+}
+
+.formula-bar:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+.hint { margin-top: 7px; color: var(--muted); font-size: 12px; }
+
+.grid {
+  position: relative;
+  overflow: auto;
+  outline: none;
+  background: var(--panel);
+  display: grid;
+  grid-template-columns: 48px repeat(26, 104px);
+  grid-auto-rows: 28px;
+  align-content: start;
+  user-select: none;
+}
+
+.corner, .col-header, .row-header, .cell {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  min-width: 0;
+}
+
+.corner, .col-header, .row-header {
+  background: var(--header);
+  color: #475467;
+  font-weight: 650;
+  display: grid;
+  place-items: center;
+  position: sticky;
+  z-index: 1;
+}
+
+.corner { left: 0; top: 0; z-index: 3; }
+.col-header { top: 0; }
+.row-header { left: 0; }
+
+.cell {
+  position: relative;
+  padding: 5px 7px;
+  background: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: cell;
+}
+
+.cell.number, .cell.boolean { text-align: right; font-variant-numeric: tabular-nums; }
+.cell.error { color: var(--danger); font-weight: 650; }
+.cell.in-range { background: var(--accent-soft); }
+.cell.active { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 1; background: #fff; }
+
+.cell input {
+  position: absolute;
+  inset: 1px;
+  border: 2px solid var(--accent);
+  padding: 3px 5px;
+  font: inherit;
+  background: #fff;
+  z-index: 4;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 170px;
+  padding: 6px;
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.16);
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 7px;
+  text-align: left;
+  color: var(--text);
+}
+
+.context-menu button:hover { background: var(--header); }
+
+@media (max-width: 720px) {
+  .grid { grid-template-columns: 42px repeat(26, 88px); }
+  .formula-row { grid-template-columns: 58px 1fr; }
+  .hint { display: none; }
+}
