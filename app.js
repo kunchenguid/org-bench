@@ -289,16 +289,19 @@
   function copy(cut) {
     var b = selectedBounds(), data = [];
     for (var r = b.r1; r <= b.r2; r++) { var row = []; for (var c = b.c1; c <= b.c2; c++) row.push(cells[addr(r, c)] || ''); data.push(row); }
-    clipboard = { data: data, source: b, cut: cut };
-    navigator.clipboard && navigator.clipboard.writeText(data.map(function (row) { return row.join('\t'); }).join('\n')).catch(function () {});
+    var text = data.map(function (row) { return row.join('\t'); }).join('\n');
+    clipboard = { data: data, source: b, cut: cut, text: text };
+    navigator.clipboard && navigator.clipboard.writeText(text).catch(function () {});
     if (cut) clearSelection();
+    return text;
   }
   function pasteText(text) {
-    var data = clipboard && clipboard.data ? clipboard.data : text.split(/\r?\n/).map(function (r) { return r.split('\t'); });
+    var useInternal = clipboard && clipboard.data && (!text || text === clipboard.text);
+    var data = useInternal ? clipboard.data : text.split(/\r?\n/).map(function (r) { return r.split('\t'); });
     writeRange(function () {
       for (var r = 0; r < data.length; r++) for (var c = 0; c < data[r].length; c++) {
         var raw = data[r][c], targetR = selected.row + r, targetC = selected.col + c;
-        if (targetR < ROWS && targetC < COLS) setRaw(targetR, targetC, clipboard ? shiftFormula(raw, targetR - clipboard.source.r1, targetC - clipboard.source.c1) : raw);
+        if (targetR < ROWS && targetC < COLS) setRaw(targetR, targetC, useInternal ? shiftFormula(raw, targetR - clipboard.source.r1, targetC - clipboard.source.c1) : raw);
       }
     });
   }
@@ -341,5 +344,8 @@
     if (e.key.indexOf('Arrow') === 0) { e.preventDefault(); select(selected.row + (e.key === 'ArrowDown') - (e.key === 'ArrowUp'), selected.col + (e.key === 'ArrowRight') - (e.key === 'ArrowLeft'), e.shiftKey); return; }
     if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) beginEdit(selected.row, selected.col, false, e.key);
   });
+  document.addEventListener('copy', function (e) { if (e.target === formulaBar || editing) return; e.preventDefault(); e.clipboardData.setData('text/plain', copy(false)); });
+  document.addEventListener('cut', function (e) { if (e.target === formulaBar || editing) return; e.preventDefault(); e.clipboardData.setData('text/plain', copy(true)); });
+  document.addEventListener('paste', function (e) { if (e.target === formulaBar || editing) return; e.preventDefault(); pasteText(e.clipboardData.getData('text/plain')); });
   renderGrid();
 })();
