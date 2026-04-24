@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Grid Shell Smoke Test</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { overflow: auto; padding: 24px; }
+    .pass { color: #0a7a31; }
+    .fail { color: #b00020; white-space: pre-wrap; }
+    .sheet-app { height: 720px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Grid Shell Smoke Test</h1>
+  <div id="result">Running...</div>
+  <main class="sheet-app" aria-label="Spreadsheet">
+    <header class="sheet-chrome" aria-label="Spreadsheet controls">
+      <label class="name-box" for="formula-input">
+        <span id="active-address">A1</span>
+      </label>
+      <div class="formula-bar">
+        <span class="formula-prefix" aria-hidden="true">fx</span>
+        <input id="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="Formula bar">
+      </div>
+    </header>
+    <section class="grid-shell" aria-label="Grid workspace">
+      <div id="grid-root" class="grid-root"></div>
+    </section>
+    <footer class="status-bar" aria-live="polite"><span data-spreadsheet-slot="status">Ready</span></footer>
+  </main>
+  <script src="scripts/app-state.js"></script>
+  <script src="src/selectionClipboard.js"></script>
+  <script src="scripts/app.js"></script>
+  <script>
+    const result = document.getElementById('result');
+
+    function assert(condition, message) {
+      if (!condition) throw new Error(message);
+    }
+
+    function key(target, keyName, options) {
+      target.dispatchEvent(new KeyboardEvent('keydown', {
+        key: keyName,
+        bubbles: true,
+        cancelable: true,
+        ...(options || {})
+      }));
+    }
+
+    function run() {
+      const a1 = document.querySelector('[data-cell="A1"]');
+      const b1 = document.querySelector('[data-cell="B1"]');
+      const b2 = document.querySelector('[data-cell="B2"]');
+      const c1 = document.querySelector('[data-cell="C1"]');
+      const formula = document.querySelector('#formula-input');
+
+      assert(document.querySelectorAll('.column-header').length === 26, 'renders 26 column headers');
+      assert(document.querySelectorAll('.row-header').length === 100, 'renders 100 row headers');
+      assert(document.querySelectorAll('.cell').length === 2600, 'renders 26x100 cells');
+      assert(a1 && b1 && b2 && formula, 'basic grid controls exist');
+      assert(a1.classList.contains('active'), 'A1 starts active');
+      assert(document.querySelector('#active-address').textContent === 'A1', 'formula bar name box starts at A1');
+
+      key(document, 'x');
+      assert(a1.classList.contains('editing'), 'typing printable key enters edit mode');
+      assert(a1.querySelector('input').value === 'x', 'typing replaces current contents');
+      key(document, 'Enter');
+      assert(a1.textContent === 'x', 'Enter commits cell edit');
+      assert(document.querySelector('[data-cell="A2"]').classList.contains('active'), 'Enter moves active cell down');
+
+      key(document, 'ArrowRight');
+      assert(b2.classList.contains('active'), 'ArrowRight navigates right');
+      key(document, 'ArrowUp');
+      assert(b1.classList.contains('active'), 'ArrowUp navigates up');
+
+      key(document, 'ArrowRight', { shiftKey: true });
+      assert(b1.classList.contains('is-selected'), 'Shift+Arrow keeps anchor selected');
+      assert(c1.classList.contains('is-selected'), 'Shift+Arrow extends range to focus');
+      assert(c1.classList.contains('active'), 'Shift+Arrow keeps focus visually active');
+
+      b2.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, shiftKey: true }));
+      assert(b2.classList.contains('is-selected'), 'Shift+click extends range to clicked cell');
+      assert(b1.classList.contains('is-selected'), 'Shift+click preserves rectangular range interior');
+
+      b1.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      c1.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true, buttons: 1 }));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+      assert(b1.classList.contains('is-selected') && c1.classList.contains('is-selected'), 'drag selects rectangular range');
+
+      b1.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+
+      key(document, 'Enter');
+      assert(b1.classList.contains('editing'), 'Enter on selected cell preserves current content for editing');
+      key(document, 'Escape');
+      assert(!b1.classList.contains('editing'), 'Escape exits edit mode without committing');
+
+      formula.value = '=A1+1';
+      formula.dispatchEvent(new Event('input', { bubbles: true }));
+      assert(b1.textContent === '=A1+1', 'formula bar edits selected cell raw value');
+
+      key(document, 'F2');
+      formula.value = '=A1+2';
+      formula.dispatchEvent(new Event('input', { bubbles: true }));
+      assert(b1.classList.contains('editing'), 'formula bar preserves an active in-cell editor');
+      assert(b1.querySelector('input').value === '=A1+2', 'formula bar mirrors into active in-cell editor');
+      key(document, 'Escape');
+      assert(b1.textContent === '=A1+1', 'Escape restores raw value after formula bar edit during cell edit');
+
+      result.className = 'pass';
+      result.textContent = 'PASS';
+    }
+
+    try { run(); }
+    catch (error) {
+      result.className = 'fail';
+      result.textContent = 'FAIL: ' + error.message + '\n' + error.stack;
+    }
+  </script>
+</body>
+</html>
