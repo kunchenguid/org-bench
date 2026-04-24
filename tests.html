@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Spreadsheet Tests</title>
+<body>
+  <pre id="results">Running...</pre>
+  <script src="formula.js"></script>
+  <script>
+    (function () {
+      var out = document.getElementById('results');
+      var tests = [];
+      function test(name, fn) { tests.push({ name: name, fn: fn }); }
+      function equal(actual, expected) {
+        if (actual !== expected) throw new Error('expected ' + expected + ', got ' + actual);
+      }
+
+      test('evaluates arithmetic with precedence and ranges', function () {
+        var sheet = new SheetModel(26, 100, 'test-arithmetic');
+        sheet.setCell('A1', '2');
+        sheet.setCell('A2', '3');
+        sheet.setCell('B1', '=A1+A2*4');
+        sheet.setCell('B2', '=SUM(A1:A2)');
+        equal(sheet.getDisplay('B1'), '14');
+        equal(sheet.getDisplay('B2'), '5');
+      });
+
+      test('updates relative references when copying formulas', function () {
+        var sheet = new SheetModel(26, 100, 'test-copy');
+        sheet.setCell('A1', '10');
+        sheet.setCell('A2', '5');
+        sheet.setCell('B1', '=A1+A2');
+        sheet.copyRange('B1', 'B1', 'C1', false);
+        equal(sheet.getRaw('C1'), '=B1+B2');
+      });
+
+      test('detects circular references', function () {
+        var sheet = new SheetModel(26, 100, 'test-circular');
+        sheet.setCell('A1', '=B1');
+        sheet.setCell('B1', '=A1');
+        equal(sheet.getDisplay('A1'), '#CIRC!');
+      });
+
+      test('keeps formulas pointing at shifted data after row insertion', function () {
+        var sheet = new SheetModel(26, 100, 'test-insert-row');
+        sheet.setCell('A1', '2');
+        sheet.setCell('A2', '3');
+        sheet.setCell('B1', '=SUM(A1:A2)');
+        sheet.insertRow(0);
+        equal(sheet.getDisplay('B2'), '5');
+        equal(sheet.getRaw('B2'), '=SUM(A2:A3)');
+      });
+
+      var failures = [];
+      tests.forEach(function (t) {
+        try { t.fn(); }
+        catch (err) { failures.push(t.name + ': ' + err.message); }
+      });
+      if (failures.length) {
+        out.textContent = failures.join('\n');
+        document.body.setAttribute('data-tests', 'fail');
+        throw new Error(failures.join('; '));
+      }
+      out.textContent = tests.length + ' tests passed';
+      document.body.setAttribute('data-tests', 'pass');
+    })();
+  </script>
+</body>

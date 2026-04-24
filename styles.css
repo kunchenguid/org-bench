@@ -1,0 +1,21 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 13px/1.3 system-ui, -apple-system, Segoe UI, sans-serif; color: #172033; background: #eef2f8; }
+.app { height: 100vh; display: flex; flex-direction: column; }
+.bar { display: flex; gap: 8px; align-items: center; padding: 10px; background: #172033; color: white; box-shadow: 0 2px 12px #0002; }
+.bar strong { font-size: 15px; letter-spacing: .02em; }
+#cell-name { min-width: 52px; padding: 6px 8px; border-radius: 6px; background: #26344f; text-align: center; font-weight: 700; }
+#formula { flex: 1; min-width: 0; height: 32px; border: 0; border-radius: 7px; padding: 0 10px; font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+button { height: 32px; border: 0; border-radius: 7px; background: #4f8cff; color: white; font-weight: 650; padding: 0 10px; }
+.grid { flex: 1; overflow: auto; display: grid; grid-template-columns: 48px repeat(26, 104px); grid-auto-rows: 28px; background: white; outline: none; user-select: none; }
+.corner, .col-head, .row-head { position: sticky; z-index: 3; background: #f4f6fb; color: #56627a; font-weight: 700; display: flex; align-items: center; justify-content: center; border-right: 1px solid #dbe2ef; border-bottom: 1px solid #dbe2ef; }
+.corner { left: 0; top: 0; z-index: 5; }
+.col-head { top: 0; }
+.row-head { left: 0; z-index: 4; }
+.cell { position: relative; padding: 5px 7px; border-right: 1px solid #e3e8f2; border-bottom: 1px solid #e3e8f2; background: white; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: cell; }
+.cell.number { text-align: right; font-variant-numeric: tabular-nums; }
+.cell.error { color: #b42318; background: #fff6f5; font-weight: 700; }
+.cell.range { background: #e9f1ff; }
+.cell.active { outline: 2px solid #1264ff; outline-offset: -2px; z-index: 2; background: #fff; }
+.cell.editing { padding: 0; }
+.cell input { width: 100%; height: 100%; border: 2px solid #1264ff; padding: 3px 5px; font: inherit; outline: none; }
+@media (max-width: 720px) { .bar { flex-wrap: wrap; } button { flex: 1; } .grid { grid-template-columns: 42px repeat(26, 86px); } }

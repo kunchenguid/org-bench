@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gridbook</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="bar">
+      <strong>Gridbook</strong>
+      <span id="cell-name">A1</span>
+      <input id="formula" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <button id="insert-row">Insert row above</button>
+      <button id="insert-col">Insert column left</button>
+    </header>
+    <main id="grid" class="grid" tabindex="0" aria-label="Spreadsheet grid"></main>
+  </div>
+  <script src="formula.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
