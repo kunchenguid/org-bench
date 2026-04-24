@@ -50,8 +50,15 @@
       if (!opts.skipLoad) this.load();
     }
 
-    cloneCells() { return new Map(this.cells); }
-    restoreCells(cells) { this.cells = new Map(cells); this.clearEval(); this.save(); }
+    snapshot() { return { rows: this.rows, cols: this.cols, cells: new Map(this.cells), selection: Object.assign({}, this.selection) }; }
+    restoreSnapshot(snapshot) {
+      this.rows = snapshot.rows;
+      this.cols = snapshot.cols;
+      this.cells = new Map(snapshot.cells);
+      this.selection = Object.assign({}, snapshot.selection);
+      this.clearEval();
+      this.save();
+    }
     clearEval() { this.cache.clear(); this.errors.clear(); }
     inBounds(row, col) { return row >= 0 && col >= 0 && row < this.rows && col < this.cols; }
     getRaw(row, col) { return this.cells.get(keyOf(row, col)) || ''; }
@@ -142,10 +149,10 @@
       }
     }
     transact(fn) {
-      const before = this.cloneCells();
+      const before = this.snapshot();
       fn();
-      const after = this.cloneCells();
-      if (!mapsEqual(before, after)) {
+      const after = this.snapshot();
+      if (!snapshotsEqual(before, after)) {
         this.undoStack.push({ before, after });
         if (this.undoStack.length > MAX_HISTORY) this.undoStack.shift();
         this.redoStack = [];
@@ -156,14 +163,14 @@
     undo() {
       const item = this.undoStack.pop();
       if (!item) return false;
-      this.restoreCells(item.before);
+      this.restoreSnapshot(item.before);
       this.redoStack.push(item);
       return true;
     }
     redo() {
       const item = this.redoStack.pop();
       if (!item) return false;
-      this.restoreCells(item.after);
+      this.restoreSnapshot(item.after);
       this.undoStack.push(item);
       return true;
     }
@@ -266,6 +273,14 @@
     if (a.size !== b.size) return false;
     for (const [k, v] of a) if (b.get(k) !== v) return false;
     return true;
+  }
+
+  function snapshotsEqual(a, b) {
+    return a.rows === b.rows && a.cols === b.cols && selectionsEqual(a.selection, b.selection) && mapsEqual(a.cells, b.cells);
+  }
+
+  function selectionsEqual(a, b) {
+    return a.r1 === b.r1 && a.c1 === b.c1 && a.r2 === b.r2 && a.c2 === b.c2 && a.activeRow === b.activeRow && a.activeCol === b.activeCol;
   }
 
   function normalizeSelection(range) {

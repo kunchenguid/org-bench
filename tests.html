@@ -158,6 +158,36 @@
       assertEqual(sheet.getDisplay(0, 0), '1200', 'round to hundreds');
     });
 
+    test('insert and delete update structural formula references', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-structural-refs', skipLoad: true });
+      sheet.setRaw(0, 0, '1');
+      sheet.setRaw(1, 0, '2');
+      sheet.setRaw(2, 0, '=SUM(A1:A2)+B1');
+      sheet.insertRow(1);
+      assertEqual(sheet.getRaw(3, 0), '=SUM(A1:A3)+B1', 'insert row shifts range endpoint');
+      sheet.deleteCol(1);
+      assertEqual(sheet.getRaw(3, 0), '=SUM(A1:A3)+#REF!', 'delete col marks removed ref');
+    });
+
+    test('undo and redo restore row and column counts for structural edits', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-structural-undo', skipLoad: true });
+      sheet.setRaw(0, 0, 'x');
+      sheet.insertRow(0);
+      sheet.deleteCol(1);
+      assertEqual(sheet.rows, 11, 'row inserted');
+      assertEqual(sheet.cols, 4, 'column deleted');
+      sheet.undo();
+      assertEqual(sheet.rows, 11, 'undo delete keeps inserted row');
+      assertEqual(sheet.cols, 5, 'undo delete restores column count');
+      sheet.undo();
+      assertEqual(sheet.rows, 10, 'undo insert restores row count');
+      assertEqual(sheet.cols, 5, 'undo insert keeps column count');
+      sheet.redo();
+      assertEqual(sheet.rows, 11, 'redo insert restores row count');
+      sheet.redo();
+      assertEqual(sheet.cols, 4, 'redo delete restores column count');
+    });
+
     (async function run() {
       const failures = [];
       for (const t of tests) {
