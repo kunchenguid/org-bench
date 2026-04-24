@@ -29,8 +29,16 @@
     </section>
     <footer class="status-bar" aria-live="polite"><span data-spreadsheet-slot="status">Ready</span></footer>
   </main>
+  <script>
+    window.__ORG_BENCH_STORAGE_NAMESPACE__ = 'grid-shell-test:';
+    localStorage.setItem('grid-shell-test:cells', JSON.stringify({ B2: 'persisted' }));
+    localStorage.setItem('grid-shell-test:selection', JSON.stringify({ active: { row: 1, col: 1 }, anchor: { row: 1, col: 1 }, focus: { row: 1, col: 1 }, range: { top: 1, left: 1, bottom: 1, right: 1 } }));
+  </script>
   <script src="scripts/app-state.js"></script>
+  <script src="history-persistence.js"></script>
+  <script src="src/historyPersistenceController.js"></script>
   <script src="src/selectionClipboard.js"></script>
+  <script src="src/clipboardController.js"></script>
   <script src="scripts/app.js"></script>
   <script>
     const result = document.getElementById('result');
@@ -59,8 +67,12 @@
       assert(document.querySelectorAll('.row-header').length === 100, 'renders 100 row headers');
       assert(document.querySelectorAll('.cell').length === 2600, 'renders 26x100 cells');
       assert(a1 && b1 && b2 && formula, 'basic grid controls exist');
-      assert(a1.classList.contains('active'), 'A1 starts active');
-      assert(document.querySelector('#active-address').textContent === 'A1', 'formula bar name box starts at A1');
+      assert(b2.classList.contains('active'), 'persisted B2 selection restores active cell');
+      assert(b2.textContent === 'persisted', 'persisted raw cell contents restore into grid');
+      assert(document.querySelector('#active-address').textContent === 'B2', 'formula bar name box restores persisted selection');
+
+      a1.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      assert(a1.classList.contains('active'), 'clicking A1 selects it after restore');
 
       key(document, 'x');
       assert(a1.classList.contains('editing'), 'typing printable key enters edit mode');
@@ -68,7 +80,10 @@
       key(document, 'Enter');
       assert(a1.textContent === 'x', 'Enter commits cell edit');
       assert(document.querySelector('[data-cell="A2"]').classList.contains('active'), 'Enter moves active cell down');
+      key(document, 'z', { metaKey: true });
+      assert(a1.textContent === '', 'Cmd+Z undoes a committed edit');
 
+      key(document, 'ArrowDown');
       key(document, 'ArrowRight');
       assert(b2.classList.contains('active'), 'ArrowRight navigates right');
       key(document, 'ArrowUp');

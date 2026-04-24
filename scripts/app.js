@@ -9,13 +9,25 @@
   var status = document.querySelector("[data-spreadsheet-slot='status']");
   var editing = null;
   var draggingAnchor = null;
+  var historyController = window.SpreadsheetHistoryPersistenceController && window.SpreadsheetHistoryPersistence
+    ? window.SpreadsheetHistoryPersistenceController.installHistoryPersistenceController({
+      target: document,
+      store: store,
+      historyPersistence: window.SpreadsheetHistoryPersistence
+    })
+    : null;
+  var recordAction = historyController
+    ? historyController.recordAction
+    : function (label, mutate) { mutate(); };
+  var formulaEditBefore = null;
 
   window.sheetStore = store;
   if (window.SpreadsheetClipboardController && window.SelectionClipboard) {
     window.removeSpreadsheetClipboardController = window.SpreadsheetClipboardController.installClipboardController({
       target: document,
       store: store,
-      selectionTools: window.SelectionClipboard
+      selectionTools: window.SelectionClipboard,
+      recordAction: recordAction
     });
   }
 
@@ -168,6 +180,20 @@
     }
   }
 
+  function renderPopulatedCells() {
+    var cells = store.snapshot().cells;
+    Object.keys(cells).forEach(function (key) {
+      var match = /^([A-Z]+)(\d+)$/.exec(key);
+      if (!match) return;
+      var colName = match[1];
+      var col = 0;
+      for (var index = 0; index < colName.length; index += 1) {
+        col = col * 26 + colName.charCodeAt(index) - 64;
+      }
+      renderCellRaw(Number(match[2]) - 1, col - 1);
+    });
+  }
+
   function commitEdit(cancel) {
     if (!editing) return;
 
@@ -180,7 +206,13 @@
       cell.classList.remove("editing");
       cell.textContent = "";
     }
-    store.setCellRaw({ row: state.row, col: state.col }, nextRaw, cancel ? "edit-cancel" : "cell-edit");
+    if (cancel) {
+      store.setCellRaw({ row: state.row, col: state.col }, nextRaw, "edit-cancel");
+    } else {
+      recordAction("cell-edit", function () {
+        store.setCellRaw({ row: state.row, col: state.col }, nextRaw, "cell-edit");
+      });
+    }
     renderCellRaw(state.row, state.col);
     formulaInput.value = store.getCellRaw(activeCell());
   }
@@ -265,6 +297,9 @@
 
   function handleFormulaInput() {
     var active = activeCell();
+    if (!formulaEditBefore) {
+      formulaEditBefore = store.snapshot();
+    }
     if (editing) {
       editing.input.value = formulaInput.value;
       return;
@@ -274,20 +309,32 @@
   }
 
   function handleFormulaKeydown(event) {
+    function commitFormulaBarAction(label) {
+      if (!formulaEditBefore || !historyController || !historyController.recordSnapshots) {
+        formulaEditBefore = null;
+        return;
+      }
+      historyController.recordSnapshots(label, formulaEditBefore, store.snapshot());
+      formulaEditBefore = null;
+    }
+
     if (event.key === "Enter") {
       event.preventDefault();
       if (editing) commitEdit(false);
       else store.setCellRaw(activeCell(), formulaInput.value, "formula-bar");
+      commitFormulaBarAction("formula-bar");
       move(1, 0);
     } else if (event.key === "Tab") {
       event.preventDefault();
       if (editing) commitEdit(false);
       else store.setCellRaw(activeCell(), formulaInput.value, "formula-bar");
+      commitFormulaBarAction("formula-bar");
       move(0, 1);
     } else if (event.key === "Escape") {
       event.preventDefault();
       if (editing) commitEdit(true);
       formulaInput.value = store.getCellRaw(activeCell());
+      formulaEditBefore = null;
     }
   }
 
@@ -381,6 +428,16 @@
 
   store.on("structurechange", function () {
     renderShellGrid();
+    renderPopulatedCells();
+    syncSelectionChrome(store.snapshot().selection);
+  });
+
+  store.on("hydrate", function (event) {
+    Array.prototype.forEach.call(gridRoot.querySelectorAll(".cell"), function (cell) {
+      cell.textContent = "";
+    });
+    renderPopulatedCells();
+    syncSelectionChrome(event.detail.state.selection);
   });
 
   formulaInput.addEventListener("input", handleFormulaInput);
@@ -390,6 +447,7 @@
   document.addEventListener("click", closeStructureMenus);
 
   renderShellGrid();
+  renderPopulatedCells();
   syncSelectionChrome(store.snapshot().selection);
   document.dispatchEvent(new CustomEvent("spreadsheet:ready", { detail: { store: store } }));
 }());

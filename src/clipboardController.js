@@ -8,6 +8,9 @@
     const target = config.target || (typeof document !== 'undefined' ? document : null);
     const store = config.store;
     const selectionTools = config.selectionTools || (typeof SelectionClipboard !== 'undefined' ? SelectionClipboard : null);
+    const recordAction = typeof config.recordAction === 'function'
+      ? config.recordAction
+      : function (label, mutate) { mutate(); };
     let internalClipboard = null;
     if (!target || !store || !selectionTools) return function () {};
 
@@ -15,7 +18,9 @@
       if (isEditableTarget(event.target)) return;
       const key = event.key;
       if (key !== 'Delete' && key !== 'Backspace') return;
-      store.clearRange(store.snapshot().selection.range, 'range-delete');
+      recordAction('range-delete', function () {
+        store.clearRange(store.snapshot().selection.range, 'range-delete');
+      });
       prevent(event);
     }
 
@@ -37,13 +42,15 @@
         ? internalClipboard
         : { text: text, source: { row: 1, col: 1 }, cut: false };
       const selection = storeSelectionToClipboardSelection(store.snapshot().selection);
-      selectionTools.pasteClipboard(
-        clipboard,
-        selection,
-        function (row, col, raw) {
-          store.setCellRaw({ row: row - 1, col: col - 1 }, raw, 'range-paste');
-        }
-      );
+      recordAction('range-paste', function () {
+        selectionTools.pasteClipboard(
+          clipboard,
+          selection,
+          function (row, col, raw) {
+            store.setCellRaw({ row: row - 1, col: col - 1 }, raw, 'range-paste');
+          }
+        );
+      });
       prevent(event);
     }
 
@@ -57,7 +64,9 @@
       internalClipboard = clipboard;
       event.clipboardData.setData('text/plain', clipboard.text);
       if (shouldCut) {
-        store.clearRange(snapshot.selection.range, 'range-cut');
+        recordAction('range-cut', function () {
+          store.clearRange(snapshot.selection.range, 'range-cut');
+        });
       }
       prevent(event);
     }
