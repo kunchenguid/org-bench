@@ -285,7 +285,7 @@
       if (name === 'AVERAGE') return flat.length ? flat.reduce((a, b) => a + num(b), 0) / flat.length : 0;
       if (name === 'MIN') return Math.min(...flat.map(num));
       if (name === 'MAX') return Math.max(...flat.map(num));
-      if (name === 'COUNT') return flat.filter(v => typeof v === 'number' && !Number.isNaN(v)).length;
+      if (name === 'COUNT') return flat.filter(v => v !== '' && typeof v === 'number' && !Number.isNaN(v)).length;
       if (name === 'AND') return flat.every(truthy);
       if (name === 'OR') return flat.some(truthy);
       if (name === 'NOT') return !truthy(args[0]);
@@ -337,7 +337,7 @@
         if (!ra || !rb) throw new Error('#REF!');
         const vals = [];
         for (let r = Math.min(ra.row, rb.row); r <= Math.max(ra.row, rb.row); r++) {
-          for (let c = Math.min(ra.col, rb.col); c <= Math.max(ra.col, rb.col); c++) vals.push(this.model.valueForContext(r, c, 'number', this.stack));
+          for (let c = Math.min(ra.col, rb.col); c <= Math.max(ra.col, rb.col); c++) vals.push(this.model.getRaw(r, c) === '' ? '' : this.model.valueForContext(r, c, 'number', this.stack));
         }
         return vals;
       }
