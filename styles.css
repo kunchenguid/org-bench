@@ -1,15 +1,22 @@
 :root {
   color-scheme: light;
-  --sheet-bg: #f5f6f8;
-  --panel-bg: #ffffff;
-  --line: #d7dce2;
-  --line-strong: #aeb7c2;
-  --text: #1d1d1f;
-  --muted: #686c73;
+  --sheet-bg: #f4f6fa;
+  --panel-bg: rgba(255, 255, 255, 0.94);
+  --line: #d9dee8;
+  --line-soft: #eef1f6;
+  --line-strong: #b8c1ce;
+  --text: #1f2633;
+  --muted: #667085;
   --accent: #0a84ff;
-  --header-bg: #edf0f4;
+  --accent-soft: #e7f1ff;
+  --accent-mid: #bedbff;
+  --header-bg: #edf1f6;
+  --header-strong: #e2e7ef;
   --cell-bg: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --error: #b42318;
+  --error-bg: #fff0ef;
+  --shadow: 0 18px 60px rgba(31, 38, 51, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 
 * {
@@ -20,7 +27,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--sheet-bg);
+  background: linear-gradient(180deg, #fbfcff 0%, var(--sheet-bg) 100%);
   color: var(--text);
 }
 
@@ -30,41 +37,41 @@ body {
 
 .sheet-app {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
   height: 100vh;
   min-width: 720px;
+  padding: 14px;
 }
 
 .sheet-chrome {
   display: grid;
-  grid-template-columns: 88px 1fr;
+  grid-template-columns: 88px minmax(220px, 1fr);
   gap: 8px;
   align-items: center;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(18px);
 }
 
 .name-box,
 .formula-bar {
-  height: 34px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
   background: var(--panel-bg);
+  box-shadow: 0 1px 2px rgba(31, 38, 51, 0.06);
 }
 
 .name-box {
   display: grid;
   place-items: center;
-  color: var(--muted);
+  color: #344054;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }
 
 .formula-bar {
   display: grid;
-  grid-template-columns: 40px 1fr;
+  grid-template-columns: 44px minmax(0, 1fr);
   align-items: center;
   overflow: hidden;
 }
@@ -75,23 +82,34 @@ body {
   height: 100%;
   border-right: 1px solid var(--line);
   color: var(--muted);
-  font-size: 13px;
-  font-style: italic;
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
 }
 
 #formula-input {
   width: 100%;
   height: 100%;
   border: 0;
-  padding: 0 10px;
+  padding: 0 12px;
+  background: transparent;
   color: var(--text);
-  font: 14px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 14px/1.2 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   outline: none;
 }
 
+#formula-input:focus {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
 .grid-shell {
+  min-height: 0;
   overflow: auto;
-  background: var(--panel-bg);
+  border: 1px solid #cfd6e3;
+  border-radius: 14px;
+  background: var(--cell-bg);
+  box-shadow: var(--shadow);
 }
 
 .grid-root {
@@ -103,6 +121,113 @@ body {
   grid-auto-rows: var(--cell-height);
   min-width: max-content;
   min-height: max-content;
+  background-color: var(--cell-bg);
+  background-image:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px),
+    linear-gradient(var(--header-bg), var(--header-strong));
+  background-position: 48px 30px, 48px 30px, 0 0;
+  background-size: 96px 30px, 96px 30px, 100% 30px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.column-header,
+.row-header,
+.corner-header,
+[data-role="column-header"],
+[data-role="row-header"] {
+  position: sticky;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--header-bg) 0%, var(--header-strong) 100%);
+  color: #475467;
+  font-size: 12px;
+  font-weight: 650;
+  user-select: none;
+}
+
+.column-header,
+[data-role="column-header"] {
+  top: 0;
+}
+
+.row-header,
+[data-role="row-header"] {
+  left: 0;
+  justify-content: end;
+  padding-right: 10px;
+}
+
+[role="gridcell"],
+.cell {
+  position: relative;
+  min-width: 0;
+  padding: 0 8px;
+  border-right: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--cell-bg);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-value-text,
+.cell.text {
+  text-align: left;
+}
+
+.cell-value-number,
+.cell.number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell-value-error,
+.cell.error {
+  background: var(--error-bg);
+  color: var(--error);
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.is-selected,
+.range-selected,
+.cell.range-selected {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-mid);
+}
+
+.is-active-cell,
+.active-cell,
+.cell.active {
+  z-index: 3;
+  background: var(--cell-bg);
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 1px rgba(10, 132, 255, 0.18);
+}
+
+.is-active-cell::after,
+.active-cell::after,
+.cell.active::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+[role="gridcell"]:hover,
+.cell:hover {
+  background: #f8fbff;
 }
 
 .corner,
@@ -165,6 +290,26 @@ body {
   background: #fbfcff;
 }
 
+.cell.is-selected {
+  background: rgba(10, 132, 255, 0.08);
+}
+
+.cell.selection-top {
+  box-shadow: inset 0 1px 0 var(--accent);
+}
+
+.cell.selection-bottom {
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+
+.cell.selection-left {
+  border-left-color: var(--accent);
+}
+
+.cell.selection-right {
+  border-right-color: var(--accent);
+}
+
 .cell.active {
   z-index: 1;
   background: rgba(10, 132, 255, 0.12);
@@ -193,12 +338,31 @@ body {
 }
 
 .status-bar {
-  height: 28px;
+  min-height: 26px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  border-top: 1px solid var(--line);
-  background: var(--header-bg);
+  padding: 0 4px;
   color: var(--muted);
   font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .sheet-app {
+    min-width: 0;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .sheet-chrome {
+    grid-template-columns: 66px minmax(0, 1fr);
+  }
+
+  .grid-shell {
+    border-radius: 10px;
+  }
+
+  .grid-root {
+    background-position: 42px 30px, 42px 30px, 0 0;
+    background-size: 88px 30px, 88px 30px, 100% 30px;
+  }
 }
