@@ -277,6 +277,7 @@
     number() { this.ws(); const m = /^\d+(\.\d+)?/.exec(this.text.slice(this.i)); if (!m) return null; this.i += m[0].length; return Number(m[0]); }
     ident() { this.ws(); const m = /^(\$?[A-Z]+\$?\d+|[A-Z_][A-Z0-9_]*)/i.exec(this.text.slice(this.i)); if (!m) return ''; this.i += m[0].length; return m[0]; }
     fn(name) {
+      if (name === 'IF') return this.lazyIf();
       const args = [];
       this.ws();
       if (!this.eat(')')) {
@@ -289,7 +290,6 @@
       if (name === 'MIN') return Math.min(...flat.map(num));
       if (name === 'MAX') return Math.max(...flat.map(num));
       if (name === 'COUNT') return flat.filter(v => v !== '' && typeof v === 'number' && !Number.isNaN(v)).length;
-      if (name === 'IF') return truthy(args[0]) ? args[1] : args[2];
       if (name === 'AND') return flat.every(truthy);
       if (name === 'OR') return flat.some(truthy);
       if (name === 'NOT') return !truthy(args[0]);
@@ -297,6 +297,39 @@
       if (name === 'ROUND') return Number(num(args[0]).toFixed(args[1] == null ? 0 : num(args[1])));
       if (name === 'CONCAT') return flat.map(textOf).join('');
       throw new Error('#NAME?');
+    }
+    lazyIf() {
+      const args = this.readArgTexts();
+      if (args.length !== 3) throw new Error('#ERR!');
+      const condition = this.evalSubexpr(args[0]);
+      return this.evalSubexpr(truthy(condition) ? args[1] : args[2]);
+    }
+    evalSubexpr(text) {
+      return new FormulaParser(this.model, this.row, this.col, this.stack, text).parse();
+    }
+    readArgTexts() {
+      const args = [];
+      let start = this.i;
+      let depth = 0;
+      let quoted = false;
+      while (this.i < this.text.length) {
+        const ch = this.text[this.i];
+        if (ch === '"') quoted = !quoted;
+        else if (!quoted && ch === '(') depth++;
+        else if (!quoted && ch === ')') {
+          if (depth === 0) {
+            args.push(this.text.slice(start, this.i).trim());
+            this.i++;
+            return args;
+          }
+          depth--;
+        } else if (!quoted && depth === 0 && ch === ',') {
+          args.push(this.text.slice(start, this.i).trim());
+          start = this.i + 1;
+        }
+        this.i++;
+      }
+      throw new Error('#ERR!');
     }
     rangeOrExpr() {
       this.ws();
@@ -402,6 +435,8 @@
   function renderSelection() {
     const s = normSel();
     nameBox.textContent = refName(s.activeRow, s.activeCol);
+    grid.querySelectorAll('.col-head').forEach(th => th.classList.toggle('selected', Number(th.dataset.col) >= s.c1 && Number(th.dataset.col) <= s.c2));
+    grid.querySelectorAll('.row-head').forEach(th => th.classList.toggle('selected', Number(th.dataset.row) >= s.r1 && Number(th.dataset.row) <= s.r2));
     grid.querySelectorAll('td').forEach(td => {
       const r = Number(td.dataset.row), c = Number(td.dataset.col);
       td.classList.toggle('range', r >= s.r1 && r <= s.r2 && c >= s.c1 && c <= s.c2);
