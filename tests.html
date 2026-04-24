@@ -28,6 +28,15 @@
         }, options || {})));
       }
 
+      function editCell(root, cellName, value) {
+        const cell = root.querySelector('[data-cell="' + cellName + '"]');
+        cell.focus();
+        key(cell, value.charAt(0));
+        const editor = root.querySelector('.cell-editor');
+        editor.value = value;
+        key(editor, 'Enter');
+      }
+
       function run() {
         assert(window.OracleSpreadsheet, 'OracleSpreadsheet namespace exists');
         assert(typeof window.OracleSpreadsheet.createApp === 'function', 'createApp exists');
@@ -84,6 +93,23 @@
         key(b2, 'ArrowDown', { shiftKey: true });
         assert(root.querySelector('[data-cell="B3"]').classList.contains('in-range'), 'shift arrow extends visible range');
 
+        editCell(root, 'A1', '2');
+        editCell(root, 'A2', '3');
+        const b1 = root.querySelector('[data-cell="B1"]');
+        b1.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+        formulaInput.value = '=A1+A2';
+        formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+        key(formulaInput, 'Enter');
+        assert(b1.textContent.trim() === '5', 'formula evaluates across precedent cells');
+        editCell(root, 'A1', '4');
+        assert(b1.textContent.trim() === '7', 'dependent formula updates after precedent edit');
+
+        b1.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+        key(b1, 'Delete');
+        assert(b1.textContent.trim() === '', 'Delete clears selected range through actions');
+        key(b1, 'z', { metaKey: true });
+        assert(b1.textContent.trim() === '7', 'undo restores deleted range as one action');
+
         b2.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
 
         app.destroy();
@@ -92,7 +118,8 @@
           cols: 26,
           namespace: 'oracle-ui-test'
         });
-        assert(root.querySelector('[data-cell="B2"]').textContent.trim() === '8', 'reload restores persisted formula display');
+        assert(root.querySelector('[data-cell="B1"]').textContent.trim() === '7', 'reload restores persisted formula display');
+        assert(root.querySelector('[data-cell="B2"]').getAttribute('aria-selected') === 'true', 'reload restores selected cell');
         assert(root.querySelector('#formula-input').value === '=A1+1', 'reload restores raw formula in formula bar');
         restored.destroy();
         results.textContent = 'PASS';

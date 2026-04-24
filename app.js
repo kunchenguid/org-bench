@@ -395,7 +395,7 @@
     function commitCell(row, col, value) {
       const name = cellName(row, col);
       sheet.setRaw(name, value);
-      renderCell(row, col);
+      renderAll();
     }
 
     function stopEditing(commit, move) {
