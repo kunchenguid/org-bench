@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spreadsheet Contract Tests</title>
+</head>
+<body>
+  <pre id="results"></pre>
+  <script src="../scripts/app-state.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var results = document.getElementById("results");
+      var failures = [];
+
+      function assert(name, condition) {
+        if (!condition) {
+          failures.push(name);
+        }
+      }
+
+      var store = window.Spreadsheet.createStore();
+      var events = [];
+      store.on("selectionchange", function (event) { events.push(event.detail.selection.active); });
+
+      assert("default grid has 100 rows", store.snapshot().dimensions.rows === 100);
+      assert("default grid has 26 columns", store.snapshot().dimensions.columns === 26);
+      assert("column naming supports Z", window.Spreadsheet.colToName(25) === "Z");
+      assert("column naming supports AA", window.Spreadsheet.colToName(26) === "AA");
+      assert("cell keys are A1 based", window.Spreadsheet.cellKey({ row: 4, col: 2 }) === "C5");
+
+      store.selectCell({ row: 2, col: 3 });
+      assert("selectCell sets active cell", window.Spreadsheet.cellKey(store.snapshot().selection.active) === "D3");
+      assert("selection emits an event", events.length === 1);
+
+      store.selectRange({ row: 5, col: 4 }, { row: 3, col: 2 });
+      assert("selectRange normalizes top", store.snapshot().selection.range.top === 3);
+      assert("selectRange normalizes left", store.snapshot().selection.range.left === 2);
+      assert("selectRange keeps active at focus", window.Spreadsheet.cellKey(store.snapshot().selection.active) === "C4");
+
+      store.setCellRaw({ row: 0, col: 0 }, "=B1+1", "test");
+      assert("setCellRaw stores formulas as raw text", store.getCellRaw({ row: 0, col: 0 }) === "=B1+1");
+      assert("snapshot copies raw cells", store.snapshot().cells.A1 === "=B1+1");
+
+      store.clearRange({ top: 0, left: 0, bottom: 0, right: 0 }, "test");
+      assert("clearRange removes raw cell", store.getCellRaw({ row: 0, col: 0 }) === "");
+
+      results.textContent = failures.length ? "FAIL\n" + failures.join("\n") : "PASS";
+      document.title = failures.length ? "FAIL" : "PASS";
+    }());
+  </script>
+</body>
+</html>

@@ -3,217 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Spreadsheet</title>
-  <style>
-    :root {
-      --bg: #f5f6f8;
-      --panel: #ffffff;
-      --header: #f0f2f5;
-      --grid: #d9dde5;
-      --grid-soft: #edf0f4;
-      --text: #1d1d1f;
-      --muted: #6e7480;
-      --active: #007aff;
-      --active-soft: rgba(0, 122, 255, 0.12);
-      --row-header-width: 48px;
-      --cell-width: 104px;
-      --cell-height: 28px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-      font-size: 13px;
-    }
-
-    .app {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .toolbar {
-      display: grid;
-      grid-template-columns: 96px 1fr;
-      gap: 10px;
-      align-items: center;
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.86);
-      border-bottom: 1px solid var(--grid);
-      backdrop-filter: blur(18px);
-    }
-
-    .cell-name {
-      height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--grid);
-      border-radius: 8px;
-      background: var(--panel);
-      color: var(--muted);
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-
-    .formula-wrap {
-      height: 34px;
-      display: grid;
-      grid-template-columns: auto 1fr;
-      align-items: center;
-      overflow: hidden;
-      border: 1px solid var(--grid);
-      border-radius: 8px;
-      background: var(--panel);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-    }
-
-    .formula-label {
-      height: 100%;
-      display: flex;
-      align-items: center;
-      padding: 0 11px;
-      border-right: 1px solid var(--grid);
-      color: var(--muted);
-      font-family: "SF Mono", Menlo, monospace;
-      font-weight: 600;
-    }
-
-    #formula-input {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      outline: 0;
-      padding: 0 11px;
-      color: var(--text);
-      font: inherit;
-      background: transparent;
-    }
-
-    .sheet-wrap {
-      flex: 1;
-      overflow: auto;
-      padding: 0 14px 14px;
-    }
-
-    .sheet {
-      display: grid;
-      grid-template-columns: var(--row-header-width) repeat(26, var(--cell-width));
-      grid-template-rows: 32px repeat(100, var(--cell-height));
-      width: max-content;
-      min-width: 100%;
-      margin-top: 14px;
-      background: var(--panel);
-      border: 1px solid var(--grid);
-      box-shadow: 0 10px 30px rgba(20, 28, 40, 0.08);
-    }
-
-    .corner,
-    .column-header,
-    .row-header,
-    .cell {
-      border-right: 1px solid var(--grid);
-      border-bottom: 1px solid var(--grid);
-    }
-
-    .corner,
-    .column-header,
-    .row-header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--header);
-      color: var(--muted);
-      font-weight: 600;
-      user-select: none;
-    }
-
-    .corner,
-    .column-header {
-      position: sticky;
-      top: 0;
-      z-index: 3;
-    }
-
-    .corner,
-    .row-header {
-      position: sticky;
-      left: 0;
-      z-index: 2;
-    }
-
-    .corner { z-index: 4; }
-
-    .cell {
-      position: relative;
-      display: flex;
-      align-items: center;
-      min-width: 0;
-      padding: 0 8px;
-      background: var(--panel);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      outline: none;
-      cursor: cell;
-    }
-
-    .cell:hover { background: #fbfcff; }
-
-    .cell.active {
-      z-index: 1;
-      background: var(--active-soft);
-      box-shadow: inset 0 0 0 2px var(--active);
-    }
-
-    .column-header.active-header,
-    .row-header.active-header {
-      color: #fff;
-      background: var(--active);
-      border-color: var(--active);
-    }
-
-    .cell input {
-      position: absolute;
-      inset: 2px;
-      width: calc(100% - 4px);
-      height: calc(100% - 4px);
-      border: 0;
-      outline: 0;
-      padding: 0 6px;
-      background: #fff;
-      color: var(--text);
-      font: inherit;
-      box-shadow: inset 0 0 0 2px var(--active);
-    }
-
-    @media (max-width: 720px) {
-      :root { --cell-width: 92px; }
-      .toolbar { grid-template-columns: 72px 1fr; padding: 10px; }
-      .sheet-wrap { padding: 0 10px 10px; }
-    }
-  </style>
+  <title>Apple Sheet</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app" aria-label="Spreadsheet grid shell">
-    <section class="toolbar" aria-label="Formula bar">
-      <div id="cell-name" class="cell-name">A1</div>
-      <label class="formula-wrap">
-        <span class="formula-label">fx</span>
-        <input id="formula-input" autocomplete="off" spellcheck="false" aria-label="Formula bar raw cell value">
+  <main class="sheet-app" aria-label="Spreadsheet">
+    <header class="sheet-chrome" aria-label="Spreadsheet controls">
+      <label class="name-box" for="formula-input">
+        <span id="active-address">A1</span>
       </label>
+      <div class="formula-bar">
+        <span class="formula-prefix" aria-hidden="true">fx</span>
+        <input id="formula-input" type="text" autocomplete="off" spellcheck="false" aria-label="Formula bar" data-spreadsheet-slot="formula-bar">
+      </div>
+    </header>
+
+    <section class="grid-shell" aria-label="Grid workspace">
+      <div id="grid-root" class="grid-root" data-spreadsheet-slot="grid-root"></div>
     </section>
-    <section class="sheet-wrap" aria-label="Worksheet viewport">
-      <div id="sheet" class="sheet" role="grid" aria-rowcount="100" aria-colcount="26"></div>
-    </section>
+
+    <footer class="status-bar" aria-live="polite">
+      <span data-spreadsheet-slot="status">Ready</span>
+    </footer>
   </main>
 
-  <script src="app.js"></script>
+  <script src="scripts/app-state.js"></script>
+  <script src="scripts/app.js"></script>
 </body>
 </html>
