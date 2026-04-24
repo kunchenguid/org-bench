@@ -335,9 +335,6 @@
     if (e.target === formulaBar) return;
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copy(false); return; }
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); copy(true); return; }
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); navigator.clipboard ? navigator.clipboard.readText().then(pasteText).catch(function () { pasteText(''); }) : pasteText(''); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); clearSelection(); return; }
     if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); beginEdit(selected.row, selected.col, true); return; }
     if (e.key === 'Tab') { e.preventDefault(); select(selected.row, selected.col + 1, false); return; }
