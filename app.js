@@ -318,9 +318,40 @@
   function truthy(v) { return v === true || (typeof v === 'number' && v !== 0) || (typeof v === 'string' && v !== '' && v !== 'FALSE'); }
   function coerce(v) { return typeof v === 'string' && /^[-+]?\d+(\.\d+)?$/.test(v) ? Number(v) : v; }
 
-  window.SpreadsheetModel = SpreadsheetModel;
+  function coreCreateModel() { return { cells: {}, selection: { row: 1, col: 1 } }; }
+  function coreAddressOf(selection) { return colName(selection.col - 1) + selection.row; }
+  function coreMoveSelection(selection, key) {
+    const next = { row: selection.row, col: selection.col };
+    if (key === 'ArrowUp') next.row--;
+    if (key === 'ArrowDown') next.row++;
+    if (key === 'ArrowLeft') next.col--;
+    if (key === 'ArrowRight') next.col++;
+    return { row: Math.max(1, Math.min(DEFAULT_ROWS, next.row)), col: Math.max(1, Math.min(DEFAULT_COLS, next.col)) };
+  }
+  function coreGetRaw(model, selection) { return model.cells[coreAddressOf(selection)] || ''; }
+  function coreSetRaw(model, selection, value) {
+    const address = coreAddressOf(selection);
+    if (value === '') delete model.cells[address];
+    else model.cells[address] = value;
+  }
+  function coreBeginEdit(model, selection, replace) {
+    return { selection: { row: selection.row, col: selection.col }, previous: coreGetRaw(model, selection), value: replace ? '' : coreGetRaw(model, selection) };
+  }
+  function coreCommitEdit(model, edit, value) { coreSetRaw(model, edit.selection, value); }
+  function coreCancelEdit(model, edit) { coreSetRaw(model, edit.selection, edit.previous); }
+  function coreNextAfterCommit(selection, key) { return coreMoveSelection(selection, key === 'Tab' ? 'ArrowRight' : 'ArrowDown'); }
 
-  if (!document.getElementById('grid')) return;
+  window.SpreadsheetModel = SpreadsheetModel;
+  window.SpreadsheetCore = {
+    createModel: coreCreateModel,
+    moveSelection: coreMoveSelection,
+    beginEdit: coreBeginEdit,
+    commitEdit: coreCommitEdit,
+    cancelEdit: coreCancelEdit,
+    nextAfterCommit: coreNextAfterCommit,
+  };
+
+  if (!window.document || !document.getElementById || !document.getElementById('grid')) return;
 
   const model = new SpreadsheetModel();
   const grid = document.getElementById('grid');
@@ -386,8 +417,10 @@
     const input = td.firstChild;
     input.value = preserve ? before : seed;
     editing = { row, col, before, input };
+    formulaBar.value = input.value;
     input.focus(); input.select();
     input.addEventListener('keydown', onEditorKey);
+    input.addEventListener('input', () => { formulaBar.value = input.value; });
     input.addEventListener('blur', () => commitEdit(false));
   }
   function commitEdit(cancel, move) {
@@ -473,8 +506,10 @@
   formulaBar.addEventListener('focus', updateFormulaBar);
   formulaBar.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); setSelection(model.selection.activeRow + 1, model.selection.activeCol); wrap.focus(); }
+    if (e.key === 'Tab') { e.preventDefault(); model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); setSelection(model.selection.activeRow, model.selection.activeCol + 1); wrap.focus(); }
     if (e.key === 'Escape') { e.preventDefault(); updateFormulaBar(); wrap.focus(); }
   });
+  formulaBar.addEventListener('input', () => { model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); renderSelection(); });
   formulaBar.addEventListener('change', () => { model.transact(() => model.setRaw(model.selection.activeRow, model.selection.activeCol, formulaBar.value)); renderValues(); renderSelection(); });
   document.getElementById('insertRow').onclick = () => { model.insertRow(model.selection.activeRow); render(); };
   document.getElementById('deleteRow').onclick = () => { model.deleteRow(model.selection.activeRow); setSelection(Math.min(model.selection.activeRow, model.rows - 1), model.selection.activeCol); render(); };
