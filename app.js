@@ -1,12 +1,14 @@
 (function () {
   'use strict';
 
+  const root = typeof window !== 'undefined' ? window : globalThis;
+
   const DEFAULT_ROWS = 100;
   const DEFAULT_COLS = 26;
   const ERROR = Object.freeze({ err: '#ERR!', div: '#DIV/0!', ref: '#REF!', circ: '#CIRC!' });
 
   function storagePrefix(namespace) {
-    const injected = window.SPREADSHEET_STORAGE_NAMESPACE || window.__SPREADSHEET_STORAGE_NAMESPACE__ || '';
+    const injected = root.SPREADSHEET_STORAGE_NAMESPACE || root.__SPREADSHEET_STORAGE_NAMESPACE__ || root.__BENCHMARK_STORAGE_NAMESPACE__ || '';
     return String(namespace || injected || 'facebook-sheet') + ':';
   }
   function colName(col) {
@@ -26,6 +28,12 @@
   }
   function addr(row, col) { return colName(col) + (row + 1); }
   function key(row, col) { return row + ',' + col; }
+  function getCellKey(row, col) { return addr(row, col); }
+  function createEmptyCells(rows, cols) {
+    const cells = {};
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) cells[getCellKey(r, c)] = '';
+    return cells;
+  }
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
   function isError(v) { return typeof v === 'string' && /^#/.test(v); }
   function asNumber(v) {
@@ -49,6 +57,13 @@
     if (v == null) return '';
     if (typeof v === 'number' && Number.isFinite(v)) return String(Math.round(v * 10000000000) / 10000000000);
     return String(v);
+  }
+
+  function formatFormulaStatus(raw, shown, type) {
+    if (!raw && !shown) return { label: 'Ready', text: 'Blank', state: 'blank' };
+    if (type === 'error') return { label: 'Value', text: shown || 'Error', state: 'error' };
+    if (raw && raw[0] === '=') return { label: 'Value', text: shown || 'Blank', state: 'formula' };
+    return { label: 'Value', text: shown || 'Blank', state: type || 'text' };
   }
 
   class FormulaParser {
@@ -357,7 +372,53 @@
       });
     }
   }
-  window.SpreadsheetModel = SpreadsheetModel;
+  function adjustFormulaReferences(raw, rowOffset, colOffset) {
+    return SpreadsheetModel.adjustFormula(raw, rowOffset, colOffset);
+  }
+
+  function applyPaste(cells, options) {
+    const next = Object.assign({}, cells);
+    const source = options.source;
+    const target = options.target;
+    const sourceRows = source.endRow - source.startRow + 1;
+    const sourceCols = source.endCol - source.startCol + 1;
+    const targetRows = target.endRow - target.startRow + 1;
+    const targetCols = target.endCol - target.startCol + 1;
+    const pasteRows = targetRows === sourceRows ? targetRows : sourceRows;
+    const pasteCols = targetCols === sourceCols ? targetCols : sourceCols;
+
+    for (let r = 0; r < pasteRows; r++) {
+      for (let c = 0; c < pasteCols; c++) {
+        const srcRow = source.startRow + (r % sourceRows);
+        const srcCol = source.startCol + (c % sourceCols);
+        const destRow = target.startRow + r;
+        const destCol = target.startCol + c;
+        if (destRow >= options.maxRows || destCol >= options.maxCols) continue;
+        const sourceKey = getCellKey(srcRow, srcCol);
+        let raw = next[sourceKey] || '';
+        if (raw[0] === '=') raw = adjustFormulaReferences(raw, destRow - srcRow, destCol - srcCol);
+        next[getCellKey(destRow, destCol)] = raw;
+      }
+    }
+
+    if (options.cut) {
+      for (let r = source.startRow; r <= source.endRow; r++) {
+        for (let c = source.startCol; c <= source.endCol; c++) next[getCellKey(r, c)] = '';
+      }
+    }
+    return next;
+  }
+
+  root.SpreadsheetModel = SpreadsheetModel;
+  root.adjustFormulaReferences = adjustFormulaReferences;
+  root.applyPaste = applyPaste;
+  root.createEmptyCells = createEmptyCells;
+  root.formatFormulaStatus = formatFormulaStatus;
+  root.getCellKey = getCellKey;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { adjustFormulaReferences, applyPaste, createEmptyCells, formatFormulaStatus, getCellKey, SpreadsheetModel };
+  }
 
   class SpreadsheetApp {
     constructor() {
@@ -366,6 +427,7 @@
       if (!this.grid) return;
       this.viewport = document.getElementById('viewport');
       this.formula = document.getElementById('formula-bar');
+      this.formulaStatus = document.getElementById('formula-status');
       this.nameBox = document.getElementById('name-box');
       const ui = this.model.loadUi();
       this.active = { row: ui.row || 0, col: ui.col || 0 };
@@ -448,6 +510,7 @@
       this.selection = { r1: Math.min(this.anchor.row, row), c1: Math.min(this.anchor.col, col), r2: Math.max(this.anchor.row, row), c2: Math.max(this.anchor.col, col) };
       this.model.save(this.active);
       this.refresh();
+      this.scrollActiveIntoView();
     }
     extend(row, col) { this.select(row, col, true); }
     move(dr, dc, extend) { this.select(this.active.row + dr, this.active.col + dc, extend); }
@@ -519,6 +582,15 @@
       if (!this.grid) return;
       this.nameBox.textContent = addr(this.active.row, this.active.col);
       this.formula.value = this.model.getCell(this.active.row, this.active.col);
+      const raw = this.model.getCell(this.active.row, this.active.col);
+      const shown = this.model.getDisplay(this.active.row, this.active.col);
+      const type = this.model.getType(this.active.row, this.active.col);
+      const status = formatFormulaStatus(raw, shown, type);
+      if (this.formulaStatus) {
+        this.formulaStatus.className = 'formula-status ' + status.state;
+        this.formulaStatus.querySelector('.formula-status-label').textContent = status.label;
+        this.formulaStatus.querySelector('.formula-status-value').textContent = status.text;
+      }
       this.grid.querySelectorAll('.cell').forEach(el => {
         const r = Number(el.dataset.row), c = Number(el.dataset.col);
         const inRange = r >= this.selection.r1 && r <= this.selection.r2 && c >= this.selection.c1 && c <= this.selection.c2;
@@ -528,9 +600,27 @@
       this.grid.querySelectorAll('.col-head').forEach(el => el.classList.toggle('active', Number(el.dataset.index) === this.active.col));
       this.grid.querySelectorAll('.row-head').forEach(el => el.classList.toggle('active', Number(el.dataset.index) === this.active.row));
     }
+    scrollActiveIntoView() {
+      const el = this.getCellEl(this.active.row, this.active.col);
+      if (!el || !this.viewport) return;
+      const cellWidth = el.offsetWidth || 110;
+      const cellHeight = el.offsetHeight || 26;
+      const rowHeaderWidth = 52;
+      const headerHeight = 26;
+      const left = rowHeaderWidth + this.active.col * cellWidth;
+      const right = left + cellWidth;
+      const top = headerHeight + this.active.row * cellHeight;
+      const bottom = top + cellHeight;
+      if (left < this.viewport.scrollLeft) this.viewport.scrollLeft = left;
+      else if (right > this.viewport.scrollLeft + this.viewport.clientWidth) this.viewport.scrollLeft = right - this.viewport.clientWidth;
+      if (top < this.viewport.scrollTop) this.viewport.scrollTop = top;
+      else if (bottom > this.viewport.scrollTop + this.viewport.clientHeight) this.viewport.scrollTop = bottom - this.viewport.clientHeight;
+    }
     getCellEl(row, col) { return this.grid.querySelector('.cell[data-row="' + row + '"][data-col="' + col + '"]'); }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => new SpreadsheetApp());
-  else new SpreadsheetApp();
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => new SpreadsheetApp());
+    else new SpreadsheetApp();
+  }
 })();
