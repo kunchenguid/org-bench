@@ -402,7 +402,7 @@
         const cell = e.target.closest('.cell');
         if (!cell) return;
         const row = Number(cell.dataset.row), col = Number(cell.dataset.col);
-        this.select(row, col, e.shiftKey); this.dragging = true; e.preventDefault();
+        this.select(row, col, e.shiftKey); cell.focus({ preventScroll: true }); this.dragging = true; e.preventDefault();
       });
       this.grid.addEventListener('mouseover', e => {
         if (!this.dragging) return;
