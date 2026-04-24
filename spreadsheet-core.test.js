@@ -62,6 +62,50 @@ test('IF evaluates only the selected branch', () => {
   assert.equal(sheet.getDisplayValue('A2'), 'ok');
 });
 
+test('provides row and column adapter methods for UI actions', () => {
+  const sheet = new SpreadsheetCore({ rows: 10, cols: 5 });
+
+  sheet.setCell(0, 0, '12');
+  sheet.setCell(1, 0, '=A1*2');
+  sheet.setActive(1, 0);
+
+  assert.equal(sheet.getCell(0, 0), '12');
+  assert.equal(sheet.getCell(1, 0), '=A1*2');
+  assert.equal(sheet.getDisplayValue('A2'), '24');
+  assert.deepEqual(sheet.snapshot(), {
+    '0,0': '12',
+    '1,0': '=A1*2',
+  });
+
+  sheet.clearCell(0, 0);
+  assert.equal(sheet.getCell(0, 0), '');
+
+  sheet.resize(12, 6);
+  sheet.load({ cells: { '2,3': '=D1' }, rows: 12, cols: 6, active: { row: 2, col: 3 } });
+
+  assert.equal(sheet.getCell(2, 3), '=D1');
+  assert.equal(sheet.rows, 12);
+  assert.equal(sheet.cols, 6);
+  assert.deepEqual(sheet.active, { row: 2, col: 3 });
+});
+
+test('exposes UI formula movement helpers with zero-based coordinates', () => {
+  const sheet = new SpreadsheetCore();
+
+  assert.equal(
+    sheet.shiftFormulaReferences('=A1+$B1', { row: 0, col: 0 }, { row: 2, col: 2 }),
+    '=C3+$B3',
+  );
+  assert.equal(
+    sheet.transformFormulaForStructureChange('=A1+B2', { type: 'insert-row', index: 1, count: 1 }),
+    '=A1+B3',
+  );
+  assert.equal(
+    sheet.transformFormulaForStructureChange('=A1+B2', { type: 'delete-col', index: 1, count: 1 }),
+    '=A1+#REF!',
+  );
+});
+
 test('adjusts relative and absolute references when formulas are moved', () => {
   assert.equal(
     adjustFormulaForMove('=A1+$B1+C$2+$D$4+SUM(A1:B2)', 'A1', 'C3'),

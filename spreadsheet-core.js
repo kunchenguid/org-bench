@@ -34,6 +34,10 @@
     return indexToCol(col) + row;
   }
 
+  function addressFromCoordinates(row, col) {
+    return makeAddress(row + 1, col + 1);
+  }
+
   function parseRef(ref) {
     const m = /^\$(?=[A-Z])|^[A-Z]/.test(ref);
     const parts = /^(\$?)([A-Z]+)(\$?)([1-9][0-9]*)$/.exec(ref.toUpperCase());
@@ -244,8 +248,11 @@
       this.rows = options.rows || 100;
       this.cols = options.cols || 26;
       this.cells = new Map();
+      this.active = { row: 0, col: 0 };
     }
-    setCell(address, raw) {
+    setCell(address, colOrRaw, rawValue) {
+      const raw = rawValue === undefined ? colOrRaw : rawValue;
+      if (typeof address === 'number') address = addressFromCoordinates(address, colOrRaw);
       parseAddress(address);
       const key = address.toUpperCase();
       if (raw == null || raw === '') this.cells.delete(key);
@@ -253,6 +260,42 @@
     }
     getRawCell(address) {
       return this.cells.get(address.toUpperCase()) || '';
+    }
+    getCell(row, col) {
+      return this.getRawCell(addressFromCoordinates(row, col));
+    }
+    clearCell(row, col) {
+      this.setCell(row, col, '');
+    }
+    snapshot() {
+      const out = {};
+      for (const [address, raw] of this.cells) {
+        const pos = parseAddress(address);
+        out[`${pos.row - 1},${pos.col - 1}`] = raw;
+      }
+      return out;
+    }
+    load(snapshot) {
+      const cells = snapshot && snapshot.cells ? snapshot.cells : (snapshot || {});
+      this.cells.clear();
+      Object.keys(cells).forEach((key) => {
+        if (key.includes(',')) {
+          const parts = key.split(',').map(Number);
+          this.setCell(parts[0], parts[1], cells[key]);
+        } else {
+          this.setCell(key, cells[key]);
+        }
+      });
+      if (snapshot && snapshot.rows) this.rows = snapshot.rows;
+      if (snapshot && snapshot.cols) this.cols = snapshot.cols;
+      if (snapshot && snapshot.active) this.active = { row: snapshot.active.row, col: snapshot.active.col };
+    }
+    resize(rows, cols) {
+      this.rows = Math.max(1, rows);
+      this.cols = Math.max(1, cols);
+    }
+    setActive(row, col) {
+      this.active = { row, col };
     }
     getDisplayValue(address) {
       return valueToDisplay(this.evaluateCell(address.toUpperCase(), new Set(), new Map()));
@@ -353,6 +396,16 @@
     deleteRow(row, count) { this.transformCells((addr, raw) => transformCellRow(addr, raw, row, count, true)); this.rows = Math.max(1, this.rows - count); }
     insertColumn(col, count) { this.transformCells((addr, raw) => transformCellCol(addr, raw, col, count, false)); this.cols += count; }
     deleteColumn(col, count) { this.transformCells((addr, raw) => transformCellCol(addr, raw, col, count, true)); this.cols = Math.max(1, this.cols - count); }
+    shiftFormulaReferences(formula, source, destination) {
+      return adjustFormulaForMove(formula, addressFromCoordinates(source.row, source.col), addressFromCoordinates(destination.row, destination.col));
+    }
+    transformFormulaForStructureChange(formula, change) {
+      if (change.type === 'insert-row') return adjustFormulaForRowInsert(formula, change.index + 1, change.count || 1);
+      if (change.type === 'delete-row') return adjustFormulaForRowDelete(formula, change.index + 1, change.count || 1);
+      if (change.type === 'insert-col') return adjustFormulaForColumnInsert(formula, change.index + 1, change.count || 1);
+      if (change.type === 'delete-col') return adjustFormulaForColumnDelete(formula, change.index + 1, change.count || 1);
+      return formula;
+    }
     transformCells(fn) {
       const next = new Map();
       for (const [address, raw] of this.cells) {
@@ -434,6 +487,7 @@
     adjustFormulaForColumnDelete,
     parseAddress,
     makeAddress,
+    addressFromCoordinates,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
