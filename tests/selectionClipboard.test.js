@@ -7,6 +7,8 @@ const {
   copySelection,
   cutSelection,
   pasteClipboard,
+  moveSelectionFocus,
+  getCellSelectionClasses,
 } = require('../src/selectionClipboard');
 
 function mapFrom(entries) {
@@ -91,6 +93,37 @@ function run() {
   );
   assert.strictEqual(getCell(matchingRangeCells, 8, 8), '1');
   assert.strictEqual(getCell(matchingRangeCells, 9, 9), '4');
+
+  const keyboardRange = moveSelectionFocus(
+    extendSelection(createSelection({ row: 4, col: 4 }), { row: 5, col: 5 }),
+    'ArrowRight',
+    { rows: 10, cols: 10 }
+  );
+  assert.deepStrictEqual(keyboardRange.active, { row: 4, col: 4 });
+  assert.deepStrictEqual(keyboardRange.focus, { row: 5, col: 6 });
+  assert.deepStrictEqual(
+    moveSelectionFocus(keyboardRange, 'ArrowUp', { rows: 10, cols: 10 }).focus,
+    { row: 4, col: 6 }
+  );
+  assert.deepStrictEqual(
+    moveSelectionFocus(createSelection({ row: 1, col: 1 }), 'ArrowLeft', { rows: 10, cols: 10 }).focus,
+    { row: 1, col: 1 }
+  );
+
+  const visualRange = extendSelection(createSelection({ row: 2, col: 2 }), { row: 4, col: 4 });
+  assert.deepStrictEqual(getCellSelectionClasses(visualRange, 2, 2), [
+    'is-selected',
+    'is-active-cell',
+    'selection-top',
+    'selection-left',
+  ]);
+  assert.deepStrictEqual(getCellSelectionClasses(visualRange, 3, 3), ['is-selected']);
+  assert.deepStrictEqual(getCellSelectionClasses(visualRange, 4, 4), [
+    'is-selected',
+    'selection-bottom',
+    'selection-right',
+  ]);
+  assert.deepStrictEqual(getCellSelectionClasses(visualRange, 5, 5), []);
 }
 
 run();

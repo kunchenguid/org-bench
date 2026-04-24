@@ -25,6 +25,33 @@
     return { top, left, bottom, right, rows: bottom - top + 1, cols: right - left + 1 };
   }
 
+  function moveSelectionFocus(selection, key, limits) {
+    const delta = {
+      ArrowUp: { row: -1, col: 0 },
+      ArrowDown: { row: 1, col: 0 },
+      ArrowLeft: { row: 0, col: -1 },
+      ArrowRight: { row: 0, col: 1 },
+    }[key];
+    if (!delta) return selection;
+    return extendSelection(selection, {
+      row: clamp(selection.focus.row + delta.row, 1, limits.rows),
+      col: clamp(selection.focus.col + delta.col, 1, limits.cols),
+    });
+  }
+
+  function getCellSelectionClasses(selection, row, col) {
+    const bounds = selectionBounds(selection);
+    if (row < bounds.top || row > bounds.bottom || col < bounds.left || col > bounds.right) return [];
+
+    const classes = ['is-selected'];
+    if (row === selection.active.row && col === selection.active.col) classes.push('is-active-cell');
+    if (row === bounds.top) classes.push('selection-top');
+    if (row === bounds.bottom) classes.push('selection-bottom');
+    if (col === bounds.left) classes.push('selection-left');
+    if (col === bounds.right) classes.push('selection-right');
+    return classes;
+  }
+
   function clearSelection(selection, setCell) {
     forEachCell(selection, function (row, col) {
       setCell(row, col, '');
@@ -132,10 +159,16 @@
     return letters;
   }
 
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
   return {
     createSelection,
     extendSelection,
     selectionBounds,
+    moveSelectionFocus,
+    getCellSelectionClasses,
     clearSelection,
     copySelection,
     cutSelection,
