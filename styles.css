@@ -1,0 +1,239 @@
+:root {
+  color-scheme: light;
+  --chrome: #f7f8fb;
+  --chrome-strong: #eceff5;
+  --grid-line: #d8dde8;
+  --grid-line-soft: #eef1f6;
+  --text: #1f2633;
+  --muted: #667085;
+  --selection: #0a84ff;
+  --selection-soft: #dcebff;
+  --selection-mid: #b9d8ff;
+  --error: #b42318;
+  --error-bg: #fff0ef;
+  --shadow: 0 18px 60px rgba(31, 38, 51, 0.13);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #fbfcff 0%, #f0f3f8 100%);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  height: 100vh;
+  padding: 14px;
+}
+
+.formula-bar {
+  display: grid;
+  grid-template-columns: 86px minmax(220px, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+}
+
+.name-box,
+.formula-input-wrap {
+  height: 36px;
+  border: 1px solid var(--grid-line);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 2px rgba(31, 38, 51, 0.06);
+}
+
+.name-box {
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.formula-input-wrap {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.formula-mark {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border-right: 1px solid var(--grid-line);
+  color: var(--muted);
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.formula-input {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--text);
+  font: 14px/1.2 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+.formula-input:focus {
+  box-shadow: inset 0 0 0 2px var(--selection);
+}
+
+.sheet-frame {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #cfd6e3;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.sheet-grid {
+  display: grid;
+  grid-template-columns: 48px repeat(26, minmax(96px, 1fr));
+  grid-auto-rows: 30px;
+  min-width: 2544px;
+  width: max-content;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.corner-header,
+.column-header,
+.row-header {
+  position: sticky;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
+  background: linear-gradient(180deg, var(--chrome) 0%, var(--chrome-strong) 100%);
+  color: #475467;
+  font-size: 12px;
+  font-weight: 650;
+  user-select: none;
+}
+
+.corner-header {
+  top: 0;
+  left: 0;
+  z-index: 4;
+}
+
+.column-header {
+  top: 0;
+}
+
+.row-header {
+  left: 0;
+  justify-content: end;
+  padding-right: 10px;
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 8px;
+  border-right: 1px solid var(--grid-line-soft);
+  border-bottom: 1px solid var(--grid-line-soft);
+  background: #fff;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell.text {
+  justify-content: flex-start;
+}
+
+.cell.number {
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell.error {
+  justify-content: flex-start;
+  background: var(--error-bg);
+  color: var(--error);
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cell.range-selected {
+  background: var(--selection-soft);
+  box-shadow: inset 0 0 0 1px var(--selection-mid);
+}
+
+.cell.active {
+  z-index: 1;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--selection), 0 0 0 1px rgba(10, 132, 255, 0.18);
+}
+
+.cell.active::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: var(--selection);
+}
+
+.cell:hover {
+  background: #f8fbff;
+}
+
+.visual-state-contract {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  body {
+    overflow: hidden;
+  }
+
+  .app-shell {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .formula-bar {
+    grid-template-columns: 66px minmax(0, 1fr);
+  }
+
+  .sheet-frame {
+    border-radius: 10px;
+  }
+
+  .sheet-grid {
+    grid-template-columns: 42px repeat(26, 88px);
+    min-width: 2330px;
+  }
+}
