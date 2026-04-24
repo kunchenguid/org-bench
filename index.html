@@ -9,10 +9,10 @@
 <body>
   <main class="app" aria-label="Spreadsheet">
     <section class="toolbar" aria-label="Formula toolbar">
-      <strong class="brand">Gridline</strong>
-      <span id="active-cell" class="name-box">A1</span>
-      <span class="fx">fx</span>
-      <input id="formula-input" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <div class="brand">Gridline</div>
+      <label class="name-box" for="formula-input"><span id="active-cell">A1</span></label>
+      <div class="fx">fx</div>
+      <input id="formula-input" autocomplete="off" spellcheck="false" aria-label="Formula bar">
       <button id="insert-row" type="button">Insert row above</button>
       <button id="delete-row" type="button">Delete row</button>
       <button id="insert-col" type="button">Insert column left</button>
@@ -21,6 +21,7 @@
     <section id="grid" class="grid" tabindex="0" aria-label="Spreadsheet grid"></section>
   </main>
   <script src="spreadsheet-core.js"></script>
+  <script src="spreadsheet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
