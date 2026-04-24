@@ -139,6 +139,46 @@ input {
   z-index: 3;
 }
 
+.header-label {
+  pointer-events: none;
+}
+
+.header-menu {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  height: 20px;
+  justify-content: center;
+  opacity: 0;
+  padding: 0;
+  position: absolute;
+  right: 3px;
+  top: 4px;
+  width: 20px;
+}
+
+.row-header .header-menu {
+  right: 2px;
+}
+
+.column-header:hover .header-menu,
+.row-header:hover .header-menu,
+.header-menu:focus {
+  opacity: 1;
+}
+
+.header-menu:hover,
+.header-menu:focus {
+  background: #ffffff;
+  border-color: var(--grid-line-strong);
+  color: var(--accent);
+  outline: none;
+}
+
 .corner {
   left: 0;
   top: 0;

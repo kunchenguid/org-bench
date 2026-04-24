@@ -116,17 +116,33 @@
     grid.appendChild(corner);
 
     for (let col = 0; col < colCount; col += 1) {
-      const header = createElement('div', 'column-header', columnName(col));
+      const colLabel = columnName(col);
+      const header = createElement('div', 'column-header');
+      const label = createElement('span', 'header-label', colLabel);
+      const menu = createElement('button', 'header-menu', '⋯');
       header.setAttribute('role', 'columnheader');
       header.dataset.col = String(col);
+      menu.type = 'button';
+      menu.dataset.command = 'column-menu';
+      menu.dataset.col = String(col);
+      menu.setAttribute('aria-label', 'Column ' + colLabel + ' options: insert left, insert right, delete column');
+      header.append(label, menu);
       columnHeaders.push(header);
       grid.appendChild(header);
     }
 
     for (let row = 0; row < rowCount; row += 1) {
-      const rowHeader = createElement('div', 'row-header', String(row + 1));
+      const rowNumber = String(row + 1);
+      const rowHeader = createElement('div', 'row-header');
+      const label = createElement('span', 'header-label', rowNumber);
+      const menu = createElement('button', 'header-menu', '⋯');
       rowHeader.setAttribute('role', 'rowheader');
       rowHeader.dataset.row = String(row);
+      menu.type = 'button';
+      menu.dataset.command = 'row-menu';
+      menu.dataset.row = String(row);
+      menu.setAttribute('aria-label', 'Row ' + rowNumber + ' options: insert above, insert below, delete row');
+      rowHeader.append(label, menu);
       rowHeaders.push(rowHeader);
       grid.appendChild(rowHeader);
 

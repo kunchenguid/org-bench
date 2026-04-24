@@ -48,6 +48,11 @@
         assert(formulaInput && formulaInput.getAttribute('aria-label'), 'formula bar has labeled input');
         assert(formulaInput.value === '', 'formula bar starts empty');
 
+        const columnMenu = root.querySelector('[data-command="column-menu"]');
+        const rowMenu = root.querySelector('[data-command="row-menu"]');
+        assert(columnMenu && columnMenu.getAttribute('aria-label').indexOf('Column A') !== -1, 'column header exposes command affordance');
+        assert(rowMenu && rowMenu.getAttribute('aria-label').indexOf('Row 1') !== -1, 'row header exposes command affordance');
+
         a1.focus();
         key(a1, '7');
         const editor = root.querySelector('.cell-editor');
