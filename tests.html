@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Oracle Spreadsheet UI Tests</title>
+</head>
+<body>
+  <main id="test-root"></main>
+  <pre id="results">Running...</pre>
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      const results = document.getElementById('results');
+
+      function assert(condition, message) {
+        if (!condition) {
+          throw new Error(message);
+        }
+      }
+
+      function key(target, keyName, options) {
+        target.dispatchEvent(new KeyboardEvent('keydown', Object.assign({
+          key: keyName,
+          bubbles: true,
+          cancelable: true
+        }, options || {})));
+      }
+
+      function run() {
+        assert(window.OracleSpreadsheet, 'OracleSpreadsheet namespace exists');
+        assert(typeof window.OracleSpreadsheet.createApp === 'function', 'createApp exists');
+
+        const root = document.getElementById('test-root');
+        const app = window.OracleSpreadsheet.createApp(root, {
+          rows: 100,
+          cols: 26,
+          storageKey: 'oracle-ui-test'
+        });
+
+        const cells = root.querySelectorAll('[role="gridcell"]');
+        assert(cells.length === 2600, 'renders 26 by 100 grid cells');
+
+        const a1 = root.querySelector('[data-cell="A1"]');
+        assert(a1, 'renders A1 cell');
+        assert(a1.getAttribute('aria-selected') === 'true', 'A1 starts selected');
+
+        const formulaInput = root.querySelector('#formula-input');
+        assert(formulaInput && formulaInput.getAttribute('aria-label'), 'formula bar has labeled input');
+        assert(formulaInput.value === '', 'formula bar starts empty');
+
+        a1.focus();
+        key(a1, '7');
+        const editor = root.querySelector('.cell-editor');
+        assert(editor && editor.value === '7', 'typing a printable key opens replacement edit');
+        key(editor, 'Enter');
+        assert(a1.textContent.trim() === '7', 'Enter commits cell edit');
+        assert(root.querySelector('[data-cell="A2"]').getAttribute('aria-selected') === 'true', 'Enter moves selection down');
+
+        const a2 = root.querySelector('[data-cell="A2"]');
+        key(a2, 'ArrowRight');
+        assert(root.querySelector('[data-cell="B2"]').getAttribute('aria-selected') === 'true', 'arrow right moves selection');
+
+        const b2 = root.querySelector('[data-cell="B2"]');
+        formulaInput.value = '=A1+1';
+        formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
+        key(formulaInput, 'Enter');
+        assert(b2.textContent.trim() === '=A1+1', 'formula bar commits raw contents to selected cell stub');
+        assert(b2.getAttribute('aria-label').indexOf('B2') !== -1, 'cell exposes coordinate in accessible label');
+
+        key(b2, 'ArrowDown', { shiftKey: true });
+        assert(root.querySelector('[data-cell="B3"]').classList.contains('in-range'), 'shift arrow extends visible range');
+
+        app.destroy();
+        results.textContent = 'PASS';
+      }
+
+      try {
+        run();
+      } catch (error) {
+        results.textContent = 'FAIL: ' + error.message;
+        throw error;
+      }
+    }());
+  </script>
+</body>
+</html>
