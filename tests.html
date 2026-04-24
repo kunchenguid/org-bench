@@ -7,6 +7,8 @@
 <body>
   <main id="test-root"></main>
   <pre id="results">Running...</pre>
+  <script src="spreadsheet-core.js"></script>
+  <script src="src/actions.js"></script>
   <script src="app.js"></script>
   <script>
     (function () {
@@ -29,8 +31,10 @@
       function run() {
         assert(window.OracleSpreadsheet, 'OracleSpreadsheet namespace exists');
         assert(typeof window.OracleSpreadsheet.createApp === 'function', 'createApp exists');
+        assert(window.SpreadsheetCore && window.SpreadsheetActions, 'core and actions scripts load under file');
 
         const root = document.getElementById('test-root');
+        localStorage.removeItem('oracle-ui-test:spreadsheet-state');
         const app = window.OracleSpreadsheet.createApp(root, {
           rows: 100,
           cols: 26,
@@ -69,13 +73,28 @@
         formulaInput.value = '=A1+1';
         formulaInput.dispatchEvent(new Event('input', { bubbles: true }));
         key(formulaInput, 'Enter');
-        assert(b2.textContent.trim() === '=A1+1', 'formula bar commits raw contents to selected cell stub');
+        assert(b2.textContent.trim() === '8', 'formula bar commits formula and displays evaluated value');
         assert(b2.getAttribute('aria-label').indexOf('B2') !== -1, 'cell exposes coordinate in accessible label');
+
+        key(b2, 'z', { metaKey: true });
+        assert(b2.textContent.trim() === '', 'undo is bound to cell edits');
+        key(b2, 'z', { metaKey: true, shiftKey: true });
+        assert(b2.textContent.trim() === '8', 'redo is bound to cell edits');
 
         key(b2, 'ArrowDown', { shiftKey: true });
         assert(root.querySelector('[data-cell="B3"]').classList.contains('in-range'), 'shift arrow extends visible range');
 
+        b2.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+
         app.destroy();
+        const restored = window.OracleSpreadsheet.createApp(root, {
+          rows: 100,
+          cols: 26,
+          namespace: 'oracle-ui-test'
+        });
+        assert(root.querySelector('[data-cell="B2"]').textContent.trim() === '8', 'reload restores persisted formula display');
+        assert(root.querySelector('#formula-input').value === '=A1+1', 'reload restores raw formula in formula bar');
+        restored.destroy();
         results.textContent = 'PASS';
       }
 
