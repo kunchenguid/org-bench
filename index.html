@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="sheet-app" aria-label="Spreadsheet">
+    <section class="toolbar" aria-label="Formula editor">
+      <div class="cell-name" id="cellName">A1</div>
+      <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <button id="undoBtn" type="button" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+      <button id="redoBtn" type="button" title="Redo (Ctrl/Cmd+Y)">Redo</button>
+    </section>
+    <section class="grid-wrap" id="gridWrap" aria-label="Grid. Right-click row or column headers to insert or delete.">
+      <div id="grid" class="grid" role="grid" aria-rowcount="101" aria-colcount="27"></div>
+    </section>
+  </main>
+  <div id="contextMenu" class="context-menu" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
