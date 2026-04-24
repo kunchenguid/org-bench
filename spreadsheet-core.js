@@ -209,6 +209,7 @@
       const two = input.slice(i, i + 2);
       if (['<>', '<=', '>='].includes(two)) { tokens.push({ type: 'op', value: two }); i += 2; continue; }
       if ('+-*/&=<>(),:'.includes(ch)) { tokens.push({ type: 'op', value: ch }); i += 1; continue; }
+      if (input.slice(i, i + REF.length) === REF) { tokens.push({ type: 'ident', value: REF }); i += REF.length; continue; }
       const num = /^\d+(?:\.\d+)?/.exec(input.slice(i));
       if (num) { tokens.push({ type: 'number', value: Number(num[0]) }); i += num[0].length; continue; }
       const ident = /^\$?[A-Z]+\$?\d+|^[A-Z_][A-Z0-9_]*/i.exec(input.slice(i));
@@ -331,6 +332,7 @@
     }
 
     callFunction(name) {
+      if (name === 'IF') return this.callIf();
       const args = [];
       if (!this.take(')')) {
         do args.push(this.parseExpression());
@@ -343,7 +345,6 @@
       if (name === 'MIN') return Math.min(...flat.map(numberValue));
       if (name === 'MAX') return Math.max(...flat.map(numberValue));
       if (name === 'COUNT') return flat.filter((value) => typeof primitive(value) === 'number' && !Number.isNaN(primitive(value))).length;
-      if (name === 'IF') return truthy(args[0]) ? args[1] : args[2];
       if (name === 'AND') return flat.every(truthy);
       if (name === 'OR') return flat.some(truthy);
       if (name === 'NOT') return !truthy(args[0]);
@@ -351,6 +352,35 @@
       if (name === 'ROUND') return Number(numberValue(args[0]).toFixed(args[1] == null ? 0 : numberValue(args[1])));
       if (name === 'CONCAT') return flat.map(textValue).join('');
       throw new Error(ERR);
+    }
+
+    callIf() {
+      const condition = this.parseExpression();
+      if (!this.take(',')) throw new Error(ERR);
+      if (truthy(condition)) {
+        const value = this.parseExpression();
+        if (this.take(',')) this.skipExpression();
+        if (!this.take(')')) throw new Error(ERR);
+        return value;
+      }
+      this.skipExpression();
+      if (!this.take(',')) throw new Error(ERR);
+      const value = this.parseExpression();
+      if (!this.take(')')) throw new Error(ERR);
+      return value;
+    }
+
+    skipExpression() {
+      let depth = 0;
+      while (this.pos < this.tokens.length) {
+        const token = this.peek();
+        if (token.value === '(') depth += 1;
+        else if (token.value === ')') {
+          if (depth === 0) return;
+          depth -= 1;
+        } else if (token.value === ',' && depth === 0) return;
+        this.pos += 1;
+      }
     }
 
     cell(row, col) {

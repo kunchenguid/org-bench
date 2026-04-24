@@ -44,6 +44,49 @@ test('empty cells display blank but evaluate as zero in formulas', () => {
   assert.equal(display(sheet, 'A1'), '2');
 });
 
+test('supports arithmetic precedence, unary minus, comparisons, concatenation, and booleans', () => {
+  const sheet = new SpreadsheetModel(10, 8);
+
+  set(sheet, 'A1', '=1+2*3');
+  set(sheet, 'A2', '=-(1+2)*3');
+  set(sheet, 'A3', '=3>=2');
+  set(sheet, 'A4', '=3<>3');
+  set(sheet, 'A5', '="Total: "&7');
+  set(sheet, 'A6', '=TRUE=NOT(FALSE)');
+
+  assert.equal(display(sheet, 'A1'), '7');
+  assert.equal(display(sheet, 'A2'), '-9');
+  assert.equal(display(sheet, 'A3'), 'TRUE');
+  assert.equal(display(sheet, 'A4'), 'FALSE');
+  assert.equal(display(sheet, 'A5'), 'Total: 7');
+  assert.equal(display(sheet, 'A6'), 'TRUE');
+});
+
+test('supports required aggregate, logical, numeric, and text functions', () => {
+  const sheet = new SpreadsheetModel(10, 8);
+
+  set(sheet, 'A1', '1');
+  set(sheet, 'A2', '2');
+  set(sheet, 'A3', '3');
+  set(sheet, 'B1', '=SUM(A1:A3)');
+  set(sheet, 'B2', '=AVERAGE(A1:A3)');
+  set(sheet, 'B3', '=MIN(A1:A3)');
+  set(sheet, 'B4', '=MAX(A1:A3)');
+  set(sheet, 'B5', '=COUNT(A1:A3)');
+  set(sheet, 'B6', '=IF(AND(TRUE,OR(FALSE,TRUE)),ABS(-4),0)');
+  set(sheet, 'B7', '=ROUND(2.345,2)');
+  set(sheet, 'B8', '=CONCAT("A",A1,"B")');
+
+  assert.equal(display(sheet, 'B1'), '6');
+  assert.equal(display(sheet, 'B2'), '2');
+  assert.equal(display(sheet, 'B3'), '1');
+  assert.equal(display(sheet, 'B4'), '3');
+  assert.equal(display(sheet, 'B5'), '3');
+  assert.equal(display(sheet, 'B6'), '4');
+  assert.equal(display(sheet, 'B7'), '2.35');
+  assert.equal(display(sheet, 'B8'), 'A1B');
+});
+
 test('copying a formula shifts relative references', () => {
   const sheet = new SpreadsheetModel(10, 5);
 
@@ -53,6 +96,10 @@ test('copying a formula shifts relative references', () => {
 
   assert.equal(raw(sheet, 'A2'), '=B1*2');
   assert.equal(display(sheet, 'A2'), '12');
+});
+
+test('absolute reference parts do not shift during copy', () => {
+  assert.equal(adjustFormulaReferences('=$A$1+$A1+A$1+A1', 2, 3), '=$A$1+$A3+D$1+D3');
 });
 
 test('range clear can be restored from one snapshot', () => {
@@ -159,4 +206,38 @@ test('circular references render an error marker', () => {
 
   assert.equal(display(sheet, 'A1'), '#CIRC!');
   assert.equal(display(sheet, 'B1'), '#CIRC!');
+});
+
+test('formula errors render stable markers', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'A1', '=1/0');
+  set(sheet, 'A2', '=UNKNOWN(1)');
+  set(sheet, 'A3', '=1+');
+  set(sheet, 'B1', '7');
+  set(sheet, 'C1', '=B1');
+  sheet.deleteCol(1);
+
+  assert.equal(display(sheet, 'A1'), '#DIV/0!');
+  assert.equal(display(sheet, 'A2'), '#ERR!');
+  assert.equal(display(sheet, 'A3'), '#ERR!');
+  assert.equal(display(sheet, 'B1'), '#REF!');
+});
+
+test('IF evaluates only the selected branch', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'A1', '=IF(TRUE,1,1/0)');
+  set(sheet, 'A2', '=IF(FALSE,1/0,2)');
+
+  assert.equal(display(sheet, 'A1'), '1');
+  assert.equal(display(sheet, 'A2'), '2');
+});
+
+test('string literals containing deleted-reference text remain strings', () => {
+  const sheet = new SpreadsheetModel(10, 5);
+
+  set(sheet, 'A1', '="literal #REF!"');
+
+  assert.equal(display(sheet, 'A1'), 'literal #REF!');
 });
