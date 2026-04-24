@@ -178,6 +178,52 @@
       return cleared;
     }
 
+    function applyStructureAction(action, source) {
+      var ops = window.RowColumnOperations;
+      if (!ops) {
+        throw new Error("RowColumnOperations is required for row and column edits");
+      }
+
+      var request = action || {};
+      var before = snapshot();
+      var sheet = {
+        rows: state.dimensions.rows,
+        columns: state.dimensions.columns,
+        cells: Object.assign({}, state.cells)
+      };
+      var payload;
+
+      if (request.type === "insertRows") {
+        payload = ops.insertRows(sheet, request.index, request.count || 1);
+      } else if (request.type === "deleteRows") {
+        payload = ops.deleteRows(sheet, request.index, request.count || 1);
+      } else if (request.type === "insertColumns") {
+        payload = ops.insertColumns(sheet, request.index, request.count || 1);
+      } else if (request.type === "deleteColumns") {
+        payload = ops.deleteColumns(sheet, request.index, request.count || 1);
+      } else {
+        throw new Error("Unknown structure action: " + request.type);
+      }
+
+      state.dimensions = { rows: sheet.rows, columns: sheet.columns };
+      state.cells = Object.assign({}, sheet.cells);
+      state.selection = {
+        anchor: clampCell(state.selection.anchor, state.dimensions),
+        focus: clampCell(state.selection.focus, state.dimensions),
+        active: clampCell(state.selection.active, state.dimensions),
+        range: normalizeRange(clampCell(state.selection.anchor, state.dimensions), clampCell(state.selection.focus, state.dimensions))
+      };
+
+      emitter.emit("structurechange", {
+        action: payload,
+        before: before,
+        after: snapshot(),
+        source: source || "api"
+      });
+      emitStateChange("structure");
+      return payload;
+    }
+
     function snapshot() {
       return {
         dimensions: {
@@ -223,7 +269,8 @@
       selectRange: selectRange,
       getCellRaw: getCellRaw,
       setCellRaw: setCellRaw,
-      clearRange: clearRange
+      clearRange: clearRange,
+      applyStructureAction: applyStructureAction
     };
   }
 
