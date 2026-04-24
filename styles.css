@@ -130,6 +130,17 @@ body {
   z-index: 2;
 }
 
+.grid th.selected-header {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.grid th.active-header {
+  background: #bfdbfe;
+  color: #172554;
+  box-shadow: inset 0 -2px 0 var(--active);
+}
+
 .cell {
   cursor: cell;
   background: #fff;
@@ -142,12 +153,21 @@ body {
 
 .cell.in-range {
   background: var(--range);
+  position: relative;
+}
+
+.cell.in-range::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(20, 115, 230, .16);
+  pointer-events: none;
 }
 
 .cell.active {
   position: relative;
   background: #fff;
-  box-shadow: inset 0 0 0 2px var(--active);
+  box-shadow: inset 0 0 0 2px var(--active), 0 0 0 1px rgba(20, 115, 230, .35);
 }
 
 .cell.editing {
@@ -163,6 +183,34 @@ body {
   outline: none;
   font: 13px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: #fff;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 10;
+  min-width: 170px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(23, 32, 51, .18);
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  padding: 8px 10px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: var(--header);
 }
 
 @media (max-width: 720px) {
