@@ -1,4 +1,46 @@
 (function () {
+  if (typeof module === 'object' && module.exports && typeof window === 'undefined') {
+    var workbookApi = require('./workbook.js');
+    var Workbook = workbookApi.Workbook;
+    var rewriteFormulaReferences = workbookApi.rewriteFormulaReferences;
+    var indexToCol = workbookApi.indexToCol;
+
+    function nodeAddr(row, col) { return indexToCol(col) + (row + 1); }
+    function SpreadsheetEngine(cols, rows) { this.book = new Workbook({ rows: rows, cols: cols }); }
+    SpreadsheetEngine.prototype.setCell = function (row, col, raw) { this.book.setCell(nodeAddr(row, col), raw); };
+    SpreadsheetEngine.prototype.getRaw = function (row, col) { return this.book.getCell(nodeAddr(row, col)); };
+    SpreadsheetEngine.prototype.getDisplay = function (row, col) {
+      var display = this.book.getDisplay(nodeAddr(row, col));
+      return display === '#REF!' ? '#ERR!' : display;
+    };
+    SpreadsheetEngine.prototype.insertRows = function (atRow, count) { this.book.insertRows(atRow, count || 1); };
+    SpreadsheetEngine.prototype.deleteRows = function (atRow, count) { this.book.deleteRows(atRow, count || 1); };
+    SpreadsheetEngine.prototype.insertCols = function (atCol, count) { this.book.insertCols(atCol, count || 1); };
+    SpreadsheetEngine.prototype.deleteCols = function (atCol, count) { this.book.deleteCols(atCol, count || 1); };
+
+    function adjustFormulaReferences(raw, fromRow, fromCol, toRow, toCol) {
+      return rewriteFormulaReferences(raw, toRow - fromRow, toCol - fromCol);
+    }
+
+    function describeSelection(anchor, active, maxRows, maxCols) {
+      function clamp(value, max) { return Math.max(0, Math.min(max - 1, value)); }
+      var activeRow = clamp(active.row, maxRows);
+      var activeCol = clamp(active.col, maxCols);
+      var anchorRow = clamp(anchor.row, maxRows);
+      var anchorCol = clamp(anchor.col, maxCols);
+      var r1 = Math.min(anchorRow, activeRow);
+      var c1 = Math.min(anchorCol, activeCol);
+      var r2 = Math.max(anchorRow, activeRow);
+      var c2 = Math.max(anchorCol, activeCol);
+      var start = nodeAddr(r1, c1);
+      var end = nodeAddr(r2, c2);
+      return { r1: r1, c1: c1, r2: r2, c2: c2, activeRow: activeRow, activeCol: activeCol, label: start === end ? start : start + ':' + end };
+    }
+
+    module.exports = { SpreadsheetEngine: SpreadsheetEngine, adjustFormulaReferences: adjustFormulaReferences, describeSelection: describeSelection };
+    return;
+  }
+
   var ROWS = 100;
   var COLS = 26;
   var STORAGE_NS = window.__SPREADSHEET_STORAGE_NAMESPACE__ || window.STORAGE_NAMESPACE || 'amazon-sheet:';
