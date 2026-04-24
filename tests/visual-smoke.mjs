@@ -7,11 +7,9 @@ const requiredHtml = [
   'class="app-shell"',
   'class="formula-bar"',
   'class="sheet-grid"',
-  'class="cell active"',
-  'class="cell range-selected"',
-  'class="cell number"',
-  'class="cell text"',
-  'class="cell error"'
+  "cell.className = 'cell active'",
+  'value=""',
+  '>A1<'
 ];
 
 const requiredCss = [
@@ -35,6 +33,14 @@ for (const needle of requiredHtml) {
 for (const needle of requiredCss) {
   if (!css.includes(needle)) {
     throw new Error(`Missing visual rule in styles.css: ${needle}`);
+  }
+}
+
+const demoContent = ['visual-state-contract', '=SUM(A1:A5)', 'Revenue', '#DIV/0!'];
+
+for (const needle of demoContent) {
+  if (html.includes(needle)) {
+    throw new Error(`Demo-only content should not ship in index.html: ${needle}`);
   }
 }
 

@@ -9,10 +9,10 @@
   <body>
     <main class="app-shell" aria-label="Spreadsheet workspace">
       <section class="formula-bar" aria-label="Formula bar">
-        <div class="name-box" aria-label="Active cell">B2</div>
+        <div class="name-box" aria-label="Active cell">A1</div>
         <label class="formula-input-wrap">
           <span class="formula-mark">fx</span>
-          <input class="formula-input" value="=SUM(A1:A5)" aria-label="Selected cell contents">
+          <input class="formula-input" value="" aria-label="Selected cell contents">
         </label>
       </section>
 
@@ -20,13 +20,6 @@
         <div class="sheet-grid" id="sheet-grid" role="grid" aria-rowcount="100" aria-colcount="26"></div>
       </section>
 
-      <div class="visual-state-contract" aria-hidden="true">
-        <span class="cell active"></span>
-        <span class="cell range-selected"></span>
-        <span class="cell number"></span>
-        <span class="cell text"></span>
-        <span class="cell error"></span>
-      </div>
     </main>
 
     <script>
@@ -61,20 +54,8 @@
             cell.setAttribute('role', 'gridcell');
             cell.setAttribute('aria-label', address);
 
-            if (address === 'B2') {
-              cell.className = 'cell active number';
-              cell.textContent = '42';
-            } else if ((address === 'C2') || (address === 'D2') || (address === 'B3') || (address === 'C3') || (address === 'D3')) {
-              cell.className = 'cell range-selected';
-            } else if (address === 'A1') {
-              cell.className = 'cell text';
-              cell.textContent = 'Revenue';
-            } else if (address === 'E2') {
-              cell.className = 'cell error';
-              cell.textContent = '#DIV/0!';
-            } else if (row <= 5 && index === 0) {
-              cell.className = 'cell number';
-              cell.textContent = String(row * 10);
+            if (address === 'A1') {
+              cell.className = 'cell active';
             }
 
             fragment.appendChild(cell);

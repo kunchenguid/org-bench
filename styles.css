@@ -210,10 +210,6 @@ body {
   background: #f8fbff;
 }
 
-.visual-state-contract {
-  display: none;
-}
-
 @media (max-width: 720px) {
   body {
     overflow: hidden;
