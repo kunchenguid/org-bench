@@ -10,6 +10,7 @@
   const grid = document.getElementById('grid');
   const formula = document.getElementById('formula-input');
   const cellName = document.getElementById('cell-name');
+  const selectionStatus = document.getElementById('selection-status');
   const editor = document.getElementById('cell-editor');
   const menu = document.getElementById('context-menu');
   const cells = [];
@@ -109,6 +110,9 @@
     }
     cellName.textContent = key(active.row, active.col);
     formula.value = sheet.getRaw(key(active.row, active.col));
+    selectionStatus.textContent = selection.r1 === selection.r2 && selection.c1 === selection.c2
+      ? key(active.row, active.col)
+      : `${key(selection.r1, selection.c1)}:${key(selection.r2, selection.c2)}`;
   }
 
   function select(row, col, extend) {

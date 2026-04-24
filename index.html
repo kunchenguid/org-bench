@@ -11,7 +11,9 @@
     <section class="toolbar">
       <div class="brand">Sheet</div>
       <label class="name-box" for="formula-input"><span id="cell-name">A1</span></label>
+      <span class="fx-badge" aria-hidden="true">fx</span>
       <input id="formula-input" class="formula" autocomplete="off" aria-label="Formula bar" spellcheck="false">
+      <div id="selection-status" class="selection-status" aria-live="polite">A1</div>
       <div class="hint">Enter/F2 edit · Shift+arrows select · Ctrl/Cmd+C/V/Z · right-click headers</div>
     </section>
     <section id="grid" class="grid" tabindex="0" aria-label="Spreadsheet grid"></section>
