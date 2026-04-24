@@ -43,6 +43,33 @@
       assertEqual(pasted, '=B2', 'copied formula');
     });
 
+    test('hardens comparisons, concat, booleans, numeric functions, and errors', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-formula-hardening', skipLoad: true });
+      sheet.setRaw(0, 0, '');
+      sheet.setRaw(1, 0, '=1=1');
+      sheet.setRaw(2, 0, '=1<>2');
+      sheet.setRaw(3, 0, '=2<=1');
+      sheet.setRaw(4, 0, '="Total: "&A1');
+      sheet.setRaw(5, 0, '=CONCAT("A", 1, TRUE)');
+      sheet.setRaw(6, 0, '=IF(AND(TRUE, NOT(FALSE)), "yes", "no")');
+      sheet.setRaw(7, 0, '=IF(OR(FALSE, FALSE), 1, 2)');
+      sheet.setRaw(8, 0, '=ABS(-4)+ROUND(2.345, 2)+A1');
+      sheet.setRaw(9, 0, '=1/0');
+      sheet.setRaw(0, 1, '=NOPE(1)');
+      sheet.setRaw(1, 1, '=1+');
+      assertEqual(sheet.getDisplay(1, 0), 'TRUE', 'equal comparison');
+      assertEqual(sheet.getDisplay(2, 0), 'TRUE', 'not-equal comparison');
+      assertEqual(sheet.getDisplay(3, 0), 'FALSE', 'lte comparison');
+      assertEqual(sheet.getDisplay(4, 0), 'Total: ', 'empty ref in text concat');
+      assertEqual(sheet.getDisplay(5, 0), 'A1TRUE', 'CONCAT function');
+      assertEqual(sheet.getDisplay(6, 0), 'yes', 'IF AND NOT');
+      assertEqual(sheet.getDisplay(7, 0), '2', 'IF OR false branch');
+      assertEqual(sheet.getDisplay(8, 0), '6.35', 'ABS ROUND empty numeric ref');
+      assertEqual(sheet.getDisplay(9, 0), '#DIV/0!', 'divide by zero');
+      assertEqual(sheet.getDisplay(0, 1), '#NAME?', 'unknown function');
+      assertEqual(sheet.getDisplay(1, 1), '#ERR!', 'bad syntax');
+    });
+
     (async function run() {
       const failures = [];
       for (const t of tests) {

@@ -72,7 +72,7 @@
     }
     valueForContext(row, col, mode, stack) {
       const v = this.evaluateCell(row, col, stack);
-      if (v === '') return mode === 'text' ? '' : 0;
+      if (v === '') return '';
       return v;
     }
     evaluateCell(row, col, stack) {
