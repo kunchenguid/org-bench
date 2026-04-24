@@ -2,7 +2,6 @@
   'use strict';
 
   const root = typeof window !== 'undefined' ? window : globalThis;
-
   const DEFAULT_ROWS = 100;
   const DEFAULT_COLS = 26;
   const ERROR = Object.freeze({ err: '#ERR!', div: '#DIV/0!', ref: '#REF!', circ: '#CIRC!' });
@@ -28,12 +27,6 @@
   }
   function addr(row, col) { return colName(col) + (row + 1); }
   function key(row, col) { return row + ',' + col; }
-  function getCellKey(row, col) { return addr(row, col); }
-  function createEmptyCells(rows, cols) {
-    const cells = {};
-    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) cells[getCellKey(r, c)] = '';
-    return cells;
-  }
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
   function isError(v) { return typeof v === 'string' && /^#/.test(v); }
   function asNumber(v) {
@@ -51,19 +44,22 @@
     if (v === false) return 'FALSE';
     return String(v);
   }
+  function canCompareAsNumber(v) {
+    if (v === '' || v == null || typeof v === 'number' || typeof v === 'boolean') return true;
+    return typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v));
+  }
+  function formatFormulaStatus(raw, shown, type) {
+    if (!raw && !shown) return { label: 'Ready', text: 'Blank', state: 'blank' };
+    if (type === 'error') return { label: 'Value', text: shown || 'Error', state: 'error' };
+    if (raw && raw[0] === '=') return { label: 'Value', text: shown || 'Blank', state: 'formula' };
+    return { label: 'Value', text: shown || 'Blank', state: type || 'text' };
+  }
   function display(v) {
     if (v === true) return 'TRUE';
     if (v === false) return 'FALSE';
     if (v == null) return '';
     if (typeof v === 'number' && Number.isFinite(v)) return String(Math.round(v * 10000000000) / 10000000000);
     return String(v);
-  }
-
-  function formatFormulaStatus(raw, shown, type) {
-    if (!raw && !shown) return { label: 'Ready', text: 'Blank', state: 'blank' };
-    if (type === 'error') return { label: 'Value', text: shown || 'Error', state: 'error' };
-    if (raw && raw[0] === '=') return { label: 'Value', text: shown || 'Blank', state: 'formula' };
-    return { label: 'Value', text: shown || 'Blank', state: type || 'text' };
   }
 
   class FormulaParser {
@@ -116,8 +112,9 @@
         const right = this.concat();
         if (isError(left)) return left;
         if (isError(right)) return right;
-        const l = typeof left === 'number' && typeof right === 'number' ? left : asText(left);
-        const r = typeof left === 'number' && typeof right === 'number' ? right : asText(right);
+        const numeric = canCompareAsNumber(left) && canCompareAsNumber(right);
+        const l = numeric ? asNumber(left) : asText(left);
+        const r = numeric ? asNumber(right) : asText(right);
         if (t.value === '=') return l === r;
         if (t.value === '<>') return l !== r;
         if (t.value === '<') return l < r;
@@ -196,6 +193,7 @@
     }
     call(name) {
       this.take('(');
+      if (name === 'IF') return this.lazyIf();
       const args = [];
       if (!this.peek(')')) {
         do { args.push(this.comparison()); } while (this.take(','));
@@ -219,6 +217,44 @@
         case 'CONCAT': return flat.map(asText).join('');
         default: return ERROR.err;
       }
+    }
+    lazyIf() {
+      const condition = this.comparison();
+      if (!this.take(',')) return ERROR.err;
+      if (isError(condition)) return this.skipRestOfCall(condition);
+      if (condition) {
+        const value = this.comparison();
+        if (this.take(',')) this.skipArgument();
+        return this.take(')') ? value : ERROR.err;
+      }
+      this.skipArgument();
+      if (!this.take(',')) return this.take(')') ? '' : ERROR.err;
+      const value = this.comparison();
+      return this.take(')') ? value : ERROR.err;
+    }
+    skipArgument() {
+      let depth = 0;
+      while (this.pos < this.tokens.length) {
+        const t = this.tokens[this.pos];
+        if (t.value === '(') depth++;
+        else if (t.value === ')') {
+          if (depth === 0) return;
+          depth--;
+        } else if (t.value === ',' && depth === 0) return;
+        this.pos++;
+      }
+    }
+    skipRestOfCall(value) {
+      let depth = 0;
+      while (this.pos < this.tokens.length) {
+        const t = this.tokens[this.pos++];
+        if (t.value === '(') depth++;
+        else if (t.value === ')') {
+          if (depth === 0) return value;
+          depth--;
+        }
+      }
+      return ERROR.err;
     }
     parseRef(text) {
       const m = String(text).match(/^\$?([A-Z]+)\$?(\d+)$/);
@@ -372,53 +408,7 @@
       });
     }
   }
-  function adjustFormulaReferences(raw, rowOffset, colOffset) {
-    return SpreadsheetModel.adjustFormula(raw, rowOffset, colOffset);
-  }
-
-  function applyPaste(cells, options) {
-    const next = Object.assign({}, cells);
-    const source = options.source;
-    const target = options.target;
-    const sourceRows = source.endRow - source.startRow + 1;
-    const sourceCols = source.endCol - source.startCol + 1;
-    const targetRows = target.endRow - target.startRow + 1;
-    const targetCols = target.endCol - target.startCol + 1;
-    const pasteRows = targetRows === sourceRows ? targetRows : sourceRows;
-    const pasteCols = targetCols === sourceCols ? targetCols : sourceCols;
-
-    for (let r = 0; r < pasteRows; r++) {
-      for (let c = 0; c < pasteCols; c++) {
-        const srcRow = source.startRow + (r % sourceRows);
-        const srcCol = source.startCol + (c % sourceCols);
-        const destRow = target.startRow + r;
-        const destCol = target.startCol + c;
-        if (destRow >= options.maxRows || destCol >= options.maxCols) continue;
-        const sourceKey = getCellKey(srcRow, srcCol);
-        let raw = next[sourceKey] || '';
-        if (raw[0] === '=') raw = adjustFormulaReferences(raw, destRow - srcRow, destCol - srcCol);
-        next[getCellKey(destRow, destCol)] = raw;
-      }
-    }
-
-    if (options.cut) {
-      for (let r = source.startRow; r <= source.endRow; r++) {
-        for (let c = source.startCol; c <= source.endCol; c++) next[getCellKey(r, c)] = '';
-      }
-    }
-    return next;
-  }
-
   root.SpreadsheetModel = SpreadsheetModel;
-  root.adjustFormulaReferences = adjustFormulaReferences;
-  root.applyPaste = applyPaste;
-  root.createEmptyCells = createEmptyCells;
-  root.formatFormulaStatus = formatFormulaStatus;
-  root.getCellKey = getCellKey;
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { adjustFormulaReferences, applyPaste, createEmptyCells, formatFormulaStatus, getCellKey, SpreadsheetModel };
-  }
 
   class SpreadsheetApp {
     constructor() {
@@ -464,7 +454,7 @@
         const cell = e.target.closest('.cell');
         if (!cell) return;
         const row = Number(cell.dataset.row), col = Number(cell.dataset.col);
-        this.select(row, col, e.shiftKey); this.dragging = true; e.preventDefault();
+        this.select(row, col, e.shiftKey); cell.focus({ preventScroll: true }); this.dragging = true; e.preventDefault();
       });
       this.grid.addEventListener('mouseover', e => {
         if (!this.dragging) return;
@@ -569,7 +559,10 @@
         }
       }
       if (this.clipboard && this.clipboard.cut) {
-        for (let r = this.clipboard.src.r1; r <= this.clipboard.src.r2; r++) for (let c = this.clipboard.src.c1; c <= this.clipboard.src.c2; c++) changes.push({ row: r, col: c, raw: '' });
+        const pasted = new Set(changes.map(change => key(change.row, change.col)));
+        for (let r = this.clipboard.src.r1; r <= this.clipboard.src.r2; r++) for (let c = this.clipboard.src.c1; c <= this.clipboard.src.c2; c++) {
+          if (!pasted.has(key(r, c))) changes.push({ row: r, col: c, raw: '' });
+        }
         this.clipboard = null;
       }
       this.model.setMany(changes); this.pushHistory(before); this.refresh();
@@ -619,8 +612,6 @@
     getCellEl(row, col) { return this.grid.querySelector('.cell[data-row="' + row + '"][data-col="' + col + '"]'); }
   }
 
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => new SpreadsheetApp());
-    else new SpreadsheetApp();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => new SpreadsheetApp());
+  else new SpreadsheetApp();
 })();
