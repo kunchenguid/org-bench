@@ -8,8 +8,16 @@
   var gridRoot = document.getElementById("grid-root");
   var status = document.querySelector("[data-spreadsheet-slot='status']");
   var editing = null;
+  var draggingAnchor = null;
 
   window.sheetStore = store;
+  if (window.SpreadsheetClipboardController && window.SelectionClipboard) {
+    window.removeSpreadsheetClipboardController = window.SpreadsheetClipboardController.installClipboardController({
+      target: document,
+      store: store,
+      selectionTools: window.SelectionClipboard
+    });
+  }
 
   function cellKey(row, col) {
     return spreadsheet.cellKey({ row: row, col: col });
@@ -32,17 +40,47 @@
   }
 
   function clearSelectionChrome() {
-    var selected = gridRoot.querySelectorAll(".active, .active-header");
+    var selected = gridRoot.querySelectorAll(".active, .active-header, .is-selected, .is-active-cell, .selection-top, .selection-bottom, .selection-left, .selection-right");
     Array.prototype.forEach.call(selected, function (element) {
-      element.classList.remove("active", "active-header");
+      element.classList.remove(
+        "active",
+        "active-header",
+        "is-selected",
+        "is-active-cell",
+        "selection-top",
+        "selection-bottom",
+        "selection-left",
+        "selection-right"
+      );
     });
+  }
+
+  function selectionForChrome(selection) {
+    return {
+      active: { row: selection.anchor.row + 1, col: selection.anchor.col + 1 },
+      focus: { row: selection.focus.row + 1, col: selection.focus.col + 1 }
+    };
   }
 
   function syncSelectionChrome(selection) {
     var active = selection.active;
     var cell = cellAt(active.row, active.col);
+    var range = selection.range;
 
     clearSelectionChrome();
+    if (window.SelectionClipboard) {
+      for (var row = range.top; row <= range.bottom; row += 1) {
+        for (var col = range.left; col <= range.right; col += 1) {
+          var rangeCell = cellAt(row, col);
+          if (rangeCell) {
+            rangeCell.classList.add.apply(
+              rangeCell.classList,
+              window.SelectionClipboard.getCellSelectionClasses(selectionForChrome(selection), row + 1, col + 1)
+            );
+          }
+        }
+      }
+    }
     if (cell) cell.classList.add("active");
     if (colHeaderAt(active.col)) colHeaderAt(active.col).classList.add("active-header");
     if (rowHeaderAt(active.row)) rowHeaderAt(active.row).classList.add("active-header");
@@ -113,6 +151,15 @@
     selectCell(active.row + rowDelta, active.col + colDelta);
   }
 
+  function extendRange(rowDelta, colDelta) {
+    var selection = store.snapshot().selection;
+    var nextFocus = spreadsheet.clampCell({
+      row: selection.focus.row + rowDelta,
+      col: selection.focus.col + colDelta
+    }, store.snapshot().dimensions);
+    store.selectRange(selection.anchor, nextFocus);
+  }
+
   function handleDocumentKeydown(event) {
     if (event.target === formulaInput) return;
 
@@ -132,10 +179,10 @@
       return;
     }
 
-    if (event.key === "ArrowUp") { event.preventDefault(); move(-1, 0); return; }
-    if (event.key === "ArrowDown") { event.preventDefault(); move(1, 0); return; }
-    if (event.key === "ArrowLeft") { event.preventDefault(); move(0, -1); return; }
-    if (event.key === "ArrowRight") { event.preventDefault(); move(0, 1); return; }
+    if (event.key === "ArrowUp") { event.preventDefault(); event.shiftKey ? extendRange(-1, 0) : move(-1, 0); return; }
+    if (event.key === "ArrowDown") { event.preventDefault(); event.shiftKey ? extendRange(1, 0) : move(1, 0); return; }
+    if (event.key === "ArrowLeft") { event.preventDefault(); event.shiftKey ? extendRange(0, -1) : move(0, -1); return; }
+    if (event.key === "ArrowRight") { event.preventDefault(); event.shiftKey ? extendRange(0, 1) : move(0, 1); return; }
     if (event.key === "Enter" || event.key === "F2") { event.preventDefault(); beginEdit(); return; }
     if (event.key === "Tab") { event.preventDefault(); move(0, 1); return; }
 
@@ -216,7 +263,18 @@
         cell.dataset.cell = cellKey(row, col);
         cell.addEventListener("mousedown", function (event) {
           event.preventDefault();
-          selectCell(Number(this.dataset.row), Number(this.dataset.col));
+          var targetCell = { row: Number(this.dataset.row), col: Number(this.dataset.col) };
+          if (event.shiftKey) {
+            store.selectRange(store.snapshot().selection.anchor, targetCell);
+            draggingAnchor = null;
+          } else {
+            draggingAnchor = targetCell;
+            selectCell(targetCell.row, targetCell.col);
+          }
+        });
+        cell.addEventListener("mouseenter", function (event) {
+          if (!draggingAnchor || event.buttons !== 1) return;
+          store.selectRange(draggingAnchor, { row: Number(this.dataset.row), col: Number(this.dataset.col) });
         });
         cell.addEventListener("dblclick", function (event) {
           event.preventDefault();
@@ -243,6 +301,7 @@
   formulaInput.addEventListener("input", handleFormulaInput);
   formulaInput.addEventListener("keydown", handleFormulaKeydown);
   document.addEventListener("keydown", handleDocumentKeydown);
+  document.addEventListener("mouseup", function () { draggingAnchor = null; });
 
   renderShellGrid();
   syncSelectionChrome(store.snapshot().selection);
