@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="toolbar">
+      <div class="brand">Sheet</div>
+      <div id="nameBox" class="name-box">A1</div>
+      <input id="formulaBar" class="formula-bar" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+      <button id="insertRow" title="Insert row above selected cell">+ Row</button>
+      <button id="deleteRow" title="Delete selected row">- Row</button>
+      <button id="insertCol" title="Insert column left of selected cell">+ Col</button>
+      <button id="deleteCol" title="Delete selected column">- Col</button>
+    </header>
+    <main id="sheetWrap" class="sheet-wrap" tabindex="0" aria-label="Spreadsheet grid">
+      <table id="grid" class="grid"></table>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
