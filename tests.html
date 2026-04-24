@@ -115,6 +115,12 @@
       assertEqual(sheet.getDisplay(3, 0), '1', 'count display');
     });
 
+    test('ROUND supports negative digit counts', () => {
+      const sheet = new window.SpreadsheetModel({ rows: 10, cols: 5, storageKey: 'test-round-negative', skipLoad: true });
+      sheet.setRaw(0, 0, '=ROUND(1234, -2)');
+      assertEqual(sheet.getDisplay(0, 0), '1200', 'round to hundreds');
+    });
+
     (async function run() {
       const failures = [];
       for (const t of tests) {

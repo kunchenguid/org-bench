@@ -294,7 +294,11 @@
       if (name === 'OR') return flat.some(truthy);
       if (name === 'NOT') return !truthy(args[0]);
       if (name === 'ABS') return Math.abs(num(args[0]));
-      if (name === 'ROUND') return Number(num(args[0]).toFixed(args[1] == null ? 0 : num(args[1])));
+      if (name === 'ROUND') {
+        const digits = args[1] == null ? 0 : num(args[1]);
+        const factor = Math.pow(10, Math.abs(digits));
+        return digits >= 0 ? Number(num(args[0]).toFixed(digits)) : Math.round(num(args[0]) / factor) * factor;
+      }
       if (name === 'CONCAT') return flat.map(textOf).join('');
       throw new Error('#NAME?');
     }
