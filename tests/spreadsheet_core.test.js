@@ -18,4 +18,16 @@ sheet.setCell(0, 0, '=B1');
 sheet.setCell(0, 1, '=A1');
 assert.strictEqual(sheet.getDisplay(0, 0), '#CIRC!');
 
+const structured = new SpreadsheetEngine(26, 100);
+structured.setCell(0, 0, '5');
+structured.setCell(1, 0, '7');
+structured.setCell(2, 1, '=SUM(A1:A2)');
+structured.insertRows(1, 1);
+assert.strictEqual(structured.getRaw(2, 0), '7');
+assert.strictEqual(structured.getRaw(3, 1), '=SUM(A1:A3)');
+assert.strictEqual(structured.getDisplay(3, 1), '12');
+structured.deleteCols(0, 1);
+assert.strictEqual(structured.getRaw(3, 0), '=SUM(#REF!:#REF!)');
+assert.strictEqual(structured.getDisplay(3, 0), '#ERR!');
+
 console.log('spreadsheet core tests passed');

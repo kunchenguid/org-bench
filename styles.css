@@ -165,6 +165,34 @@ body {
   background: #fff;
 }
 
+.context-menu {
+  position: fixed;
+  z-index: 10;
+  min-width: 170px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(23, 32, 51, .18);
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  padding: 8px 10px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: var(--header);
+}
+
 @media (max-width: 720px) {
   .toolbar {
     grid-template-columns: auto 64px 1fr;

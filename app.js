@@ -89,6 +89,26 @@
     });
   }
 
+  function adjustFormulaStructure(raw, axis, atIndex, count, mode) {
+    if (!raw || raw[0] !== '=') return raw;
+    return replaceOutsideStrings(raw, /(\$?)([A-Z]+)(\$?)(\d+)/g, function (match, absCol, colLetters, absRow, rowText) {
+      var parsed = parseRef(colLetters + rowText);
+      var nextRow = parsed.row;
+      var nextCol = parsed.col;
+      if (axis === 'row') {
+        if (mode === 'insert' && parsed.row >= atIndex) nextRow += count;
+        if (mode === 'delete' && parsed.row >= atIndex && parsed.row < atIndex + count) return '#REF!';
+        if (mode === 'delete' && parsed.row >= atIndex + count) nextRow -= count;
+      }
+      if (axis === 'col') {
+        if (mode === 'insert' && parsed.col >= atIndex) nextCol += count;
+        if (mode === 'delete' && parsed.col >= atIndex && parsed.col < atIndex + count) return '#REF!';
+        if (mode === 'delete' && parsed.col >= atIndex + count) nextCol -= count;
+      }
+      return absCol + colName(nextCol) + absRow + String(nextRow + 1);
+    });
+  }
+
   function flatten(values) {
     var out = [];
     values.forEach(function (value) {
@@ -161,6 +181,46 @@
 
   SpreadsheetEngine.prototype.getDisplay = function (row, col) {
     return displayValue(this.getValue(row, col, {}));
+  };
+
+  SpreadsheetEngine.prototype.shiftStructure = function (axis, atIndex, count, mode) {
+    var next = {};
+    var self = this;
+    Object.keys(this.cells).forEach(function (cellKey) {
+      var parts = cellKey.split(',').map(Number);
+      var row = parts[0];
+      var col = parts[1];
+      if (axis === 'row') {
+        if (mode === 'insert' && row >= atIndex) row += count;
+        if (mode === 'delete' && row >= atIndex && row < atIndex + count) return;
+        if (mode === 'delete' && row >= atIndex + count) row -= count;
+      }
+      if (axis === 'col') {
+        if (mode === 'insert' && col >= atIndex) col += count;
+        if (mode === 'delete' && col >= atIndex && col < atIndex + count) return;
+        if (mode === 'delete' && col >= atIndex + count) col -= count;
+      }
+      if (row >= 0 && row < self.rows && col >= 0 && col < self.cols) {
+        next[self.key(row, col)] = adjustFormulaStructure(self.cells[cellKey], axis, atIndex, count, mode);
+      }
+    });
+    this.cells = next;
+  };
+
+  SpreadsheetEngine.prototype.insertRows = function (atRow, count) {
+    this.shiftStructure('row', atRow, count || 1, 'insert');
+  };
+
+  SpreadsheetEngine.prototype.deleteRows = function (atRow, count) {
+    this.shiftStructure('row', atRow, count || 1, 'delete');
+  };
+
+  SpreadsheetEngine.prototype.insertCols = function (atCol, count) {
+    this.shiftStructure('col', atCol, count || 1, 'insert');
+  };
+
+  SpreadsheetEngine.prototype.deleteCols = function (atCol, count) {
+    this.shiftStructure('col', atCol, count || 1, 'delete');
   };
 
   SpreadsheetEngine.prototype.rangeValues = function (startRef, endRef, stack) {
@@ -241,6 +301,10 @@
     var redo = [];
     var dragSelecting = false;
     var internalClipboard = null;
+    var contextMenu = document.createElement('div');
+    contextMenu.className = 'context-menu';
+    contextMenu.hidden = true;
+    document.body.appendChild(contextMenu);
 
     function persist() {
       localStorage.setItem(storageKey, JSON.stringify({ sheet: engine.toJSON(), active: active }));
@@ -254,6 +318,12 @@
     }
 
     function applyChanges(changes, direction) {
+      if (changes.snapshot) {
+        engine.cells = JSON.parse(JSON.stringify(direction === 'old' ? changes.oldCells : changes.newCells));
+        renderValues();
+        persist();
+        return;
+      }
       changes.forEach(function (change) {
         engine.setCell(change.row, change.col, direction === 'old' ? change.oldRaw : change.newRaw);
       });
@@ -275,7 +345,20 @@
       persist();
     }
 
+    function mutateStructure(action) {
+      var oldCells = JSON.parse(JSON.stringify(engine.cells));
+      action();
+      var newCells = JSON.parse(JSON.stringify(engine.cells));
+      history.push({ snapshot: true, oldCells: oldCells, newCells: newCells });
+      if (history.length > MAX_HISTORY) history.shift();
+      redo = [];
+      buildGrid();
+      renderValues();
+      persist();
+    }
+
     function buildGrid() {
+      grid.innerHTML = '';
       var thead = document.createElement('thead');
       var headRow = document.createElement('tr');
       var corner = document.createElement('th');
@@ -284,6 +367,7 @@
       for (var col = 0; col < COLS; col += 1) {
         var th = document.createElement('th');
         th.textContent = colName(col);
+        th.dataset.colHeader = String(col);
         headRow.appendChild(th);
       }
       thead.appendChild(headRow);
@@ -294,6 +378,7 @@
         var rowHead = document.createElement('th');
         rowHead.className = 'row-header';
         rowHead.textContent = String(row + 1);
+        rowHead.dataset.rowHeader = String(row);
         tr.appendChild(rowHead);
         for (var c = 0; c < COLS; c += 1) {
           var td = document.createElement('td');
@@ -305,6 +390,23 @@
         tbody.appendChild(tr);
       }
       grid.appendChild(tbody);
+    }
+
+    function showContextMenu(x, y, items) {
+      contextMenu.innerHTML = '';
+      items.forEach(function (item) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = item.label;
+        button.addEventListener('click', function () {
+          contextMenu.hidden = true;
+          item.run();
+        });
+        contextMenu.appendChild(button);
+      });
+      contextMenu.style.left = x + 'px';
+      contextMenu.style.top = y + 'px';
+      contextMenu.hidden = false;
     }
 
     function getCell(row, col) {
@@ -442,6 +544,29 @@
       wrap.focus();
     });
 
+    grid.addEventListener('contextmenu', function (event) {
+      var rowHeader = event.target.closest('[data-row-header]');
+      var colHeader = event.target.closest('[data-col-header]');
+      if (!rowHeader && !colHeader) return;
+      event.preventDefault();
+      if (rowHeader) {
+        var row = Number(rowHeader.dataset.rowHeader);
+        showContextMenu(event.clientX, event.clientY, [
+          { label: 'Insert row above', run: function () { mutateStructure(function () { engine.insertRows(row, 1); }); } },
+          { label: 'Insert row below', run: function () { mutateStructure(function () { engine.insertRows(row + 1, 1); }); } },
+          { label: 'Delete row', run: function () { mutateStructure(function () { engine.deleteRows(row, 1); }); } }
+        ]);
+      }
+      if (colHeader) {
+        var col = Number(colHeader.dataset.colHeader);
+        showContextMenu(event.clientX, event.clientY, [
+          { label: 'Insert column left', run: function () { mutateStructure(function () { engine.insertCols(col, 1); }); } },
+          { label: 'Insert column right', run: function () { mutateStructure(function () { engine.insertCols(col + 1, 1); }); } },
+          { label: 'Delete column', run: function () { mutateStructure(function () { engine.deleteCols(col, 1); }); } }
+        ]);
+      }
+    });
+
     grid.addEventListener('mouseover', function (event) {
       if (!dragSelecting) return;
       var td = event.target.closest('.cell');
@@ -451,6 +576,10 @@
 
     document.addEventListener('mouseup', function () {
       dragSelecting = false;
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!contextMenu.contains(event.target)) contextMenu.hidden = true;
     });
 
     grid.addEventListener('dblclick', function (event) {
