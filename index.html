@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spreadsheet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app" aria-label="Spreadsheet">
+    <section class="toolbar">
+      <div class="brand">Sheet</div>
+      <label class="name-box" for="formula-input"><span id="cell-name">A1</span></label>
+      <input id="formula-input" class="formula" autocomplete="off" aria-label="Formula bar" spellcheck="false">
+      <div class="hint">Enter/F2 edit · Shift+arrows select · Ctrl/Cmd+C/V/Z · right-click headers</div>
+    </section>
+    <section id="grid" class="grid" tabindex="0" aria-label="Spreadsheet grid"></section>
+    <input id="cell-editor" class="cell-editor" autocomplete="off" spellcheck="false" aria-label="Cell editor">
+    <div id="context-menu" class="context-menu" hidden></div>
+  </main>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
