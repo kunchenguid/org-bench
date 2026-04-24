@@ -5,6 +5,23 @@
   <title>Spreadsheet tests</title>
 </head>
 <body>
+  <div class="app" style="position:absolute; left:-10000px; top:0; width:400px; height:200px;">
+    <header class="topbar">
+      <button id="insert-row-above" type="button">Insert Row Above</button>
+      <button id="insert-row-below" type="button">Insert Row Below</button>
+      <button id="delete-row" type="button">Delete Row</button>
+      <button id="insert-col-left" type="button">Insert Column Left</button>
+      <button id="insert-col-right" type="button">Insert Column Right</button>
+      <button id="delete-col" type="button">Delete Column</button>
+    </header>
+    <section class="formula-row">
+      <div id="name-box" class="name-box">A1</div>
+      <input id="formula-bar" class="formula-bar" aria-label="Formula bar" autocomplete="off">
+    </section>
+    <main id="viewport" class="viewport" style="height:80px; width:220px; overflow:auto;">
+      <div id="grid" class="grid"></div>
+    </main>
+  </div>
   <pre id="out">Running...</pre>
   <script src="app.js"></script>
   <script>
@@ -17,6 +34,8 @@
     function equal(actual, expected) {
       if (actual !== expected) throw new Error('expected ' + expected + ', got ' + actual);
     }
+
+    document.dispatchEvent(new Event('DOMContentLoaded'));
 
     test('evaluates arithmetic and SUM ranges', () => {
       const sheet = new SpreadsheetModel(10, 10, 'test-arithmetic');
@@ -44,6 +63,43 @@
       sheet.setCell(0, 0, '=B1');
       sheet.setCell(0, 1, '=A1');
       equal(sheet.getDisplay(0, 0), '#CIRC!');
+    });
+
+    test('keeps keyboard-selected active cell visible', () => {
+      const viewport = document.getElementById('viewport');
+      viewport.scrollTop = 0;
+      for (let i = 0; i < 40; i++) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      }
+      if (viewport.scrollTop <= 0) throw new Error('expected viewport to scroll down to active cell');
+    });
+
+    test('uses injected benchmark storage namespace aliases', () => {
+      localStorage.removeItem('run-a:cells');
+      window.__BENCHMARK_STORAGE_NAMESPACE__ = 'run-a';
+      const sheet = new SpreadsheetModel(10, 10);
+      sheet.setCell(0, 0, '=SUM(A2:A3)');
+      equal(localStorage.getItem('run-a:cells').includes('=SUM(A2:A3)'), true);
+      delete window.__BENCHMARK_STORAGE_NAMESPACE__;
+    });
+
+    test('restores cells and selected cell without cross-run collisions', () => {
+      localStorage.removeItem('run-b:cells');
+      localStorage.removeItem('run-b:ui');
+      localStorage.removeItem('run-c:cells');
+      localStorage.removeItem('run-c:ui');
+      const first = new SpreadsheetModel(10, 10, 'run-b');
+      first.setCell(2, 1, '=A1+4');
+      first.save({ row: 2, col: 1 });
+
+      const restored = new SpreadsheetModel(10, 10, 'run-b');
+      equal(restored.getCell(2, 1), '=A1+4');
+      equal(restored.loadUi().row, 2);
+      equal(restored.loadUi().col, 1);
+
+      const isolated = new SpreadsheetModel(10, 10, 'run-c');
+      equal(isolated.getCell(2, 1), '');
+      equal(isolated.loadUi().row, undefined);
     });
 
     if (failures.length) {

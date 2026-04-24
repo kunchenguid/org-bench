@@ -6,8 +6,14 @@
   const ERROR = Object.freeze({ err: '#ERR!', div: '#DIV/0!', ref: '#REF!', circ: '#CIRC!' });
 
   function storagePrefix(namespace) {
-    const injected = window.SPREADSHEET_STORAGE_NAMESPACE || window.__SPREADSHEET_STORAGE_NAMESPACE__ || '';
-    return String(namespace || injected || 'facebook-sheet') + ':';
+    const injected = window.SPREADSHEET_STORAGE_NAMESPACE ||
+      window.__SPREADSHEET_STORAGE_NAMESPACE__ ||
+      window.BENCHMARK_STORAGE_NAMESPACE ||
+      window.__BENCHMARK_STORAGE_NAMESPACE__ ||
+      window.RUN_STORAGE_NAMESPACE ||
+      window.__RUN_STORAGE_NAMESPACE__ ||
+      '';
+    return String(namespace || injected || 'facebook-sheet').replace(/:+$/, '') + ':';
   }
   function colName(col) {
     let n = col + 1;
@@ -448,6 +454,7 @@
       this.selection = { r1: Math.min(this.anchor.row, row), c1: Math.min(this.anchor.col, col), r2: Math.max(this.anchor.row, row), c2: Math.max(this.anchor.col, col) };
       this.model.save(this.active);
       this.refresh();
+      this.scrollActiveIntoView();
     }
     extend(row, col) { this.select(row, col, true); }
     move(dr, dc, extend) { this.select(this.active.row + dr, this.active.col + dc, extend); }
@@ -527,6 +534,22 @@
       });
       this.grid.querySelectorAll('.col-head').forEach(el => el.classList.toggle('active', Number(el.dataset.index) === this.active.col));
       this.grid.querySelectorAll('.row-head').forEach(el => el.classList.toggle('active', Number(el.dataset.index) === this.active.row));
+    }
+    scrollActiveIntoView() {
+      const el = this.getCellEl(this.active.row, this.active.col);
+      if (!el || !this.viewport) return;
+      const cellWidth = el.offsetWidth || 110;
+      const cellHeight = el.offsetHeight || 26;
+      const rowHeaderWidth = 52;
+      const headerHeight = 26;
+      const left = rowHeaderWidth + this.active.col * cellWidth;
+      const right = left + cellWidth;
+      const top = headerHeight + this.active.row * cellHeight;
+      const bottom = top + cellHeight;
+      if (left < this.viewport.scrollLeft) this.viewport.scrollLeft = left;
+      else if (right > this.viewport.scrollLeft + this.viewport.clientWidth) this.viewport.scrollLeft = right - this.viewport.clientWidth;
+      if (top < this.viewport.scrollTop) this.viewport.scrollTop = top;
+      else if (bottom > this.viewport.scrollTop + this.viewport.clientHeight) this.viewport.scrollTop = bottom - this.viewport.clientHeight;
     }
     getCellEl(row, col) { return this.grid.querySelector('.cell[data-row="' + row + '"][data-col="' + col + '"]'); }
   }
