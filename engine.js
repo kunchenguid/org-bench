@@ -323,7 +323,24 @@
     });
   }
 
-  const api = { SpreadsheetEngine, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula };
+  function getPasteOrigin(active, selection, rows, cols) {
+    const selectedRows = selection.r2 - selection.r1 + 1;
+    const selectedCols = selection.c2 - selection.c1 + 1;
+    if (selectedRows === rows && selectedCols === cols) return { row: selection.r1, col: selection.c1 };
+    return { row: active.row, col: active.col };
+  }
+
+  function adjustFormulaBlock(data, fromA1, toA1) {
+    const from = parseRef(fromA1);
+    const to = parseRef(toA1);
+    if (!from || !to) return data.map((row) => row.slice());
+    return data.map((row, r) => row.map((raw, c) => {
+      if (!raw || raw[0] !== '=') return raw;
+      return adjustFormula(raw, coordToA1(from.row + r, from.col + c), coordToA1(to.row + r, to.col + c));
+    }));
+  }
+
+  const api = { SpreadsheetEngine, colToIndex, indexToCol, parseRef, coordToA1, adjustFormula, getPasteOrigin, adjustFormulaBlock };
   root.SpreadsheetEngine = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

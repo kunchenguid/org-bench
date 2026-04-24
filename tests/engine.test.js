@@ -46,6 +46,20 @@ test('adjusts relative references when copying formulas', () => {
   assert.strictEqual(sheet.getRaw('B2'), '=A2+$A$1');
 });
 
+test('uses selected range top-left for matching paste sizes', () => {
+  const single = Engine.getPasteOrigin({ row: 4, col: 3 }, { r1: 4, c1: 3, r2: 4, c2: 3 }, 2, 2);
+  assert.deepStrictEqual(single, { row: 4, col: 3 });
+
+  const matching = Engine.getPasteOrigin({ row: 6, col: 5 }, { r1: 4, c1: 3, r2: 5, c2: 4 }, 2, 2);
+  assert.deepStrictEqual(matching, { row: 4, col: 3 });
+});
+
+test('adjusts formulas across pasted blocks from each source cell', () => {
+  const data = [['=A1', '=B1'], ['=$A2', '=SUM(A1:B2)']];
+  const adjusted = Engine.adjustFormulaBlock(data, 'A1', 'C3');
+  assert.deepStrictEqual(adjusted, [['=C3', '=D3'], ['=$A4', '=SUM(C3:D4)']]);
+});
+
 test('detects circular references without crashing', () => {
   const sheet = makeEngine();
   sheet.setCell('A1', '=A2');

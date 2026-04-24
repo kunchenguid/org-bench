@@ -176,13 +176,14 @@
     const before = snapshot();
     const rows = data.length;
     const cols = data[0] ? data[0].length : 0;
+    const origin = Engine.getPasteOrigin(active, selection, rows, cols);
+    const adjusted = clipboard ? Engine.adjustFormulaBlock(data, key(clipboard.r1, clipboard.c1), key(origin.row, origin.col)) : data;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const tr = active.row + r;
-        const tc = active.col + c;
+        const tr = origin.row + r;
+        const tc = origin.col + c;
         if (tr < ROWS && tc < COLS) {
-          let raw = data[r][c];
-          if (raw && raw[0] === '=' && clipboard) raw = Engine.adjustFormula(raw, key(clipboard.r1 + r, clipboard.c1 + c), key(tr, tc));
+          const raw = adjusted[r][c];
           sheet.setCell(key(tr, tc), raw || '');
         }
       }
